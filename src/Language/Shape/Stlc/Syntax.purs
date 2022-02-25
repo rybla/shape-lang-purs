@@ -68,7 +68,7 @@ type TypeWeakening = List.List TypeId
 
 -- Metadata
 
-data TermName = VariableName String | PrincipleName TypeName (List.List Constructor)
+data TermName = TermName String
 data TypeName = TypeName String
 
 -- Instances
