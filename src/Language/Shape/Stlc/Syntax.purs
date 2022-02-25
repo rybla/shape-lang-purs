@@ -27,7 +27,7 @@ data Block
 data Buffer = Buffer NeutralTerm
 
 data BaseType
-  = DataType TypeReference
+  = DataType TypeId
   | HoleType HoleId TypeWeakening
 
 data Term
@@ -40,12 +40,6 @@ data NeutralTerm
 
 -- unique
 newtype TermId = TermId Int
-
---  UniqueTypeBinding, TypeReference, TypeName, TypeId
-data UniqueTypeBinding
-  = UniqueTypeBinding TypeName TypeId
-
-data TypeReference = TypeReference TypeId
 
 -- unique
 newtype TypeId = TypeId Int
@@ -61,6 +55,9 @@ freshTermId = undefined
 
 freshTypeId :: Unit -> TypeId
 freshTypeId = undefined
+
+freshHoleId :: Unit -> HoleId
+freshHoleId = undefined
 
 -- Weakening
 type TypeWeakening = List.List TypeName
@@ -84,8 +81,6 @@ derive instance Generic Term _
 derive instance Generic NeutralTerm _
 derive instance Generic TermName _
 derive instance Generic TermId _
-derive instance Generic UniqueTypeBinding _
-derive instance Generic TypeReference _
 derive instance Generic TypeName _
 derive instance Generic TypeId _
 derive instance Generic HoleId _
@@ -102,15 +97,13 @@ instance Show Term where show x = genericShow x
 instance Show NeutralTerm where show x = genericShow x
 instance Show TermName where show x = genericShow x
 instance Show TermId where show x = genericShow x
-instance Show UniqueTypeBinding where show x = genericShow x
-instance Show TypeReference where show x = genericShow x
 instance Show TypeName where show x = genericShow x
 instance Show TypeId where show x = genericShow x
 instance Show HoleId where show x = genericShow x
 
 -- Eq/Ord
-derive instance Eq TermName
-derive instance Ord TermName
+-- derive instance Eq TermName
+-- derive instance Ord TermName
 
 derive instance Eq TermId
 derive instance Ord TermId

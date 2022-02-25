@@ -16,12 +16,14 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 
-import Data.List (List, (!!))
-import Data.Map (Map)
+import Control.Monad.List.Trans (filter)
+import Data.List (List(..), (!!))
+import Data.Map (Map, lookup)
 import Data.Map as Map
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial (crashWith)
 import Partial.Unsafe (unsafePartial)
+import Prim.Boolean (True)
 import Undefined (undefined)
 
 data TypeChange = TypeReplace Type | NoChange
@@ -74,21 +76,26 @@ searchBaseType :: Changes -> BaseType -> BaseType
 searchBaseType gamma (DataType x) = case lookup x (snd gamma) of
   Nothing -> DataType x
   Just dc -> case dc of
-    DataTypeDeletion -> HoleType (freshTypeId ()) []
+    DataTypeDeletion -> HoleType (freshHoleId unit) Nil
 searchBaseType gamma (HoleType sym syms)
-  = HoleType sym (filter (deleted gamma) syms) -- remove deleted datatypes from list of weakenings
-{-
+  -- = HoleType sym (filter (deleted gamma) ?h ) -- remove deleted datatypes from list of weakenings
+  = HoleType sym (filter (deleted gamma) ?h ) -- remove deleted datatypes from list of weakenings
 
-deleted :: Changes -> Id -> Bool
-deleted (_ , tc) x = case lookup x tc of
-  Just DataTypeDeletion -> True 
-  _ -> False
+deleted :: Changes -> TypeId -> Boolean
+deleted (Tuple _ tc) x = case lookup x tc of
+  Just DataTypeDeletion -> true 
+  _ -> false
 
-chArgs :: Changes -> [InputChange] -> [Term] -> [Term]
+chArgs :: Changes -> (List InputChange) -> (List Term) -> (List Term)
 chArgs gamma c args = map mapper c
   where mapper :: InputChange -> Term
         mapper (Change tc n) = searchTerm gamma $ chTerm gamma tc (args !! n)
         mapper (Insert t) = newTerm t
+
+searchTerm = undefined
+chTerm = undefined
+newTerm = undefined
+{-
 
 newTerm :: Type -> Term
 newTerm (ArrowType args out)
