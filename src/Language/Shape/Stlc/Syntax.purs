@@ -11,34 +11,34 @@ import Data.List (List)
 import Data.List as List
 import Data.Show.Generic (genericShow)
 
-data Module = Module (List.List Definition)
+data Module = Module (List Definition)
 
 data Definition
   = TermDefinition TermName TermId Type Term
-  | DataDefinition TypeName TypeId (List.List Constructor)
+  | DataDefinition TypeName TypeId (List Constructor)
 
 data Constructor
-  = Constructor TermName TermId (Tuple TermName TermId)
+  = Constructor TermName TermId (List (Tuple TermName TermId))
 
 data Type
-  = ArrowType (List.List (Tuple TermName Type)) BaseType
+  = ArrowType (List (Tuple TermName Type)) BaseType
   | BaseType BaseType
 
 data Block
-  = Block (List.List Definition) (List.List NeutralTerm) NeutralTerm
+  = Block (List Definition) (List NeutralTerm) NeutralTerm
 
 data BaseType
   = DataType TypeId
   | HoleType HoleId TypeWeakening
 
 data Term
-  = LambdaTerm (List.List TermId) Block -- the TermIds are specified in its `ArrowType`
+  = LambdaTerm (List TermId) Block -- the TermIds are specified in its `ArrowType`
   | NeutralTerm NeutralTerm
 
 data Case = Case (List Term) Block
 
 data NeutralTerm
-  = ApplicationTerm TermId (List.List Term)
+  = ApplicationTerm TermId (List Term)
   | MatchTerm TypeId BaseType (List Case)
   | HoleTerm
 
@@ -64,7 +64,7 @@ freshHoleId :: Unit -> HoleId
 freshHoleId = undefined
 
 -- Weakening
-type TypeWeakening = List.List TypeId
+type TypeWeakening = List TypeId
 
 -- Metadata
 
