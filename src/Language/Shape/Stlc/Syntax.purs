@@ -40,7 +40,7 @@ data Case = Case (List Term) Block
 data NeutralTerm
   = ApplicationTerm TermId (List.List Term)
   | MatchTerm TypeId BaseType (List Case)
-  | HoleTerm HoleId
+  | HoleTerm
 
 -- unique
 newtype TermId = TermId Int
