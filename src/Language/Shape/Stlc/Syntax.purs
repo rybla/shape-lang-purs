@@ -105,16 +105,8 @@ instance Show TypeName where show x = genericShow x
 instance Show TypeId where show x = genericShow x
 instance Show HoleId where show x = genericShow x
 
-instance Eq TermName where 
-  eq (VariableName name1) (VariableName name2) = name1 == name2 
-  eq (PrincipleName name1 _) (PrincipleName name2 _) = name1 == name2 
-  eq _ _ = false
-
-instance Ord TermName where
-  compare (VariableName name1) (VariableName name2) = compare name1 name2
-  compare (PrincipleName name1 _) (PrincipleName name2 _) = compare name1 name2
-  compare (VariableName _) (PrincipleName _ _) = LT
-  compare (PrincipleName _ _) (VariableName _) = GT
+derive instance Eq TermName
+derive instance Ord TermName
 
 derive instance Eq TypeName
 derive instance Ord TypeName
