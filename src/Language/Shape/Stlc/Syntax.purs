@@ -16,10 +16,10 @@ data Definition
 
 
 data Constructor
-  = Constructor TermName TermId (List.List Parameter)
+  = Constructor TermName TermId (Tuple TermName TermId)
 
 data Type
-  = ArrowType (List.List Parameter) BaseType
+  = ArrowType (List.List (Tuple TermName TermId)) BaseType
   | BaseType BaseType
 
 data Block
@@ -38,15 +38,6 @@ data Term
 data NeutralTerm
   = ApplicationTerm TermId (List.List Term)
   | HoleTerm HoleId
-
--- Parameter, TermBinding, UniqueTermBinding
--- A `Parameter` appears where the type of a function specifies the `TermLabel` of a `Parameter` and its `Type`, as in `ArrowType` or `Constructor`. No `TermId` is specified since this is not an instance of the `TermLabel` as a term. The same `Parameter`'s `TermLabel` could be instantiated multiple times, such as in distinct `LambdaTerm`s and `MatchTerm` cases.
-data Parameter = Parameter TermLabel Type
-
-data TermLabel = TermLabel TermName
-
--- TermReference, TermLabel, TermName, TermId
--- A `TermBinding` appears where an instance of a `TermName` is bound, as in `LambdaTerm` and `Case`. The `TermName` that is bound is contextually determined, by a `ArrowType` and `Constructor` respectively.
 
 -- not necessarily unique
 data TermName = VariableName String | PrincipleName String
@@ -87,8 +78,6 @@ derive instance Generic Type _
 derive instance Generic BaseType _
 derive instance Generic Term _
 derive instance Generic NeutralTerm _
-derive instance Generic Parameter _
-derive instance Generic TermLabel _
 derive instance Generic TermName _
 derive instance Generic TermId _
 derive instance Generic UniqueTypeBinding _
@@ -107,8 +96,6 @@ instance Show Buffer where show x = genericShow x
 instance Show BaseType where show x = genericShow x
 instance Show Term where show x = genericShow x
 instance Show NeutralTerm where show x = genericShow x
-instance Show Parameter where show x = genericShow x
-instance Show TermLabel where show x = genericShow x
 instance Show TermName where show x = genericShow x
 instance Show TermId where show x = genericShow x
 instance Show UniqueTypeBinding where show x = genericShow x
