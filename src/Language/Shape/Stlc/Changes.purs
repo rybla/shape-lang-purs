@@ -92,13 +92,12 @@ chArgs gamma c args = map mapper c
 
 searchTerm = undefined
 chTerm = undefined
-newTerm = undefined
-{-
 
 newTerm :: Type -> Term
 newTerm (ArrowType args out)
-  = LambdaTerm (map (\_ -> newSymbol ()) args) (Block [] [] HoleTerm)
+  = LambdaTerm (map (\_ -> ?h ) args) (Block Nil Nil HoleTerm)
 newTerm (BaseType bt) = NeutralTerm HoleTerm
+{-
 
 searchArgs :: Changes -> [Term] -> [Term]
 searchArgs gamma = map (searchTerm gamma)
