@@ -11,12 +11,12 @@ import Data.Show.Generic (genericShow)
 data Module = Module (List.List Definition)
 
 data Definition
-  = TermDefinition UniqueTermBinding Type Term
-  | DataDefinition UniqueTypeBinding (List.List Constructor)
+  = TermDefinition TermName TermId Type Term
+  | DataDefinition TypeName TypeId TermId (List.List Constructor)
 
 
 data Constructor
-  = Constructor UniqueTermBinding (List.List Parameter)
+  = Constructor TermName TermId (List.List Parameter)
 
 data Type
   = ArrowType (List.List Parameter) BaseType
@@ -32,11 +32,11 @@ data BaseType
   | HoleType HoleId TypeWeakening
 
 data Term
-  = LambdaTerm (List.List TermBinding) Block -- the TermIds are specified in its `ArrowType`
+  = LambdaTerm (List.List TermId) Block -- the TermIds are specified in its `ArrowType`
   | NeutralTerm NeutralTerm
 
 data NeutralTerm
-  = ApplicationTerm TermReference (List.List Term)
+  = ApplicationTerm TermId (List.List Term)
   | HoleTerm HoleId
 
 -- Parameter, TermBinding, UniqueTermBinding
@@ -47,12 +47,6 @@ data TermLabel = TermLabel TermName
 
 -- TermReference, TermLabel, TermName, TermId
 -- A `TermBinding` appears where an instance of a `TermName` is bound, as in `LambdaTerm` and `Case`. The `TermName` that is bound is contextually determined, by a `ArrowType` and `Constructor` respectively.
-data TermBinding = TermBinding TermId
-
--- A `UniqueTermBinding` appears where a `TermName` is introduced and a unique instance of that `TermName` is bound at once.
-data UniqueTermBinding = UniqueTermBinding TermName TermId
-
-data TermReference = TermReference TermId
 
 -- not necessarily unique
 data TermName = VariableName String | PrincipleName String
@@ -95,9 +89,6 @@ derive instance Generic Term _
 derive instance Generic NeutralTerm _
 derive instance Generic Parameter _
 derive instance Generic TermLabel _
-derive instance Generic UniqueTermBinding _
-derive instance Generic TermBinding _
-derive instance Generic TermReference _
 derive instance Generic TermName _
 derive instance Generic TermId _
 derive instance Generic UniqueTypeBinding _
@@ -118,9 +109,6 @@ instance Show Term where show x = genericShow x
 instance Show NeutralTerm where show x = genericShow x
 instance Show Parameter where show x = genericShow x
 instance Show TermLabel where show x = genericShow x
-instance Show UniqueTermBinding where show x = genericShow x
-instance Show TermBinding where show x = genericShow x
-instance Show TermReference where show x = genericShow x
 instance Show TermName where show x = genericShow x
 instance Show TermId where show x = genericShow x
 instance Show UniqueTypeBinding where show x = genericShow x
