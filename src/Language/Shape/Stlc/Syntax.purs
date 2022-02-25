@@ -38,9 +38,6 @@ data NeutralTerm
   = ApplicationTerm TermId (List.List Term)
   | HoleTerm HoleId
 
--- not necessarily unique
-data TermName = VariableName String | PrincipleName String
-
 -- unique
 newtype TermId = TermId Int
 
@@ -49,9 +46,6 @@ data UniqueTypeBinding
   = UniqueTypeBinding TypeName TypeId
 
 data TypeReference = TypeReference TypeId
-
--- not necessarily unique
-newtype TypeName = TypeName String
 
 -- unique
 newtype TypeId = TypeId Int
@@ -62,8 +56,13 @@ newtype HoleId = HoleId Int
 freshHoleTerm :: Unit -> Term
 freshHoleTerm = undefined
 
--- Weakening & Substitution
+-- Weakening
 type TypeWeakening = List.List TypeName
+
+-- Metadata
+
+data TermName = VariableName String | PrincipleName TypeName (List.List Constructor)
+data TypeName = TypeName String
 
 -- Instances
 
