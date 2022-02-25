@@ -62,7 +62,7 @@ freshHoleId :: Unit -> HoleId
 freshHoleId = undefined
 
 -- Weakening
-type TypeWeakening = List.List TypeName
+type TypeWeakening = List.List TypeId
 
 -- Metadata
 
