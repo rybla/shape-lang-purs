@@ -11,34 +11,34 @@ import Data.List (List)
 import Data.List as List
 import Data.Show.Generic (genericShow)
 
-data Module = Module (List.List Definition)
+data Module = Module (List Definition)
 
 data Definition
   = TermDefinition TermName TermId Type Term
-  | DataDefinition TypeName TypeId (List.List Constructor)
+  | DataDefinition TypeName TypeId (List Constructor)
 
 data Constructor
-  = Constructor TermName TermId (Tuple TermName TermId)
+  = Constructor TermName TermId (List (Tuple TermName Type))
 
 data Type
-  = ArrowType (List.List (Tuple TermName Type)) BaseType
+  = ArrowType (List (Tuple TermName Type)) BaseType
   | BaseType BaseType
 
 data Block
-  = Block (List.List Definition) (List.List NeutralTerm) NeutralTerm
+  = Block (List Definition) (List NeutralTerm) NeutralTerm
 
 data BaseType
   = DataType TypeId
   | HoleType HoleId TypeWeakening
 
 data Term
-  = LambdaTerm (List.List TermId) Block -- the TermIds are specified in its `ArrowType`
+  = LambdaTerm (List TermId) Block -- the TermIds are specified in its `ArrowType`
   | NeutralTerm NeutralTerm
 
 data Case = Case (List Term) Block
 
 data NeutralTerm
-  = ApplicationTerm TermId (List.List Term)
+  = ApplicationTerm TermId (List Term)
   | MatchTerm TypeId BaseType (List Case)
   | HoleTerm
 
@@ -64,7 +64,7 @@ freshHoleId :: Unit -> HoleId
 freshHoleId = undefined
 
 -- Weakening
-type TypeWeakening = List.List TypeId
+type TypeWeakening = List TypeId
 
 -- Metadata
 
@@ -105,16 +105,8 @@ instance Show TypeName where show x = genericShow x
 instance Show TypeId where show x = genericShow x
 instance Show HoleId where show x = genericShow x
 
-instance Eq TermName where 
-  eq (VariableName name1) (VariableName name2) = name1 == name2 
-  eq (PrincipleName name1 _) (PrincipleName name2 _) = name1 == name2 
-  eq _ _ = false
-
-instance Ord TermName where
-  compare (VariableName name1) (VariableName name2) = compare name1 name2
-  compare (PrincipleName name1 _) (PrincipleName name2 _) = compare name1 name2
-  compare (VariableName _) (PrincipleName _ _) = LT
-  compare (PrincipleName _ _) (VariableName _) = GT
+derive instance Eq TermName
+derive instance Ord TermName
 
 derive instance Eq TypeName
 derive instance Ord TypeName
