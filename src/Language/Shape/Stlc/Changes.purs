@@ -64,7 +64,7 @@ chType gamma c t =
                 _ -> error "shouldn't happen"
               mapper :: InputChange -> Tuple TermName Type
               mapper (Change tc n) = Tuple (fst $ as !!! n) (chTypeImpl tc (snd $ as !!! n))
-              mapper (Insert t) = Tuple (VariableName "_") t
+              mapper (Insert t) = Tuple (TermName "_") t
       chTypeImpl (ArrowChange _ _) (BaseType bt) = error "Can't ArrowChange a base type"
   in searchType gamma (chTypeImpl c t)
 
@@ -121,8 +121,6 @@ searchTerm :: Changes -> Term -> Term
 searchTerm gamma (LambdaTerm syms bl) = LambdaTerm syms (searchBlock gamma bl)
 searchTerm gamma (NeutralTerm t) = NeutralTerm (searchNeutral gamma t)
 
-searchBlock = undefined
-
 listAcc :: forall a . (List (Either a (List a))) -> (List a)
 listAcc Nil = Nil
 listAcc (Cons (Left a) es) = Cons a (listAcc es)
@@ -169,10 +167,10 @@ searchBlock gamma (Block defs buffer t)
     (map (searchNeutral gamma) buffer) (searchNeutral gamma t)
 
 searchDefinition :: Changes -> Definition -> Definition
-searchDefinition gamma (TermDefinition x ty t)
-  = TermDefinition x (searchType gamma ty) (searchTerm gamma t)
-searchDefinition gamma (DataDefinition name typeId indId ctrs)
-  = DataDefinition name typeId indId (map (searchConstructor gamma) ctrs)
+searchDefinition gamma (TermDefinition name x ty t)
+  = TermDefinition name x (searchType gamma ty) (searchTerm gamma t)
+searchDefinition gamma (DataDefinition name typeId ctrs)
+  = DataDefinition name typeId (map (searchConstructor gamma) ctrs)
 
 searchConstructor :: Changes -> Constructor -> Constructor
 searchConstructor gamma (Constructor name x args)
