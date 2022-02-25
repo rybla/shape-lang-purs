@@ -117,48 +117,46 @@ chTerm gamma (ArrowChange ics tc) (LambdaTerm syms bl)
         newChanges = unions (map changeMapper ics)
 chTerm gamma (ArrowChange ics tc) _ = error "only a lambda should be an arrow type"
 
-chBlock = undefined
-
 searchTerm :: Changes -> Term -> Term
 searchTerm gamma (LambdaTerm syms bl) = LambdaTerm syms (searchBlock gamma bl)
 searchTerm gamma (NeutralTerm t) = NeutralTerm (searchNeutral gamma t)
 
 searchBlock = undefined
-searchNeutral = undefined
 
 listAcc :: forall a . (List (Either a (List a))) -> (List a)
 listAcc Nil = Nil
 listAcc (Cons (Left a) es) = Cons a (listAcc es)
 listAcc (Cons (Right as) es) = as <> listAcc es
-{-
 
 -- Returns either new term or the term was deleted
 searchNeutral :: Changes -> NeutralTerm -> NeutralTerm
-searchNeutral gamma (Neutral x args) = case lookup x (fst gamma) of
-  Nothing -> Neutral x (searchArgs gamma args)
+searchNeutral gamma (ApplicationTerm x args) = case lookup x (fst gamma) of
+  Nothing -> ApplicationTerm x (searchArgs gamma args)
   Just ch -> case ch of
     VariableDeletion -> HoleTerm
     VariableTypeChange tc -> case tc of
-      NoChange -> Neutral x (searchArgs gamma args)
+      NoChange -> ApplicationTerm x (searchArgs gamma args)
       (TypeReplace ty) -> case ty of
-        (ArrowType ins out) -> Neutral x (map (newTerm . snd) ins)
+        (ArrowType ins out) -> ApplicationTerm x (map (newTerm <<< snd) ins)
         (BaseType bt) -> HoleTerm
       (ArrowChange ics outc) ->
-        let newArgs = map (\case
-              Change c n -> chTerm gamma c (args !! n)
+        let newArgs = map (case _ of
+              Change c n -> chTerm gamma c (args !!! n)
               (Insert t) -> newTerm t) ics
         in case outc of
-          TypeReplace ty -> Neutral x newArgs
+          TypeReplace ty -> ApplicationTerm x newArgs
           _ -> HoleTerm
 searchNeutral gamma HoleTerm = HoleTerm
+searchNeutral gamma (MatchTerm _ _ _) = undefined -- TODO
 
 -- chNeutral gamma (MatchTerm sym te cas) = _wF gamma
 -- TODO: create BaseTypeChange which is what applies to Neutrals as they have BaseType.
 chNeutral :: Changes -> TypeChange -> NeutralTerm -> NeutralTerm
-chNeutral gamma (TypeReplace ty) (Neutral sym tes) = HoleTerm
-chNeutral gamma NoChange (Neutral sym tes) = searchNeutral gamma (Neutral sym tes)
-chNeutral gamma (ArrowChange ics tc) (Neutral sym tes) = error "shouldn't happen, neutral is only of base type"
+chNeutral gamma (TypeReplace ty) (ApplicationTerm sym tes) = HoleTerm
+chNeutral gamma NoChange (ApplicationTerm sym tes) = searchNeutral gamma (ApplicationTerm sym tes)
+chNeutral gamma (ArrowChange ics tc) (ApplicationTerm sym tes) = error "shouldn't happen, neutral is only of base type"
 chNeutral gamma c HoleTerm = HoleTerm
+chNeutral gamma c (MatchTerm _ _ _) = undefined
 
 chBlock :: Changes -> TypeChange -> Block -> Block
 chBlock gamma c (Block defs buffer t)
@@ -177,8 +175,9 @@ searchDefinition gamma (DataDefinition name typeId indId ctrs)
   = DataDefinition name typeId indId (map (searchConstructor gamma) ctrs)
 
 searchConstructor :: Changes -> Constructor -> Constructor
-searchConstructor gamma (Constructor x args)
-  = Constructor x (map (\(x,t) -> (x, searchType gamma t)) args)
+searchConstructor gamma (Constructor name x args)
+  = Constructor name x (map (\(Tuple x t) -> (Tuple x (searchType gamma t))) args)
+{-
 
 -- TODO: why am I calling it gamma?
 -- TODO: how does moving stuff from block into hole work?
