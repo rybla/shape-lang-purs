@@ -1,4 +1,13 @@
-module Language.Shape.Stlc.Model where
+module Language.Shape.Stlc.Model
+  ( Changes
+  , DataChange(..)
+  , InputChange(..)
+  , TypeChange(..)
+  , VarChange(..)
+  , chType
+  , searchType
+  )
+  where
 
 
 import Data.Maybe
@@ -7,12 +16,13 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 
-import Data.List (List)
+import Data.List (List, (!!))
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple(..), fst, snd)
 import Partial (crashWith)
 import Partial.Unsafe (unsafePartial)
+import Undefined (undefined)
 
 data TypeChange = TypeReplace Type | NoChange
   | ArrowChange (List InputChange) TypeChange
@@ -30,6 +40,13 @@ data DataChange = DataTypeDeletion
 
 type Changes = Tuple (Map TermId VarChange) (Map TypeId DataChange)
 
+saneIndex :: forall a . List a -> Int -> a
+saneIndex l i = unsafePartial $ fromJust (l !! i)
+
+error :: forall a . String -> a
+error s = unsafePartial (crashWith s)
+
+infixr 5 saneIndex as !!!
 
 chType :: Changes -> TypeChange -> Type -> Type
 chType gamma c t =
@@ -41,18 +58,16 @@ chType gamma c t =
         where bNew = case out of
                 TypeReplace (BaseType t) -> t
                 NoChange -> b
-                _ -> unsafePartial <<< crashWith "shouldn't happen"
-              mapper :: InputChange -> Tuple Name Type
-              mapper (Change tc n) = Tuple (fst $ as !! n) (chTypeImpl tc (snd $ as !! n))
-              mapper (Insert t) = Tuple "_" t
+                _ -> error "shouldn't happen"
+              mapper :: InputChange -> Tuple TermName Type
+              mapper (Change tc n) = Tuple (fst $ as !!! n) (chTypeImpl tc (snd $ as !!! n))
+              mapper (Insert t) = Tuple (VariableName "_") t
       chTypeImpl (ArrowChange _ _) (BaseType bt) = error "Can't ArrowChange a base type"
   in searchType gamma (chTypeImpl c t)
 
-{-
-
 searchType :: Changes -> Type -> Type
 searchType gamma (ArrowType ins out)
-  = ArrowType (map (\(x,t) -> (x, searchType gamma t)) ins) (searchBaseType gamma out)
+  = ArrowType (map (\(Tuple x t) -> (Tuple x (searchType gamma t))) ins) (searchBaseType gamma out)
 searchType gamma (BaseType bt) = BaseType (searchBaseType gamma bt)
 
 searchBaseType :: Changes -> BaseType -> BaseType
@@ -62,6 +77,7 @@ searchBaseType gamma (DataType x) = case lookup x (snd gamma) of
     DataTypeDeletion -> HoleType (newSymbol ()) []
 searchBaseType gamma (HoleType sym syms)
   = HoleType sym (filter (deleted gamma) syms) -- remove deleted datatypes from list of weakenings
+{-
 
 deleted :: Changes -> Id -> Bool
 deleted (_ , tc) x = case lookup x tc of

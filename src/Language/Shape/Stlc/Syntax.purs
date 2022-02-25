@@ -18,7 +18,7 @@ data Constructor
   = Constructor TermName TermId (Tuple TermName TermId)
 
 data Type
-  = ArrowType (List.List (Tuple TermName TermId)) BaseType
+  = ArrowType (List.List (Tuple TermName Type)) BaseType
   | BaseType BaseType
 
 data Block
