@@ -74,7 +74,7 @@ searchBaseType :: Changes -> BaseType -> BaseType
 searchBaseType gamma (DataType x) = case lookup x (snd gamma) of
   Nothing -> DataType x
   Just dc -> case dc of
-    DataTypeDeletion -> HoleType (newSymbol ()) []
+    DataTypeDeletion -> HoleType (freshTypeId ()) []
 searchBaseType gamma (HoleType sym syms)
   = HoleType sym (filter (deleted gamma) syms) -- remove deleted datatypes from list of weakenings
 {-

@@ -56,6 +56,12 @@ newtype HoleId = HoleId Int
 freshHoleTerm :: Unit -> Term
 freshHoleTerm = undefined
 
+freshTermId :: Unit -> TermId
+freshTermId = undefined
+
+freshTypeId :: Unit -> TypeId
+freshTypeId = undefined
+
 -- Weakening
 type TypeWeakening = List.List TypeName
 
