@@ -1,12 +1,14 @@
 module Language.Shape.Stlc.Syntax where
 
+import Data.Tuple
 import Prelude
 import Prim hiding (Type)
-import Data.Tuple
-import Data.List as List
 import Undefined
+
 import Data.Generic.Rep (class Generic)
+import Data.List as List
 import Data.Show.Generic (genericShow)
+import Data.Boolean as Boolean
 
 data Module = Module (List.List Definition)
 
@@ -108,9 +110,19 @@ instance Show TypeName where show x = genericShow x
 instance Show TypeId where show x = genericShow x
 instance Show HoleId where show x = genericShow x
 
--- Eq/Ord
-derive instance Eq TermName
-derive instance Ord TermName
+instance Eq TermName where 
+  eq (VariableName name1) (VariableName name2) = name1 == name2 
+  eq (PrincipleName name1 _) (PrincipleName name2 _) = name1 == name2 
+  eq _ _ = false
+
+instance Ord TermName where
+  compare (VariableName name1) (VariableName name2) = compare name1 name2
+  compare (PrincipleName name1 _) (PrincipleName name2 _) = compare name1 name2
+  compare (VariableName _) (PrincipleName _ _) = LT
+  compare (PrincipleName _ _) (VariableName _) = GT
+
+derive instance Eq TypeName
+derive instance Ord TypeName
 
 derive instance Eq TermId
 derive instance Ord TermId
