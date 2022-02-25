@@ -16,8 +16,10 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 
+import Data.Either (Either(..))
 import Data.List (List(..), (!!), filter)
-import Data.Map (Map, lookup)
+import Data.List.Lazy as List
+import Data.Map (Map, empty, lookup, unionWith, unions, singleton)
 import Data.Map as Map
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial (crashWith)
@@ -87,19 +89,15 @@ deleted (Tuple _ tc) x = case lookup x tc of
 chArgs :: Changes -> (List InputChange) -> (List Term) -> (List Term)
 chArgs gamma c args = map mapper c
   where mapper :: InputChange -> Term
-        mapper (Change tc n) = searchTerm gamma $ chTerm gamma tc (args !! n)
+        mapper (Change tc n) = searchTerm gamma $ chTerm gamma tc (args !!! n)
         mapper (Insert t) = newTerm t
-
-searchTerm = undefined
-chTerm = undefined
 
 newTerm :: Type -> Term
 newTerm (ArrowType args out)
-  = LambdaTerm (map (\_ -> ?h ) args) (Block Nil Nil HoleTerm)
+  = LambdaTerm (map (\_ -> freshTermId unit) args) (Block Nil Nil HoleTerm)
 newTerm (BaseType bt) = NeutralTerm HoleTerm
-{-
 
-searchArgs :: Changes -> [Term] -> [Term]
+searchArgs :: Changes -> (List Term) -> (List Term)
 searchArgs gamma = map (searchTerm gamma)
 
 chTerm :: Changes -> TypeChange -> Term -> Term
@@ -108,25 +106,31 @@ chTerm gamma (TypeReplace ty) t = NeutralTerm HoleTerm
 chTerm gamma NoChange t = searchTerm gamma t
 chTerm gamma (ArrowChange ics tc) (LambdaTerm syms bl)
   = LambdaTerm (map symMapper ics)
-    (chBlock (fst gamma `union` newChanges, snd gamma) tc bl)
-  where symMapper :: InputChange -> Id
-        symMapper (Change tc' n) = syms !! n
-        symMapper (Insert t) = newSymbol () -- In order for changes to be in gamma, Insert will need info about the new type.
-        changeMapper :: InputChange -> Map Id VarChange
-        changeMapper (Change tc' n) = singleton (syms !! n) VariableDeletion
-        changeMapper (Insert t) = mempty
-        newChanges :: Map Id VarChange
+    (chBlock (Tuple (fst gamma `unionWith (\v1 v2 -> error "no")` newChanges) (snd gamma)) tc bl)
+  where symMapper :: InputChange -> TermId
+        symMapper (Change tc' n) = syms !!! n
+        symMapper (Insert t) = freshTermId unit -- In order for changes to be in gamma, Insert will need info about the new type.
+        changeMapper :: InputChange -> Map TermId VarChange
+        changeMapper (Change tc' n) = singleton (syms !!! n) VariableDeletion
+        changeMapper (Insert t) = empty
+        newChanges :: Map TermId VarChange
         newChanges = unions (map changeMapper ics)
 chTerm gamma (ArrowChange ics tc) _ = error "only a lambda should be an arrow type"
+
+chBlock = undefined
 
 searchTerm :: Changes -> Term -> Term
 searchTerm gamma (LambdaTerm syms bl) = LambdaTerm syms (searchBlock gamma bl)
 searchTerm gamma (NeutralTerm t) = NeutralTerm (searchNeutral gamma t)
 
-listAcc :: [Either a [a]] -> [a]
-listAcc [] = []
-listAcc ((Left a) : es) = a : listAcc es
-listAcc ((Right as) : es) = as ++ listAcc es
+searchBlock = undefined
+searchNeutral = undefined
+
+listAcc :: forall a . (List (Either a (List a))) -> (List a)
+listAcc Nil = Nil
+listAcc (Cons (Left a) es) = Cons a (listAcc es)
+listAcc (Cons (Right as) es) = as <> listAcc es
+{-
 
 -- Returns either new term or the term was deleted
 searchNeutral :: Changes -> NeutralTerm -> NeutralTerm
