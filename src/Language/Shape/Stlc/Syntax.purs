@@ -18,7 +18,7 @@ data Definition
   | DataDefinition TypeName TypeId (List Constructor)
 
 data Constructor
-  = Constructor TermName TermId (List (Tuple TermName TermId))
+  = Constructor TermName TermId (List (Tuple TermName Type))
 
 data Type
   = ArrowType (List (Tuple TermName Type)) BaseType
