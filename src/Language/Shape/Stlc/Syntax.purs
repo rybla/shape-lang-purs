@@ -14,7 +14,6 @@ data Definition
   = TermDefinition TermName TermId Type Term
   | DataDefinition TypeName TypeId TermId (List.List Constructor)
 
-
 data Constructor
   = Constructor TermName TermId (Tuple TermName TermId)
 
@@ -23,7 +22,7 @@ data Type
   | BaseType BaseType
 
 data Block
-  = Block (List.List Definition) (List.List Buffer) Term
+  = Block (List.List Definition) (List.List Buffer) NeutralTerm
 
 data Buffer = Buffer NeutralTerm
 
@@ -100,9 +99,9 @@ instance Show TermName where show x = genericShow x
 instance Show TermId where show x = genericShow x
 instance Show UniqueTypeBinding where show x = genericShow x
 instance Show TypeReference where show x = genericShow x
-instance Show TypeName where  show x = genericShow x
-instance Show TypeId  where  show x = genericShow x
-instance Show HoleId  where  show x = genericShow x
+instance Show TypeName where show x = genericShow x
+instance Show TypeId where show x = genericShow x
+instance Show HoleId where show x = genericShow x
 
 -- Eq/Ord
 derive instance Eq TermName
