@@ -8,6 +8,7 @@ import Effect (Effect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
+import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Language.Shape.Stlc.Renderer (renderModule)
@@ -47,7 +48,10 @@ component =
     }
 
 render :: forall cs m. Partial => State -> HH.HTML (H.ComponentSlot cs m Action) Action
-render st = HH.div_ [ renderModule st.module_ ]
+render st =
+  HH.div
+    [ HP.class_ (HH.ClassName "app") ]
+    [ renderModule st.module_ ]
 
 handleAction :: forall cs output m. Action -> H.HalogenM State Action cs output m Unit
 handleAction = case _ of

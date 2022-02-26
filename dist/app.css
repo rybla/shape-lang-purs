@@ -1,0 +1,37 @@
+.app {
+  font-family: monospace;
+}
+
+.module {
+  display: block;
+}
+
+.constructor {
+}
+
+.type {
+}
+.arrow.type {
+}
+.data.type {
+}
+.hole.type {
+}
+
+.term {
+}
+
+.parameter {
+}
+
+.uniqueTermBinding {
+}
+
+.uniqueTypeBinding {
+}
+
+.punctuation {
+}
+
+.keyword {
+}

@@ -13,6 +13,8 @@ import Data.Show.Generic (genericShow)
 
 data Module = Module (List Definition)
 
+data Block = Block (List Definition) (List NeutralTerm) NeutralTerm
+
 data Definition
   = TermDefinition TermName TermId Type Term
   | DataDefinition TypeName TypeId (List Constructor)
@@ -23,9 +25,6 @@ data Constructor
 data Type
   = ArrowType (List (Tuple TermName Type)) BaseType
   | BaseType BaseType
-
-data Block
-  = Block (List Definition) (List NeutralTerm) NeutralTerm
 
 data BaseType
   = DataType TypeId

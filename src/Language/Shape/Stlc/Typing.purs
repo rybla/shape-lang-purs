@@ -1,4 +1,4 @@
-module Language.Typing where
+module Language.Shape.Stlc.Typing where
 
 import Data.Maybe
 import Language.Shape.Stlc.Context
