@@ -12,38 +12,38 @@ import Data.Show.Generic (genericShow)
 
 data Module = Module (List Definition)
 
-data Block = Block (List Definition) (List NeutralTerm) NeutralTerm
+data Block = Block (List Definition) (List NeutralTerm) NeutralTerm {indented :: Boolean, hidden :: Boolean}
 
 data Definition
   -- let <id>: <type> := <term>
-  = TermDefinition TermName TermId Type Term
+  = TermDefinition TermId Type Term {name :: TermName, hidden :: Boolean}
   -- data <id> := | <constructor> | ... | <constructor>
-  | DataDefinition TypeName TypeId (List Constructor)
+  | DataDefinition TypeId (List Constructor) {name :: TypeName, hidden :: Boolean}
 
 data Constructor
   -- <id>(<name>: <type>, ..., <name>: <type>)
-  = Constructor TermName TermId (List (Tuple TermName Type))
+  = Constructor TermId (List (Tuple TermName Type)) {name :: TermName}
 
 data Type
   -- (<name>: <type, ..., <name>: <type>)
-  = ArrowType (List (Tuple TermName Type)) BaseType
-  | BaseType BaseType
+  = ArrowType (List Type) BaseType {names :: List TermName, indented :: Boolean}
+  | BaseType BaseType {indented :: Boolean}
 
 data BaseType
-  = DataType TypeId
-  | HoleType HoleId TypeWeakening
+  = DataType TypeId {indented :: Boolean}
+  | HoleType HoleId TypeWeakening {indented :: Boolean}
 
 data Term
   -- (<id>, ..., <id>) => <block>
-  = LambdaTerm (List TermId) Block
-  | NeutralTerm NeutralTerm
+  = LambdaTerm (List TermId) Block {indented :: Boolean}
+  | NeutralTerm NeutralTerm {indented :: Boolean}
 
 data NeutralTerm
   -- <id> (<arg>, ..., <arg>)
-  = ApplicationTerm TermId (List Term)
+  = ApplicationTerm TermId (List Term) {indented :: Boolean}
   -- match <term>: <type> with <cases>
-  | MatchTerm BaseType NeutralTerm (List Case)
-  | HoleTerm
+  | MatchTerm BaseType NeutralTerm (List Case) {indented :: Boolean}
+  | HoleTerm {indented :: Boolean}
 
 data Case =
   -- | (<id>, ..., <id>) => <block>
