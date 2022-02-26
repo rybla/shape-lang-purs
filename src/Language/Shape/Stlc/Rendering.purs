@@ -15,7 +15,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Typing (typeOfNeutralTerm)
-import Unsafe (lookup, error)
+import Unsafe (lookup, error, fromJust)
 
 renderModule :: forall w i. Module -> HH.HTML w i
 renderModule (Module defs) =
@@ -248,11 +248,15 @@ renderParameter :: forall w i. TermName -> Type -> Context -> HH.HTML w i
 renderParameter x alpha gamma =
   HH.span
     [ HP.class_ (HH.ClassName "parameter") ]
-    [ renderTermName x
+    [ renderTermName x i gamma
     , renderPunctuation "colon"
     , renderPunctuation "space"
     , renderType alpha gamma
     ]
+  where
+  i = case Map.lookup x gamma.termNameIds of
+    Just ids -> List.length ids -- TODO: is this right?
+    Nothing -> 0 -- TODO: is this right?
 
 renderParameters :: forall w i. List.List (Tuple TermName Type) -> Context -> HH.HTML w i
 renderParameters prms gamma =
@@ -269,14 +273,23 @@ renderTermBinding id gamma =
     [ HP.class_ (HH.ClassName "termBinding") ]
     [ renderTermId id gamma ]
 
-renderTermName :: forall w i. TermName -> HH.HTML w i
-renderTermName (TermName str) =
+renderTermId :: forall w i. TermId -> Context -> HH.HTML w i
+renderTermId id gamma = HH.span_ [ renderTermName name i gamma ]
+  where
+  name = getTermIdName id gamma
+
+  i = List.length ids - fromJust (List.elemIndex id ids) - 1
+
+  ids = getTermNameIds name gamma
+
+-- i: index of this name's id's instance
+renderTermName :: forall w i. TermName -> Int -> Context -> HH.HTML w i
+renderTermName name@(TermName str) i gamma =
   HH.span
     [ HP.class_ (HH.ClassName "termName") ]
-    [ HH.text str ]
-
-renderTermId :: forall w i. TermId -> Context -> HH.HTML w i
-renderTermId id gamma = renderTermName (getTermIdName id gamma)
+    [ HH.text str, HH.sub_ [ HH.text suffix ] ]
+  where
+  suffix = if i == 0 then "" else show i
 
 renderTypeBinding :: forall w i. TypeName -> TypeId -> Context -> HH.HTML w i
 renderTypeBinding name id gamma =
