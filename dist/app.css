@@ -6,6 +6,9 @@
   display: block;
 }
 
+.definition {
+}
+
 .constructor {
 }
 
@@ -21,17 +24,19 @@
 .term {
 }
 
-.parameter {
+.termName {
+  color: darkgreen;
 }
 
-.uniqueTermBinding {
-}
-
-.uniqueTypeBinding {
+.typeName {
+  color: blue;
 }
 
 .punctuation {
+  font-weight: bold;
 }
 
 .keyword {
+  font-weight: bold;
+  color: purple;
 }
