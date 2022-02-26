@@ -34,12 +34,8 @@ data BaseType
   | HoleType HoleId TypeWeakening
 
 data Term
-<<<<<<< HEAD
-  = LambdaTerm (List TermId) Block -- the names are specified in its `ArrowType`
-=======
   -- (<id>, ..., <id>) => <block>
   = LambdaTerm (List TermId) Block
->>>>>>> 6c54532712c6d9eee7467875b32a91129dcf3945
   | NeutralTerm NeutralTerm
 
 data NeutralTerm
