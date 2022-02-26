@@ -4,7 +4,6 @@ import Data.Tuple
 import Prelude
 import Prim hiding (Type)
 import Undefined
-
 import Data.Boolean as Boolean
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
@@ -16,13 +15,17 @@ data Module = Module (List Definition)
 data Block = Block (List Definition) (List NeutralTerm) NeutralTerm
 
 data Definition
+  -- let <id>: <type> := <term>
   = TermDefinition TermName TermId Type Term
+  -- data <id> := | <constructor> | ... | <constructor>
   | DataDefinition TypeName TypeId (List Constructor)
 
 data Constructor
+  -- <id>(<name>: <type>, ..., <name>: <type>)
   = Constructor TermName TermId (List (Tuple TermName Type))
 
 data Type
+  -- (<name>: <type, ..., <name>: <type>)
   = ArrowType (List (Tuple TermName Type)) BaseType
   | BaseType BaseType
 
@@ -31,15 +34,20 @@ data BaseType
   | HoleType HoleId TypeWeakening
 
 data Term
-  = LambdaTerm (List TermId) Block -- the TermIds are specified in its `ArrowType`
+  -- (<id>, ..., <id>) => <block>
+  = LambdaTerm (List TermId) Block
   | NeutralTerm NeutralTerm
 
 data NeutralTerm
+  -- <id> (<arg>, ..., <arg>)
   = ApplicationTerm TermId (List Term)
+  -- match <term>: <type> with <cases>
   | MatchTerm BaseType NeutralTerm (List Case)
   | HoleTerm
 
-data Case = Case (List TermId) Block
+data Case =
+  -- | (<id>, ..., <id>) => <block>
+  Case (List TermId) Block
 
 -- unique
 newtype TermId = TermId Int
