@@ -1,0 +1,19 @@
+Install:
+npm install -g purescript
+npm install -g spago
+
+
+Install purescript extention for vscode (the first one when you search purescript)
+
+To use repl:
+spago repl
+
+To make files know about imports from other files:
+ctrl-shift-b builds the purescript project.
+
+To search standard library:
+Google "purescript pursuit"
+
+To install a purescript library in project:
+(it says in pursuit)
+will add to spago.dhall

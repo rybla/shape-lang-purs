@@ -1,0 +1,9 @@
+- Changes:
+    - Test
+    - Add datatype changes to Changes
+    - Fill in all undefined MatchTerm cases
+- Bindings
+    - Create definition
+    - Delete definition
+    - Rearrange definitions
+- 
