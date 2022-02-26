@@ -15,6 +15,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Language.Typing (typeOfNeutralTerm)
 import Partial (crashWith)
 import Undefined (undefined)
 
@@ -37,7 +38,7 @@ renderBlock (Block defs bufs a) alpha gamma ix =
     [ HP.class_ (HH.ClassName "block") ]
     [ HH.map_ defsHTML
     , HH.map_ bufsHTML
-    , renderTerm a alpha gamma' (pushIndex ix IndexStep_Term)
+    , renderTerm (NeutralTerm a) alpha gamma' (pushIndex ix IndexStep_Term)
     ]
   where
   gamma' = addDefinitions defs gamma
@@ -58,37 +59,37 @@ renderBlock (Block defs bufs a) alpha gamma ix =
     else
       []
 
-renderBuffer :: forall w i. Partial => Buffer -> Context -> Index -> HH.HTML w i
-renderBuffer (Buffer neu) gamma ix = renderTerm (NeutralTerm neu) ?type gamma ix
+renderBuffer :: forall w i. Partial => NeutralTerm -> Context -> Index -> HH.HTML w i
+renderBuffer neu gamma ix = renderTerm (NeutralTerm neu) (typeOfNeutralTerm neu gamma) gamma ix
 
 renderDefinition :: forall w i. Partial => Definition -> Context -> Index -> HH.HTML w i
-renderDefinition (TermDefinition x alpha@(ArrowType prms out) a) gamma ix =
+renderDefinition (TermDefinition name id (ArrowType prms out) a) gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "term-definition definition") ]
     [ renderKeyword "let"
     , renderPunctuation "space"
-    , renderUniqueTermBinding x gamma (pushIndex ix IndexStep_UniqueTermBinding)
+    , renderUniqueTermBinding name id gamma (pushIndex ix IndexStep_UniqueTermBinding)
     , renderPunctuation "lparen"
     , HH.map_ <<< List.toUnfoldable
-        $ mapWithIndex (\i prm -> renderParameter prm gamma (appendIndex ix (IndexStep_Type List.: IndexStep_Parameter i List.: List.Nil))) prms
+        $ mapWithIndex (\i (Tuple x alpha) -> renderParameter x alpha gamma (appendIndex ix (IndexStep_Type List.: IndexStep_Parameter i List.: List.Nil))) prms
     , renderPunctuation "rparen"
     , renderPunctuation "colon"
     , renderType
         (BaseType out)
-        (addUniqueTermBinding x alpha gamma)
+        (addUniqueTermBinding name id (ArrowType prms out) gamma)
         (pushIndex ix IndexStep_Output)
     , renderPunctuation "space"
     , renderPunctuation "assign"
     , renderPunctuation "space"
-    , renderTerm a alpha gamma (pushIndex ix IndexStep_Term)
+    , renderTerm a (ArrowType prms out) gamma (pushIndex ix IndexStep_Term)
     ]
 
-renderDefinition (TermDefinition x alpha a) gamma ix =
+renderDefinition (TermDefinition name id alpha a) gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "term-definition definition") ]
     [ renderKeyword "let"
     , renderPunctuation "space"
-    , renderUniqueTermBinding x gamma (pushIndex ix IndexStep_UniqueTermBinding)
+    , renderUniqueTermBinding name id gamma (pushIndex ix IndexStep_UniqueTermBinding)
     , renderPunctuation "colon"
     , renderType alpha gamma (pushIndex ix IndexStep_Type)
     , renderPunctuation "space"
@@ -97,12 +98,12 @@ renderDefinition (TermDefinition x alpha a) gamma ix =
     , renderTerm a alpha gamma (pushIndex ix IndexStep_Term)
     ]
 
-renderDefinition (DataDefinition x constrs) gamma ix =
+renderDefinition (DataDefinition name id constrs) gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "data-definition definition") ]
     [ renderKeyword "data"
     , renderPunctuation "space"
-    , renderUniqueTypeBinding x gamma (pushIndex ix IndexStep_UniqueTypeBinding)
+    , renderUniqueTypeBinding name id gamma (pushIndex ix IndexStep_UniqueTypeBinding)
     , renderPunctuation "assign"
     , intercalateAlts
         $ mapWithIndex
@@ -111,17 +112,17 @@ renderDefinition (DataDefinition x constrs) gamma ix =
     ]
 
 renderConstructor :: forall w i. Partial => Constructor -> Context -> Index -> HH.HTML w i
-renderConstructor (Constructor x prms) gamma ix =
+renderConstructor (Constructor x id prms) gamma ix =
   if List.length prms == 0 then
     HH.div
       [ HP.class_ (HH.ClassName "constructor") ]
-      [ renderUniqueTermBinding x gamma (pushIndex ix IndexStep_UniqueTermBinding) ]
+      [ renderUniqueTermBinding x id gamma (pushIndex ix IndexStep_UniqueTermBinding) ]
   else
     HH.div
       [ HP.class_ (HH.ClassName "constructor") ]
-      [ renderUniqueTermBinding x gamma (pushIndex ix IndexStep_UniqueTermBinding)
+      [ renderUniqueTermBinding x id gamma (pushIndex ix IndexStep_UniqueTermBinding)
       , renderPunctuation "lparen"
-      , intercalateAlts (mapWithIndex (\i prm -> renderParameter prm gamma (pushIndex ix (IndexStep_Parameter i))) prms)
+      , intercalateAlts (mapWithIndex (\i (Tuple x alpha) -> renderParameter x alpha gamma (pushIndex ix (IndexStep_Parameter i))) prms)
       , renderPunctuation "rparen"
       ]
 
@@ -130,7 +131,7 @@ renderType (ArrowType prms out) gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "arrow type") ]
     [ renderPunctuation "lparen"
-    , intercalateCommas (mapWithIndex (\i prm -> renderParameter prm gamma (pushIndex ix (IndexStep_Parameter i))) prms)
+    , intercalateCommas (mapWithIndex (\i (Tuple x alpha) -> renderParameter x alpha gamma (pushIndex ix (IndexStep_Parameter i))) prms)
     , renderPunctuation "rparen"
     , renderPunctuation "space"
     , renderPunctuation "arrow"
@@ -146,7 +147,7 @@ renderType (BaseType (DataType x)) gamma ix =
 renderType (BaseType (HoleType h w)) gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "hole type") ]
-    [ renderHoleId h ]
+    [ renderHoleId ]
 
 renderTerm :: forall w i. Partial => Term -> Type -> Context -> Index -> HH.HTML w i
 renderTerm (LambdaTerm xs block) alpha gamma ix =
@@ -162,10 +163,10 @@ renderTerm (LambdaTerm xs block) alpha gamma ix =
   where
   gamma' = undefined
 
-renderTerm (NeutralTerm (ApplicationTerm x@(TermReference id) args)) alpha gamma ix =
+renderTerm (NeutralTerm (ApplicationTerm id args)) alpha gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "neutral term") ]
-    [ renderTermReference x gamma (pushIndex ix IndexStep_TermReference)
+    [ renderTermReference id gamma (pushIndex ix IndexStep_TermReference)
     , let
         (ArrowType params out) = fromJust' (Map.lookup id gamma.termIdType) "renderTerm:NeutralTerm"
       in
@@ -174,18 +175,18 @@ renderTerm (NeutralTerm (ApplicationTerm x@(TermReference id) args)) alpha gamma
             []
           else
             [ renderPunctuation "lparen"
-            , intercalateCommas $ mapWithIndex (\i arg -> renderTerm arg (case fromJust' (params List.!! i) "renderTerm" of Parameter label alpha -> ?a) gamma (appendIndex (IndexStep_Parameter i) ix)) args
+            , intercalateCommas $ mapWithIndex (\i arg -> renderTerm arg (case fromJust' (params List.!! i) "renderTerm" of Tuple x alpha -> alpha) gamma (pushIndex ix (IndexStep_Parameter i))) args
             , renderPunctuation "rparen"
             ]
     ]
 
-renderTerm (NeutralTerm (HoleTerm h)) alpha gamma ix =
+renderTerm (NeutralTerm HoleTerm) alpha gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "hole term") ]
-    [ renderHoleId h ]
+    [ renderHoleId ]
 
-renderParameter :: forall w i. Partial => Parameter -> Context -> Index -> HH.HTML w i
-renderParameter (Parameter x alpha) gamma ix =
+renderParameter :: forall w i. Partial => TermName -> Type -> Context -> Index -> HH.HTML w i
+renderParameter x alpha gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "parameter") ]
     [ renderTermLabel x gamma (pushIndex ix IndexStep_TermLabel)
@@ -194,46 +195,44 @@ renderParameter (Parameter x alpha) gamma ix =
     , renderType alpha gamma (pushIndex ix IndexStep_Type)
     ]
 
-renderUniqueTermBinding :: forall w i. UniqueTermBinding -> Context -> Index -> HH.HTML w i
-renderUniqueTermBinding (UniqueTermBinding x id) gamma ix =
+renderUniqueTermBinding :: forall w i. TermName -> TermId -> Context -> Index -> HH.HTML w i
+renderUniqueTermBinding x id gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "uniqueTermBinding") ]
     [ renderTermName x ]
 
-renderTermBinding :: forall w i. Partial => TermBinding -> Context -> Index -> HH.HTML w i
-renderTermBinding (TermBinding id) gamma ix =
+renderTermBinding :: forall w i. Partial => TermId -> Context -> Index -> HH.HTML w i
+renderTermBinding id gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "termBinding") ]
     [ renderTermId id gamma ]
 
-renderTermReference :: forall w i. Partial => TermReference -> Context -> Index -> HH.HTML w i
-renderTermReference (TermReference id) gamma ix =
+renderTermReference :: forall w i. Partial => TermId -> Context -> Index -> HH.HTML w i
+renderTermReference id gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "termReference") ]
     [ renderTermId id gamma ]
 
-renderTermLabel :: forall w i. TermLabel -> Context -> Index -> HH.HTML w i
-renderTermLabel (TermLabel name) gamma ix =
+renderTermLabel :: forall w i. TermName -> Context -> Index -> HH.HTML w i
+renderTermLabel name gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "termLabel") ]
     [ renderTermName name ]
 
 renderTermName :: forall w i. TermName -> HH.HTML w i
-renderTermName (VariableName name) = HH.text name
-
-renderTermName (PrincipleName name) = HH.text name
+renderTermName (TermName str) = HH.text str
 
 renderTermId :: forall w i. Partial => TermId -> Context -> HH.HTML w i
 renderTermId id gamma = renderTermName (fromJust' (Map.lookup id gamma.termIdName) ("renderTermId: " <> show id))
 
-renderUniqueTypeBinding :: forall w i. UniqueTypeBinding -> Context -> Index -> HH.HTML w i
-renderUniqueTypeBinding (UniqueTypeBinding name id) gamma ix =
+renderUniqueTypeBinding :: forall w i. TypeName -> TypeId -> Context -> Index -> HH.HTML w i
+renderUniqueTypeBinding name id gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "uniqueTypeBinding") ]
     [ renderTypeName name ]
 
-renderTypeReference :: forall w i. Partial => TypeReference -> Context -> Index -> HH.HTML w i
-renderTypeReference (TypeReference id) gamma ix =
+renderTypeReference :: forall w i. Partial => TypeId -> Context -> Index -> HH.HTML w i
+renderTypeReference id gamma ix =
   HH.div
     [ HP.class_ (HH.ClassName "typeReference") ]
     [ renderTypeName (fromJust' (Map.lookup id gamma.typeIdName) "renderTypeReference") ]
@@ -241,8 +240,8 @@ renderTypeReference (TypeReference id) gamma ix =
 renderTypeName :: forall w i. TypeName -> HH.HTML w i
 renderTypeName name = HH.text (show name)
 
-renderHoleId :: forall w i. HoleId -> HH.HTML w i
-renderHoleId _ = HH.text "?"
+renderHoleId :: forall w i. HH.HTML w i
+renderHoleId = HH.text "?"
 
 keywords :: forall w i. Map.Map String (HH.HTML w i)
 keywords =

@@ -51,6 +51,11 @@ newtype TypeId = TypeId Int
 -- Hole
 newtype HoleId = HoleId Int
 
+-- Weakening
+type TypeWeakening = List TypeId
+
+-- Fresh
+
 freshHoleTerm :: Unit -> Term
 freshHoleTerm = undefined
 
@@ -62,9 +67,6 @@ freshTypeId = undefined
 
 freshHoleId :: Unit -> HoleId
 freshHoleId = undefined
-
--- Weakening
-type TypeWeakening = List TypeId
 
 -- Metadata
 

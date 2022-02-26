@@ -11,7 +11,6 @@ import Undefined (undefined)
 
 type Context
   = { typeIdName :: Map.Map TypeId TypeName
-    , principleNameDataType :: Map.Map TermId TypeId
     , termIdType :: Map.Map TermId Type
     , termNameIds :: Map.Map TermName (Array TermId)
     , termIdName :: Map.Map TermId TermName
@@ -20,7 +19,6 @@ type Context
 emptyContext :: Context
 emptyContext =
   { typeIdName: Map.empty
-  , principleNameDataType: Map.empty
   , termIdType: Map.empty
   , termNameIds: Map.empty
   , termIdName: Map.empty
@@ -48,25 +46,25 @@ addTermNameId name id gamma =
 addTermIdName :: TermId -> TermName -> Context -> Context
 addTermIdName id name gamma = gamma { termIdName = Map.insert id name gamma.termIdName }
 
-addUniqueTermBinding :: UniqueTermBinding -> Type -> Context -> Context
-addUniqueTermBinding (UniqueTermBinding name id) alpha gamma =
+addUniqueTermBinding :: TermName -> TermId -> Type -> Context -> Context
+addUniqueTermBinding name id alpha gamma =
   addTermNameId name id
     <<< addTermIdName id name
     <<< addTermIdType id alpha
     $ gamma
 
-addTermBindinding :: TermBinding -> Type -> Context -> Context
-addTermBindinding (TermBinding id) alpha gamma = addTermIdType id alpha gamma
+addTermBindinding :: TermId -> Type -> Context -> Context
+addTermBindinding id alpha gamma = addTermIdType id alpha gamma
 
-addUniqueTypeBinding :: UniqueTypeBinding -> Context -> Context
-addUniqueTypeBinding (UniqueTypeBinding name id) gamma = addTypeIdName name id gamma
+addUniqueTypeBinding :: TypeName -> TypeId -> Context -> Context
+addUniqueTypeBinding name id gamma = addTypeIdName name id gamma
 
 addDefinitions :: List.List Definition -> Context -> Context
 addDefinitions defs gamma =
   List.foldl
     ( \gamma -> case _ of
-        TermDefinition x alpha _ -> addUniqueTermBinding x alpha gamma
-        DataDefinition alpha _ -> addUniqueTypeBinding alpha gamma
+        TermDefinition name id alpha _ -> addUniqueTermBinding name id alpha gamma
+        DataDefinition name id _ -> addUniqueTypeBinding name id gamma
     )
     gamma
     defs
