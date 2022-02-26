@@ -31,7 +31,7 @@ data BaseType
   | HoleType HoleId TypeWeakening
 
 data Term
-  = LambdaTerm (List TermId) Block -- the TermIds are specified in its `ArrowType`
+  = LambdaTerm (List TermId) Block -- the names are specified in its `ArrowType`
   | NeutralTerm NeutralTerm
 
 data Case = Case (List Term) Block
