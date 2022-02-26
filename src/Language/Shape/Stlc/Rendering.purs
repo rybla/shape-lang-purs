@@ -15,79 +15,76 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Typing (typeOfNeutralTerm)
-import Partial (crashWith)
-import Undefined (undefined)
+import Unsafe (lookup, error)
 
-fromJust' :: forall a. Partial => Maybe a -> String -> a
-fromJust' (Just a) _ = a
-
-fromJust' Nothing msg = crashWith msg
-
-renderModule :: forall w i. Partial => Module -> HH.HTML w i
+renderModule :: forall w i. Module -> HH.HTML w i
 renderModule (Module defs) =
   HH.span
     [ HP.class_ (HH.ClassName "module") ]
-    (List.toUnfoldable $ List.mapWithIndex (\i def -> renderDefinition def gamma) defs)
+    [ intercalateDoubleNewlines $ List.mapWithIndex (\i def -> renderDefinition def gamma) defs ]
   where
   gamma = addDefinitions defs emptyContext
 
-renderBlock :: forall w i. Partial => Block -> Type -> Context -> HH.HTML w i
-renderBlock (Block defs bufs a) alpha gamma =
+renderBlock :: forall w i. Block -> BaseType -> Context -> HH.HTML w i
+renderBlock (Block defs bufs neu) alpha gamma =
   HH.span
     [ HP.class_ (HH.ClassName "block") ]
     [ HH.span_ defsHTML
     , HH.span_ bufsHTML
-    , renderTerm (NeutralTerm a) alpha gamma'
+    , renderNeutralTerm neu alpha gamma'
     ]
   where
   gamma' = addDefinitions defs gamma
 
   defsHTML =
     if List.length defs == 0 then
+      []
+    else
       [ intercalateNewlines (mapWithIndex (\i def -> renderDefinition def gamma') defs)
       , renderPunctuation "newline"
       ]
-    else
-      []
 
   bufsHTML =
     if List.length bufs == 0 then
+      []
+    else
       [ intercalateNewlines (mapWithIndex (\i buf -> renderBuffer buf gamma') bufs)
       , renderPunctuation "newline"
       ]
-    else
-      []
 
-renderBuffer :: forall w i. Partial => NeutralTerm -> Context -> HH.HTML w i
+renderBuffer :: forall w i. NeutralTerm -> Context -> HH.HTML w i
 renderBuffer neu gamma = renderTerm (NeutralTerm neu) (typeOfNeutralTerm neu gamma) gamma
 
-renderDefinition :: forall w i. Partial => Definition -> Context -> HH.HTML w i
-renderDefinition (TermDefinition name id (ArrowType prms out) a) gamma =
+renderDefinition :: forall w i. Definition -> Context -> HH.HTML w i
+renderDefinition (TermDefinition name id (ArrowType prms out) (LambdaTerm ids block)) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "term-definition definition") ]
     [ renderKeyword "let"
     , renderPunctuation "space"
-    , renderUniqueTermBinding name id gamma
+    , renderTermBinding id gamma
     , renderPunctuation "lparen"
     , HH.span_ <<< List.toUnfoldable
         $ mapWithIndex (\i (Tuple x alpha) -> renderParameter x alpha gamma) prms
     , renderPunctuation "rparen"
     , renderPunctuation "colon"
+    , renderPunctuation "space"
     , renderType
         (BaseType out)
-        (addUniqueTermBinding name id (ArrowType prms out) gamma)
+        (addTermBinding name id (ArrowType prms out) gamma)
     , renderPunctuation "space"
     , renderPunctuation "assign"
     , renderPunctuation "space"
-    , renderTerm a (ArrowType prms out) gamma
+    , renderBlock block out gamma'
     ]
+  where
+  gamma' = addTermBindings (map fst prms) ids (map snd prms) gamma
 
 renderDefinition (TermDefinition name id alpha a) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "term-definition definition") ]
     [ renderKeyword "let"
     , renderPunctuation "space"
-    , renderUniqueTermBinding name id gamma
+    , renderTermBinding id gamma
     , renderPunctuation "colon"
     , renderType alpha gamma
     , renderPunctuation "space"
@@ -101,32 +98,37 @@ renderDefinition (DataDefinition name id constrs) gamma =
     [ HP.class_ (HH.ClassName "data-definition definition") ]
     [ renderKeyword "data"
     , renderPunctuation "space"
-    , renderUniqueTypeBinding name id gamma
+    , renderTypeBinding name id gamma
     , renderPunctuation "space"
     , renderPunctuation "assign"
     , renderPunctuation "space"
-    , intercalateAlts
+    , intersperseLeftNewlines
         $ mapWithIndex
             (\i constr -> renderConstructor constr gamma)
             constrs
     ]
 
-renderConstructor :: forall w i. Partial => Constructor -> Context -> HH.HTML w i
+renderConstructor :: forall w i. Constructor -> Context -> HH.HTML w i
 renderConstructor (Constructor x id prms) gamma =
   if List.length prms == 0 then
     HH.span
       [ HP.class_ (HH.ClassName "constructor") ]
-      [ renderUniqueTermBinding x id gamma ]
+      [ renderPunctuation "alt"
+      , renderPunctuation "space"
+      , renderTermBinding id gamma
+      ]
   else
     HH.span
       [ HP.class_ (HH.ClassName "constructor") ]
-      [ renderUniqueTermBinding x id gamma
+      [ renderPunctuation "alt"
+      , renderPunctuation "space"
+      , renderTermBinding id gamma
       , renderPunctuation "lparen"
       , intercalateAlts (mapWithIndex (\i (Tuple x alpha) -> renderParameter x alpha gamma) prms)
       , renderPunctuation "rparen"
       ]
 
-renderType :: forall w i. Partial => Type -> Context -> HH.HTML w i
+renderType :: forall w i. Type -> Context -> HH.HTML w i
 renderType (ArrowType prms out) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "arrow type") ]
@@ -149,43 +151,100 @@ renderType (BaseType (HoleType h w)) gamma =
     [ HP.class_ (HH.ClassName "hole type") ]
     [ renderHoleId ]
 
-renderTerm :: forall w i. Partial => Term -> Type -> Context -> HH.HTML w i
-renderTerm (LambdaTerm xs block) alpha gamma =
+renderTerm :: forall w i. Term -> Type -> Context -> HH.HTML w i
+renderTerm (LambdaTerm ids block) (ArrowType prms out) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "lambda term") ]
-    [ renderPunctuation "lparen"
-    , intercalateCommas (mapWithIndex (\i x -> renderTermBinding x gamma') xs)
-    , renderPunctuation "rparen"
+    [ renderParameters prms gamma
     , renderPunctuation "space"
     , renderPunctuation "arrow"
-    , renderBlock block alpha gamma'
+    , renderPunctuation "space"
+    , renderBlock block out gamma'
     ]
   where
-  gamma' = undefined
+  gamma' = addTermBindings (map fst prms) ids (map snd prms) gamma
 
-renderTerm (NeutralTerm (ApplicationTerm id args)) alpha gamma =
+renderTerm (NeutralTerm neu) (BaseType base) gamma = renderNeutralTerm neu base gamma
+
+renderTerm _ _ _ = error "renderTerm: impossible"
+
+renderNeutralTerm :: forall w i. NeutralTerm -> BaseType -> Context -> HH.HTML w i
+renderNeutralTerm (ApplicationTerm id args) alpha gamma =
   HH.span
     [ HP.class_ (HH.ClassName "neutral term") ]
     [ renderTermId id gamma
-    , let
-        (ArrowType params out) = fromJust' (Map.lookup id gamma.termIdType) "renderTerm:NeutralTerm"
-      in
-        HH.span_
-          if List.length args == 0 then
-            []
-          else
+    , HH.span_
+        if List.length args == 0 then
+          []
+        else
+          let
+            Tuple prms out = case getTermIdType id gamma of
+              ArrowType prms out -> Tuple prms out
+              _ -> error "renderNeutralTerm: impossible"
+          in
             [ renderPunctuation "lparen"
-            , intercalateCommas $ mapWithIndex (\i arg -> renderTerm arg (case fromJust' (params List.!! i) "renderTerm" of Tuple x alpha -> alpha) gamma) args
+            , intercalateCommas
+                $ mapWithIndex (\i (Tuple a alpha) -> renderTerm a alpha gamma)
+                $ List.zip args (map snd prms)
             , renderPunctuation "rparen"
             ]
     ]
 
-renderTerm (NeutralTerm HoleTerm) alpha gamma =
-  HH.span
-    [ HP.class_ (HH.ClassName "hole term") ]
-    [ renderHoleId ]
+renderNeutralTerm (MatchTerm alpha a cases) beta gamma =
+  HH.div
+    [ HP.class_ (HH.ClassName "match") ]
+    [ renderKeyword "match"
+    , renderPunctuation "space"
+    , renderNeutralTerm a alpha gamma
+    , renderPunctuation "colon"
+    , renderPunctuation "space"
+    , renderType (BaseType alpha) gamma
+    , renderPunctuation "space"
+    , renderKeyword "with"
+    , case alpha of
+        DataType typeId ->
+          HH.span
+            [ HP.class_ (HH.ClassName "cases") ]
+            [ intersperseLeftNewlines
+                ( map
+                    (\(Tuple idConstr case_) -> renderCase idConstr case_ beta gamma)
+                    (List.zip (getTypeIdConstructorIds typeId gamma) cases)
+                )
+            ]
+        HoleType _ _ -> HH.span_ [] -- TODO: how to display empty cases?
+    ]
 
-renderParameter :: forall w i. Partial => TermName -> Type -> Context -> HH.HTML w i
+renderNeutralTerm HoleTerm alpha gamma =
+  HH.span
+    [ HP.class_ (HH.ClassName "term hole") ]
+    [ HH.text "?" ]
+
+renderCase :: forall w i. TermId -> Case -> BaseType -> Context -> HH.HTML w i
+renderCase idConstr (Case ids block) alpha gamma =
+  HH.span
+    [ HP.class_ (HH.ClassName "case") ]
+    [ renderPunctuation "alt"
+    , renderPunctuation "space"
+    , renderTermId idConstr gamma
+    , HH.span_ case getTermIdType idConstr gamma of
+        ArrowType prms out ->
+          [ renderParameters prms gamma
+          , renderPunctuation "space"
+          , renderPunctuation "mapsto"
+          , renderPunctuation "space"
+          , renderBlock block alpha gamma'
+          ]
+          where
+          gamma' = addTermBindings (map fst prms) ids (map snd prms) gamma
+        _ ->
+          [ renderPunctuation "space"
+          , renderPunctuation "mapsto"
+          , renderPunctuation "space"
+          , renderBlock block alpha gamma
+          ]
+    ]
+
+renderParameter :: forall w i. TermName -> Type -> Context -> HH.HTML w i
 renderParameter x alpha gamma =
   HH.span
     [ HP.class_ (HH.ClassName "parameter") ]
@@ -195,38 +254,47 @@ renderParameter x alpha gamma =
     , renderType alpha gamma
     ]
 
-renderUniqueTermBinding :: forall w i. TermName -> TermId -> Context -> HH.HTML w i
-renderUniqueTermBinding x id gamma =
+renderParameters :: forall w i. List.List (Tuple TermName Type) -> Context -> HH.HTML w i
+renderParameters prms gamma =
   HH.span
-    [ HP.class_ (HH.ClassName "uniqueTermBinding") ]
-    [ renderTermName x ]
+    [ HP.class_ (HH.ClassName "parameters") ]
+    [ renderPunctuation "lparen"
+    , intercalateCommas $ map (\(Tuple x alpha) -> renderParameter x alpha gamma) prms
+    , renderPunctuation "rparen"
+    ]
 
-renderTermBinding :: forall w i. Partial => TermId -> Context -> HH.HTML w i
+renderTermBinding :: forall w i. TermId -> Context -> HH.HTML w i
 renderTermBinding id gamma =
   HH.span
     [ HP.class_ (HH.ClassName "termBinding") ]
     [ renderTermId id gamma ]
 
 renderTermName :: forall w i. TermName -> HH.HTML w i
-renderTermName (TermName str) = HH.text str
-
-renderTermId :: forall w i. Partial => TermId -> Context -> HH.HTML w i
-renderTermId id gamma = renderTermName (fromJust' (Map.lookup id gamma.termIdName) ("renderTermId: " <> show id))
-
-renderUniqueTypeBinding :: forall w i. TypeName -> TypeId -> Context -> HH.HTML w i
-renderUniqueTypeBinding name id gamma =
+renderTermName (TermName str) =
   HH.span
-    [ HP.class_ (HH.ClassName "uniqueTypeBinding") ]
+    [ HP.class_ (HH.ClassName "termName") ]
+    [ HH.text str ]
+
+renderTermId :: forall w i. TermId -> Context -> HH.HTML w i
+renderTermId id gamma = renderTermName (getTermIdName id gamma)
+
+renderTypeBinding :: forall w i. TypeName -> TypeId -> Context -> HH.HTML w i
+renderTypeBinding name id gamma =
+  HH.span
+    [ HP.class_ (HH.ClassName "typeBinding") ]
     [ renderTypeName name ]
 
-renderTypeReference :: forall w i. Partial => TypeId -> Context -> HH.HTML w i
+renderTypeReference :: forall w i. TypeId -> Context -> HH.HTML w i
 renderTypeReference id gamma =
   HH.span
     [ HP.class_ (HH.ClassName "typeReference") ]
-    [ renderTypeName (fromJust' (Map.lookup id gamma.typeIdName) "renderTypeReference") ]
+    [ renderTypeName (getTypeIdName id gamma) ]
 
 renderTypeName :: forall w i. TypeName -> HH.HTML w i
-renderTypeName (TypeName str) = HH.text str
+renderTypeName (TypeName str) =
+  HH.span
+    [ HP.class_ (HH.ClassName "typeName") ]
+    [ HH.text str ]
 
 renderHoleId :: forall w i. HH.HTML w i
 renderHoleId = HH.text "?"
@@ -242,8 +310,8 @@ keywords =
   where
   makeKeyword title = Tuple title (HH.span [ HP.class_ (HH.ClassName (List.intercalate " " [ title, " keyword" ])) ] [ HH.text title ])
 
-renderKeyword :: forall w i. Partial => String -> HH.HTML w i
-renderKeyword title = fromJust' (Map.lookup title keywords) ("renderKeyword: " <> title)
+renderKeyword :: forall w i. String -> HH.HTML w i
+renderKeyword title = lookup title keywords
 
 punctuations :: forall w i. Map.Map String (HH.HTML w i)
 punctuations =
@@ -266,17 +334,27 @@ punctuations =
   where
   makePunctuation title punc = Tuple title (HH.span [ HP.class_ (HH.ClassName (List.intercalate " " [ title, "punctuation" ])) ] [ HH.text punc ])
 
-renderPunctuation :: forall w i. Partial => String -> HH.HTML w i
-renderPunctuation title = fromJust' (Map.lookup title punctuations) "renderPunctuation"
+renderPunctuation :: forall w i. String -> HH.HTML w i
+renderPunctuation title = lookup title punctuations
 
-intercalateAlts :: forall w i. Partial => List.List (HH.HTML w i) -> HH.HTML w i
-intercalateAlts = makeIntercalater $ List.fromFoldable [ renderPunctuation "space", renderPunctuation "alt", renderPunctuation "space" ]
+-- intercalate
+intercalate :: forall w i. List.List (HH.HTML w i) -> List.List (HH.HTML w i) -> HH.HTML w i
+intercalate inter = HH.span_ <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
 
-intercalateCommas :: forall w i. Partial => List.List (HH.HTML w i) -> HH.HTML w i
-intercalateCommas = makeIntercalater $ List.fromFoldable [ renderPunctuation "comma", renderPunctuation "space" ]
+intercalateAlts = intercalate $ List.fromFoldable [ renderPunctuation "space", renderPunctuation "alt", renderPunctuation "space" ]
 
-intercalateNewlines :: forall w i. Partial => List.List (HH.HTML w i) -> HH.HTML w i
-intercalateNewlines = makeIntercalater $ List.fromFoldable [ renderPunctuation "newline" ]
+intercalateCommas = intercalate $ List.fromFoldable [ renderPunctuation "comma", renderPunctuation "space" ]
 
-makeIntercalater :: forall w i. Partial => List.List (HH.HTML w i) -> List.List (HH.HTML w i) -> HH.HTML w i
-makeIntercalater inter = HH.span_ <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
+intercalateNewlines = intercalate $ List.fromFoldable [ renderPunctuation "newline" ]
+
+intercalateDoubleNewlines = intercalate $ List.fromFoldable [ renderPunctuation "newline", renderPunctuation "newline" ]
+
+intercalateSpaces = intercalate $ List.fromFoldable [ renderPunctuation "space" ]
+
+-- intersperse
+intersperseLeft :: forall w i. List.List (HH.HTML w i) -> List.List (HH.HTML w i) -> HH.HTML w i
+intersperseLeft inter = HH.span_ <<< List.toUnfoldable <<< List.foldMap (\x -> inter <> (List.singleton x))
+
+intersperseLeftSpaces = intersperseLeft $ List.fromFoldable [ renderPunctuation "space" ]
+
+intersperseLeftNewlines = intersperseLeft $ List.fromFoldable [ renderPunctuation "newline" ]

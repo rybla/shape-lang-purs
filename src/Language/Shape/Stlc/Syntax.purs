@@ -34,12 +34,12 @@ data Term
   = LambdaTerm (List TermId) Block -- the TermIds are specified in its `ArrowType`
   | NeutralTerm NeutralTerm
 
-data Case = Case (List Term) Block
-
 data NeutralTerm
   = ApplicationTerm TermId (List Term)
-  | MatchTerm TypeId BaseType (List Case)
+  | MatchTerm BaseType NeutralTerm (List Case)
   | HoleTerm
+
+data Case = Case (List TermId) Block
 
 -- unique
 newtype TermId = TermId Int
