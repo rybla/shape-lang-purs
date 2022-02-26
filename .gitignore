@@ -9,3 +9,5 @@
 /.psa*
 /.spago
 .DS_Store
+.parcel-cache/
+dist/dist/*
