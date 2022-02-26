@@ -3,6 +3,7 @@ module Main where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.List as List
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Halogen as H
 import Halogen.Aff as HA
@@ -29,17 +30,11 @@ initialModule :: Module
 initialModule =
   Module
     $ List.singleton
-    $ DataDefinition (UniqueTypeBinding "Nat")
+    $ DataDefinition (TypeName "Nat") (TypeId 0)
     $ List.fromFoldable
-        [ Constructor
-            (UniqueTermBinding (ConstructorName "Zero") (TermBinding 0))
-            List.Nil
-        , Constructor
-            (UniqueTermBinding (ConstructorName "Suc") (TermBinding 0))
-            $ List.fromFoldable
-                [ Parameter (TermLabel (VariableName "n"))
-                    (BaseType (DataType (TypeReference "Nat")))
-                ]
+        [ Constructor (TermName "Zero") (TermId 1) List.Nil
+        , Constructor (TermName "Suc") (TermId 2)
+            $ List.singleton (Tuple (TermName "n") (BaseType (DataType (TypeId 0))))
         ]
 
 component :: forall query input output m. H.Component query input output m

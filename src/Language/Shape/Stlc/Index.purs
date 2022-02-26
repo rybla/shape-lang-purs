@@ -6,6 +6,7 @@ import Prelude
 import Prim hiding (Type)
 import Data.Array (index)
 import Data.Maybe (Maybe(..), fromJust)
+import Data.Tuple (Tuple)
 import Undefined (undefined)
 
 type Index
@@ -21,7 +22,7 @@ data IndexStep
   | IndexStep_Parameter Int
   | IndexStep_Output
   | IndexStep_Argument Int
-  | IndexStep_Case
+  | IndexStep_Case Int
   | IndexStep_UniqueTermBinding
   | IndexStep_TermBinding Int
   | IndexStep_TermReference
@@ -34,15 +35,15 @@ data IndexResult
   | IndexResult_Block Block
   | IndexResult_Definition Definition
   | IndexResult_Constructor Constructor
-  | IndexResult_Buffer Buffer
+  | IndexResult_Buffer NeutralTerm
   | IndexResult_Type Type
   | IndexResult_Term Term
-  | IndexResult_Parameter Parameter
-  | IndexResult_UniqueTermBinding UniqueTermBinding
-  | IndexResult_TermBinding TermBinding
-  | IndexResult_TermLabel TermLabel
-  | IndexResult_UniqueTypeBinding UniqueTypeBinding
-  | IndexResult_TypeReference TypeReference
+  | IndexResult_Parameter TermName Type
+  | IndexResult_UniqueTermBinding TermName TermId
+  | IndexResult_TermBinding TermId
+  | IndexResult_TermLabel TermName
+  | IndexResult_UniqueTypeBinding TypeName TypeId
+  | IndexResult_TypeReference TypeId
 
 pushIndex :: Index -> IndexStep -> Index
 pushIndex ix istep = append ix (singleton istep)

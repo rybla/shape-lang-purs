@@ -238,7 +238,7 @@ renderTypeReference id gamma ix =
     [ renderTypeName (fromJust' (Map.lookup id gamma.typeIdName) "renderTypeReference") ]
 
 renderTypeName :: forall w i. TypeName -> HH.HTML w i
-renderTypeName name = HH.text (show name)
+renderTypeName (TypeName str) = HH.text str
 
 renderHoleId :: forall w i. HH.HTML w i
 renderHoleId = HH.text "?"
