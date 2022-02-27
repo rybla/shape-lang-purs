@@ -14,3 +14,5 @@ dist/dist/
 dist/dist/index.28bc3d09.js.map
 dist/dist/index.28bc3d09.js
 dist/app.js
+src/.DS_Store
+dist/.DS_Store
