@@ -10,8 +10,10 @@
   , "ordered-collections"
   , "partial"
   , "prelude"
+  , "record"
   , "tuples"
   , "undefined"
+  , "uuid"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
