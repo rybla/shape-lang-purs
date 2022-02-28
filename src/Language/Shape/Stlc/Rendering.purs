@@ -1,9 +1,9 @@
 module Language.Shape.Stlc.Renderer where
 
-import Language.Shape.Stlc.Syntax (BaseType(..), Block(..), Buffer, Case(..), Constructor(..), Definition(..), HoleId, Module(..), NeutralTerm(..), Parameter(..), Term(..), TermBinding(..), TermId, TermName(..), TermReference(..), TermUniqueBinding(..), Type(..), TypeId, TypeName(..), TypeUniqueBinding(..), freshTermId, makeBaseType, makeHoleTerm, makeHoleType, makeNeutralTerm, makeTermDefinition, makeTermUniqueBinding)
 import Prelude
 import Prim hiding (Type)
 import App.Action (Action(..))
+import App.State (Mode(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List as List
 import Data.Map as Map
@@ -16,7 +16,9 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Context (Context)
 import Language.Shape.Stlc.Context as Context
+import Language.Shape.Stlc.Syntax (BaseType(..), Block(..), Buffer, Case(..), Constructor(..), Definition(..), HoleId, Module(..), NeutralTerm(..), Parameter(..), Term(..), TermBinding(..), TermId, TermName(..), TermReference(..), TermUniqueBinding(..), Type(..), TypeId, TypeName(..), TypeUniqueBinding(..), freshTermId, makeBaseType, makeHoleTerm, makeHoleType, makeNeutralTerm, makeTermDefinition, makeTermUniqueBinding)
 import Language.Shape.Stlc.Typing as Typing
+import Undefined (undefined)
 import Unsafe as Unsafe
 
 type Wrap a
@@ -54,24 +56,24 @@ renderModule (Module defs meta) =
 
   gamma = Context.addDefinitionBindings defs Context.emptyContext
 
-  deleteDefinition :: Int -> Maybe Module
-  deleteDefinition i = do
-    defs' <- List.deleteAt i defs
-    pure $ Module defs' meta
+  deleteDefinition :: Int -> Module
+  deleteDefinition i = Module (Unsafe.fromJust (List.deleteAt i defs)) meta
 
-  insertDefinition :: Int -> Maybe Module
-  insertDefinition i = do
-    defs' <-
-      List.insertAt i
-        ( makeTermDefinition
-            (makeTermUniqueBinding (freshTermId unit))
-            (makeBaseType $ makeHoleType unit)
-            (makeNeutralTerm makeHoleTerm)
-        )
-        defs
-    pure $ Module defs' meta
+  insertDefinition :: Int -> Module
+  insertDefinition i =
+    Module
+      ( Unsafe.fromJust
+          $ List.insertAt i
+              ( makeTermDefinition
+                  (makeTermUniqueBinding (freshTermId unit))
+                  (makeBaseType $ makeHoleType unit)
+                  (makeNeutralTerm makeHoleTerm)
+              )
+              defs
+      )
+      meta
 
-renderBlock :: forall w i. Block -> BaseType -> Context -> Wrap Block -> HH.HTML w i
+renderBlock :: forall w. Block -> BaseType -> Context -> Wrap Block -> HH.HTML w Action
 renderBlock (Block defs bufs neu metaBlock) alpha gamma wrapBlock =
   HH.span
     [ HP.class_ (HH.ClassName "block") ]
@@ -104,10 +106,10 @@ renderBlock (Block defs bufs neu metaBlock) alpha gamma wrapBlock =
 
   wrapNeutralTerm neu = wrapBlock $ Block defs bufs neu metaBlock
 
-renderBuffer :: forall w i. NeutralTerm -> Context -> Wrap Buffer -> HH.HTML w i
+renderBuffer :: forall w. NeutralTerm -> Context -> Wrap Buffer -> HH.HTML w Action
 renderBuffer neu gamma = renderNeutralTerm neu (Typing.typeOfNeutralTerm neu gamma) gamma
 
-renderDefinition :: forall w i. Definition -> Context -> Wrap Definition -> HH.HTML w i
+renderDefinition :: forall w. Definition -> Context -> Wrap Definition -> HH.HTML w Action
 renderDefinition (TermDefinition x alpha@(ArrowType prms out metaArrow) a@(LambdaTerm xs block metaLambda) metaDef) gamma wrapDefinition =
   HH.span
     [ HP.class_ (HH.ClassName "term-definition definition") ]
@@ -178,7 +180,7 @@ renderDefinition (DataDefinition x constrs meta) gamma wrapDefinition =
 
   wrapConstructor i constr = wrapDefinition $ DataDefinition x (Unsafe.fromJust $ List.updateAt i constr constrs) meta
 
-renderConstructor :: forall w i. Constructor -> Context -> Wrap Constructor -> HH.HTML w i
+renderConstructor :: forall w. Constructor -> Context -> Wrap Constructor -> HH.HTML w Action
 renderConstructor constr@(Constructor x prms meta) gamma wrapConstructor =
   if List.length prms == 0 then
     HH.span
@@ -202,7 +204,7 @@ renderConstructor constr@(Constructor x prms meta) gamma wrapConstructor =
 
   wrapTermUniqueBinding x = wrapConstructor $ Constructor x prms meta
 
-renderType :: forall w i. Type -> Context -> Wrap Type -> HH.HTML w i
+renderType :: forall w. Type -> Context -> Wrap Type -> HH.HTML w Action
 renderType (ArrowType prms out meta) gamma wrapType =
   HH.span
     [ HP.class_ (HH.ClassName "arrow type") ]
@@ -221,7 +223,7 @@ renderType (ArrowType prms out meta) gamma wrapType =
 
 renderType (BaseType alpha) gamma wrapBaseType = renderBaseType alpha gamma (wrapBaseType <<< BaseType)
 
-renderType' :: forall w i. Type -> Context -> HH.HTML w i
+renderType' :: forall w. Type -> Context -> HH.HTML w Action
 renderType' (ArrowType prms out meta) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "arrow type") ]
@@ -236,7 +238,7 @@ renderType' (ArrowType prms out meta) gamma =
 
 renderType' (BaseType alpha) gamma = renderBaseType' alpha gamma
 
-renderBaseType :: forall w i. BaseType -> Context -> Wrap BaseType -> HH.HTML w i
+renderBaseType :: forall w. BaseType -> Context -> Wrap BaseType -> HH.HTML w Action
 renderBaseType (DataType x meta) gamma wrapBaseType =
   HH.span
     [ HP.class_ (HH.ClassName "data type") ]
@@ -251,7 +253,7 @@ renderBaseType (HoleType id wkn meta) gamma wrapBaseType =
   where
   wrapHoleId id = wrapBaseType $ HoleType id wkn meta
 
-renderBaseType' :: forall w i. BaseType -> Context -> HH.HTML w i
+renderBaseType' :: forall w. BaseType -> Context -> HH.HTML w Action
 renderBaseType' (DataType x meta) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "data type") ]
@@ -262,7 +264,7 @@ renderBaseType' (HoleType id wkn meta) gamma =
     [ HP.class_ (HH.ClassName "hole type") ]
     [ renderHoleId' id gamma ]
 
-renderTerm :: forall w i. Term -> Type -> Context -> Wrap Term -> HH.HTML w i
+renderTerm :: forall w. Term -> Type -> Context -> Wrap Term -> HH.HTML w Action
 renderTerm (LambdaTerm xs block metaLambda) (ArrowType prms out metaArrow) gamma wrapTerm =
   HH.span
     [ HP.class_ (HH.ClassName "lambda term") ]
@@ -285,7 +287,7 @@ renderTerm (NeutralTerm neu) (BaseType alpha) gamma wrapTerm = renderNeutralTerm
 
 renderTerm (NeutralTerm _) _ _ _ = Unsafe.error "impossible: NeutralTerm cannot have type other than BaseType"
 
-renderNeutralTerm :: forall w i. NeutralTerm -> BaseType -> Context -> Wrap NeutralTerm -> HH.HTML w i
+renderNeutralTerm :: forall w. NeutralTerm -> BaseType -> Context -> Wrap NeutralTerm -> HH.HTML w Action
 renderNeutralTerm (ApplicationTerm x@(TermReference id _) args meta) alpha gamma wrapNeutralTerm =
   HH.span
     [ HP.class_ (HH.ClassName "neutral term") ]
@@ -345,7 +347,7 @@ renderNeutralTerm (HoleTerm meta) alpha gamma wrapNeutralTerm =
     [ HP.class_ (HH.ClassName "term hole") ]
     [ HH.text "?" ]
 
-renderCase :: forall w i. TermId -> Case -> BaseType -> Context -> Wrap Case -> HH.HTML w i
+renderCase :: forall w. TermId -> Case -> BaseType -> Context -> Wrap Case -> HH.HTML w Action
 renderCase idConstr (Case ids block metaCase) alpha gamma wrapCase =
   HH.span
     [ HP.class_ (HH.ClassName "case") ]
@@ -372,7 +374,7 @@ renderCase idConstr (Case ids block metaCase) alpha gamma wrapCase =
   where
   wrapBlock block = wrapCase $ Case ids block metaCase
 
-renderParameter :: forall w i. Parameter -> Context -> Wrap Parameter -> HH.HTML w i
+renderParameter :: forall w. Parameter -> Context -> Wrap Parameter -> HH.HTML w Action
 renderParameter (Parameter name alpha meta) gamma wrapParameter =
   HH.span
     [ HP.class_ (HH.ClassName "parameter") ]
@@ -389,7 +391,7 @@ renderParameter (Parameter name alpha meta) gamma wrapParameter =
   i = List.length $ Context.getTermNameClash name gamma -- assumes this is where the parameter is introduced
 
 -- phantom
-renderParameter' :: forall w i. Parameter -> Context -> HH.HTML w i
+renderParameter' :: forall w. Parameter -> Context -> HH.HTML w Action
 renderParameter' (Parameter name alpha meta) gamma =
   HH.span
     [ HP.class_ (HH.ClassName "parameter") ]
@@ -401,7 +403,7 @@ renderParameter' (Parameter name alpha meta) gamma =
   where
   i = List.length $ Context.getTermNameClash name gamma -- assumes this is where the parameter is introduced
 
-renderParameters :: forall w i. List.List Parameter -> Context -> (Int -> Wrap Parameter) -> HH.HTML w i
+renderParameters :: forall w. List.List Parameter -> Context -> (Int -> Wrap Parameter) -> HH.HTML w Action
 renderParameters prms gamma wrapParameter =
   HH.span
     [ HP.class_ (HH.ClassName "parameters") ]
@@ -411,7 +413,7 @@ renderParameters prms gamma wrapParameter =
     ]
 
 -- phantom
-renderParameters' :: forall w i. List.List Parameter -> Context -> HH.HTML w i
+renderParameters' :: forall w. List.List Parameter -> Context -> HH.HTML w Action
 renderParameters' prms gamma =
   HH.span
     [ HP.class_ (HH.ClassName "parameters") ]
@@ -420,25 +422,34 @@ renderParameters' prms gamma =
     , renderPunctuation "rparen"
     ]
 
-renderTermUniqueBinding :: forall w i. TermUniqueBinding -> Context -> Wrap TermUniqueBinding -> HH.HTML w i
+renderTermUniqueBinding :: forall w. TermUniqueBinding -> Context -> Wrap TermUniqueBinding -> HH.HTML w Action
 renderTermUniqueBinding (TermUniqueBinding id meta) gamma wrapTermUniqueBinding =
   HH.span
-    [ HP.class_ (HH.ClassName "termUniqueBinding") ]
-    [ renderTermId id gamma (wrapTermUniqueBinding <<< (\id -> TermUniqueBinding id meta)) ]
+    [ HP.class_ (HH.ClassName "termUniqueBinding")
+    , HE.onClick
+        ( \_ ->
+            Sequence
+              [ LogConsole $ "SetMode EditTermName for " <> show meta.name <> "#" <> show id
+              , SetMode (EditTermName \modifyTermName -> wrapTermUniqueBinding (TermUniqueBinding id meta { name = modifyTermName meta.name }))
+              ]
+        )
+    ]
+    [ renderTermId id gamma (wrapTermUniqueBinding <<< (\id -> TermUniqueBinding id meta))
+    ]
 
-renderTermBinding :: forall w i. TermBinding -> Context -> Wrap TermBinding -> HH.HTML w i
+renderTermBinding :: forall w. TermBinding -> Context -> Wrap TermBinding -> HH.HTML w Action
 renderTermBinding (TermBinding id meta) gamma wrapTermBinding =
   HH.span
     [ HP.class_ (HH.ClassName "termBinding") ]
     [ renderTermId id gamma (wrapTermBinding <<< (\id -> TermBinding id meta)) ]
 
-renderTermReference :: forall w i. TermReference -> Context -> Wrap TermReference -> HH.HTML w i
+renderTermReference :: forall w. TermReference -> Context -> Wrap TermReference -> HH.HTML w Action
 renderTermReference (TermReference id meta) gamma wrapTermReference =
   HH.span
     [ HP.class_ (HH.ClassName "termReference") ]
     [ renderTermId id gamma (wrapTermReference <<< (\id -> TermReference id meta)) ]
 
-renderTermId :: forall w i. TermId -> Context -> Wrap TermId -> HH.HTML w i
+renderTermId :: forall w. TermId -> Context -> Wrap TermId -> HH.HTML w Action
 renderTermId id gamma wrapTermId =
   HH.span
     [ HP.class_ (HH.ClassName "termId") ]
@@ -447,7 +458,7 @@ renderTermId id gamma wrapTermId =
   i = Context.getTermNameClashIndex id gamma
 
 -- phantom
-renderTermId' :: forall w i. TermId -> Context -> HH.HTML w i
+renderTermId' :: forall w. TermId -> Context -> HH.HTML w Action
 renderTermId' id gamma =
   HH.span
     [ HP.class_ (HH.ClassName "termId") ]
@@ -455,7 +466,7 @@ renderTermId' id gamma =
   where
   i = Context.getTermNameClashIndex id gamma
 
-renderTermName :: forall w i. TermName -> Int -> Context -> Wrap TermName -> HH.HTML w i
+renderTermName :: forall w. TermName -> Int -> Context -> Wrap TermName -> HH.HTML w Action
 renderTermName (TermName str) i gamma wrapTermName =
   HH.span
     [ HP.class_ (HH.ClassName "termName") ]
@@ -469,7 +480,7 @@ renderTermName IgnoreTermName i gamma wrapTermName =
     [ HH.text "_" ]
 
 -- phantom
-renderTermName' :: forall w i. TermName -> Int -> Context -> HH.HTML w i
+renderTermName' :: forall w. TermName -> Int -> Context -> HH.HTML w Action
 renderTermName' (TermName str) i gamma =
   HH.span
     [ HP.class_ (HH.ClassName "termName") ]
@@ -482,13 +493,13 @@ renderTermName' IgnoreTermName i gamma =
     [ HP.class_ (HH.ClassName "termName") ]
     [ HH.text "_" ]
 
-renderTypeUniqueBinding :: forall w i. TypeUniqueBinding -> Context -> Wrap TypeUniqueBinding -> HH.HTML w i
+renderTypeUniqueBinding :: forall w. TypeUniqueBinding -> Context -> Wrap TypeUniqueBinding -> HH.HTML w Action
 renderTypeUniqueBinding (TypeUniqueBinding id meta) gamma wrapTypeUniqueBinding =
   HH.span
     [ HP.class_ (HH.ClassName "typeUniqueBinding") ]
     [ renderTypeId id gamma (wrapTypeUniqueBinding <<< (\id -> TypeUniqueBinding id meta)) ]
 
-renderTypeId :: forall w i. TypeId -> Context -> Wrap TypeId -> HH.HTML w i
+renderTypeId :: forall w. TypeId -> Context -> Wrap TypeId -> HH.HTML w Action
 renderTypeId id gamma wrapTypeId =
   HH.span
     [ HP.class_ (HH.ClassName "typeId") ]
@@ -499,7 +510,7 @@ renderTypeId id gamma wrapTypeId =
   i = Context.getTypeNameClashIndex id gamma
 
 -- phantom
-renderTypeId' :: forall w i. TypeId -> Context -> HH.HTML w i
+renderTypeId' :: forall w. TypeId -> Context -> HH.HTML w Action
 renderTypeId' id gamma =
   HH.span
     [ HP.class_ (HH.ClassName "typeId") ]
@@ -509,7 +520,7 @@ renderTypeId' id gamma =
 
   i = Context.getTypeNameClashIndex id gamma
 
-renderTypeName :: forall w i. TypeName -> Int -> Context -> Wrap TypeName -> HH.HTML w i
+renderTypeName :: forall w. TypeName -> Int -> Context -> Wrap TypeName -> HH.HTML w Action
 renderTypeName (TypeName str) i gamma wrapTypeName =
   HH.span
     [ HP.class_ (HH.ClassName "typeName") ]
@@ -522,7 +533,7 @@ renderTypeName IgnoreTypeName i gamma wrapTypeName =
     [ HP.class_ (HH.ClassName "typeName") ]
     [ HH.text "_" ]
 
-renderTypeName' :: forall w i. TypeName -> Int -> Context -> HH.HTML w i
+renderTypeName' :: forall w. TypeName -> Int -> Context -> HH.HTML w Action
 renderTypeName' (TypeName str) i gamma =
   HH.span
     [ HP.class_ (HH.ClassName "typeName") ]
@@ -535,19 +546,19 @@ renderTypeName' IgnoreTypeName i gamma =
     [ HP.class_ (HH.ClassName "typeName") ]
     [ HH.text "_" ]
 
-renderHoleId :: forall w i. HoleId -> Context -> Wrap HoleId -> HH.HTML w i
+renderHoleId :: forall w. HoleId -> Context -> Wrap HoleId -> HH.HTML w Action
 renderHoleId id gamma wrapHoleId =
   HH.span
     [ HP.class_ (HH.ClassName "holeId") ]
     [ HH.text "?" ]
 
-renderHoleId' :: forall w i. HoleId -> Context -> HH.HTML w i
+renderHoleId' :: forall w. HoleId -> Context -> HH.HTML w Action
 renderHoleId' id gamma =
   HH.span
     [ HP.class_ (HH.ClassName "holeId") ]
     [ HH.text "?" ]
 
-keywords :: forall w i. Map.Map String (HH.HTML w i)
+keywords :: forall w. Map.Map String (HH.HTML w Action)
 keywords =
   Map.fromFoldable <<< map makeKeyword
     $ [ "data"
@@ -558,10 +569,10 @@ keywords =
   where
   makeKeyword title = Tuple title (HH.span [ HP.class_ (HH.ClassName (List.intercalate " " [ title, " keyword" ])) ] [ HH.text title ])
 
-renderKeyword :: forall w i. String -> HH.HTML w i
+renderKeyword :: forall w. String -> HH.HTML w Action
 renderKeyword title = Unsafe.lookup title keywords
 
-punctuations :: forall w i. Map.Map String (HH.HTML w i)
+punctuations :: forall w. Map.Map String (HH.HTML w Action)
 punctuations =
   Map.fromFoldable
     $ ( map (Tuple.uncurry makePunctuation)
@@ -582,34 +593,25 @@ punctuations =
   where
   makePunctuation title punc = Tuple title (HH.span [ HP.class_ (HH.ClassName (List.intercalate " " [ title, "punctuation" ])) ] [ HH.text punc ])
 
-renderPunctuation :: forall w i. String -> HH.HTML w i
+renderPunctuation :: forall w. String -> HH.HTML w Action
 renderPunctuation title = Unsafe.lookup title punctuations
 
 -- intercalate
-intercalate :: forall w i. List.List (HH.HTML w i) -> List.List (HH.HTML w i) -> HH.HTML w i
 intercalate inter = HH.span_ <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
 
-intercalateAlts :: forall t172 t173. List.List (HH.HTML t172 t173) -> HH.HTML t172 t173
 intercalateAlts = intercalate $ List.fromFoldable [ renderPunctuation "space", renderPunctuation "alt", renderPunctuation "space" ]
 
-intercalateCommas :: forall t185 t186. List.List (HH.HTML t185 t186) -> HH.HTML t185 t186
 intercalateCommas = intercalate $ List.fromFoldable [ renderPunctuation "comma", renderPunctuation "space" ]
 
-intercalateNewlines :: forall t304 t305. List.List (HH.HTML t304 t305) -> HH.HTML t304 t305
 intercalateNewlines = intercalate $ List.fromFoldable [ renderPunctuation "newline" ]
 
-intercalateDoubleNewlines :: forall t196 t197. List.List (HH.HTML t196 t197) -> HH.HTML t196 t197
 intercalateDoubleNewlines = intercalate $ List.fromFoldable [ renderPunctuation "newline", renderPunctuation "newline" ]
 
-intercalateSpaces :: forall t313 t314. List.List (HH.HTML t313 t314) -> HH.HTML t313 t314
 intercalateSpaces = intercalate $ List.fromFoldable [ renderPunctuation "space" ]
 
 -- intersperse
-intersperseLeft :: forall w i. List.List (HH.HTML w i) -> List.List (HH.HTML w i) -> HH.HTML w i
 intersperseLeft inter = HH.span_ <<< List.toUnfoldable <<< List.foldMap (\x -> inter <> (List.singleton x))
 
-intersperseLeftSpaces :: forall t136 t137. List.List (HH.HTML t136 t137) -> HH.HTML t136 t137
 intersperseLeftSpaces = intersperseLeft $ List.fromFoldable [ renderPunctuation "space" ]
 
-intersperseLeftNewlines :: forall t127 t128. List.List (HH.HTML t127 t128) -> HH.HTML t127 t128
 intersperseLeftNewlines = intersperseLeft $ List.fromFoldable [ renderPunctuation "newline" ]

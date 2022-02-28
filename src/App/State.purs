@@ -6,7 +6,24 @@ import Data.List (List)
 import Data.List as List
 
 type State
-  = { module_ :: Module }
+  = { module_ :: Module
+    , mode :: Mode
+    , console :: Console
+    }
+
+data Mode
+  = Normal
+  | EditTermName ((TermName -> TermName) -> Module)
+
+type Console
+  = List String
+
+initialState :: State
+initialState =
+  { module_: initialModule
+  , mode: Normal
+  , console: mempty
+  }
 
 initialModule :: Module
 initialModule =
@@ -17,6 +34,9 @@ initialModule =
             (makeBaseType $ makeHoleType unit)
             (makeNeutralTerm makeHoleTerm)
         ]
+
+logConsole :: String -> State -> State
+logConsole msg st = st { console = msg List.: st.console }
 
 -- Module
 --   $ List.fromFoldable

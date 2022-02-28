@@ -1,6 +1,7 @@
 { name = "shape-lang-purs"
 , dependencies =
-  [ "arrays"
+  [ "aff"
+  , "arrays"
   , "effect"
   , "either"
   , "foldable-traversable"
@@ -14,6 +15,9 @@
   , "tuples"
   , "undefined"
   , "uuid"
+  , "web-events"
+  , "web-html"
+  , "web-uievents"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

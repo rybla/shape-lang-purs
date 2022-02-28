@@ -34,8 +34,7 @@ emptyContext =
 -- Scope
 type Scope id name value
   = { names :: Map id name
-    -- name => ids that have name (in reverse order of binding)
-    , clashes :: Map name (List id)
+    , clashes :: Map name (List id) -- name => ids that have name (in reverse order of binding)
     , values :: Map id value
     }
 
@@ -46,6 +45,15 @@ emptyScope =
   , values: Map.empty
   }
 
+-- -- change
+-- changeName :: forall id name value. Ord id => Ord name => id -> name -> name -> Scope id name value -> Scope id name value
+-- changeName id name name' scope =
+--   scope
+--     { names = Map.insert id name' scope.names
+--     , clashes =
+--       Map.alter ()
+--       Map.update (Just <<< List.filter (_ /= id)) name scope.clashes
+--     }
 -- add
 addBinding :: forall id name value. Ord id => Ord name => id -> name -> value -> Scope id name value -> Scope id name value
 addBinding id name value scope =
