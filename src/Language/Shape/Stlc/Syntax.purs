@@ -21,7 +21,7 @@ data Definition
 
 data Constructor
   -- <id>(<name>: <type>, ..., <name>: <type>)
-  = Constructor TermId (List Type) {name :: TermName, parameterNames :: List TermName, cursor :: Boolean}
+  = Constructor TermId (List Parameter) {name :: TermName, cursor :: Boolean}
 
 data Type
   -- (<name>: <type, ..., <name>: <type>)
@@ -88,8 +88,8 @@ makeDataDefinition x cnstrs = DataDefinition x cnstrs {hidden: false, cursor: fa
 
 -- Constructor
 
-makeConstructor :: TermId -> List Type -> TermName -> List TermName -> Constructor
-makeConstructor id parameterTypes name parameterNames = Constructor id parameterTypes {name, parameterNames, cursor: false}
+makeConstructor :: TermId -> List Parameter -> Constructor
+makeConstructor id prms = Constructor id prms {name: IgnoreTermName, cursor: false}
 
 -- Type
 
