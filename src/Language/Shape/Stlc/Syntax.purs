@@ -28,7 +28,7 @@ type Buffer = NeutralTerm
 data Type
   -- (<name>: <type, ..., <name>: <type>)
   = ArrowType (List Parameter) BaseType {indented :: Boolean, cursor :: Boolean}
-  | BaseType BaseType {}
+  | BaseType BaseType
 
 data BaseType
   = DataType TypeId {indented :: Boolean, cursor :: Boolean}
@@ -50,12 +50,10 @@ data Case =
   -- | (<id>, ..., <id>) => <block>
   Case (List TermBinding) Block {annotated :: Boolean, cursor :: Boolean}
 
-data Parameter = Parameter TermLabel Type {cursor :: Boolean}
+data Parameter = Parameter TermName Type {cursor :: Boolean}
 
 data TypeUniqueBinding = TypeUniqueBinding TypeId {name :: TypeName, cursor :: Boolean}
-data TypeReference = TypeReference TypeId {cursor :: Boolean}
 
-data TermLabel = TermLabel {name :: TermName, cursor :: Boolean}
 data TermUniqueBinding = TermUniqueBinding TermId {name :: TermName, cursor :: Boolean}
 data TermBinding = TermBinding TermId {cursor :: Boolean}
 data TermReference = TermReference TermId {cursor :: Boolean}
@@ -99,7 +97,7 @@ makeArrowType :: List Parameter -> BaseType -> Type
 makeArrowType prms out = ArrowType prms out {indented: false, cursor: false}
 
 makeBaseType :: BaseType -> Type 
-makeBaseType type_ = BaseType type_ {}
+makeBaseType alpha = BaseType alpha
 
 makeDataType :: TypeId -> BaseType 
 makeDataType id = DataType id {indented: false, cursor: false}
@@ -119,7 +117,7 @@ makeApplicationTerm :: TermReference -> List Term -> NeutralTerm
 makeApplicationTerm x args = ApplicationTerm x args {indented: false, cursor: false}
 
 makeMatchTerm :: BaseType -> NeutralTerm -> List Case -> NeutralTerm
-makeMatchTerm type_ neu cases = MatchTerm type_ neu cases {indented: false, cursor: false}
+makeMatchTerm alpha neu cases = MatchTerm alpha neu cases {indented: false, cursor: false}
 
 makeHoleTerm :: NeutralTerm
 makeHoleTerm = HoleTerm {indented: false, cursor: false}
@@ -131,21 +129,13 @@ makeCase xs block = Case xs block {annotated: true, cursor: false}
 
 -- Parameter
 
-makeParameter :: TermLabel -> Type -> Parameter 
+makeParameter :: TermName -> Type -> Parameter 
 makeParameter x alpha = Parameter x alpha {cursor: false}
 
 -- Type[UniqueBinding|Reference]
 
 makeTypeUniqueBinding :: TypeId -> TypeUniqueBinding
 makeTypeUniqueBinding id = TypeUniqueBinding id {name: IgnoreTypeName, cursor: false}
-
-makeTypeReference :: TypeId -> TypeReference
-makeTypeReference id = TypeReference id {cursor: false}
-
--- TermLabel
-
-makeTermLabel :: TermLabel 
-makeTermLabel = TermLabel {name: IgnoreTermName, cursor: false}
 
 -- Term[UniqueBinding|Binding|Reference]
 
@@ -190,7 +180,6 @@ derive instance Generic NeutralTerm _
 
 derive instance Generic Parameter _ 
 
-derive instance Generic TermLabel _
 derive instance Generic TermUniqueBinding _
 derive instance Generic TermBinding _
 derive instance Generic TermReference _
@@ -198,7 +187,6 @@ derive instance Generic TermName _
 derive instance Generic TermId _
 
 derive instance Generic TypeUniqueBinding _
-derive instance Generic TypeReference _
 derive instance Generic TypeName _
 derive instance Generic TypeId _
 
@@ -217,7 +205,6 @@ instance Show NeutralTerm where show x = genericShow x
 
 instance Show Parameter where show x = genericShow x
 
-instance Show TermLabel where show x = genericShow x
 instance Show TermUniqueBinding where show x = genericShow x
 instance Show TermBinding where show x = genericShow x
 instance Show TermReference where show x = genericShow x
@@ -225,7 +212,6 @@ instance Show TermName where show x = genericShow x
 instance Show TermId where show x = genericShow x
 
 instance Show TypeUniqueBinding where show x = genericShow x
-instance Show TypeReference where show x = genericShow x
 instance Show TypeName where show x = genericShow x
 instance Show TypeId where show x = genericShow x
 instance Show HoleId where show x = genericShow x
