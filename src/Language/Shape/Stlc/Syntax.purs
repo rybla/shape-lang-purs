@@ -11,7 +11,7 @@ import Effect.Unsafe (unsafePerformEffect)
 
 data Module = Module (List Definition) {cursor :: Boolean}
 
-data Block = Block (List Definition) (List NeutralTerm) NeutralTerm {indented :: Boolean, hidden :: Boolean, cursor :: Boolean}
+data Block = Block (List Definition) (List Buffer) Buffer {indented :: Boolean, hidden :: Boolean, cursor :: Boolean}
 
 data Definition
   -- let <term-unique-binding>: <type> := <term>
@@ -21,7 +21,9 @@ data Definition
 
 data Constructor
   -- <id>(<name>: <type>, ..., <name>: <type>)
-  = Constructor TermId (List Parameter) {name :: TermName, cursor :: Boolean}
+  = Constructor TermUniqueBinding (List Parameter) {cursor :: Boolean}
+
+type Buffer = NeutralTerm
 
 data Type
   -- (<name>: <type, ..., <name>: <type>)
@@ -89,7 +91,7 @@ makeDataDefinition x cnstrs = DataDefinition x cnstrs {hidden: false, cursor: fa
 -- Constructor
 
 makeConstructor :: TermId -> List Parameter -> Constructor
-makeConstructor id prms = Constructor id prms {name: IgnoreTermName, cursor: false}
+makeConstructor id prms = Constructor (makeTermUniqueBinding id) prms {cursor: false}
 
 -- Type
 
