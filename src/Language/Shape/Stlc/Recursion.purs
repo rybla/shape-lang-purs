@@ -3,17 +3,34 @@ module Language.Shape.Stlc.Recursion where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
+
+import Data.List (List, mapWithIndex, updateAt)
 import Data.Map as Map
 import Data.UUID (UUID)
+import Language.Holes (HoleSub)
+import Language.Shape.Stlc.Model (Changes, InputChange(..), TypeChange(..))
 import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, addParametersToContext, typeOfNeutralTerm)
+import Undefined (undefined)
 import Unsafe as Unsafe
 
-indModule :: forall a. (Context -> List Definition -> List Buffer -> Unit -> a) -> Module -> a
-indModule rec (Module defs bufs _) = rec (addDefinitionsToContext Map.empty defs) defs bufs unit
+type Wrap x = x -> HoleSub -> TypeChange -> Module
 
-indBlock :: forall a. (Context -> Type -> List Definition -> List Buffer -> Unit -> a) -> Context -> Type -> Block -> a
-indBlock rec gamma alpha (Block defs bufs a _) = rec (addDefinitionsToContext gamma defs) alpha defs bufs unit
+indModule :: forall a. (Context -> {-Wrap Def...-} List Definition -> List (Wrap Buffer) -> List Buffer -> Unit -> a)
+  -> Module -> a
+indModule rec (Module defs bufs _)
+  = rec (addDefinitionsToContext Map.empty defs) defs
+    (mapWithIndex (\i _ -> \buf sub chgs -> Module defs (Unsafe.fromJust $ updateAt i buf bufs) undefined) bufs)
+    bufs unit
+
+indBlock :: forall a. (Context -> Type -> List Definition -> List (Wrap Buffer) -> List Buffer -> NeutralTerm -> Unit -> a)
+  -> Context -> Type -> Wrap Block -> Block -> a
+indBlock rec gamma alpha wrap (Block defs bufs a _)
+  = rec (addDefinitionsToContext gamma defs) alpha defs
+      -- (mapWithIndex (\i _ -> \buf sub chgs
+        -- -> wrap $ Block defs (Unsafe.fromJust $ updateAt i buf bufs) a undefined) bufs)
+      (mapWithIndex (\i _ -> \buf sub chgs
+        -> wrap undefined sub NoChange) bufs)
+      bufs a unit
 
 indDefinition ::
   forall a.

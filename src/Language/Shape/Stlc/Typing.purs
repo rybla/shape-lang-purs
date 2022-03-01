@@ -17,13 +17,14 @@ type Context
   = Map TermId Type
 
 typeOfNeutralTerm :: Context -> NeutralTerm -> BaseType
-typeOfNeutralTerm gamma (ApplicationTerm (TermReference id _) Nil _) = case Unsafe.fromJust (Map.lookup id gamma) of
-  ArrowType prms beta -> beta
-  _ -> Unsafe.error "impossible"
+typeOfNeutralTerm = undefined
+-- typeOfNeutralTerm gamma (ApplicationTerm (TermReference id _) Nil _) = case Unsafe.fromJust (Map.lookup id gamma) of
+--   ArrowType prms beta -> beta
+--   _ -> Unsafe.error "impossible"
 
-typeOfNeutralTerm gamma (NeutralTerm a) = case Unsafe.fromJust (Map.lookup id gamma) of
-  BaseType alpha -> alpha
-  _ -> Unsafe.error "impossible"
+-- typeOfNeutralTerm gamma (NeutralTerm a) = case Unsafe.fromJust (Map.lookup undefined gamma) of
+--   BaseType alpha -> alpha
+--   _ -> Unsafe.error "impossible"
 
 addParametersToContext :: Context -> List Parameter -> Context
 addParametersToContext = undefined
