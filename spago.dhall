@@ -2,10 +2,12 @@
 , dependencies =
   [ "aff"
   , "arrays"
+  , "console"
   , "effect"
   , "either"
   , "foldable-traversable"
   , "halogen"
+  , "halogen-hooks"
   , "lists"
   , "maybe"
   , "ordered-collections"
