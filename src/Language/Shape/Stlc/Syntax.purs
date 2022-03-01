@@ -43,7 +43,7 @@ data NeutralTerm
   -- <id> (<arg>, ..., <arg>)
   = ApplicationTerm TermReference (List Term) {indented :: Boolean, cursor :: Boolean}
   -- match <term>: <type> with <cases>
-  | MatchTerm BaseType NeutralTerm (List Case) {indented :: Boolean, cursor :: Boolean}
+  | MatchTerm TypeId NeutralTerm (List Case) {indented :: Boolean, cursor :: Boolean}
   | HoleTerm {indented :: Boolean, cursor :: Boolean}
 
 data Case =

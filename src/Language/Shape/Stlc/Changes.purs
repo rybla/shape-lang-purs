@@ -22,8 +22,13 @@ data InputChange = Change TypeChange Int | Insert Type
 -- Example:  (A,B,C)->D changes to (A,C,?)->D
 -- is: ArrowChange [Change NoChange 0, Change NoChange 2, Insert] NoChange
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
-data DataChange = DataTypeDeletion
+
+-- DataChange is used where data type is used in type OR a value of it is matched upon
+data ConstructorChange = ChangeC (List InputChange) | InsertConstructor (List Parameter)
+data DataChange = DataTypeDeletion | DataTypeChange TypeId (List ConstructorChange)
 type Changes = Tuple (Map TermId VarChange) (Map TypeId DataChange)
+-- NOTE: when changing a datatype, need to create VarChange for constructor terms AS WELL as DataChange for
+--      matches and uses in types.
 saneIndex :: forall a . List a -> Int -> a
 saneIndex l i = unsafePartial $ fromJust (l !! i)
 error :: forall a . String -> a
@@ -57,6 +62,7 @@ searchBaseType gamma (DataType x md@{indented : i}) = case lookup x (snd gamma) 
   Nothing -> DataType x md
   Just dc -> case dc of
     DataTypeDeletion -> HoleType (freshHoleId unit) Nil {indented: i, cursor : false}
+    DataTypeChange x ctrChs -> undefined
 searchBaseType gamma (HoleType sym syms md)
   = HoleType sym (filter (deleted gamma) syms) md -- remove deleted datatypes from list of weakenings
 deleted :: Changes -> TypeId -> Boolean
