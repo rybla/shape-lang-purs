@@ -30,6 +30,8 @@ data Type
   = ArrowType (List Parameter) BaseType {indented :: Boolean, cursor :: Boolean}
   | BaseType BaseType
 
+type TypeWeakening = List TypeId
+
 data BaseType
   = DataType TypeId {indented :: Boolean, cursor :: Boolean}
   | HoleType HoleId TypeWeakening {indented :: Boolean, cursor :: Boolean}
@@ -50,12 +52,16 @@ data Case =
   -- | (<id>, ..., <id>) => <block>
   Case (List TermBinding) Block {annotated :: Boolean, cursor :: Boolean}
 
-data Parameter = Parameter TermName Type {cursor :: Boolean}
+data Parameter = Parameter TermLabel Type {cursor :: Boolean}
 
 data TypeUniqueBinding = TypeUniqueBinding TypeId {name :: TypeName, cursor :: Boolean}
 
 data TermUniqueBinding = TermUniqueBinding TermId {name :: TermName, cursor :: Boolean}
+
+data TermLabel = TermLabel TermName {cursor :: Boolean}
+
 data TermBinding = TermBinding TermId {cursor :: Boolean}
+
 data TermReference = TermReference TermId {cursor :: Boolean}
 
 data TermId = TermId UUID.UUID
@@ -64,7 +70,9 @@ data TypeId = TypeId UUID.UUID
 
 data HoleId = HoleId UUID.UUID
 
-type TypeWeakening = List TypeId
+data TypeName = TypeName String | IgnoreTypeName
+
+data TermName = TermName String | IgnoreTermName
 
 -- Make
 
@@ -129,8 +137,8 @@ makeCase xs block = Case xs block {annotated: true, cursor: false}
 
 -- Parameter
 
-makeParameter :: TermName -> Type -> Parameter 
-makeParameter x alpha = Parameter x alpha {cursor: false}
+makeParameter :: TermLabel -> Type -> Parameter 
+makeParameter label alpha = Parameter label alpha {cursor: false}
 
 -- Type[UniqueBinding|Reference]
 
@@ -159,11 +167,6 @@ freshTypeId _ = unsafePerformEffect $ map TypeId UUID.genUUID
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ map HoleId UUID.genUUID
 
--- Metadata
-
-data TypeName = TypeName String | IgnoreTypeName
-
-data TermName = TermName String | IgnoreTermName
 
 -- Instances
 
@@ -177,19 +180,16 @@ derive instance Generic BaseType _
 derive instance Generic Term _
 derive instance Generic Case _
 derive instance Generic NeutralTerm _
-
 derive instance Generic Parameter _ 
-
+derive instance Generic TermLabel _ 
 derive instance Generic TermUniqueBinding _
 derive instance Generic TermBinding _
 derive instance Generic TermReference _
 derive instance Generic TermName _
 derive instance Generic TermId _
-
 derive instance Generic TypeUniqueBinding _
 derive instance Generic TypeName _
 derive instance Generic TypeId _
-
 derive instance Generic HoleId _
 
 -- Show
@@ -202,9 +202,8 @@ instance Show BaseType where show x = genericShow x
 instance Show Term where show x = genericShow x
 instance Show Case where show x = genericShow x
 instance Show NeutralTerm where show x = genericShow x
-
 instance Show Parameter where show x = genericShow x
-
+instance Show TermLabel where show x = genericShow x
 instance Show TermUniqueBinding where show x = genericShow x
 instance Show TermBinding where show x = genericShow x
 instance Show TermReference where show x = genericShow x
