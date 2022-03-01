@@ -5,6 +5,7 @@ import Prim hiding (Type)
 
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..))
+import Data.Set (Set, empty)
 import Data.Show.Generic (genericShow)
 import Data.UUID as UUID
 import Effect.Unsafe (unsafePerformEffect)
@@ -30,7 +31,7 @@ data Type
   = ArrowType (List Parameter) BaseType {indented :: Boolean, cursor :: Boolean}
   | BaseType BaseType
 
-type TypeWeakening = List TypeId
+type TypeWeakening = Set TypeId
 
 data BaseType
   = DataType TypeId {indented :: Boolean, cursor :: Boolean}
@@ -111,7 +112,7 @@ makeDataType :: TypeId -> BaseType
 makeDataType id = DataType id {indented: false, cursor: false}
 
 makeHoleType :: Unit -> BaseType 
-makeHoleType _ = HoleType (freshHoleId unit) Nil {indented: false, cursor: false}
+makeHoleType _ = HoleType (freshHoleId unit) empty {indented: false, cursor: false}
 
 -- Term
 

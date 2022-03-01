@@ -5,16 +5,36 @@ import Data.Symbol
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Data.Either (Either(..))
-import Data.List (List(..), (!!), filter)
+import Data.List (List(..), (!!))
 import Data.List.Lazy as List
 import Data.Map (Map, empty, lookup, unionWith, unions, singleton)
 import Data.Map as Map
+import Data.Set (filter)
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial (crashWith)
 import Partial.Unsafe (unsafePartial)
 import Prim.Boolean (True)
 import Undefined (undefined)
+
+{-
+This file describes the logic for applying a certian class of changes to a well-typed program.
+The class of changes in question is essentially
+- Delete a variable in scope
+- Change the type of a variable in scope
+- Delete a datatype
+- Change a datatype
+  - rearrange, insert, delete constructors
+  - insert/delete/change arguments in constructors
+
+Specifically, this file defines a type called Changes which encodes changes for each variable in
+scope (or variables not included are assumed to be unchanged)
+
+Additionally, for each kind of structure in the syntax, such as a Term or Block, this file
+defines functions such as searchTerm which apply such changes to terms.
+-}
+
 data TypeChange = TypeReplace Type | NoChange
   | ArrowChange (List InputChange) TypeChange
 -- data BaseTypeChange = TypeReplace Type | NoChange
@@ -49,7 +69,7 @@ chType gamma c t =
             --   mapper (Change tc n) = Parameter (fst $ as !!! n) (chTypeImpl tc (snd $ as !!! n))
               mapper (Change tc n) = case as !!! n of
                 (Parameter name tp mdp) -> Parameter name (chTypeImpl tc tp) mdp
-              mapper (Insert newT) = makeParameter (TermName "_") newT
+              mapper (Insert newT) = makeParameter undefined newT
       chTypeImpl (ArrowChange _ _) (BaseType bt) = error "Can't ArrowChange a base type"
   in searchType gamma (chTypeImpl c t)
 searchType :: Changes -> Type -> Type
@@ -58,10 +78,10 @@ searchType gamma (ArrowType ins out md)
     (searchBaseType gamma out) md
 searchType gamma (BaseType bt) = BaseType (searchBaseType gamma bt)
 searchBaseType :: Changes -> BaseType -> BaseType
-searchBaseType gamma (DataType x md@{indented : i}) = case lookup x (snd gamma) of
+searchBaseType gamma (DataType x md) = case lookup x (snd gamma) of
   Nothing -> DataType x md
   Just dc -> case dc of
-    DataTypeDeletion -> HoleType (freshHoleId unit) Nil {indented: i, cursor : false}
+    DataTypeDeletion -> HoleType (freshHoleId unit) mempty {indented: md.indented, cursor : false}
     DataTypeChange x ctrChs -> undefined
 searchBaseType gamma (HoleType sym syms md)
   = HoleType sym (filter (deleted gamma) syms) md -- remove deleted datatypes from list of weakenings
@@ -158,10 +178,12 @@ searchConstructor gamma (Constructor b args md)
 -- TODO: searchConstructor needs to actually apply constructor changes once I define them!
 
   
--- {-
--- -- TODO: why am I calling it gamma?
--- -- TODO: how does moving stuff from block into hole work?
--- -- The thing in the block is a Term, but the hole expects a Neutral?
--- -- I suppose that it simply checks if it is a neutral and if not doesn't let you
--- -- move it?
--- -}
+{-
+TODO: why am I calling it gamma?
+
+Tasks in this file:
+1) Figure out how to use NoChange to not need search_ and ch_ for each thing.
+2) Complete stuff with MatchTerms.
+3) Write external functions which are used by UI, like "insert arg at this position"
+  - think about how that works with wrap
+-}
