@@ -116,7 +116,7 @@ makeNeutralTerm neu = NeutralTerm neu
 makeApplicationTerm :: TermReference -> List Term -> NeutralTerm 
 makeApplicationTerm x args = ApplicationTerm x args {indented: false, cursor: false}
 
-makeMatchTerm :: BaseType -> NeutralTerm -> List Case -> NeutralTerm
+makeMatchTerm :: TypeId -> NeutralTerm -> List Case -> NeutralTerm
 makeMatchTerm alpha neu cases = MatchTerm alpha neu cases {indented: false, cursor: false}
 
 makeHoleTerm :: NeutralTerm

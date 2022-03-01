@@ -119,14 +119,26 @@ searchNeutral gamma (ApplicationTerm r@(TermReference x _) args md) = case looku
           TypeReplace ty -> ApplicationTerm r newArgs md
           _ -> makeHoleTerm
 searchNeutral gamma (HoleTerm md) = HoleTerm md
-searchNeutral gamma (MatchTerm _ _ _ md) = undefined -- TODO
+searchNeutral gamma (MatchTerm tyId t cs md)
+    = case lookup tyId (snd gamma) of
+        Just DataTypeDeletion -> undefined
+        Just (DataTypeChange id chs) -> undefined
+        Nothing -> MatchTerm tyId (searchNeutral gamma t) (map (searchCase gamma) cs) md
 -- TODO: create BaseTypeChange which is what applies to Neutrals as they have BaseType.
+
+searchCase :: Changes -> Case -> Case
+searchCase gamma (Case bs b md) = Case bs (searchBlock gamma b) md
+changeCase :: Changes -> TypeChange -> Case -> Case
+changeCase gamma tc (Case bs b md) = Case bs (chBlock gamma tc b) md
 chNeutral :: Changes -> TypeChange -> NeutralTerm -> NeutralTerm
 chNeutral gamma (TypeReplace ty) (ApplicationTerm sym tes md) = makeHoleTerm -- TODO: incorporate indentation from input input output
 chNeutral gamma NoChange (ApplicationTerm sym tes md) = searchNeutral gamma (ApplicationTerm sym tes md)
 chNeutral gamma (ArrowChange ics tc) (ApplicationTerm sym tes md) = error "shouldn't happen, neutral is only of base type"
 chNeutral gamma c (HoleTerm md) = HoleTerm md
-chNeutral gamma c (MatchTerm sym te cas md) = undefined
+chNeutral gamma c (MatchTerm tyId t cs md)
+    = searchNeutral gamma (MatchTerm tyId t (map (changeCase gamma c) cs) md)
+-- data TypeChange = TypeReplace Type | NoChange
+--   | ArrowChange (List InputChange) TypeChange
 chBlock :: Changes -> TypeChange -> Block -> Block
 chBlock gamma c (Block defs buffer t md)
   = Block (map (searchDefinition gamma) defs)
