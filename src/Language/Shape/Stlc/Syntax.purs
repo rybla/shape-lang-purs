@@ -45,7 +45,7 @@ data NeutralTerm
   -- <id> (<arg>, ..., <arg>)
   = ApplicationTerm TermReference (List Term) {indented :: Boolean, cursor :: Boolean}
   -- match <term>: <type> with <cases>
-  | MatchTerm BaseType NeutralTerm (List Case) {indented :: Boolean, cursor :: Boolean}
+  | MatchTerm TypeId NeutralTerm (List Case) {indented :: Boolean, cursor :: Boolean}
   | HoleTerm {indented :: Boolean, cursor :: Boolean}
 
 data Case =
@@ -124,7 +124,7 @@ makeNeutralTerm neu = NeutralTerm neu
 makeApplicationTerm :: TermReference -> List Term -> NeutralTerm 
 makeApplicationTerm x args = ApplicationTerm x args {indented: false, cursor: false}
 
-makeMatchTerm :: BaseType -> NeutralTerm -> List Case -> NeutralTerm
+makeMatchTerm :: TypeId -> NeutralTerm -> List Case -> NeutralTerm
 makeMatchTerm alpha neu cases = MatchTerm alpha neu cases {indented: false, cursor: false}
 
 makeHoleTerm :: NeutralTerm
