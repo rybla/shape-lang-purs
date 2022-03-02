@@ -26,10 +26,7 @@ data Constructor
 
 type Buffer = NeutralTerm
 
-data Type
-  -- (<name>: <type, ..., <name>: <type>)
-  = ArrowType (List Parameter) BaseType {indented :: Boolean}
-  | BaseType BaseType
+data Type = ArrowType (List Parameter) BaseType {indented :: Boolean}
 
 type TypeWeakening = Set TypeId
 
@@ -40,7 +37,6 @@ data BaseType
 data Term
   -- (<id>, ..., <id>) => <block>
   = LambdaTerm (List TermBinding) Block {annotated :: Boolean, indented :: Boolean}
-  | NeutralTerm NeutralTerm
 
 data NeutralTerm
   -- <id> (<arg>, ..., <arg>)
@@ -102,9 +98,6 @@ makeConstructor id prms = Constructor (makeTermUniqueBinding id) prms {}
 makeArrowType :: List Parameter -> BaseType -> Type
 makeArrowType prms out = ArrowType prms out {indented: false}
 
-makeBaseType :: BaseType -> Type 
-makeBaseType alpha = BaseType alpha
-
 makeDataType :: TypeId -> BaseType 
 makeDataType id = DataType id {indented: false}
 
@@ -115,9 +108,6 @@ makeHoleType _ = HoleType (freshHoleId unit) empty {indented: false}
 
 makeLambdaTerm :: List TermBinding -> Block -> Term 
 makeLambdaTerm xs block = LambdaTerm xs block {annotated: true, indented: false}
-
-makeNeutralTerm :: NeutralTerm -> Term 
-makeNeutralTerm neu = NeutralTerm neu 
 
 makeApplicationTerm :: TermReference -> List Term -> NeutralTerm 
 makeApplicationTerm x args = ApplicationTerm x args {indented: false}
