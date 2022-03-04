@@ -15,6 +15,7 @@
   , "prelude"
   , "record"
   , "tuples"
+  , "typelevel-lists"
   , "undefined"
   , "uuid"
   , "web-events"
