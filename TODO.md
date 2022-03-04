@@ -1,22 +1,12 @@
 # TODO
 
-## Rendering
-
-- Metadata
-  - Indentation
-  - Annotation
-- Generate changes functions
-- Figure how to handle when two instances of a name are bound in same scope
-  - Perhaps the later instances get the subscripting? The first instance
-    shouldn't get subscripted, right?
-
-## Model
-
-- Changes:
-  - Test
-  - Add datatype changes to Changes
-  - Fill in all undefined MatchTerm cases
-- Bindings
-  - Create definition
-  - Delete definition
-  - Rearrange definitions
+- Jacob
+  - [ ] recursion principle with wrap (uses HoleSub, TypeChanges)
+  - [ ] changeFunction
+  - [ ] changes syntax
+  - [ ] hole stuff (i.e. unification)
+- Henry
+  - [ ] syntax
+  - [ ] recursion principle w/o wrap (and signature for w/ wrap)
+  - [ ] rendering
+    - [ ] make sure cursor works correctly
