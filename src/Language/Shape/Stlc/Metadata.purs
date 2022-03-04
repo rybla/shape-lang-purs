@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Metadata where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 
 type ModuleMetadata
@@ -12,40 +13,34 @@ defaultModuleMetadata :: ModuleMetadata
 defaultModuleMetadata = { hidden: false }
 
 type BlockMetadata
-  = { hidden :: Boolean }
+  = { indented::Boolean , hidden :: Boolean }
 
 defaultBlockMetadata :: BlockMetadata
-defaultBlockMetadata = { hidden: false }
+defaultBlockMetadata = { indented:false,  hidden: false }
 
 type TermDefinitionMetadata
-  = { hidden :: Boolean }
+  = { name::TermName, hidden :: Boolean }
 
 defaultTermDefinitionMetadata :: TermDefinitionMetadata
-defaultTermDefinitionMetadata = { hidden: false }
+defaultTermDefinitionMetadata = { name: TermName Nothing,  hidden: false }
 
 type DataDefinitionMetadata
-  = { hidden :: Boolean }
+  = { name::TypeName, hidden :: Boolean }
 
 defaultDataDefinitionMetadata :: DataDefinitionMetadata
-defaultDataDefinitionMetadata = { hidden: false }
+defaultDataDefinitionMetadata = { name: TypeName Nothing, hidden: false }
 
 type ConstructorMetadata
-  = {}
+  = {name::TermName}
 
 defaultConstructorMetadata :: ConstructorMetadata
-defaultConstructorMetadata = {}
-
-type BufferMetadata
-  = {}
-
-defaultBufferMetadata :: BufferMetadata
-defaultBufferMetadata = {}
+defaultConstructorMetadata = {name: TermName Nothing}
 
 type ArrowTypeMetadata
-  = { indentedParameters :: Boolean }
+  = {name::TermName}
 
 defaultArrowTypeMetadata :: ArrowTypeMetadata
-defaultArrowTypeMetadata = { indentedParameters: false }
+defaultArrowTypeMetadata = {name: TermName Nothing}
 
 type DataTypeMetadata
   = {}
@@ -60,22 +55,22 @@ defaultHoleTypeMetadata :: HoleTypeMetadata
 defaultHoleTypeMetadata = {}
 
 type LambdaTermMetadata
-  = { annotated :: Boolean, indentedParameters :: Boolean }
+  = { annotated :: Boolean, indented :: Boolean }
 
 defaultLambdaTermMetadata :: LambdaTermMetadata
-defaultLambdaTermMetadata = { annotated: true, indentedParameters: false }
+defaultLambdaTermMetadata = { annotated: true, indented: false }
 
 type ApplicationTermMetadata
-  = { indentedArgument :: Boolean }
+  = { indented :: Boolean }
 
 defaultApplicationTermMetadata :: ApplicationTermMetadata
-defaultApplicationTermMetadata = { indentedArgument: false }
+defaultApplicationTermMetadata = { indented: false }
 
 type MatchTermMetadata
-  = { indentedCases :: Boolean }
+  = { indented :: Boolean }
 
 defaultMatchTermMetadata :: MatchTermMetadata
-defaultMatchTermMetadata = { indentedCases: false }
+defaultMatchTermMetadata = { indented: false }
 
 type HoleTermMetadata
   = {}
@@ -83,61 +78,16 @@ type HoleTermMetadata
 defaultHoleTermMetadata :: HoleTermMetadata
 defaultHoleTermMetadata = {}
 
-type CaseMetadata
-  = { annotated :: Boolean, indentedBlock :: Boolean }
+data TypeName = TypeName (Maybe String)
+data TermName = TermName (Maybe String)
 
-defaultCaseMetadata :: CaseMetadata
-defaultCaseMetadata = { annotated: true, indentedBlock: false }
-
-type ParameterMetadata
-  = {}
-
-defaultParameterMetadata :: ParameterMetadata
-defaultParameterMetadata = {}
-
-type TypeUniqueBindingMetadata
-  = { name :: TypeName }
-
-defaultTypeUniqueBindingMetadata :: TypeUniqueBindingMetadata
-defaultTypeUniqueBindingMetadata = { name: IgnoreTypeName }
-
-type TermUniqueBindingMetadata
-  = { name :: TermName }
-
-defaultTermUniqueBindingMetadata :: TermUniqueBindingMetadata
-defaultTermUniqueBindingMetadata = { name: IgnoreTermName }
-
-type TermBindingMetadata
-  = {}
-
-defaultTermBindingMetadata :: TermBindingMetadata
-defaultTermBindingMetadata = {}
-
-type TermLabelMetadata
-  = {}
-
-defaultTermLabelMetadata :: TermLabelMetadata
-defaultTermLabelMetadata = {}
-
-type TermReferenceMetadata
-  = {}
-
-defaultTermReferenceMetadata :: TermReferenceMetadata
-defaultTermReferenceMetadata = {}
-
-data TypeName
-  = TypeName String
-  | IgnoreTypeName
-
-data TermName
-  = TermName String
-  | IgnoreTermName
-
+-- instances for TypeName
 derive instance Generic TypeName _
 instance Show TypeName where show x = genericShow x
 derive instance Eq TypeName
 derive instance Ord TypeName
 
+-- instances for TermName
 derive instance Generic TermName _
 instance Show TermName where show x = genericShow x
 derive instance Eq TermName
