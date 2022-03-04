@@ -21,7 +21,7 @@ type Definitions
 
 data Definition
   = TermDefinition TermID Type Term TermDefinitionMetadata
-  | DataDefintion TermID (List Constructor) DataDefinitionMetadata
+  | DataDefintion TypeID (List Constructor) DataDefinitionMetadata
 
 data Constructor
   = Constructor TermID Type ConstructorMetadata
