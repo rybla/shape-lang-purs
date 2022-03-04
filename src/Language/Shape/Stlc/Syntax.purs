@@ -11,13 +11,10 @@ import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, HoleTypeMetadata)
 
 data Module
-  = Module Definitions ModuleMetadata
+  = Module (List Definition) ModuleMetadata
 
 data Block
-  = Block Definitions Term BlockMetadata
-
-type Definitions
-  = List Definition
+  = Block (List Definition) Term BlockMetadata
 
 data Definition
   = TermDefinition TermID Type Term TermDefinitionMetadata
