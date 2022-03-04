@@ -8,7 +8,7 @@ import Data.List (List)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, HoleTermMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata)
+import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, HoleTypeMetadata)
 
 data Module
   = Module Definitions ModuleMetadata
@@ -33,9 +33,9 @@ data Term
   | MatchTerm TypeID Term (List Term)
 
 data Type
-  = ArrowType Type Type
-  | DataType TermID
-  | HoleType HoleID TypeWeakening
+  = ArrowType Type Type ArrowTypeMetadata
+  | DataType TermID DataTypeMetadata
+  | HoleType HoleID TypeWeakening HoleTypeMetadata
 
 type TypeWeakening
   = List Type
@@ -51,13 +51,13 @@ data HoleID
 
 -- Fresh
 freshTermID :: Unit -> TermID
-freshTermID _ = unsafePerformEffect $ map TermID genUUID
+freshTermID _ = unsafePerformEffect $ TermID <$> genUUID
 
 freshTypeID :: Unit -> TypeID
-freshTypeID _ = unsafePerformEffect $ map TypeID genUUID
+freshTypeID _ = unsafePerformEffect $ TypeID <$> genUUID
 
 freshHoleID :: Unit -> HoleID
-freshHoleID _ = unsafePerformEffect $ map HoleID genUUID
+freshHoleID _ = unsafePerformEffect $ HoleID <$> genUUID
 
 -- Generic instances
 derive instance Generic Module _
