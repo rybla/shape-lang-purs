@@ -18,6 +18,7 @@
   , "typelevel-lists"
   , "undefined"
   , "uuid"
+  , "variant"
   , "web-events"
   , "web-html"
   , "web-uievents"
