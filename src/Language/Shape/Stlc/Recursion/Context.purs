@@ -4,7 +4,8 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
-import Language.Shape.Stlc.Typing (Context)
+import Language.Shape.Stlc.Recursion.Base as Rec
+import Language.Shape.Stlc.Typing (Context, addDefinitionToContext, addDefinitionsToContext)
 import Undefined (undefined)
 
 -- Recursion principles which handle context & type
@@ -13,21 +14,27 @@ recModule ::
   { module_ :: List Definition -> Context -> a
   } ->
   Module -> Context -> a
-recModule rec module_ gamma = undefined
+recModule rec =
+  Rec.recModule
+    { module_: \defs meta gamma -> rec.module_ defs (addDefinitionsToContext defs gamma) }
 
 recBlock ::
   forall a.
   { block :: List Definition -> Term -> Context -> Type -> a
   } ->
   Block -> Context -> Type -> a
-recBlock rec block gamma alpha = undefined
+recBlock rec =
+  Rec.recBlock
+    { block: \defs a meta gamma alpha -> rec.block defs a (addDefinitionsToContext defs gamma) alpha }
 
 recDefinitions ::
   forall a.
   { definitions :: Int -> Definition -> Context -> a
   } ->
   List Definition -> Context -> a
-recDefinitions rec defs gamma = undefined
+recDefinitions rec =
+  Rec.recDefinitions
+    { definitions: \i def gamma -> rec.definitions i def (addDefinitionToContext def gamma) }
 
 recDefinition ::
   forall a.
@@ -35,14 +42,20 @@ recDefinition ::
   , data :: TypeID -> (List Constructor) -> Context -> a
   } ->
   Definition -> Context -> a
-recDefinition def gamma = undefined
+recDefinition rec =
+  Rec.recDefinition
+    { term: \id alpha a meta gamma -> rec.term id alpha a gamma
+    , data: \id constrs meta gamma -> rec.data id constrs gamma
+    }
 
 recConstructor ::
   forall a.
   { constructor :: TermID -> Type -> Context -> a
   } ->
   Constructor -> Context -> a
-recConstructor constr gamma = undefined
+recConstructor rec =
+  Rec.recConstructor
+    { constructor: \id alpha meta gamma -> rec.constructor id alpha gamma }
 
 recTerm ::
   forall a.
@@ -52,7 +65,13 @@ recTerm ::
   , match :: TypeID -> Term -> List Term -> Context -> Type -> a
   } ->
   Term -> Context -> Type -> a
-recTerm a gamma alpha = undefined
+recTerm rec =
+  Rec.recTerm
+    { lambda: \id block meta gamma alpha -> rec.lambda id block ?gamma ?alpha
+    , application: \id args meta gamma alpha -> rec.application id args gamma ?alpha
+    , hole: \meta gamma alpha -> rec.hole gamma alpha
+    , match: \dataID a cases meta gamma alpha -> rec.match dataID a cases gamma alpha
+    }
 
 recType ::
   forall a.
@@ -61,4 +80,9 @@ recType ::
   , hole :: HoleID -> TypeWeakening -> Context -> a
   } ->
   Type -> Context -> a
-recType alpha gamma = undefined
+recType rec =
+  Rec.recType
+    { arrow: \alpha beta meta gamma -> rec.arrow alpha beta gamma
+    , data: \id meta gamma -> rec.data id gamma
+    , hole: \id wkn meta gamma -> rec.hole id wkn gamma
+    }
