@@ -1,9 +1,10 @@
 # TODO
 
 - Jacob
+  - [ ] decide how cases work in match
   - [ ] recursion principle with wrap (uses HoleSub, TypeChanges)
   - [ ] changeFunction
-  - [ ] changes syntax
+  - [ ] changes syntax (curried)
   - [ ] hole stuff (i.e. unification)
 - Henry
   - [ ] syntax
