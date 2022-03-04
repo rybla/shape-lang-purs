@@ -6,7 +6,7 @@
   - [ ] changes syntax
   - [ ] hole stuff (i.e. unification)
 - Henry
-  - [ ] syntax
+  - [x] syntax
   - [ ] recursion principle w/o wrap (and signature for w/ wrap)
   - [ ] rendering
     - [ ] make sure cursor works correctly
