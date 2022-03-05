@@ -26,28 +26,18 @@ recBlock rec block = case block of
 
 recDefinition ::
   forall a.
-  { term :: TermID -> Type -> Term -> TermDefinitionMetadata -> a
-  , data :: TypeID -> (List Constructor) -> DataDefinitionMetadata -> a
+  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
+  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> a
   } ->
   Definition -> a
 recDefinition rec def = undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermID -> Type -> ConstructorMetadata -> a
+  { constructor :: TermBinding -> Type -> ConstructorMetadata -> a
   } ->
   Constructor -> a
 recConstructor rec constr = undefined
-
-recTerm ::
-  forall a.
-  { lambda :: TermID -> Block -> LambdaTermMetadata -> a
-  , application :: TermID -> List Term -> ApplicationTermMetadata -> a
-  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> a
-  , hole :: HoleTermMetadata -> a
-  } ->
-  Term -> a
-recTerm rec a = undefined
 
 recType ::
   forall a.
@@ -57,3 +47,21 @@ recType ::
   } ->
   Type -> a
 recType rec alpha = undefined
+
+recTerm ::
+  forall a.
+  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> a
+  , neutral :: NeutralTerm -> NeutralTermMetadata -> a
+  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> a
+  , hole :: HoleTermMetadata -> a
+  } ->
+  Term -> a
+recTerm rec a = undefined
+
+recNeutralTerm ::
+  forall a.
+  { variable :: TermID -> VariableTermMetadata -> a
+  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> a
+  } ->
+  NeutralTerm -> a
+recNeutralTerm rec n = undefined
