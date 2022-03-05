@@ -36,11 +36,11 @@ data NeutralTerm
 
 data Type
   = ArrowType Type Type ArrowTypeMetadata
-  | DataType TermID DataTypeMetadata
+  | DataType TypeID DataTypeMetadata
   | HoleType HoleID TypeWeakening HoleTypeMetadata
 
 type TypeWeakening
-  = Set Type
+  = Set TypeID
 
 data TermBinding = TermBinding TermID TermBindingMetadata
 

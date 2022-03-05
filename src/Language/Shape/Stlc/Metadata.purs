@@ -3,8 +3,10 @@ module Language.Shape.Stlc.Metadata where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Undefined (undefined)
 
 type ModuleMetadata
   = { hidden :: Boolean }
@@ -63,10 +65,10 @@ defaultNeutralTermMetadata :: NeutralTermMetadata
 defaultNeutralTermMetadata = {}
 
 type ApplicationTermMetadata
-  = { indented :: Boolean }
+  = { indented :: List Boolean } -- tells if each term is indented
 
 defaultApplicationTermMetadata :: ApplicationTermMetadata
-defaultApplicationTermMetadata = { indented: false }
+defaultApplicationTermMetadata = { indented: undefined }
 
 type VariableTermMetadata =  {}
 defaultVariableTermMetadata :: VariableTermMetadata
