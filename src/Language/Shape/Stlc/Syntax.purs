@@ -9,7 +9,7 @@ import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, HoleTypeMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, MatchTermMetadata)
+import Language.Shape.Stlc.Metadata
 
 data Module
   = Module (List Definition) ModuleMetadata
@@ -26,9 +26,13 @@ data Constructor
 
 data Term
   = LambdaTerm TermID Block LambdaTermMetadata
-  | ApplicationTerm TermID (List Term) ApplicationTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Term) MatchTermMetadata
+  | NeutralTerm NeutralTerm NeutralTermMetadata
+
+data NeutralTerm
+  = VariableTerm TermID VariableTermMetadata
+  | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
 
 data Type
   = ArrowType Type Type ArrowTypeMetadata
@@ -63,6 +67,7 @@ derive instance Generic Block _
 derive instance Generic Definition _
 derive instance Generic Constructor _
 derive instance Generic Term _
+derive instance Generic NeutralTerm _
 derive instance Generic Type _
 derive instance Generic TermID _
 derive instance Generic TypeID  _
@@ -74,6 +79,7 @@ instance Show Block where show x = genericShow x
 instance Show Definition where show x = genericShow x 
 instance Show Constructor where show x = genericShow x 
 instance Show Term where show x = genericShow x 
+instance Show NeutralTerm where show x = genericShow x 
 instance Show Type where show x = genericShow x 
 instance Show TermID where show x = genericShow x 
 instance Show TypeID  where show x = genericShow x 

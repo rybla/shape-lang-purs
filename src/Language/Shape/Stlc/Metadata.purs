@@ -60,11 +60,20 @@ type LambdaTermMetadata
 defaultLambdaTermMetadata :: LambdaTermMetadata
 defaultLambdaTermMetadata = { annotated: true, indented: false }
 
+type NeutralTermMetadata = {}
+
+defaultNeutralTermMetadata :: NeutralTermMetadata
+defaultNeutralTermMetadata = {}
+
 type ApplicationTermMetadata
   = { indented :: Boolean }
 
 defaultApplicationTermMetadata :: ApplicationTermMetadata
 defaultApplicationTermMetadata = { indented: false }
+
+type VariableTermMetadata =  {}
+defaultVariableTermMetadata :: VariableTermMetadata
+defaultVariableTermMetadata = {} 
 
 type MatchTermMetadata
   = { indented :: Boolean }
