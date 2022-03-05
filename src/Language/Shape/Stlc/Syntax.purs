@@ -5,6 +5,7 @@ import Prim hiding (Type)
 
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
+import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
@@ -35,7 +36,7 @@ data Type
   | HoleType HoleID TypeWeakening HoleTypeMetadata
 
 type TypeWeakening
-  = List Type
+  = Set Type
 
 data TermID
   = TermID UUID
