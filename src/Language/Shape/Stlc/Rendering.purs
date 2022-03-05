@@ -2,7 +2,7 @@ module Language.Shape.Stlc.Rendering where
 
 import Prelude
 import App as App
-import Data.List.Lazy.NonEmpty as List
+import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Halogen as H
@@ -18,14 +18,14 @@ data SyntaxAction st
   | ModifyState (st -> st)
 
 type SyntaxComponent q st m
-  = H.Component q st (SyntaxAction st) m
+  = H.Component q st App.AppAction m
 
 mkRenderSyntax ::
   forall syntax st q m.
   st ->
-  (forall w. syntax -> HH.HTML w (SyntaxAction st)) ->
+  (forall w. syntax -> HH.ComponentHTML w (SyntaxAction st)) ->
   syntax ->
-  SyntaxComponent q st m -- H.Component q st App.AppAction m
+  SyntaxComponent q st m
 mkRenderSyntax initialState render syntax =
   H.mkComponent
     { initialState: const initialState
@@ -36,10 +36,8 @@ mkRenderSyntax initialState render syntax =
               case _ of
                 AppAction appAction -> H.raise appAction
                 ModifyState modifyState -> H.modify_ modifyState
-            -- , receive = Just <<< ModifyState <<< const
             }
     , render: const $ render syntax
-    , receive: undefined
     }
 
 slotSyntax ::
@@ -49,7 +47,7 @@ slotSyntax ::
   Proxy label ->
   Int ->
   input ->
-  H.Component query input (SyntaxAction st) m ->
+  H.Component query input App.AppAction m ->
   HH.HTML (H.ComponentSlot slots m (SyntaxAction st)) (SyntaxAction st)
 slotSyntax label slot initialState syntax = HH.slot label slot syntax initialState identity
 
@@ -58,7 +56,16 @@ renderModule =
   mkRenderSyntax unit \(Syntax.Module defs meta) ->
     HH.div
       [ HP.class_ (HH.ClassName "module") ]
-      (map (slotSyntax ?label ?slot ?input (renderDefinition ?def)) (List.toUnfoldable defs))
+      ( map
+          ( \def ->
+              let
+                slot :: forall st slots m. HH.HTML (H.ComponentSlot slots m (SyntaxAction st)) (SyntaxAction st)
+                slot = undefined -- slotSyntax ?label ?slot ?input ?def
+              in
+                ?slot
+          )
+          (List.toUnfoldable defs)
+      )
 
 renderDefinition :: forall q m. Syntax.Definition -> SyntaxComponent q Unit m
 renderDefinition = mkRenderSyntax unit \def -> undefined
