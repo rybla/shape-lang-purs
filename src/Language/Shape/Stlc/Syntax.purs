@@ -18,14 +18,14 @@ data Block
   = Block (List Definition) Term BlockMetadata
 
 data Definition
-  = TermDefinition TermID Type Term TermDefinitionMetadata
+  = TermDefinition TermID Term TermDefinitionMetadata
   | DataDefintion TypeID (List Constructor) DataDefinitionMetadata
 
 data Constructor
   = Constructor TermID Type ConstructorMetadata
 
 data Term
-  = LambdaTerm TermID Block LambdaTermMetadata
+  = LambdaTerm TermID Type Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Term) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
