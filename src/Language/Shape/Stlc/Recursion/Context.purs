@@ -4,9 +4,11 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
+import Data.Map as Map
 import Language.Shape.Stlc.Recursion.Base as Rec
 import Language.Shape.Stlc.Typing (Context, addDefinitionToContext, addDefinitionsToContext)
 import Undefined (undefined)
+import Unsafe.Error as Unsafe
 
 -- Recursion principles which handle context & type
 recModule ::
@@ -67,8 +69,11 @@ recTerm ::
   Term -> Context -> Type -> a
 recTerm rec =
   Rec.recTerm
-    { lambda: \id block meta gamma alpha -> rec.lambda id block ?gamma ?alpha
-    , application: \id args meta gamma alpha -> rec.application id args gamma ?alpha
+    { lambda:
+        \id block meta gamma alpha -> case alpha of
+          ArrowType beta delta _ -> rec.lambda id block (Map.insert id beta gamma) delta
+          _ -> Unsafe.error "impossible"
+    , application: \id args meta gamma alpha -> rec.application id args gamma alpha
     , hole: \meta gamma alpha -> rec.hole gamma alpha
     , match: \dataID a cases meta gamma alpha -> rec.match dataID a cases gamma alpha
     }
