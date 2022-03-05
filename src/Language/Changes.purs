@@ -4,10 +4,12 @@ import Prelude
 import Prim hiding (Type)
 
 import Data.List (List)
-import Data.Map (Map)
-import Data.Tuple (Tuple)
-import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata)
-import Language.Shape.Stlc.Syntax (Constructor(..), TermID(..), Type(..), TypeID(..))
+import Data.Map (Map, lookup)
+import Data.Maybe (Maybe(..))
+import Data.Set (Set(..), difference, empty, filter, member)
+import Data.Tuple (Tuple, snd)
+import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultHoleTypeMetadata)
+import Language.Shape.Stlc.Syntax (Constructor(..), TermID(..), Type(..), TypeID(..), freshHoleID)
 import Unsafe (error)
 
 data TypeChange
@@ -22,20 +24,26 @@ data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
 -- DataChange is used where data type is used in type OR a value of it is matched upon
 data ConstructorChange = ChangeC TypeChange | InsertConstructor Constructor
-data DataChange = DataTypeDeletion | DataTypeChange TypeID (List ConstructorChange)
-type Changes = Tuple (Map TermID VarChange) (Map TypeID DataChange)
 
-chType :: Changes -> TypeChange -> Type -> Type
+type Changes = {
+    termChanges :: Map TermID VarChange,
+    matchChanges :: Map TypeID (List ConstructorChange),
+    dataTypeDeletions :: Set TypeID
+}
+
+type KindChanges = Set TypeID -- set of datatypes which have been deleted
+
+chType :: KindChanges -> TypeChange -> Type -> Type
 chType chs (ArrowCh c1 c2) (ArrowType a b md) = ArrowType (chType chs c1 a) (chType chs c2 b) md
 chType chs (InsertArg a) t = ArrowType a (chType chs NoChange t) defaultArrowTypeMetadata
-chType chs Swap t = ?h
-chType chs RemoveArg t = ?h
+chType chs Swap (ArrowType a (ArrowType b c md1) md2)
+    = ArrowType (continue a) (ArrowType (continue b) (continue c) md1) md2
+      where continue = chType chs NoChange
+chType chs RemoveArg (ArrowType a b md) = chType chs NoChange b
 chType chs (Replace a) t = a
 chType chs NoChange (ArrowType a b md) = ArrowType (chType chs NoChange a) (chType chs NoChange a) md
-chType chs NoChange (HoleType i w md) = ?h -- remove stuff from w
-chType chs NoChange (DataType i md) = ?h -- check chs for i
+chType chs NoChange (HoleType i w md) = HoleType i (difference w chs) md -- remove deleted datatypes from weakening -- TODO: is this how difference works?
+chType chs NoChange (DataType i md) = if member i chs
+    then HoleType (freshHoleID unit) empty defaultHoleTypeMetadata
+    else DataType i md
 chType chs _ _ = error "shouldn't get here"
--- data Type
---   = ArrowType Type Type ArrowTypeMetadata
---   | DataType TermID DataTypeMetadata
---   | HoleType HoleID TypeWeakening HoleTypeMetadata
