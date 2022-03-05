@@ -5,9 +5,9 @@ import Prelude
 import Prim hiding (Type)
 import Data.List (List)
 import Data.Map as Map
-import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, LambdaTermMetadata, MatchTermMetadata, ModuleMetadata, TermDefinitionMetadata, HoleTypeMetadata)
+import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Recursion.Base as Rec
-import Language.Shape.Stlc.Typing (Context, addDefinitionToContext, addDefinitionsToContext)
+import Language.Shape.Stlc.Typing
 import Undefined (undefined)
 import Unsafe.Error as Unsafe
 
