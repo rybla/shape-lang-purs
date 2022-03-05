@@ -24,13 +24,6 @@ recBlock ::
 recBlock rec block = case block of
   Block defs term meta -> rec.block defs term meta
 
-recDefinitions ::
-  forall a.
-  { definitions :: Int -> Definition -> a
-  } ->
-  List Definition -> a
-recDefinitions rec defs = undefined
-
 recDefinition ::
   forall a.
   { term :: TermID -> Type -> Term -> TermDefinitionMetadata -> a

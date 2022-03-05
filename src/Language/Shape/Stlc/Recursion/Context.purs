@@ -36,15 +36,6 @@ recBlock rec =
           rec.block defs a meta (addDefinitionsToContext defs gamma) alpha
     }
 
-recDefinitions ::
-  forall a.
-  { definitions :: Int -> Definition -> Context -> a
-  } ->
-  List Definition -> Context -> a
-recDefinitions rec =
-  Rec.recDefinitions
-    { definitions: \i def gamma -> rec.definitions i def (addDefinitionToContext def gamma) }
-
 recDefinition ::
   forall a.
   { term :: TermID -> Type -> Term -> TermDefinitionMetadata -> Context -> a

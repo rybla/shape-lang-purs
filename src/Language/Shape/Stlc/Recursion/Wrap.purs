@@ -52,26 +52,6 @@ recBlock rec =
             (\a' -> wrapBlock $ Block defs a' meta)
     }
 
---
---
--- recDefinitions ::
---   forall a.
---   { definitions :: Int -> Definition -> Context -> Wrap Definition -> a
---   } ->
---   List Definition -> Context -> Wrap (List Definition) -> a
--- recDefinitions rec =
---   Rec.recDefinitions
---     { definitions:
---         \i def gamma wrapDefs ->
---           rec.definitions
---             def
---             gamma
---             i
---             (\def' -> wrapDefs $ ?a) -- $ Unsafe.fromJust (List.updateAt i ?a ?a))
---     -- rec.definitions gamma ?a --  (\def' -> wrapDefs ?a)
---     }
---
---
 recDefinition ::
   forall a.
   { term :: TermID -> Type -> Term -> TermDefinitionMetadata -> Context -> Wrap Type -> Wrap Term -> a
