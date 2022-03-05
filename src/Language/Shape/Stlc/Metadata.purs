@@ -16,7 +16,7 @@ type BlockMetadata
   = { indented::Boolean , hidden :: Boolean }
 
 defaultBlockMetadata :: BlockMetadata
-defaultBlockMetadata = { indented:false,  hidden: false }
+defaultBlockMetadata = { indented:false, hidden: false }
 
 type TermDefinitionMetadata
   = { name::TermName, hidden :: Boolean }
