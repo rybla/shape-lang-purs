@@ -18,14 +18,14 @@ data Block
   = Block (List Definition) Term BlockMetadata
 
 data Definition
-  = TermDefinition TermID Term TermDefinitionMetadata
-  | DataDefintion TypeID (List Constructor) DataDefinitionMetadata
+  = TermDefinition TermBinding Term TermDefinitionMetadata
+  | DataDefintion TypeBinding (List Constructor) DataDefinitionMetadata
 
 data Constructor
-  = Constructor TermID Type ConstructorMetadata
+  = Constructor TermBinding Type ConstructorMetadata
 
 data Term
-  = LambdaTerm TermID Type Block LambdaTermMetadata
+  = LambdaTerm TermBinding Type Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Term) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
@@ -41,6 +41,10 @@ data Type
 
 type TypeWeakening
   = Set Type
+
+data TermBinding = TermBinding TermID TermBindingMetadata
+
+data TypeBinding = TypeBinding TypeID TypeBindingMetadata
 
 data TermID
   = TermID UUID
@@ -66,9 +70,11 @@ derive instance Generic Module _
 derive instance Generic Block _
 derive instance Generic Definition _
 derive instance Generic Constructor _
+derive instance Generic Type _
 derive instance Generic Term _
 derive instance Generic NeutralTerm _
-derive instance Generic Type _
+derive instance Generic TypeBinding _
+derive instance Generic TermBinding _
 derive instance Generic TermID _
 derive instance Generic TypeID  _
 derive instance Generic HoleID _
@@ -81,6 +87,8 @@ instance Show Constructor where show x = genericShow x
 instance Show Term where show x = genericShow x 
 instance Show NeutralTerm where show x = genericShow x 
 instance Show Type where show x = genericShow x 
+instance Show TypeBinding where show x = genericShow x 
+instance Show TermBinding where show x = genericShow x 
 instance Show TermID where show x = genericShow x 
 instance Show TypeID  where show x = genericShow x 
 instance Show HoleID where show x = genericShow x 

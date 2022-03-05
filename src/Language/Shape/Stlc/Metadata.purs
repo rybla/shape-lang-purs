@@ -19,31 +19,28 @@ defaultBlockMetadata :: BlockMetadata
 defaultBlockMetadata = { indented:false, hidden: false }
 
 type TermDefinitionMetadata
-  = { name::TermName, hidden :: Boolean }
+  = { hidden :: Boolean }
 
 defaultTermDefinitionMetadata :: TermDefinitionMetadata
-defaultTermDefinitionMetadata = { name: TermName Nothing,  hidden: false }
+defaultTermDefinitionMetadata = { hidden: false }
 
 type DataDefinitionMetadata
-  = { name::TypeName, hidden :: Boolean }
+  = { hidden :: Boolean }
 
 defaultDataDefinitionMetadata :: DataDefinitionMetadata
-defaultDataDefinitionMetadata = { name: TypeName Nothing, hidden: false }
+defaultDataDefinitionMetadata = { hidden: false }
 
-type ConstructorMetadata
-  = {name::TermName}
+type ConstructorMetadata = {}
 
 defaultConstructorMetadata :: ConstructorMetadata
-defaultConstructorMetadata = {name: TermName Nothing}
+defaultConstructorMetadata = {}
 
-type ArrowTypeMetadata
-  = {name::TermName}
+type ArrowTypeMetadata = {}
 
 defaultArrowTypeMetadata :: ArrowTypeMetadata
-defaultArrowTypeMetadata = {name: TermName Nothing}
+defaultArrowTypeMetadata = {}
 
-type DataTypeMetadata
-  = {}
+type DataTypeMetadata = {}
 
 defaultDataTypeMetadata :: DataTypeMetadata
 defaultDataTypeMetadata = {}
@@ -86,6 +83,16 @@ type HoleTermMetadata
 
 defaultHoleTermMetadata :: HoleTermMetadata
 defaultHoleTermMetadata = {}
+
+type TypeBindingMetadata = {name::TypeName}
+
+defaultTypeBindingMetadata :: TypeBindingMetadata
+defaultTypeBindingMetadata = {name:TypeName Nothing}
+
+type TermBindingMetadata = {name::TermName}
+
+defaultTermBindingMetadata :: TermBindingMetadata
+defaultTermBindingMetadata = {name: TermName Nothing}
 
 data TypeName = TypeName (Maybe String)
 data TermName = TermName (Maybe String)
