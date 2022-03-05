@@ -16,6 +16,6 @@ data Term
     | HoleTerm
 data Type
     = ArrowType Type Type
-    | DataType TypeId
-    | HoleType HoleId TypeWeakening
+    | DataType Name
+    | HoleType HoleID TypeWeakening
 ```
