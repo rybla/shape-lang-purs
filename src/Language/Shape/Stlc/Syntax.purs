@@ -9,7 +9,7 @@ import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, HoleTypeMetadata)
+import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, HoleTypeMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, MatchTermMetadata)
 
 data Module
   = Module (List Definition) ModuleMetadata
@@ -28,7 +28,7 @@ data Term
   = LambdaTerm TermID Block LambdaTermMetadata
   | ApplicationTerm TermID (List Term) ApplicationTermMetadata
   | HoleTerm HoleTermMetadata
-  | MatchTerm TypeID Term (List Term)
+  | MatchTerm TypeID Term (List Term) MatchTermMetadata
 
 data Type
   = ArrowType Type Type ArrowTypeMetadata
