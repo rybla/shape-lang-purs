@@ -16,6 +16,12 @@ import Unsafe as Unsafe
 type Context
   = Map TermID Type
 
+addDefinitionToContext :: Definition -> Context -> Context
+addDefinitionToContext = undefined
+
+addDefinitionsToContext :: List Definition -> Context -> Context
+addDefinitionsToContext = undefined
+
 -- typeOfNeutralTerm :: Context -> NeutralTerm -> BaseType
 -- typeOfNeutralTerm = undefined
 -- -- typeOfNeutralTerm gamma (ApplicationTerm (TermReference id _) Nil _) = case Unsafe.fromJust (Map.lookup id gamma) of
