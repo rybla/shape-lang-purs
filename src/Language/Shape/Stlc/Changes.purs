@@ -91,7 +91,7 @@ chTerm ctx chs ch (NeutralTerm t md) = do
     case t' of
         Just ne -> pure (NeutralTerm ne md)
         Nothing -> pure $ HoleTerm (inferNeutral ctx t) defaultHoleTermMetadata
-chTerm ctx chs ch (HoleTerm t md) = pure $ HoleTerm (chType chs.dataTypeDeletions ch t) md
+chTerm ctx chs ch (HoleTerm t md) = pure $ HoleTerm (chType chs.dataTypeDeletions ch t) md -- TODO, DON'T FORGET: when chType returns a TypeChange, use it somehow.
 chTerm ctx chs ch (MatchTerm i t cases md) = do
     cases' <- sequence $ (map (chTerm ctx chs ch) cases)
     t' <- (chTerm ctx chs ch t)
@@ -121,7 +121,7 @@ defFromTerm :: Term -> Definition
 defFromTerm t = TermDefinition undefined t defaultTermDefinitionMetadata
 
 
--- TODO: remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
+-- TODO: for wrap stuff, remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
 -- have f a, and change it to f a b. Also, to change f a b to f a. In other words, make sure that
 -- when propagating changes upwards in wrap, this stuff all works.
 
@@ -132,5 +132,37 @@ defFromTerm t = TermDefinition undefined t defaultTermDefinitionMetadata
 
 -- QUESTION: What happens if I chTerm (ArrowChange (Replace HoleType) NoChange) (lam x . x 5)
 
--- chTerm should NOT, because there are only two places where we have terms: in a definition or on the r.h.s. of an application.
+-- chTerm should not?, because there are only two places where we have terms: in a definition or on the r.h.s. of an application.
 -- In neither case are we willing to change it's type as a result of a different definition changing.
+-- except, that the type of a derinition SHOULD change if a datatype is deleted.
+-- So actually, chTerm SHOULD return a TypeChange?
+
+-- PROBLEM: consider
+-- let f : A -> A
+-- in  f = lam x . (neutral x)
+
+-- But, then I change the input type to B.
+-- SHould it automatically change output to B as well? No.
+-- It should end up with:
+-- let f : B -> A
+-- in  f = lam x . ?
+
+-- QUESTION: Does just making everything return a TypeChange, and then using the outputs correctly, make everything work as I want?
+-- QUESTION: What is the relationship between the TypeChange passed INTO chTerm and the out passed out????
+-- INstead of passing one out, should it just compute additional changes (from DataType deletions) going into the input TypeChange?
+
+{-
+
+To summarize the problems that I am finding: it doesn't seem right that you could pass in a TypeChange
+to a type or term to be changed, but then discover other things which needed to be changed about it and return
+a different TypeChange, which is presumably similar to the one that was passed in but maybe with some extra deletions.
+
+I'm not sure what the resolution is. Maybe Insertions/Deletions are different than deleting a datatype?
+But I need to think it through pretty carefully with a lot of cases in mind.
+
+Maybe the TC going in is TC : TypeChange T1 T2, and then the one going out is TypeChange T2 T3.
+In other words, it changes it even further.
+
+No, probably it should return TypeChange T1 T3.
+
+-}
