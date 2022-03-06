@@ -4,7 +4,7 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
-import Data.List (List(..), union)
+import Data.List (List(..), union, singleton)
 import Data.Map (Map, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
@@ -96,8 +96,12 @@ chTerm ctx chs ch (MatchTerm i t cases md) = do
     cases' <- sequence $ (map (chTerm ctx chs ch) cases)
     t' <- (chTerm ctx chs ch t)
     pure $ MatchTerm i t' cases' md
-chTerm ctx chs _ t = pure $ HoleTerm (inferTerm ctx t) defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
+chTerm ctx _ _ t = do
+    currStuff <- get
+    _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) t defaultTermDefinitionMetadata))
+    pure $ HoleTerm (inferTerm ctx t) defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
 
+-- was I stupid? should this in fact have the list of arguments?
 chNeutral :: Context -> Changes -> TypeChange -> NeutralTerm -> State (List Definition) (Maybe NeutralTerm)
 chNeutral = undefined
 
