@@ -22,6 +22,28 @@ addDefinitionToContext = undefined
 addDefinitionsToContext :: List Definition -> Context -> Context
 addDefinitionsToContext = undefined
 
+-- data Term
+--   = LambdaTerm TermBinding Type Block LambdaTermMetadata
+--   | HoleTerm Type HoleTermMetadata
+--   | MatchTerm TypeID Term (List Term) MatchTermMetadata
+--   | NeutralTerm NeutralTerm NeutralTermMetadata
+
+-- data NeutralTerm
+--   = VariableTerm TermID VariableTermMetadata
+--   | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
+
+inferTerm :: Context -> Term -> Type
+inferTerm ctx (LambdaTerm bi a b md) = undefined
+inferTerm ctx (HoleTerm t md) = undefined
+inferTerm ctx (MatchTerm i t cases md) = undefined
+inferTerm ctx t = undefined
+
+inferBlock :: Context -> Block -> Type
+inferBlock ctx b = undefined
+
+inferNeutral :: Context -> NeutralTerm -> Type
+inferNeutral ctx t = undefined
+
 -- typeOfNeutralTerm :: Context -> NeutralTerm -> BaseType
 -- typeOfNeutralTerm = undefined
 -- -- typeOfNeutralTerm gamma (ApplicationTerm (TermReference id _) Nil _) = case Unsafe.fromJust (Map.lookup id gamma) of
