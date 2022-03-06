@@ -9,7 +9,7 @@ import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Metadata (ApplicationTermMetadata, ArrowTypeMetadata, BlockMetadata, ConstructorMetadata, DataDefinitionMetadata, DataTypeMetadata, HoleTermMetadata, HoleTypeMetadata, LambdaTermMetadata, ModuleMetadata, TermDefinitionMetadata, MatchTermMetadata)
+import Language.Shape.Stlc.Metadata
 
 data Module
   = Module (List Definition) ModuleMetadata
@@ -18,17 +18,21 @@ data Block
   = Block (List Definition) Term BlockMetadata
 
 data Definition
-  = TermDefinition TermID Type Term TermDefinitionMetadata
-  | DataDefintion TypeID (List Constructor) DataDefinitionMetadata
+  = TermDefinition TermBinding Term TermDefinitionMetadata
+  | DataDefintion TypeBinding (List Constructor) DataDefinitionMetadata
 
 data Constructor
-  = Constructor TermID Type ConstructorMetadata
+  = Constructor TermBinding Type ConstructorMetadata
 
 data Term
-  = LambdaTerm TermID Block LambdaTermMetadata
-  | ApplicationTerm TermID (List Term) ApplicationTermMetadata
+  = LambdaTerm TermBinding Type Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Term) MatchTermMetadata
+  | NeutralTerm NeutralTerm NeutralTermMetadata
+
+data NeutralTerm
+  = VariableTerm TermID VariableTermMetadata
+  | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
 
 data Type
   = ArrowType Type Type ArrowTypeMetadata
@@ -37,6 +41,10 @@ data Type
 
 type TypeWeakening
   = Set TypeID
+
+data TermBinding = TermBinding TermID TermBindingMetadata
+
+data TypeBinding = TypeBinding TypeID TypeBindingMetadata
 
 data TermID
   = TermID UUID
@@ -62,8 +70,11 @@ derive instance Generic Module _
 derive instance Generic Block _
 derive instance Generic Definition _
 derive instance Generic Constructor _
-derive instance Generic Term _
 derive instance Generic Type _
+derive instance Generic Term _
+derive instance Generic NeutralTerm _
+derive instance Generic TypeBinding _
+derive instance Generic TermBinding _
 derive instance Generic TermID _
 derive instance Generic TypeID  _
 derive instance Generic HoleID _
@@ -74,7 +85,10 @@ instance Show Block where show x = genericShow x
 instance Show Definition where show x = genericShow x 
 instance Show Constructor where show x = genericShow x 
 instance Show Term where show x = genericShow x 
+instance Show NeutralTerm where show x = genericShow x 
 instance Show Type where show x = genericShow x 
+instance Show TypeBinding where show x = genericShow x 
+instance Show TermBinding where show x = genericShow x 
 instance Show TermID where show x = genericShow x 
 instance Show TypeID  where show x = genericShow x 
 instance Show HoleID where show x = genericShow x 
