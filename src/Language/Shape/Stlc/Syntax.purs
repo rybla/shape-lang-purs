@@ -26,7 +26,7 @@ data Constructor
 
 data Term
   = LambdaTerm TermBinding Type Block LambdaTermMetadata
-  | HoleTerm HoleTermMetadata
+  | HoleTerm Type HoleTermMetadata
   | MatchTerm TypeID Term (List Term) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
 
