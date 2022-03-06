@@ -3,14 +3,16 @@ module Language.Changes where
 import Prelude
 import Prim hiding (Type)
 
-import Control.Monad.State (State, runState)
+import Control.Monad.State (State, get, put, runState)
 import Data.List (List(..), union)
-import Data.Map (Map, lookup)
+import Data.Map (Map, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
+import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
-import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Syntax (Block(..), Constructor(..), Definition(..), Term(..), TermID(..), Type(..), TypeID(..), freshHoleID, freshTermID)
+import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
+import Language.Shape.Stlc.Syntax (Block(..), Constructor(..), Definition(..), NeutralTerm, Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
+import Language.Shape.Stlc.Typing (Context, inferNeutral, inferTerm)
 import Pipes.Prelude (mapM)
 import Undefined (undefined)
 import Unsafe (error)
@@ -35,6 +37,10 @@ type Changes = {
     dataTypeDeletions :: Set TypeID
 }
 
+deleteVar :: Changes -> TermID -> Changes
+deleteVar {termChanges, matchChanges, dataTypeDeletions} i
+    = {termChanges : insert i VariableDeletion termChanges, matchChanges, dataTypeDeletions}
+
 type KindChanges = Set TypeID -- set of datatypes which have been deleted
 
 chType :: KindChanges -> TypeChange -> Type -> Type
@@ -52,38 +58,63 @@ chType chs NoChange (DataType i md) = if member i chs
     else DataType i md
 chType chs _ _ = error "shouldn't get here"
 
+-- (Map.insert id beta gamma)
+cons :: TermBinding -> Type -> Context -> Context
+cons (TermBinding i _) t ctx = insert i t ctx
+
 -- TODO: is there a monad which is like State (List T) but only has put, and is for building a list of elements?
-chTerm :: Changes -> TypeChange -> Term -> State (List Definition) Term
-chTerm chs (Replace a) t = pure $ HoleTerm defaultHoleTermMetadata
-chTerm chs (ArrowCh c1 d2) (LambdaTerm i b md) = undefined
-chTerm chs NoChange (LambdaTerm i b md) = pure $ LambdaTerm i (chBlock chs NoChange b) md
-chTerm chs (InsertArg t) (LambdaTerm i block md) = undefined
-chTerm chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3)
-    = pure $ LambdaTerm i2 (Block Nil (LambdaTerm i1 (chBlock chs NoChange (Block (defs <> defs2) t md4)) md3) md2) md1
-chTerm chs RemoveArg (LambdaTerm i (Block defs t md) _) = chTerm undefined {-chs - i-} NoChange t -- also output defs into displaced
-chTerm chs ch (ApplicationTerm i args md) = undefined
-chTerm chs ch (HoleTerm md) = undefined
-chTerm chs ch (MatchTerm i t cases) = undefined
-chTerm chs _ _ = pure $ HoleTerm defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
+chTerm :: Context -> Changes -> TypeChange -> Term -> State (List Definition) Term
+chTerm ctx chs (Replace a) t = pure $ HoleTerm a defaultHoleTermMetadata
+chTerm ctx chs (ArrowCh c1 c2) (LambdaTerm i t b md)
+    = pure $ LambdaTerm i t' (chBlock (cons i t' ctx) chs c2 b) md
+             where t' = (chType chs.dataTypeDeletions c1 t)
+chTerm ctx chs NoChange (LambdaTerm i t b md)
+    = pure $ LambdaTerm i t' (chBlock (cons i t' ctx) chs NoChange b) md
+        where t' = (chType chs.dataTypeDeletions NoChange t)
+chTerm ctx chs (InsertArg a) t =
+    do t' <- (chTerm (cons newBinding a ctx) chs NoChange t)
+       pure $ LambdaTerm newBinding a (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
+    where newBinding = (TermBinding (freshTermID unit) defaultTermBindingMetadata)
+chTerm ctx chs Swap (LambdaTerm i1 a (Block defs (LambdaTerm i2 b (Block defs2 t md4) md1) md2) md3)
+    = pure $ LambdaTerm i2 b'
+        (Block Nil (LambdaTerm i1 a'
+            (chBlock (cons i2 b' (cons i1 a' ctx)) chs NoChange (Block (defs <> defs2) t md4)) md3) md2) md1
+      where b' = (chType chs.dataTypeDeletions NoChange b)
+            a' = (chType chs.dataTypeDeletions NoChange a)
+chTerm ctx chs RemoveArg (LambdaTerm (TermBinding i _) a (Block defs t md) _)
+    = do currStuff <- get
+         displacedDefs <- sequence $ map (chDefinition ctx (deleteVar chs i)) defs
+         _ <- put (currStuff <> displacedDefs) -- obviously this should be able to be nicer than "newList = oldList + newStuff", but for now...
+         chTerm ctx (deleteVar chs i) NoChange t
+chTerm ctx chs ch (NeutralTerm t md) = do
+    t' <- chNeutral ctx chs ch t
+    case t' of
+        Just ne -> pure (NeutralTerm ne md)
+        Nothing -> pure $ HoleTerm (inferNeutral ctx t) defaultHoleTermMetadata
+chTerm ctx chs ch (HoleTerm t md) = pure $ HoleTerm (chType chs.dataTypeDeletions ch t) md
+chTerm ctx chs ch (MatchTerm i t cases md) = do
+    cases' <- sequence $ (map (chTerm ctx chs ch) cases)
+    t' <- (chTerm ctx chs ch t)
+    pure $ MatchTerm i t' cases' md
+chTerm ctx chs _ t = pure $ HoleTerm (inferTerm ctx t) defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
 
-chTerm2 :: Changes -> TypeChange -> Term -> State (List Definition) Term
-chTerm2 chs _ _ = pure $ HoleTerm defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
+chNeutral :: Context -> Changes -> TypeChange -> NeutralTerm -> State (List Definition) (Maybe NeutralTerm)
+chNeutral = undefined
 
-
-chBlock :: Changes -> TypeChange -> Block -> Block
-chBlock chs ch (Block defs t md)
+chBlock :: Context -> Changes -> TypeChange -> Block -> Block
+chBlock ctx chs ch (Block defs t md)
     -- = Block (map (chDefinition chs) defs) (chTerm chs ch t) md
-    = let (Tuple displaced1 t) = runState (chTerm chs ch t) Nil
-      in let (Tuple displaced2 defs) = runState (map (chDefinition chs) defs) Nil
+    = let (Tuple displaced1 t) = runState (chTerm undefined chs ch t) Nil
+      in let (Tuple displaced2 defs) = undefined -- runState (map (chDefinition chs) defs) Nil
       in undefined
 
-chDefinition :: Changes -> Definition -> State (List Definition) Definition
+chDefinition :: Context -> Changes -> Definition -> State (List Definition) Definition
 -- for data definitions, do nothing?
 -- for term definitions, change both the type and term.
 chDefinition chs = undefined
 
 defFromTerm :: Term -> Definition
-defFromTerm t = TermDefinition (freshTermID unit) undefined t defaultTermDefinitionMetadata
+defFromTerm t = TermDefinition undefined t defaultTermDefinitionMetadata
 -- TODO: in order to get type, need to either pass type and context to all these functions, OR
 -- need to go back to types on labmda parameters.
 
