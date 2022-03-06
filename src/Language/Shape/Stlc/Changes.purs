@@ -67,7 +67,7 @@ chTerm :: Context -> Changes -> TypeChange -> Term -> State (List Definition) Te
 chTerm ctx chs (Replace a) t = pure $ HoleTerm a defaultHoleTermMetadata
 chTerm ctx chs (ArrowCh c1 c2) (LambdaTerm i t b md)
     = pure $ LambdaTerm i t' (chBlock (cons i t' ctx) chs c2 b) md
-             where t' = (chType chs.dataTypeDeletions c1 t)
+             where t' = (chType chs.dataTypeDeletions c1 t) -- TODO, VERY IMPORTANT DONT FORGET: when I make chType return a TypeChange, then that needs to be added to chs in line above.
 chTerm ctx chs NoChange (LambdaTerm i t b md)
     = pure $ LambdaTerm i t' (chBlock (cons i t' ctx) chs NoChange b) md
         where t' = (chType chs.dataTypeDeletions NoChange t)
@@ -96,12 +96,12 @@ chTerm ctx chs ch (MatchTerm i t cases md) = do
     cases' <- sequence $ (map (chTerm ctx chs ch) cases)
     t' <- (chTerm ctx chs ch t)
     pure $ MatchTerm i t' cases' md
-chTerm ctx _ _ t = do
+chTerm ctx chs _ t = do
+    t' <- chTerm ctx chs NoChange t
     currStuff <- get
-    _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) t defaultTermDefinitionMetadata))
+    _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) t' defaultTermDefinitionMetadata))
     pure $ HoleTerm (inferTerm ctx t) defaultHoleTermMetadata -- anything that doesn't fit a pattern just goes into a hole
 
--- was I stupid? should this in fact have the list of arguments?
 chNeutral :: Context -> Changes -> TypeChange -> NeutralTerm -> State (List Definition) (Maybe NeutralTerm)
 chNeutral = undefined
 
@@ -109,7 +109,7 @@ chBlock :: Context -> Changes -> TypeChange -> Block -> Block
 chBlock ctx chs ch (Block defs t md)
     -- = Block (map (chDefinition chs) defs) (chTerm chs ch t) md
     = let (Tuple displaced1 t) = runState (chTerm undefined chs ch t) Nil
-      in let (Tuple displaced2 defs) = undefined -- runState (map (chDefinition chs) defs) Nil
+      in let (Tuple displaced2 defs) = runState (sequence (map (chDefinition ctx chs) defs)) Nil
       in undefined
 
 chDefinition :: Context -> Changes -> Definition -> State (List Definition) Definition
@@ -119,10 +119,18 @@ chDefinition chs = undefined
 
 defFromTerm :: Term -> Definition
 defFromTerm t = TermDefinition undefined t defaultTermDefinitionMetadata
--- TODO: in order to get type, need to either pass type and context to all these functions, OR
--- need to go back to types on labmda parameters.
 
 
 -- TODO: remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
 -- have f a, and change it to f a b. Also, to change f a b to f a. In other words, make sure that
 -- when propagating changes upwards in wrap, this stuff all works.
+
+
+-- TODO: chNeutral and chType should output a TypeChange.
+-- chType needs it because if I delete a datatype, then the type of each definition may have some corresponding changes which arise.
+-- QUESTION: if TermDefinitions don't literally have a type anymore, how should this work?
+
+-- QUESTION: What happens if I chTerm (ArrowChange (Replace HoleType) NoChange) (lam x . x 5)
+
+-- chTerm should NOT, because there are only two places where we have terms: in a definition or on the r.h.s. of an application.
+-- In neither case are we willing to change it's type as a result of a different definition changing.
