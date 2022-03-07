@@ -13,22 +13,25 @@ import Prim.Row (class Cons)
 import Type.Proxy (Proxy)
 import Undefined (undefined)
 
-data SyntaxAction st
+data SyntaxAction syntax
   = AppAction App.AppAction
-  | ModifyState (st -> st)
+  | ModifyState (SyntaxState syntax -> SyntaxState syntax)
 
-type SyntaxComponent q st m
-  = H.Component q st (SyntaxAction st) m
+type SyntaxState syntax
+  = { syntax :: syntax
+    , cursor :: Boolean
+    }
+
+type SyntaxComponent q syntax m
+  = H.Component q (SyntaxState syntax) App.AppAction m
 
 mkRenderSyntax ::
-  forall syntax st q m.
-  st ->
-  (forall w. syntax -> HH.HTML w (SyntaxAction st)) ->
-  syntax ->
-  SyntaxComponent q st m -- H.Component q st App.AppAction m
-mkRenderSyntax initialState render syntax =
+  forall syntax q m.
+  (forall w. SyntaxState syntax -> HH.HTML w (SyntaxAction syntax)) ->
+  SyntaxComponent q syntax m
+mkRenderSyntax render =
   H.mkComponent
-    { initialState: const initialState
+    { initialState: identity
     , eval:
         H.mkEval
           H.defaultEval
@@ -36,29 +39,7 @@ mkRenderSyntax initialState render syntax =
               case _ of
                 AppAction appAction -> H.raise appAction
                 ModifyState modifyState -> H.modify_ modifyState
-            -- , receive = Just <<< ModifyState <<< const
+            , receive = Just <<< ModifyState <<< const
             }
-    , render: const $ render syntax
-    , receive: undefined
+    , render
     }
-
-slotSyntax ::
-  forall st query input slots m label _1.
-  Cons label (H.Slot query (SyntaxAction st) Int) _1 slots =>
-  IsSymbol label =>
-  Proxy label ->
-  Int ->
-  input ->
-  H.Component query input (SyntaxAction st) m ->
-  HH.HTML (H.ComponentSlot slots m (SyntaxAction st)) (SyntaxAction st)
-slotSyntax label slot initialState syntax = HH.slot label slot syntax initialState identity
-
-renderModule :: forall q m. Syntax.Module -> SyntaxComponent q Unit m
-renderModule =
-  mkRenderSyntax unit \(Syntax.Module defs meta) ->
-    HH.div
-      [ HP.class_ (HH.ClassName "module") ]
-      (map (slotSyntax ?label ?slot ?input (renderDefinition ?def)) (List.toUnfoldable defs))
-
-renderDefinition :: forall q m. Syntax.Definition -> SyntaxComponent q Unit m
-renderDefinition = mkRenderSyntax unit \def -> undefined
