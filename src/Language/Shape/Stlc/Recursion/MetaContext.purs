@@ -9,8 +9,7 @@ import Data.List (List)
 import Data.List as List
 import Data.Map as Map
 import Data.Map (Map)
-import Language.Shape.Stlc.Recursion.Wrap as Rec
-import Language.Shape.Stlc.Recursion.Wrap (Wrap, WrapI)
+import Language.Shape.Stlc.Recursion.Context as Rec
 import Undefined (undefined)
 import Unsafe as Unsafe
 
@@ -25,9 +24,9 @@ type MetaContext
 -- Recursion principles for handling the metacontext
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> WrapI Definition -> MetaContext -> a
+  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> a
   } ->
-  Module -> Context -> Wrap Module -> MetaContext -> a
+  Module -> Context -> MetaContext -> a
 recModule rec = Rec.recModule undefined
 
 recBlock ::
@@ -39,34 +38,34 @@ recBlock rec = Rec.recBlock undefined
 
 recDefinition ::
   forall a.
-  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> Wrap Type -> Wrap Term -> MetaContext -> a
-  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> WrapI Constructor -> MetaContext -> a
+  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> MetaContext -> a
+  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> MetaContext -> a
   } ->
-  Definition -> Context -> Wrap Definition -> MetaContext -> a
+  Definition -> Context -> MetaContext -> a
 recDefinition rec = Rec.recDefinition undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> WrapI Parameter -> MetaContext -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> MetaContext -> a
   } ->
-  Constructor -> Context -> Wrap Constructor -> MetaContext -> a
+  Constructor -> Context -> MetaContext -> a
 recConstructor rec = Rec.recConstructor undefined
 
 recType ::
   forall a.
-  { arrow :: Type -> Type -> ArrowTypeMetadata -> Context -> Wrap Type -> Wrap Type -> MetaContext -> a
+  { arrow :: Type -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
   , data :: TypeID -> DataTypeMetadata -> Context -> MetaContext -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
   } ->
-  Type -> Context -> Wrap Type -> MetaContext -> a
+  Type -> Context -> MetaContext -> a
 recType rec = Rec.recType undefined
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> Wrap Block -> MetaContext -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> Wrap NeutralTerm -> MetaContext -> a
+  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
+  , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> Wrap Term -> WrapI Case -> MetaContext -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> a
   } ->
   Term -> Context -> Type -> MetaContext -> a
 recTerm rec = Rec.recTerm undefined
@@ -74,19 +73,19 @@ recTerm rec = Rec.recTerm undefined
 recNeutralTerm ::
   forall a.
   { variable :: TermID -> VariableTermMetadata -> Context -> Type -> MetaContext -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> Wrap NeutralTerm -> Wrap Term -> MetaContext -> a
+  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> MetaContext -> a
   } ->
-  NeutralTerm -> Context -> Type -> Wrap NeutralTerm -> MetaContext -> a
+  NeutralTerm -> Context -> Type -> MetaContext -> a
 recNeutralTerm rec = Rec.recNeutralTerm undefined
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> Wrap Term -> MetaContext -> a } ->
-  Case -> Context -> Type -> Wrap Case -> MetaContext -> a
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> MetaContext -> a } ->
+  Case -> Context -> Type -> MetaContext -> a
 recCase rec = Rec.recCase undefined
 
 recParameter ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> Wrap Type -> MetaContext -> a } ->
-  Parameter -> Context -> Wrap Parameter -> MetaContext -> a
+  { parameter :: Type -> ParameterMetadata -> MetaContext -> a } ->
+  Parameter -> Context -> MetaContext -> a
 recParameter rec = Rec.recParameter undefined
