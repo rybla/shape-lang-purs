@@ -22,22 +22,26 @@ data Definition
   | DataDefintion TypeBinding (List Constructor) DataDefinitionMetadata
 
 data Constructor
-  = Constructor TermBinding Type ConstructorMetadata
+  = Constructor TermBinding (List Parameter) ConstructorMetadata
 
 data Term
   = LambdaTerm TermBinding Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
-  | MatchTerm TypeID Term (List Term) MatchTermMetadata
+  | MatchTerm TypeID Term (List Case) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
+
+data Case = Case (List TermBinding) Term CaseMetadata
 
 data NeutralTerm
   = VariableTerm TermID VariableTermMetadata
   | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
 
 data Type
-  = ArrowType Type Type ArrowTypeMetadata
+  = ArrowType Parameter Type ArrowTypeMetadata
   | DataType TypeID DataTypeMetadata
   | HoleType HoleID TypeWeakening HoleTypeMetadata
+
+data Parameter = Parameter Type ParameterMetadata
 
 type TypeWeakening
   = Set TypeID
@@ -73,6 +77,8 @@ derive instance Generic Constructor _
 derive instance Generic Type _
 derive instance Generic Term _
 derive instance Generic NeutralTerm _
+derive instance Generic Case _
+derive instance Generic Parameter _
 derive instance Generic TypeBinding _
 derive instance Generic TermBinding _
 derive instance Generic TermID _
@@ -84,9 +90,11 @@ instance Show Module where show x = genericShow x
 instance Show Block where show x = genericShow x 
 instance Show Definition where show x = genericShow x 
 instance Show Constructor where show x = genericShow x 
+instance Show Type where show x = genericShow x 
 instance Show Term where show x = genericShow x 
 instance Show NeutralTerm where show x = genericShow x 
-instance Show Type where show x = genericShow x 
+instance Show Case where show x = genericShow x 
+instance Show Parameter where show x = genericShow x 
 instance Show TypeBinding where show x = genericShow x 
 instance Show TermBinding where show x = genericShow x 
 instance Show TermID where show x = genericShow x 

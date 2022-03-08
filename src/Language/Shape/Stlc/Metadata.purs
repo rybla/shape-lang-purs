@@ -86,6 +86,15 @@ type HoleTermMetadata
 defaultHoleTermMetadata :: HoleTermMetadata
 defaultHoleTermMetadata = {}
 
+type CaseMetadata = {}
+
+defaultCaseMetadata :: CaseMetadata
+defaultCaseMetadata = {}
+
+type ParameterMetadata = { name :: TermName }
+
+defaultParameterMetadata = {name: TermName Nothing}
+
 type TypeBindingMetadata = {name::TypeName}
 
 defaultTypeBindingMetadata :: TypeBindingMetadata

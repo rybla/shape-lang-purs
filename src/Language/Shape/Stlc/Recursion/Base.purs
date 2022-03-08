@@ -1,10 +1,10 @@
 module Language.Shape.Stlc.Recursion.Base where
 
+import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
-import Language.Shape.Stlc.Metadata
 import Undefined (undefined)
 
 recModule ::
@@ -27,21 +27,21 @@ recBlock rec block = case block of
 recDefinition ::
   forall a.
   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
-  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> a
+  , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
   } ->
   Definition -> a
 recDefinition rec def = undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> Type -> ConstructorMetadata -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> a
   } ->
   Constructor -> a
 recConstructor rec constr = undefined
 
 recType ::
   forall a.
-  { arrow :: Type -> Type -> ArrowTypeMetadata -> a
+  { arrow :: Parameter -> Type -> ArrowTypeMetadata -> a
   , data :: TypeID -> DataTypeMetadata -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> a
   } ->
@@ -52,7 +52,7 @@ recTerm ::
   forall a.
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> a
-  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> a
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a
@@ -65,3 +65,15 @@ recNeutralTerm ::
   } ->
   NeutralTerm -> a
 recNeutralTerm rec n = undefined
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> a } ->
+  Case -> a
+recCase rec case_ = undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> a } ->
+  Parameter -> a
+recParameter rec prm = undefined

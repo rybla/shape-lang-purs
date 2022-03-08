@@ -46,14 +46,14 @@ recDefinition = Rec.recDefinition
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> Type -> ConstructorMetadata -> Context -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> a
   } ->
   Constructor -> Context -> a
 recConstructor = Rec.recConstructor
 
 recType ::
   forall a.
-  { arrow :: Type -> Type -> ArrowTypeMetadata -> Context -> a
+  { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
   , data :: TypeID -> DataTypeMetadata -> Context -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> a
   } ->
@@ -65,14 +65,14 @@ recTerm ::
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> a
   , hole :: HoleTermMetadata -> Context -> Type -> a
-  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> Context -> Type -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
   } ->
   Term -> Context -> Type -> a
 recTerm rec =
   Rec.recTerm
     { lambda:
         \x@(TermBinding id _) block meta gamma alpha -> case alpha of
-          ArrowType beta delta _ -> rec.lambda x block meta (Map.insert id beta gamma) delta
+          ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert id beta gamma) delta
           _ -> Unsafe.error "impossible"
     , neutral:
         \neu meta gamma alpha ->
@@ -91,4 +91,16 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> a
   } ->
   NeutralTerm -> Context -> Type -> a
-recNeutralTerm = undefined -- Rec.recNeutralTerm -- TODO
+recNeutralTerm rec = Rec.recNeutralTerm undefined
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> a } ->
+  Case -> Context -> Type -> a
+recCase rec = Rec.recCase undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> a } ->
+  Parameter -> Context -> a
+recParameter rec = Rec.recParameter undefined
