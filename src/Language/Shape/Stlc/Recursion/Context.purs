@@ -46,9 +46,9 @@ recDefinition = Rec.recDefinition
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> a
   } ->
-  Constructor -> Context -> a
+  Constructor -> Context -> TypeBinding -> a
 recConstructor = Rec.recConstructor
 
 recType ::
@@ -56,6 +56,7 @@ recType ::
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
   , data :: TypeID -> DataTypeMetadata -> Context -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> a
+  , proxyHole :: HoleID -> Context -> a
   } ->
   Type -> Context -> a
 recType = Rec.recType
@@ -88,19 +89,19 @@ recTerm rec =
 recNeutralTerm ::
   forall a.
   { variable :: TermID -> VariableTermMetadata -> Context -> Type -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> a
+  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> a
   } ->
   NeutralTerm -> Context -> Type -> a
 recNeutralTerm rec = Rec.recNeutralTerm undefined
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> a } ->
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->
   Case -> Context -> Type -> a
 recCase rec = Rec.recCase undefined
 
 recParameter ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> a } ->
+  { parameter :: Type -> ParameterMetadata -> Context -> a } ->
   Parameter -> Context -> a
 recParameter rec = Rec.recParameter undefined
