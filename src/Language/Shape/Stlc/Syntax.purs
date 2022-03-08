@@ -40,7 +40,7 @@ data Type
   = ArrowType Parameter Type ArrowTypeMetadata
   | DataType TypeID DataTypeMetadata
   | HoleType HoleID TypeWeakening HoleTypeMetadata
-  | ProxyHoleType HoleID
+  | ProxyHoleType HoleID HoleTypeMetadata
 
 data Parameter = Parameter Type ParameterMetadata
 
