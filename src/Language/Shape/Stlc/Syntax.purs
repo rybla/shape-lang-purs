@@ -30,7 +30,7 @@ data Term
   | MatchTerm TypeID Term (List Case) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
 
-data Case = Case (List TermBinding) Term
+data Case = Case (List TermBinding) Term CaseMetadata
 
 data NeutralTerm
   = VariableTerm TermID VariableTermMetadata
