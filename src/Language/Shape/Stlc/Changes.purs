@@ -24,7 +24,8 @@ data TypeChange
     | InsertArg Type
     | Swap -- only applies to types of form (ArrowType a (ArrowType b c _) _)
     | RemoveArg -- only applies to types of form (ArrowType a b _)
-    | Replace Type
+    -- | Replace Type
+    | Dig
 -- Note for the future: could e.g. make Swap take a typechange which says what happens to rest of type after swap. Currently, it is implicitly NoChange.
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
