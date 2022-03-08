@@ -14,6 +14,7 @@ import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetad
 import Language.Shape.Stlc.Syntax (Block(..), Constructor(..), Definition(..), NeutralTerm, Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
 import Language.Shape.Stlc.Typing (Context, inferNeutral, inferTerm)
 import Pipes.Prelude (mapM)
+import Prim.Boolean (True)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -47,6 +48,7 @@ varChange {termChanges, matchChanges, dataTypeDeletions} i ch
 
 type KindChanges = Set TypeID -- set of datatypes which have been deleted
 
+-- TODO: consider just outputting TypeChange, and then use chType : Type -> TypeChange -> Type to actually get the Type.
 chType :: KindChanges -> Type -> Tuple Type TypeChange
 chType chs (ArrowType a b md)
     = let (Tuple a' ca) = chType chs a in
@@ -99,7 +101,7 @@ chTerm ctx ty chs ch (NeutralTerm t md) = do
         Just ne -> pure (NeutralTerm ne md)
         Nothing -> pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
-chTerm ctx ty chs ch (MatchTerm i t cases md) = do
+chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO: This is wrong. In order to deal with this correctly, I need to either make Case (not just use Term), or need to know types of constructors.
     cases' <- sequence $ (map (chTerm ctx ty chs ch) cases)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
@@ -111,7 +113,13 @@ chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a ho
     _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) ty' t' defaultTermDefinitionMetadata))
     pure $ HoleTerm defaultHoleTermMetadata
 
--- doesn't need to input a TC? Does need to output it?
+isNoChange :: TypeChange -> Boolean
+isNoChange (ArrowCh c1 c2) = isNoChange c1 && isNoChange c2
+isNoChange NoChange = true
+isNoChange _ = false
+
+-- TODO: make this not input a TypeChange, and instead output one. Don't output Maybe, instead chTerm determines what to
+-- do with the resulting neutral form from the TypeChange using isNoChange.
 chNeutral :: Context -> Changes -> TypeChange -> NeutralTerm -> State (List Definition) (Maybe NeutralTerm)
 chNeutral = undefined
 
@@ -130,7 +138,7 @@ chDefinition ctx chs (TermDefinition binding ty t md)
       in do
         t' <- chTerm ctx ty' chs' change t
         pure $ TermDefinition binding ty' t' md
-chDefinition ctx chs (DataDefintion binding constrs md)
+chDefinition ctx chs (DataDefintion binding constrs md) -- TODO: make sure that types of constructors end up in the context of the rest of the block.
     = undefined
 
 defFromTerm :: Term -> Definition
@@ -140,39 +148,3 @@ defFromTerm t = TermDefinition undefined undefined t defaultTermDefinitionMetada
 -- TODO: for wrap stuff, remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
 -- have f a, and change it to f a b. Also, to change f a b to f a. In other words, make sure that
 -- when propagating changes upwards in wrap, this stuff all works.
-
--- QUESTION: Does just making everything return a TypeChange, and then using the outputs correctly, make everything work as I want?
--- QUESTION: What is the relationship between the TypeChange passed INTO chTerm and the out passed out????
--- INstead of passing one out, should it just compute additional changes (from DataType deletions) going into the input TypeChange?
-
--- QUESTION: in version with annotations on lets, does chType ever INPUT a TypeChange?
-    -- I thought it would be used to compute a new type if I e.g. add an argument to a declaration. But,
-    -- now we are handling that with wrap.
--- Also, is there any reason for chNeutral to input a TypeChange?
-
-{-
-
-To summarize the problems that I am finding: it doesn't seem right that you could pass in a TypeChange
-to a type or term to be changed, but then discover other things which needed to be changed about it and return
-a different TypeChange, which is presumably similar to the one that was passed in but maybe with some extra deletions.
-
-I'm not sure what the resolution is. Maybe Insertions/Deletions are different than deleting a datatype?
-But I need to think it through pretty carefully with a lot of cases in mind.
-
-Maybe the TC going in is TC : TypeChange T1 T2, and then the one going out is TypeChange T2 T3.
-In other words, it changes it even further.
-
-No, probably it should return TypeChange T1 T3.
-
--}
-
-{-
-
-Here is the solution to my problems:
-1) Put annotations back on let and NOT in lambda and hole.
-2) Thread ctx and type theory ch_ function (annoying, but have to)
-3) chTerm inputs a TypeChange but doesn't output one.
-4) chType and chNeutral DONT input a TypeChange, but DO output one.
-5) chBlock and chDefinition, I'll have to think about it.
-
--}
