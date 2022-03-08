@@ -7,12 +7,11 @@ import Prelude
 import Prim hiding (Type)
 import Data.List (List)
 import Data.Map as Map
-import Language.Shape.Stlc.Recursion.Base (recNeutralTerm)
 import Language.Shape.Stlc.Recursion.Base as Rec
 import Undefined (undefined)
-import Unsafe.Error as Unsafe
+import Unsafe as Unsafe
 
--- Recursion principles which handle context & type
+-- Recursion principles for handling context & type
 recModule ::
   forall a.
   { module_ :: List Definition -> ModuleMetadata -> Context -> a
@@ -92,4 +91,4 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> a
   } ->
   NeutralTerm -> Context -> Type -> a
-recNeutralTerm = Rec.recNeutralTerm -- TODO
+recNeutralTerm = undefined -- Rec.recNeutralTerm -- TODO

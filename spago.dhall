@@ -8,6 +8,7 @@
   , "foldable-traversable"
   , "halogen"
   , "halogen-hooks"
+  , "homogeneous"
   , "lists"
   , "maybe"
   , "ordered-collections"
