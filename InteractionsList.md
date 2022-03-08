@@ -13,15 +13,9 @@
     - paste/move term into hole
   - Application
     - add/delete argument
+- Lambda interactions (we need these now as a result of having partial application)
+  - In a hole ? of type A -> B, turn it to (lam a . ?) where the hole is now of type B
+  - Turn (lam a . ?) into ?
+  - Note that all other things that you might want to do with lambdas are already handled by "Signature interactions" above.
 - Datatypes interactions
   - create/move/delete constructor
-
-# Unanswered Questions
-- [x] How can interactions which involve two locations, such as a "copy/paste" or a "click and drag" be handled?
-- [x] Should pasting into a hole be "at the hole" or "at the parent of the hole"? Seems simpler to do at the hole.
-- [x] In click and drag (even if its not in version 1), suppose the user drags over hole where the term fits. Then,
-    it should show what the program would look like if the term was placed there (including type holes which
-    may have been substituted elsewhere). But then, when the user drags off the hole, it should go back to how it was.
-    How can these temporary states be represented? They must involve the model and not merely the rendering code,
-    because they involve computing hole substitutions potentially.
-    (unless we simplify and don't show that.)
