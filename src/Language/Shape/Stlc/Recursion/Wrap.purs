@@ -20,7 +20,7 @@ type Wrap a
   = a -> TypeChange -> Module
 
 type WrapI a
-  = Int -> MetaContext -> Wrap a
+  = Int -> Wrap a
 
 -- Recursion principles for handling wraping
 recModule ::
