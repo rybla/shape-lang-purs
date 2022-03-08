@@ -27,21 +27,21 @@ recBlock rec block = case block of
 recDefinition ::
   forall a.
   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
-  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> a
+  , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
   } ->
   Definition -> a
 recDefinition rec def = undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> Type -> ConstructorMetadata -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> a
   } ->
   Constructor -> a
 recConstructor rec constr = undefined
 
 recType ::
   forall a.
-  { arrow :: Type -> Type -> ArrowTypeMetadata -> a
+  { arrow :: Parameter -> Type -> ArrowTypeMetadata -> a
   , data :: TypeID -> DataTypeMetadata -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> a
   } ->
@@ -52,7 +52,7 @@ recTerm ::
   forall a.
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> a
-  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> a
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a

@@ -22,7 +22,7 @@ data Definition
   | DataDefintion TypeBinding (List Constructor) DataDefinitionMetadata
 
 data Constructor
-  = Constructor TermBinding (List Parameter) Type ConstructorMetadata
+  = Constructor TermBinding (List Parameter) ConstructorMetadata
 
 data Term
   = LambdaTerm TermBinding Block LambdaTermMetadata

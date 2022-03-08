@@ -28,14 +28,14 @@ recModule ::
   { module_ :: List Definition -> ModuleMetadata -> Context -> WrapI Definition -> MetaContext -> a
   } ->
   Module -> Context -> Wrap Module -> MetaContext -> a
-recModule = undefined
+recModule rec = Rec.recModule undefined
 
 recBlock ::
   forall a.
   { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> a
   } ->
   Block -> Context -> Type -> MetaContext -> a
-recBlock = undefined
+recBlock rec = Rec.recBlock undefined
 
 recDefinition ::
   forall a.
@@ -43,14 +43,14 @@ recDefinition ::
   , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> WrapI Constructor -> MetaContext -> a
   } ->
   Definition -> Context -> Wrap Definition -> MetaContext -> a
-recDefinition = undefined
+recDefinition rec = Rec.recDefinition undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> Type -> ConstructorMetadata -> Context -> Wrap Type -> MetaContext -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> WrapI Parameter -> MetaContext -> a
   } ->
   Constructor -> Context -> Wrap Constructor -> MetaContext -> a
-recConstructor = undefined
+recConstructor rec = Rec.recConstructor undefined
 
 recType ::
   forall a.
@@ -59,17 +59,17 @@ recType ::
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
   } ->
   Type -> Context -> Wrap Type -> MetaContext -> a
-recType = undefined
+recType rec = Rec.recType undefined
 
 recTerm ::
   forall a.
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> Wrap Block -> MetaContext -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> Wrap NeutralTerm -> MetaContext -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> Context -> Type -> Wrap Term -> WrapI Term -> MetaContext -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> Wrap Term -> WrapI Case -> MetaContext -> a
   } ->
   Term -> Context -> Type -> MetaContext -> a
-recTerm = undefined
+recTerm rec = Rec.recTerm undefined
 
 recNeutralTerm ::
   forall a.
@@ -77,16 +77,16 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> Wrap NeutralTerm -> Wrap Term -> MetaContext -> a
   } ->
   NeutralTerm -> Context -> Type -> Wrap NeutralTerm -> MetaContext -> a
-recNeutralTerm = undefined
+recNeutralTerm rec = Rec.recNeutralTerm undefined
 
 recCase ::
   forall a.
   { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> Wrap Term -> MetaContext -> a } ->
   Case -> Context -> Type -> Wrap Case -> MetaContext -> a
-recCase rec = undefined
+recCase rec = Rec.recCase undefined
 
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Wrap Type -> MetaContext -> a } ->
   Parameter -> Context -> Wrap Parameter -> MetaContext -> a
-recParameter rec = undefined
+recParameter rec = Rec.recParameter undefined
