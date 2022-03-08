@@ -78,3 +78,15 @@ recNeutralTerm ::
   } ->
   NeutralTerm -> Context -> Type -> Wrap NeutralTerm -> MetaContext -> a
 recNeutralTerm = undefined
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> Wrap Term -> MetaContext -> a } ->
+  Case -> Context -> Type -> Wrap Case -> MetaContext -> a
+recCase rec = undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> Wrap Type -> MetaContext -> a } ->
+  Parameter -> Context -> Wrap Parameter -> MetaContext -> a
+recParameter rec = undefined

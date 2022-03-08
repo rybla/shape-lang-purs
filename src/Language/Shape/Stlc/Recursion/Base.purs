@@ -1,10 +1,10 @@
 module Language.Shape.Stlc.Recursion.Base where
 
+import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
-import Language.Shape.Stlc.Metadata
 import Undefined (undefined)
 
 recModule ::
@@ -65,3 +65,15 @@ recNeutralTerm ::
   } ->
   NeutralTerm -> a
 recNeutralTerm rec n = undefined
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> a } ->
+  Case -> a
+recCase rec case_ = undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> a } ->
+  Parameter -> a
+recParameter rec prm = undefined

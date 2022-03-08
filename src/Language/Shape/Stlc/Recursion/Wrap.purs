@@ -27,14 +27,14 @@ recModule ::
   { module_ :: List Definition -> ModuleMetadata -> Context -> WrapI Definition -> a
   } ->
   Module -> Context -> Wrap Module -> a
-recModule = undefined
+recModule rec = undefined
 
 recBlock ::
   forall a.
   { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> a
   } ->
   Block -> Context -> Type -> a
-recBlock = undefined
+recBlock rec = undefined
 
 recDefinition ::
   forall a.
@@ -42,14 +42,14 @@ recDefinition ::
   , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> WrapI Constructor -> a
   } ->
   Definition -> Context -> Wrap Definition -> a
-recDefinition = undefined
+recDefinition rec = undefined
 
 recConstructor ::
   forall a.
   { constructor :: TermBinding -> Type -> ConstructorMetadata -> Context -> Wrap Type -> a
   } ->
   Constructor -> Context -> Wrap Constructor -> a
-recConstructor = undefined
+recConstructor rec = undefined
 
 recType ::
   forall a.
@@ -58,7 +58,7 @@ recType ::
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> a
   } ->
   Type -> Context -> Wrap Type -> a
-recType = undefined
+recType rec = undefined
 
 recTerm ::
   forall a.
@@ -68,7 +68,7 @@ recTerm ::
   , match :: TypeID -> Term -> List Term -> MatchTermMetadata -> Context -> Type -> Wrap Term -> WrapI Term -> a
   } ->
   Term -> Context -> Type -> a
-recTerm = undefined
+recTerm rec = undefined
 
 recNeutralTerm ::
   forall a.
@@ -76,4 +76,16 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> Wrap NeutralTerm -> Wrap Term -> a
   } ->
   NeutralTerm -> Context -> Type -> Wrap NeutralTerm -> a
-recNeutralTerm = undefined
+recNeutralTerm rec = undefined
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> Wrap Term -> a } ->
+  Case -> Context -> Type -> Wrap Case -> a
+recCase rec = undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> Wrap Type -> a } ->
+  Parameter -> Context -> Wrap Parameter -> a
+recParameter rec = undefined

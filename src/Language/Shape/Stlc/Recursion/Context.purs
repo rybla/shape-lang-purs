@@ -72,7 +72,7 @@ recTerm rec =
   Rec.recTerm
     { lambda:
         \x@(TermBinding id _) block meta gamma alpha -> case alpha of
-          ArrowType beta delta _ -> rec.lambda x block meta (Map.insert id beta gamma) delta
+          ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert id beta gamma) delta
           _ -> Unsafe.error "impossible"
     , neutral:
         \neu meta gamma alpha ->
@@ -92,3 +92,15 @@ recNeutralTerm ::
   } ->
   NeutralTerm -> Context -> Type -> a
 recNeutralTerm = undefined -- Rec.recNeutralTerm -- TODO
+
+recCase ::
+  forall a.
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> a } ->
+  Case -> Context -> Type -> a
+recCase rec = undefined
+
+recParameter ::
+  forall a.
+  { parameter :: Type -> ParameterMetadata -> a } ->
+  Parameter -> Context -> a
+recParameter rec = undefined
