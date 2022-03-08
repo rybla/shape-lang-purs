@@ -16,9 +16,14 @@ import Unsafe as Unsafe
 -- TODO: implement this stuff
 -- Context for metadata info such as names, constructor names, shadowing, etc.
 type MetaContext
-  = { names :: Map TermID TermName
-    , shadows :: Map TermName Int
-    , constructors :: Map TypeID (List TermID)
+  = { typeNames :: Map TypeID TypeName
+    , typeNameShadows :: Map TypeName Int
+    , typeIDShadowIndex :: Map TypeID Int
+    , termNames :: Map TermID TermName
+    , termNameShadows :: Map TermName Int
+    , termIDShadowIndex :: Map TermID Int
+    , constructorTermIDs :: Map TypeID (List TermID)
+    , indentation :: Int
     }
 
 -- Recursion principles for handling the metacontext
@@ -46,9 +51,9 @@ recDefinition rec = Rec.recDefinition undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> MetaContext -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> MetaContext -> a
   } ->
-  Constructor -> Context -> MetaContext -> a
+  Constructor -> Context -> TypeBinding -> MetaContext -> a
 recConstructor rec = Rec.recConstructor undefined
 
 recType ::
@@ -56,6 +61,7 @@ recType ::
   { arrow :: Type -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
   , data :: TypeID -> DataTypeMetadata -> Context -> MetaContext -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
+  , proxyHole :: HoleID -> Context -> MetaContext -> a
   } ->
   Type -> Context -> MetaContext -> a
 recType rec = Rec.recType undefined
@@ -73,19 +79,19 @@ recTerm rec = Rec.recTerm undefined
 recNeutralTerm ::
   forall a.
   { variable :: TermID -> VariableTermMetadata -> Context -> Type -> MetaContext -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Type -> MetaContext -> a
+  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> MetaContext -> a
   } ->
   NeutralTerm -> Context -> Type -> MetaContext -> a
 recNeutralTerm rec = Rec.recNeutralTerm undefined
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> MetaContext -> a } ->
+  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> a } ->
   Case -> Context -> Type -> MetaContext -> a
 recCase rec = Rec.recCase undefined
 
 recParameter ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> MetaContext -> a } ->
+  { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> a } ->
   Parameter -> Context -> MetaContext -> a
 recParameter rec = Rec.recParameter undefined

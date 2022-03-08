@@ -44,6 +44,7 @@ recType ::
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> a
   , data :: TypeID -> DataTypeMetadata -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> a
+  , proxyHole :: HoleID -> a
   } ->
   Type -> a
 recType rec alpha = undefined
