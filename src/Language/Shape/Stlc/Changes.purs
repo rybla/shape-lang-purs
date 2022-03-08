@@ -69,9 +69,10 @@ cons (TermBinding i _) t ctx = insert i t ctx
 -- morally, the type input here should not have metadata. But we can just go with it anyway.
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (List Definition) Term
 chTerm ctx ty chs (Replace a) t = pure $ HoleTerm defaultHoleTermMetadata
-chTerm ctx (ArrowType a b _) chs (ArrowCh c1 c2) (LambdaTerm bind@(TermBinding index _) block md)
-    = pure $ LambdaTerm bind (chBlock (insert index a ctx) b (varChange chs index change) c2 block) md
-             where (Tuple _ change) = (chType chs.dataTypeDeletions a) -- TODO, VERY IMPORTANT DONT FORGET: when I make chType return a TypeChange, then that needs to be added to chs in line above.
+chTerm ctx (ArrowType a b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
+    = pure $ LambdaTerm binding
+        (chBlock (insert (indexOf binding) a ctx) b (varChange chs (indexOf binding) change) c2 block) md
+             where (Tuple _ change) = (chType chs.dataTypeDeletions a)
 chTerm ctx (ArrowType a b _) chs NoChange (LambdaTerm i@(TermBinding index _) block md)
     = pure $ LambdaTerm i (chBlock (cons i a' ctx) b (varChange chs index change) NoChange block) md
         where (Tuple a' change) = (chType chs.dataTypeDeletions a)
@@ -97,31 +98,40 @@ chTerm ctx ty chs ch (NeutralTerm t md) = do
     case t' of
         Just ne -> pure (NeutralTerm ne md)
         Nothing -> pure $ HoleTerm defaultHoleTermMetadata
-chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md -- TODO, DON'T FORGET: when chType returns a TypeChange, use it somehow.
+chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do
     cases' <- sequence $ (map (chTerm ctx ty chs ch) cases)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
-chTerm ctx ty chs _ t = do -- anything that doesn't fit a pattern just goes into a hole
-    t' <- chTerm ctx ty chs NoChange t
+chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
+    = let (Tuple ty' change) = chType chs.dataTypeDeletions ty in
+    do
+    t' <- chTerm ctx ty chs change t -- is passing in ty correct? the type input to chTerm is the type of the term that is inputted?
     currStuff <- get
-    _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) ty t' defaultTermDefinitionMetadata))
+    _ <- put $ currStuff <> (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) ty' t' defaultTermDefinitionMetadata))
     pure $ HoleTerm defaultHoleTermMetadata
 
+-- doesn't need to input a TC? Does need to output it?
 chNeutral :: Context -> Changes -> TypeChange -> NeutralTerm -> State (List Definition) (Maybe NeutralTerm)
 chNeutral = undefined
 
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> Block
 chBlock ctx ty chs ch (Block defs t md)
-    -- = Block (map (chDefinition chs) defs) (chTerm chs ch t) md
-    = let (Tuple displaced1 t) = runState (chTerm undefined ty chs ch t) Nil
-      in let (Tuple displaced2 defs) = runState (sequence (map (chDefinition ctx chs) defs)) Nil
-      in undefined
+    = let (Tuple t' displaced1) = runState (chTerm undefined ty chs ch t) Nil
+      in let (Tuple defs' displaced2) = runState (sequence (map (chDefinition ctx chs) defs)) Nil
+      in Block (defs' <> displaced1 <> displaced2) t' md -- TODO: maybe consider positioning the displaced terms better rather than all at the end. This is fine for now though.
 
 chDefinition :: Context -> Changes -> Definition -> State (List Definition) Definition
 -- for data definitions, do nothing?
 -- for term definitions, change both the type and term.
-chDefinition chs = undefined
+chDefinition ctx chs (TermDefinition binding ty t md)
+    = let (Tuple ty' change) = chType chs.dataTypeDeletions ty -- TODO IMPORTANT DON'T FORGET: the changes to each definition type need to be found in block, and then applied to all definitions! This is because all definitions in a block can refer to each other.
+      in let chs' = varChange chs (indexOf binding) change
+      in do
+        t' <- chTerm ctx ty' chs' change t
+        pure $ TermDefinition binding ty' t' md
+chDefinition ctx chs (DataDefintion binding constrs md)
+    = undefined
 
 defFromTerm :: Term -> Definition
 defFromTerm t = TermDefinition undefined undefined t defaultTermDefinitionMetadata
