@@ -103,8 +103,8 @@ recType rec alpha gamma = Rec.recType rec alpha gamma <<< incrementIndentation
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
+  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
+  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> a
   } ->
@@ -112,13 +112,13 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \x b meta gamma alpha ->
-          rec.lambda x b meta gamma alpha
+        \termID b meta gamma alpha ->
+          rec.lambda termID b meta gamma alpha
             <<< foldl (>>>) identity
-                [ registerTermBinding x
+                [ undefined -- registerTermID termID
                 , incrementIndentation
                 ]
-    , neutral: \neu meta gamma alpha -> rec.neutral neu meta gamma alpha <<< incrementIndentation
+    , neutral: \termID args meta gamma alpha -> rec.neutral termID args meta gamma alpha <<< incrementIndentation
     , hole: \meta gamma alpha -> rec.hole meta gamma alpha <<< incrementIndentation
     , match:
         \typeID a cases meta gamma alpha metaGamma ->
@@ -127,13 +127,13 @@ recTerm rec =
             (Map.lookup' typeID metaGamma.constructorTermIDs)
     }
 
-recNeutralTerm ::
+recArgs ::
   forall a.
-  { variable :: TermID -> VariableTermMetadata -> Context -> Type -> MetaContext -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> MetaContext -> a
+  { none :: a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> MetaContext -> a
   } ->
-  NeutralTerm -> Context -> Type -> MetaContext -> a
-recNeutralTerm rec neu gamma alpha = Rec.recNeutralTerm rec neu gamma alpha <<< incrementIndentation
+  Args -> Context -> Type -> MetaContext -> a
+recArgs = undefined
 
 recCase ::
   forall a.
@@ -145,7 +145,7 @@ recCase rec =
         \termIDs a meta gamma alpha typeID termID ->
           rec.case_ termIDs a meta gamma alpha typeID termID
             <<< foldl (>>>) identity
-                [ registerTermIDs termIDs
+                [ undefined -- TODO: registerTermIDs termIDs
                 , incrementIndentation
                 ]
     }
@@ -211,12 +211,11 @@ registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerNa
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ List.foldl (flip registerTermBinding)
 
-registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
-registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
-
-registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
-registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
-
+-- TODO
+-- registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
+-- registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+-- registerTermIDs :: TermID -> TermName -> MetaContext -> MetaContext
+-- registerTermIDs id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
 registerDatatype :: TypeBinding -> List TermBinding -> MetaContext -> MetaContext
 registerDatatype x@(TypeBinding typeID _) constrBnds metaGamma =
   ( foldl (>>>) identity

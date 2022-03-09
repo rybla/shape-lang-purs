@@ -104,7 +104,7 @@ recType rec =
 recTerm ::
   forall a.
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> a
+  , neutral :: TermID -> Args -> Context -> Type -> MetaContext -> Wrap Args -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> Wrap Term -> IndexWrap Case -> a
   } ->
@@ -116,9 +116,9 @@ recTerm rec =
           rec.lambda termBnd block meta gamma alpha metaGamma
             (wrap_term <<< \block' -> LambdaTerm termBnd block' meta)
     , neutral:
-        \neu meta gamma alpha metaGamma wrap_term ->
-          rec.neutral neu meta gamma alpha metaGamma
-            (wrap_term <<< \neu' -> NeutralTerm neu' meta)
+        \termID args meta gamma alpha metaGamma wrap_term ->
+          rec.neutral termID args meta gamma alpha metaGamma
+            (wrap_term <<< \args' -> NeutralTerm termID args' meta)
     , hole:
         \meta gamma alpha metaGamma _ ->
           rec.hole meta gamma alpha metaGamma
@@ -129,23 +129,13 @@ recTerm rec =
             (\i -> wrap_term <<< \case' -> MatchTerm typeID a (List.updateAt' i case' cases) meta)
     }
 
-recNeutralTerm ::
+recArgs ::
   forall a.
-  { variable :: TermID -> VariableTermMetadata -> Context -> Type -> MetaContext -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> MetaContext -> Wrap NeutralTerm -> Wrap Term -> a
+  { none :: a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> MetaContext -> Wrap Term -> Wrap Args -> a
   } ->
-  NeutralTerm -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> a
-recNeutralTerm rec =
-  Rec.recNeutralTerm
-    { variable:
-        \termID meta gamma alpha metaGamma _ ->
-          rec.variable termID meta gamma alpha metaGamma
-    , application:
-        \neu a meta gamma prm alpha metaGamma wrap_neu ->
-          rec.application neu a meta gamma prm alpha metaGamma
-            (wrap_neu <<< \neu' -> ApplicationTerm neu' a meta)
-            (wrap_neu <<< \a' -> ApplicationTerm neu a' meta)
-    }
+  Args -> Context -> Type -> MetaContext -> Wrap Args -> a
+recArgs = undefined
 
 recCase ::
   forall a.

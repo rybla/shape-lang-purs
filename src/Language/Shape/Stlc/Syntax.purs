@@ -31,8 +31,8 @@ data Term
   | NeutralTerm TermID Args NeutralTermMetadata
 
 data Args
-  = None
-  | Cons Term Args ArgConsMetaData
+  = NoneArgs
+  | ConsArgs Term Args ArgConsMetaData
 
 data Case = Case (List TermID) Term CaseMetadata
 

@@ -8,6 +8,7 @@ import Prim hiding (Type)
 import Data.List (List)
 import Data.Map as Map
 import Language.Shape.Stlc.Recursion.Base as Rec
+import Undefined (undefined)
 import Unsafe as Unsafe
 
 -- Recursion principles for handling context & type
@@ -63,7 +64,7 @@ recType = Rec.recType
 recTerm ::
   forall a.
   { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> a
+  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> a
   , hole :: HoleTermMetadata -> Context -> Type -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
   } ->
@@ -75,8 +76,8 @@ recTerm rec =
           ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert x beta gamma) delta
           _ -> Unsafe.error "impossible"
     , neutral:
-        \neu meta gamma alpha ->
-          rec.neutral neu meta gamma alpha
+        \termID args meta gamma alpha ->
+          rec.neutral termID args meta gamma alpha
     , hole:
         \meta gamma alpha ->
           rec.hole meta gamma alpha
@@ -85,21 +86,28 @@ recTerm rec =
           rec.match dataID a cases meta gamma alpha
     }
 
-recNeutralTerm ::
+recArgs ::
   forall a.
-  { variable :: TermID -> VariableTermMetadata -> Context -> Type -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> a
+  { none :: a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> a
   } ->
-  NeutralTerm -> Context -> Type -> a
-recNeutralTerm rec =
-  Rec.recNeutralTerm
-    { variable: rec.variable
-    , application:
-        \neu a meta gamma -> case _ of
-          ArrowType prm beta _ -> rec.application neu a meta gamma prm beta
-          _ -> Unsafe.error "impossible"
-    }
+  Args -> Context -> Type -> a
+recArgs = undefined
 
+-- recNeutralTerm ::
+--   forall a.
+--   { variable :: TermID -> VariableTermMetadata -> Context -> Type -> a
+--   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> a
+--   } ->
+--   NeutralTerm -> Context -> Type -> a
+-- recNeutralTerm rec =
+--   Rec.recNeutralTerm
+--     { variable: rec.variable
+--     , application:
+--         \neu a meta gamma -> case _ of
+--           ArrowType prm beta _ -> rec.application neu a meta gamma prm beta
+--           _ -> Unsafe.error "impossible"
+--     }
 recCase ::
   forall a.
   { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->

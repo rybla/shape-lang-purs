@@ -1,8 +1,7 @@
-module Language.Holes where
+module Language.Shape.Stlc.Holes where
 
 import Prelude
 import Prim
-
 import Data.Map (Map, empty, lookup, singleton, union)
 import Data.Maybe (Maybe(..))
 import Data.Set (member)
@@ -33,8 +32,11 @@ subParameter sub (Parameter t md) = Parameter (subType sub t) md
 
 unifyType :: Type -> Type -> Maybe HoleSub
 unifyType (HoleType id wea md) t2 = Just $ singleton id t2
+
 unifyType t1 (HoleType id wea md) = unifyType (HoleType id wea md) t1
+
 unifyType (ProxyHoleType i1) (ProxyHoleType i2) = if i1 == i2 then Just empty else Nothing
+
 unifyType (ArrowType (Parameter a1 mda1) b1 mdb1) (ArrowType (Parameter a2 mda2) b2 mdb2) = do
   a <- unifyType a1 a2
   b <- unifyType (subType a b1) (subType a b2)
@@ -46,12 +48,16 @@ unifyType _ _ = Nothing
 
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
+
 subTerm sub (HoleTerm md) = HoleTerm md
+
 subTerm sub (MatchTerm id t cases md) = MatchTerm id (subTerm sub t) (map (subCase sub) cases) md
+
 subTerm sub (NeutralTerm x args md) = NeutralTerm x (subArgs sub args) md
 
 subArgs :: HoleSub -> Args -> Args
 subArgs sub None = None
+
 subArgs sub (Cons t args md) = Cons (subTerm sub t) (subArgs sub args) md
 
 subBlock :: HoleSub -> Block -> Block

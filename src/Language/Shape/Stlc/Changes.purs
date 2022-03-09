@@ -1,4 +1,4 @@
-module Language.Changes where
+module Language.Shape.Stlc.Changes where
 
 import Prelude
 import Prim hiding (Type)

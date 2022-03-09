@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
+import Undefined (undefined)
 
 recModule ::
   forall a.
@@ -58,26 +59,24 @@ recType rec = case _ of
 recTerm ::
   forall a.
   { lambda :: TermID -> Block -> LambdaTermMetadata -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> a
+  , neutral :: TermID -> Args -> NeutralTermMetadata -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> a
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a
 recTerm rec = case _ of
   LambdaTerm termID block meta -> rec.lambda termID block meta
-  NeutralTerm neu meta -> rec.neutral neu meta
+  NeutralTerm termID args meta -> rec.neutral termID args meta
   MatchTerm typeID a cases meta -> rec.match typeID a cases meta
   HoleTerm meta -> rec.hole meta
 
-recNeutralTerm ::
+recArgs ::
   forall a.
-  { variable :: TermID -> VariableTermMetadata -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> a
+  { none :: a
+  , cons :: Term -> Args -> ArgConsMetaData -> a
   } ->
-  NeutralTerm -> a
-recNeutralTerm rec = case _ of
-  VariableTerm termID meta -> rec.variable termID meta
-  ApplicationTerm neu a meta -> rec.application neu a meta
+  Args -> a
+recArgs = undefined
 
 recCase ::
   forall a.
