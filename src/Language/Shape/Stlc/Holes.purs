@@ -57,7 +57,6 @@ subBlock sub (Block defs t md) = Block (map (subDefinition sub) defs) (subTerm s
 
 subDefinition :: HoleSub -> Definition -> Definition
 subDefinition sub (TermDefinition binds ty t md) = TermDefinition binds (subType sub ty) (subTerm sub t) md
-
 subDefinition sub (DataDefinition bind ctrs md) = DataDefinition bind (map (subConstructor sub) ctrs) md
 
 subConstructor :: HoleSub -> Constructor -> Constructor
