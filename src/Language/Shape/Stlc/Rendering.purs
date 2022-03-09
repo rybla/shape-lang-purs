@@ -8,7 +8,7 @@ import Prelude
 import Prim hiding (Type)
 import App as App
 import Data.List as List
-import Data.Map as Map
+import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Tuple as Tuple
@@ -382,7 +382,7 @@ renderParameter =
     { parameter:
         \alpha meta gamma metaGamma wrap_alpha ->
           let
-            shadowIndex = Unsafe.fromJust $ Map.lookup meta.name metaGamma.termNameShadows
+            shadowIndex = Map.lookup' meta.name metaGamma.termScope.shadows
           in
             mkSyntaxComponent \st ->
               HH.span
@@ -400,26 +400,26 @@ renderParameter =
 renderTypeBinding :: forall q m. TypeBinding -> Context -> MetaContext -> SyntaxComponent q m
 renderTypeBinding (TypeBinding id meta) gamma metaGamma = renderTypeName meta.name shadowIndex gamma metaGamma
   where
-  shadowIndex = Unsafe.fromJust $ Map.lookup id metaGamma.typeIDShadowIndex
+  shadowIndex = Map.lookup' id metaGamma.typeScope.shadowIndices
 
 renderTermBinding :: forall q m. TermBinding -> Context -> MetaContext -> SyntaxComponent q m
 renderTermBinding (TermBinding id meta) gamma metaGamma = renderTermName meta.name shadowIndex gamma metaGamma
   where
-  shadowIndex = Unsafe.fromJust $ Map.lookup id metaGamma.termIDShadowIndex
+  shadowIndex = Map.lookup' id metaGamma.termScope.shadowIndices
 
 renderTypeID :: forall q m. TypeID -> Context -> MetaContext -> SyntaxComponent q m
 renderTypeID id gamma metaGamma = renderTypeName name shadowIndex gamma metaGamma
   where
-  name = Unsafe.fromJust $ Map.lookup id metaGamma.typeNames
+  name = Map.lookup' id metaGamma.typeScope.names
 
-  shadowIndex = Unsafe.fromJust $ Map.lookup id metaGamma.typeIDShadowIndex
+  shadowIndex = Map.lookup' id metaGamma.typeScope.shadowIndices
 
 renderTermID :: forall q m. TermID -> Context -> MetaContext -> SyntaxComponent q m
 renderTermID id gamma metaGamma = renderTermName name shadowIndex gamma metaGamma
   where
-  name = Unsafe.fromJust $ Map.lookup id metaGamma.termNames
+  name = Map.lookup' id metaGamma.termScope.names
 
-  shadowIndex = Unsafe.fromJust $ Map.lookup id metaGamma.termIDShadowIndex
+  shadowIndex = Map.lookup' id metaGamma.termScope.shadowIndices
 
 renderTypeName :: forall q m. TypeName -> Int -> Context -> MetaContext -> SyntaxComponent q m
 renderTypeName (TypeName name) shadowIndex gamma metaGamma =
