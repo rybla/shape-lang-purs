@@ -19,7 +19,7 @@ data Block
 
 data Definition
   = TermDefinition TermBinding Type Term TermDefinitionMetadata
-  | DataDefintion TypeBinding (List Constructor) DataDefinitionMetadata
+  | DataDefinition TypeBinding (List Constructor) DataDefinitionMetadata
 
 data Constructor
   = Constructor TermBinding (List Parameter) ConstructorMetadata

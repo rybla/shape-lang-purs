@@ -5,8 +5,8 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
-import Data.List as List
+import Data.List.Unsafe (List)
+import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
 import Language.Holes (HoleSub)
@@ -29,14 +29,26 @@ recModule ::
   { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> IndexWrap Definition -> a
   } ->
   Module -> Context -> MetaContext -> Wrap Module -> a
-recModule rec = Rec.recModule undefined
+recModule rec =
+  Rec.recModule
+    { module_:
+        \defs meta gamma metaGamma wrap_mod ->
+          rec.module_ defs meta gamma metaGamma
+            $ \i def' -> wrap_mod $ Module (List.updateAt' i def' defs) meta
+    }
 
 recBlock ::
   forall a.
   { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> IndexWrap Definition -> a
   } ->
   Block -> Context -> Type -> MetaContext -> Wrap Block -> a
-recBlock rec = Rec.recBlock undefined
+recBlock rec =
+  Rec.recBlock
+    { block:
+        \defs a meta gamma alpha metaGamma wrap_block ->
+          rec.block defs a meta gamma alpha metaGamma
+            $ \i -> wrap_block <<< \def' -> Block (List.updateAt' i def' defs) a meta
+    }
 
 recDefinition ::
   forall a.
@@ -44,7 +56,18 @@ recDefinition ::
   , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> Context -> MetaContext -> IndexWrap Constructor -> a
   } ->
   Definition -> Context -> MetaContext -> Wrap Definition -> a
-recDefinition rec = Rec.recDefinition undefined
+recDefinition rec =
+  Rec.recDefinition
+    { term:
+        \x alpha a meta gamma metaGamma wrap_def ->
+          rec.term x alpha a meta gamma metaGamma
+            (wrap_def <<< \alpha' -> TermDefinition x alpha' a meta)
+            (wrap_def <<< \a' -> TermDefinition x alpha a' meta)
+    , data:
+        \x constrs meta gamma metaGamma wrap_def ->
+          rec.data x constrs meta gamma metaGamma
+            (\i -> wrap_def <<< \constr' -> DataDefinition x (List.updateAt' i constr' constrs) meta)
+    }
 
 recConstructor ::
   forall a.

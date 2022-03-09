@@ -20,7 +20,7 @@ type Context
 addDefinitionToContext :: Definition -> Context -> Context
 addDefinitionToContext = case _ of
   TermDefinition (TermBinding id _) alpha a meta -> Map.insert id alpha
-  DataDefintion (TypeBinding typeID _) constrs meta -> flip (foldl (flip f)) constrs
+  DataDefinition (TypeBinding typeID _) constrs meta -> flip (foldl (flip f)) constrs
     where
     f :: Constructor -> Map TermID Type -> Map TermID Type
     f (Constructor (TermBinding id _) prms _) = Map.insert id (typeOfConstructor prms typeID)

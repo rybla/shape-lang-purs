@@ -189,7 +189,7 @@ registerDatatype x@(TypeBinding typeID _) constrBnds metaGamma =
 registerDefinition :: Definition -> MetaContext -> MetaContext
 registerDefinition = case _ of
   TermDefinition x alpha a meta -> registerTermBinding x
-  DataDefintion x constrs meta -> registerDatatype x (map (\(Constructor x _ _) -> x) constrs)
+  DataDefinition x constrs meta -> registerDatatype x (map (\(Constructor x _ _) -> x) constrs)
 
 registerDefinitions :: List Definition -> MetaContext -> MetaContext
 registerDefinitions defs = flip (List.foldl (flip registerDefinition)) defs
