@@ -1,22 +1,23 @@
 module Language.Shape.Stlc.Recursion.Wrap where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 
+import Control.Monad.State (runState)
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
-import Language.Shape.Stlc.Holes (HoleSub)
+import Language.Shape.Stlc.Changes (TypeChange(..), chTerm)
+import Language.Shape.Stlc.Holes (HoleSub, subModule)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as Rec
 import Undefined (undefined)
 import Unsafe as Unsafe
-
-data TypeChange
 
 type Wrap a
   = a -> TypeChange -> Module
@@ -49,6 +50,7 @@ recBlock rec =
         \defs a meta gamma alpha metaGamma wrap_block ->
           rec.block defs a meta gamma alpha metaGamma
             (\i -> wrap_block <<< \def' -> Block (List.updateAt' i def' defs) a meta)
+            -- (\i def' tc )
     }
 
 recDefinition ::
@@ -62,7 +64,12 @@ recDefinition rec =
     { term:
         \termBnd alpha a meta gamma metaGamma wrap_def ->
           rec.term termBnd alpha a meta gamma metaGamma
-            (wrap_def <<< \alpha' -> TermDefinition termBnd alpha' a meta)
+            -- (wrap_def <<< \alpha' -> TermDefinition termBnd alpha' a meta)
+            (\alpha' tc ->
+              let state = chTerm gamma alpha undefined {-empty-} tc a in
+              let (a' /\ displaced /\ sub) = runState state undefined {-startingState-} in
+              subModule sub (wrap_def (TermDefinition termBnd alpha' a' meta) tc))
+                    
             (wrap_def <<< \a' -> TermDefinition termBnd alpha a' meta)
     , data:
         \typeBnd constrs meta gamma metaGamma wrap_def ->
@@ -114,9 +121,9 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termBnd block meta gamma alpha metaGamma wrap_term ->
-          rec.lambda termBnd block meta gamma alpha metaGamma
-            (wrap_term <<< \block' -> LambdaTerm termBnd block' meta)
+        \termID block meta gamma alpha metaGamma wrap_term ->
+          rec.lambda termID block meta gamma alpha metaGamma
+            (\block' tc -> wrap_term (LambdaTerm termID block' meta) (ArrowCh NoChange tc))
     , neutral:
         \termID args meta gamma alpha metaGamma wrap_term ->
           rec.neutral termID args meta gamma alpha metaGamma
