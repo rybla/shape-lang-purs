@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
+import Undefined (undefined)
 
 recModule ::
   forall a.
@@ -57,34 +58,32 @@ recType rec = case _ of
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> a
-  , neutral :: NeutralTerm -> NeutralTermMetadata -> a
+  { lambda :: TermID -> Block -> LambdaTermMetadata -> a
+  , neutral :: TermID -> Args -> NeutralTermMetadata -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> a
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a
 recTerm rec = case _ of
-  LambdaTerm termBnd block meta -> rec.lambda termBnd block meta
-  NeutralTerm neu meta -> rec.neutral neu meta
+  LambdaTerm termID block meta -> rec.lambda termID block meta
+  NeutralTerm termID args meta -> rec.neutral termID args meta
   MatchTerm typeID a cases meta -> rec.match typeID a cases meta
   HoleTerm meta -> rec.hole meta
 
-recNeutralTerm ::
+recArgs ::
   forall a.
-  { variable :: TermID -> VariableTermMetadata -> a
-  , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> a
+  { none :: a
+  , cons :: Term -> Args -> ArgConsMetaData -> a
   } ->
-  NeutralTerm -> a
-recNeutralTerm rec = case _ of
-  VariableTerm termID meta -> rec.variable termID meta
-  ApplicationTerm neu a meta -> rec.application neu a meta
+  Args -> a
+recArgs = undefined
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> a } ->
+  { case_ :: List TermID -> Term -> CaseMetadata -> a } ->
   Case -> a
 recCase rec = case _ of
-  Case termBnds a meta -> rec.case_ termBnds a meta
+  Case termIDs a meta -> rec.case_ termIDs a meta
 
 recParameter ::
   forall a.

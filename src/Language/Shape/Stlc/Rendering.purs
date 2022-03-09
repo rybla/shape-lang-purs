@@ -1,17 +1,18 @@
 module Language.Shape.Stlc.Rendering where
 
+import AppAction
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import App as App
 import Data.List as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Tuple as Tuple
+import Debug as Debug
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
@@ -28,17 +29,18 @@ import Unsafe as Unsafe
 Universal syntax interface
 -}
 type SyntaxComponent q m
-  = H.Component q SyntaxState App.AppAction m
+  = H.Component q SyntaxState AppAction m
 
 type SyntaxState
   = { cursor :: Boolean
     }
 
 type SyntaxSlot q
-  = H.Slot q App.AppAction Int
+  = H.Slot q AppAction Int
 
 type SyntaxSlots q
-  = ( definition :: SyntaxSlot q
+  = ( module :: SyntaxSlot q
+    , definition :: SyntaxSlot q
     , block :: SyntaxSlot q
     , constructor :: SyntaxSlot q
     , type :: SyntaxSlot q
@@ -49,6 +51,8 @@ type SyntaxSlots q
     , typeName :: SyntaxSlot q
     , termName :: SyntaxSlot q
     )
+
+_module = Proxy :: Proxy "module"
 
 _definition = Proxy :: Proxy "definition"
 
@@ -71,7 +75,7 @@ _typeName = Proxy :: Proxy "typeName"
 _termName = Proxy :: Proxy "termName"
 
 data SyntaxAction
-  = AppAction App.AppAction
+  = AppAction AppAction
   | ModifyState (SyntaxState -> SyntaxState)
 
 initialSyntaxState :: SyntaxState
@@ -81,7 +85,7 @@ initialSyntaxState =
 
 -- HH.HTML (H.ComponentSlot slots m SyntaxAction)
 mkSyntaxComponent ::
-  forall syntax q m.
+  forall q m.
   (SyntaxState -> HH.ComponentHTML SyntaxAction (SyntaxSlots q) m) ->
   SyntaxComponent q m
 mkSyntaxComponent render =
@@ -106,7 +110,7 @@ slotSyntax ::
   forall label slot q m _1.
   IsSymbol label =>
   Ord slot =>
-  Cons label (H.Slot q App.AppAction slot) _1 (SyntaxSlots q) =>
+  Cons label (H.Slot q AppAction slot) _1 (SyntaxSlots q) =>
   Proxy label ->
   slot ->
   SyntaxComponent q m ->

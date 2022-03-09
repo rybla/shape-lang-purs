@@ -1,6 +1,23 @@
+/* app */
 .app {
   font-family: monospace;
 }
+
+/* editor */
+
+.editor {
+  padding: 1em;
+}
+
+/* console */
+
+.console {
+  margin-top: 1em;
+  padding: 1em;
+  box-shadow: 0 0 0 1px black;
+}
+
+/* module */
 
 .module {
   display: block;
