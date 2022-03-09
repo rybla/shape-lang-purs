@@ -29,9 +29,9 @@ addDefinitionsToContext :: List Definition -> Context -> Context
 addDefinitionsToContext = flip $ foldl (flip addDefinitionToContext)
 
 typeOfConstructor :: List Parameter -> TypeID -> Type
-typeOfConstructor prms typeId =
+typeOfConstructor prms typeID =
   -- TODO: this folds the right way, right?? do a test or two
   foldr
     (\prm beta -> ArrowType prm beta defaultArrowTypeMetadata)
-    (DataType typeId defaultDataTypeMetadata)
+    (DataType typeID defaultDataTypeMetadata)
     prms
