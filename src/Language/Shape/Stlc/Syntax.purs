@@ -25,12 +25,12 @@ data Constructor
   = Constructor TermBinding (List Parameter) ConstructorMetadata
 
 data Term
-  = LambdaTerm TermBinding Block LambdaTermMetadata
+  = LambdaTerm TermID Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Case) MatchTermMetadata
   | NeutralTerm NeutralTerm NeutralTermMetadata
 
-data Case = Case (List TermBinding) Term CaseMetadata
+data Case = Case (List TermID) Term CaseMetadata
 
 data NeutralTerm
   = VariableTerm TermID VariableTermMetadata
