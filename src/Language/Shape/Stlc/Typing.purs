@@ -27,11 +27,12 @@ replaceHolesWithProxy (HoleType id wea md) = ProxyHoleType id
 
 addDefinitionToContext :: Definition -> Context -> Context
 addDefinitionToContext = case _ of
-  TermDefinition (TermBinding id _) alpha a meta -> Map.insert id alpha
+  TermDefinition (TermBinding id _) alpha a meta -> Map.insert id (replaceHolesWithProxy alpha)
   DataDefinition (TypeBinding typeID _) constrs meta -> flip (foldl (flip f)) constrs
     where
     f :: Constructor -> Map TermID Type -> Map TermID Type
-    f (Constructor (TermBinding id _) prms _) = Map.insert id (typeOfConstructor prms typeID)
+    f (Constructor (TermBinding id _) prms _) = Map.insert id (typeOfConstructor prms' typeID)
+      where prms' = map (\(Parameter a md) -> (Parameter (replaceHolesWithProxy a) md)) prms
 
 addDefinitionsToContext :: List Definition -> Context -> Context
 addDefinitionsToContext = flip $ foldl (flip addDefinitionToContext)
