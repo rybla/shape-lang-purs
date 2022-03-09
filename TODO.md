@@ -13,7 +13,13 @@
   - [x] hole stuff (i.e. unification)
 - Henry
   - [x] syntax
-  - [x] recursion principle w/o wrap (and signature for w/ wrap)
-  - [ ] outline recursion principle with wrap
+  - [ ] recursors
+    - [x] base
+    - [x] context + type
+    - [x] metacontext (for derived metadata stuff: names, shadows, constructor
+          ids, etc)
+    - [ ] wrap
   - [ ] rendering
+    - [ ] basic outline
+    - [ ] actions
     - [ ] make sure cursor works correctly
