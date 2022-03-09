@@ -13,6 +13,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Language.Shape.Stlc.Metadata as Metadata
 import Language.Shape.Stlc.Syntax as Syntax
 import Type.Proxy (Proxy(..))
 import Unsafe as Unsafe
@@ -51,7 +52,7 @@ renderApp =
     { initialState:
         const
           { consoleState: { logs: [] }
-          , editorState: { module_: Syntax.makeModule List.Nil }
+          , editorState: { module_: Syntax.Module List.Nil Metadata.defaultModuleMetadata }
           }
     , eval:
         H.mkEval

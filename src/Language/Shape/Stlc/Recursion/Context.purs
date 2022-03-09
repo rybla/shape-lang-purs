@@ -8,7 +8,6 @@ import Prim hiding (Type)
 import Data.List (List)
 import Data.Map as Map
 import Language.Shape.Stlc.Recursion.Base as Rec
-import Undefined (undefined)
 import Unsafe as Unsafe
 
 -- Recursion principles for handling context & type
@@ -92,16 +91,23 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> a
   } ->
   NeutralTerm -> Context -> Type -> a
-recNeutralTerm rec = Rec.recNeutralTerm undefined
+recNeutralTerm rec =
+  Rec.recNeutralTerm
+    { variable: rec.variable
+    , application:
+        \neu a meta gamma -> case _ of
+          ArrowType prm beta _ -> rec.application neu a meta gamma prm beta
+          _ -> Unsafe.error "impossible"
+    }
 
 recCase ::
   forall a.
   { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->
-  Case -> Context -> Type -> a
-recCase rec = Rec.recCase undefined
+  Case -> Context -> Type -> TypeID -> TermID -> a
+recCase = Rec.recCase
 
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Context -> a } ->
   Parameter -> Context -> a
-recParameter rec = Rec.recParameter undefined
+recParameter = Rec.recParameter

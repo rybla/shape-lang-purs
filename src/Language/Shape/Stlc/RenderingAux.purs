@@ -19,7 +19,6 @@ import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Typing (Context)
 import Prim.Row (class Cons)
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe as Unsafe
 
 keyword :: _
