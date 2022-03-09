@@ -5,13 +5,15 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
+
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
-import Language.Holes (HoleSub)
+import Language.Shape.Stlc.Holes (HoleSub)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as Rec
+import Undefined (undefined)
 import Unsafe as Unsafe
 
 data TypeChange
@@ -103,8 +105,8 @@ recType rec =
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
-  , neutral :: TermID -> Args -> Context -> Type -> MetaContext -> Wrap Args -> a
+  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
+  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap Args -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> Wrap Term -> IndexWrap Case -> a
   } ->
@@ -139,7 +141,7 @@ recArgs = undefined
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Term -> a } ->
+  { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Term -> a } ->
   Case -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Case -> a
 recCase rec =
   Rec.recCase
