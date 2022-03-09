@@ -17,7 +17,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
-import Language.Shape.Stlc.Recursion.Wrap (Wrap, WrapI)
+import Language.Shape.Stlc.Recursion.Wrap (Wrap, IndexWrap)
 import Language.Shape.Stlc.Recursion.Wrap as RecWrap
 import Language.Shape.Stlc.Typing (Context)
 import Prim.Row (class Cons)

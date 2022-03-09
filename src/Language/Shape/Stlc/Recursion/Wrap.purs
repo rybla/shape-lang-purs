@@ -9,6 +9,7 @@ import Data.List (List)
 import Data.List as List
 import Data.Map (Map)
 import Data.Map as Map
+import Language.Holes (HoleSub)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as Rec
 import Undefined (undefined)
@@ -17,22 +18,22 @@ import Unsafe as Unsafe
 data TypeChange
 
 type Wrap a
-  = a -> TypeChange -> Module
+  = a -> TypeChange -> HoleSub -> Module
 
-type WrapI a
+type IndexWrap a
   = Int -> Wrap a
 
--- Recursion principles for handling wraping
+-- Recursion principles for handling IndexWrapng
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> WrapI Definition -> a
+  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> IndexWrap Definition -> a
   } ->
   Module -> Context -> MetaContext -> Wrap Module -> a
 recModule rec = Rec.recModule undefined
 
 recBlock ::
   forall a.
-  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> WrapI Definition -> a
+  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> IndexWrap Definition -> a
   } ->
   Block -> Context -> Type -> MetaContext -> Wrap Block -> a
 recBlock rec = Rec.recBlock undefined
@@ -40,14 +41,14 @@ recBlock rec = Rec.recBlock undefined
 recDefinition ::
   forall a.
   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> MetaContext -> Wrap Type -> Wrap Term -> a
-  , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> Context -> MetaContext -> WrapI Constructor -> a
+  , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> Context -> MetaContext -> IndexWrap Constructor -> a
   } ->
   Definition -> Context -> MetaContext -> Wrap Definition -> a
 recDefinition rec = Rec.recDefinition undefined
 
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> MetaContext -> WrapI Parameter -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> MetaContext -> IndexWrap Parameter -> a
   } ->
   Constructor -> Context -> TypeBinding -> MetaContext -> Wrap Constructor -> a
 recConstructor rec = Rec.recConstructor undefined
@@ -67,7 +68,7 @@ recTerm ::
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> Wrap Term -> WrapI Case -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> Wrap Term -> IndexWrap Case -> a
   } ->
   Term -> Context -> Type -> MetaContext -> Wrap Term -> a
 recTerm rec = Rec.recTerm undefined
