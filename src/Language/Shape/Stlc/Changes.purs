@@ -201,7 +201,7 @@ chArgs ctx tys chs NoChange args = do
     pure $ Tuple args' NoChange
 chArgs ctx tys chs (Dig hId) args = do
     displaceDefs (zipWith (\ty t -> TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys args)
-    undefined
+    pure $ 
 chArgs _ _ _ _ _ = error "shouldn't get here"
 
 

@@ -2,10 +2,11 @@ module Language.Holes where
 
 import Prelude
 import Prim
+
 import Data.Map (Map, empty, lookup, singleton, union)
 import Data.Maybe (Maybe(..))
 import Data.Set (member)
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), NeutralTerm(..), Parameter(..), Term(..), Type(..), TypeID(..), TypeWeakening)
+import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), Type(..), TypeID(..), TypeWeakening)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -32,11 +33,8 @@ subParameter sub (Parameter t md) = Parameter (subType sub t) md
 
 unifyType :: Type -> Type -> Maybe HoleSub
 unifyType (HoleType id wea md) t2 = Just $ singleton id t2
-
 unifyType t1 (HoleType id wea md) = unifyType (HoleType id wea md) t1
-
 unifyType (ProxyHoleType i1) (ProxyHoleType i2) = if i1 == i2 then Just empty else Nothing
-
 unifyType (ArrowType (Parameter a1 mda1) b1 mdb1) (ArrowType (Parameter a2 mda2) b2 mdb2) = do
   a <- unifyType a1 a2
   b <- unifyType (subType a b1) (subType a b2)
@@ -48,11 +46,8 @@ unifyType _ _ = Nothing
 
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
-
 subTerm sub (HoleTerm md) = HoleTerm md
-
 subTerm sub (MatchTerm id t cases md) = MatchTerm id (subTerm sub t) (map (subCase sub) cases) md
-
 subTerm sub (NeutralTerm t md) = NeutralTerm (subNeutral sub t) md
 
 subBlock :: HoleSub -> Block -> Block
@@ -71,5 +66,4 @@ subCase sub (Case binds t md) = undefined
 
 subNeutral :: HoleSub -> NeutralTerm -> NeutralTerm
 subNeutral sub (VariableTerm i md) = undefined
-
 subNeutral sub (ApplicationTerm t1 t2 md) = undefined
