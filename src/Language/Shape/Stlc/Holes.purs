@@ -45,11 +45,8 @@ unifyType _ _ = Nothing
 
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
-
 subTerm sub (HoleTerm md) = HoleTerm md
-
 subTerm sub (MatchTerm id t cases md) = MatchTerm id (subTerm sub t) (map (subCase sub) cases) md
-
 subTerm sub (NeutralTerm x args md) = NeutralTerm x (subArgs sub args) md
 
 subArgs :: HoleSub -> Args -> Args
