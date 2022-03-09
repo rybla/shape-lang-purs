@@ -58,16 +58,15 @@ type LambdaTermMetadata
 defaultLambdaTermMetadata :: LambdaTermMetadata
 defaultLambdaTermMetadata = { annotated: true, indented: false }
 
+type ArgConsMetaData = { indented :: Boolean }
+
+defaultArgConsMetaData :: ArgConsMetaData
+defaultArgConsMetaData = { indented : false }
+
 type NeutralTermMetadata = {}
 
 defaultNeutralTermMetadata :: NeutralTermMetadata
 defaultNeutralTermMetadata = {}
-
-type ApplicationTermMetadata
-  = { indented :: Boolean } -- tells if each term is indented
-
-defaultApplicationTermMetadata :: ApplicationTermMetadata
-defaultApplicationTermMetadata = { indented: false }
 
 type VariableTermMetadata =  {}
 defaultVariableTermMetadata :: VariableTermMetadata

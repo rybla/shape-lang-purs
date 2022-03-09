@@ -4,7 +4,7 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
-import Data.List (List(..), union, singleton)
+import Data.List (List(..), singleton, union, zip, zipWith, (:))
 import Data.Map (Map, insert, lookup)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
@@ -12,7 +12,7 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Holes (HoleSub, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), NeutralTerm, Parameter(..), Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
+import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), NeutralTerm(..), Parameter(..), Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
 import Language.Shape.Stlc.Typing (Context, inferNeutral, inferTerm)
 import Pipes.Prelude (mapM)
 import Prim.Boolean (True)
@@ -167,7 +167,10 @@ isNoChange NoChange = true
 isNoChange _ = false
 
 chNeutral :: Context -> Changes -> NeutralTerm -> State (Tuple (List Definition) HoleSub) (Tuple NeutralTerm TypeChange)
-chNeutral = undefined
+chNeutral ctx chs (VariableTerm id md) = case lookup id chs.termChanges of
+    Just ch -> undefined
+    Nothing -> pure $ Tuple (VariableTerm id md) NoChange
+chNeutral ctx chs (ApplicationTerm t1 t2 md) = undefined
 
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> Block
 chBlock ctx ty chs ch (Block defs t md)
@@ -176,8 +179,31 @@ chBlock ctx ty chs ch (Block defs t md)
     --   in let (Tuple defs' displaced2) = runState (sequence (map (chDefinition ctx chs) defs)) undefined--waas Nil
     --   in Block (defs' <> displaced1 <> displaced2) t' md -- TODO: maybe consider positioning the displaced terms better rather than all at the end. This is fine for now though.
 
-defFromTerm :: Term -> Definition
-defFromTerm t = TermDefinition undefined undefined t defaultTermDefinitionMetadata
+-- tys is list of types of the terms.
+chArgs :: Context -> (List Type) -> Changes -> TypeChange -> (List Term) -> State (Tuple (List Definition) HoleSub) (Tuple (List Term) TypeChange)
+chArgs ctx tys chs RemoveArg (arg : args) = do
+    args' <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
+    pure $ Tuple args' NoChange
+chArgs ctx tys chs (InsertArg t) args = do
+    rest <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
+    pure $ Tuple ((HoleTerm defaultHoleTermMetadata) : rest) NoChange
+chArgs ctx (ty : tys) chs (ArrowCh c1 c2) (arg : args) = do
+    arg' <- chTerm ctx ty chs c1 arg
+    (Tuple args' tc) <- chArgs ctx tys chs c2 args
+    pure $ Tuple (arg' : args') tc
+chArgs ctx (ty1 : ty2 : tys) chs Swap (arg1 : arg2 : args) = do
+    arg1' <- chTerm ctx ty1 chs NoChange arg1
+    arg2' <- chTerm ctx ty2 chs NoChange arg2
+    rest <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
+    pure $ Tuple (arg2' : arg1' : rest) NoChange
+chArgs ctx tys chs NoChange args = do
+    args' <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
+    pure $ Tuple args' NoChange
+chArgs ctx tys chs (Dig hId) args = do
+    displaceDefs (zipWith (\ty t -> TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys args)
+    pure $ 
+chArgs _ _ _ _ _ = error "shouldn't get here"
+
 
 
 -- TODO: for wrap stuff, remember that it needs to be possible to have f : A -> B -> C, and in a buffer,

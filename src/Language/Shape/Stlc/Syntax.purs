@@ -28,13 +28,13 @@ data Term
   = LambdaTerm TermID Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Case) MatchTermMetadata
-  | NeutralTerm NeutralTerm NeutralTermMetadata
+  | NeutralTerm TermID Args NeutralTermMetadata
+
+data Args
+  = None
+  | Cons Term Args ArgConsMetaData
 
 data Case = Case (List TermID) Term CaseMetadata
-
-data NeutralTerm
-  = VariableTerm TermID VariableTermMetadata
-  | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
 
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
@@ -77,7 +77,7 @@ derive instance Generic Definition _
 derive instance Generic Constructor _
 derive instance Generic Type _
 derive instance Generic Term _
-derive instance Generic NeutralTerm _
+derive instance Generic Args _
 derive instance Generic Case _
 derive instance Generic Parameter _
 derive instance Generic TypeBinding _
@@ -93,7 +93,7 @@ instance Show Definition where show x = genericShow x
 instance Show Constructor where show x = genericShow x 
 instance Show Type where show x = genericShow x 
 instance Show Term where show x = genericShow x 
-instance Show NeutralTerm where show x = genericShow x 
+instance Show Args where show x = genericShow x 
 instance Show Case where show x = genericShow x 
 instance Show Parameter where show x = genericShow x 
 instance Show TypeBinding where show x = genericShow x 
