@@ -6,7 +6,7 @@ import Prim
 import Data.Map (Map, empty, lookup, singleton, union)
 import Data.Maybe (Maybe(..))
 import Data.Set (member)
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), Type(..), TypeID(..), TypeWeakening)
+import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), Type(..), TypeID(..), TypeWeakening)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -48,7 +48,11 @@ subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
 subTerm sub (HoleTerm md) = HoleTerm md
 subTerm sub (MatchTerm id t cases md) = MatchTerm id (subTerm sub t) (map (subCase sub) cases) md
-subTerm sub (NeutralTerm t md) = NeutralTerm (subNeutral sub t) md
+subTerm sub (NeutralTerm x args md) = NeutralTerm x (subArgs sub args) md
+
+subArgs :: HoleSub -> Args -> Args
+subArgs sub None = None
+subArgs sub (Cons t args md) = Cons (subTerm sub t) (subArgs sub args) md
 
 subBlock :: HoleSub -> Block -> Block
 subBlock sub (Block defs t md) = Block (map (subDefinition sub) defs) (subTerm sub t) md
@@ -62,8 +66,4 @@ subConstructor :: HoleSub -> Constructor -> Constructor
 subConstructor sub (Constructor bind args md) = Constructor bind (map (subParameter sub) args) md
 
 subCase :: HoleSub -> Case -> Case
-subCase sub (Case binds t md) = undefined
-
-subNeutral :: HoleSub -> NeutralTerm -> NeutralTerm
-subNeutral sub (VariableTerm i md) = undefined
-subNeutral sub (ApplicationTerm t1 t2 md) = undefined
+subCase sub (Case binds t md) = Case binds (subTerm sub t) md
