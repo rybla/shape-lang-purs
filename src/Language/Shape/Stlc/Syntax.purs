@@ -28,13 +28,13 @@ data Term
   = LambdaTerm TermBinding Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
   | MatchTerm TypeID Term (List Case) MatchTermMetadata
-  | NeutralTerm NeutralTerm NeutralTermMetadata
+  | NeutralTerm TermID Args NeutralTermMetadata
+
+data Args
+  = None
+  | Cons Term Args ArgConsMetaData
 
 data Case = Case (List TermBinding) Term CaseMetadata
-
-data NeutralTerm
-  = VariableTerm TermID VariableTermMetadata
-  | ApplicationTerm NeutralTerm Term ApplicationTermMetadata
 
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
