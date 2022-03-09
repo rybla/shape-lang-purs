@@ -19,11 +19,8 @@ type HoleSub
 
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType param b md2) = ArrowType (subParameter sub param) (subType sub b) md2
-
 subType sub (DataType i md) = DataType i md
-
 subType sub (ProxyHoleType i) = error "This probably shouldn't happen"
-
 subType sub (HoleType id wea md) = case lookup id sub of
   Nothing -> HoleType id wea md
   Just t -> t

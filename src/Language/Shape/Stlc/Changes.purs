@@ -6,14 +6,15 @@ import Prim hiding (Type)
 import Control.Monad.State (State, get, put, runState)
 import Data.List (List(..), singleton, union, zip, zipWith, (:))
 import Data.Map (Map, insert, lookup)
+import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Holes (HoleSub, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), NeutralTerm(..), Parameter(..), Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
-import Language.Shape.Stlc.Typing (Context, inferNeutral, inferTerm)
+import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermID(..), Type(..), TypeBinding(..), TypeID(..), freshHoleID, freshTermID)
+import Language.Shape.Stlc.Typing (Context)
 import Pipes.Prelude (mapM)
 import Prim.Boolean (True)
 import Undefined (undefined)
@@ -94,7 +95,7 @@ chDefinition ctx chs (TermDefinition binding ty t md)
       in do
         t' <- chTerm ctx ty' chs' change t
         pure $ TermDefinition binding ty' t' md
-chDefinition ctx chs (DataDefintion binding constrs md) -- TODO: make sure that types of constructors end up in the context of the rest of the block.
+chDefinition ctx chs (DataDefinition binding constrs md) -- TODO: make sure that types of constructors end up in the context of the rest of the block.
     = undefined
 
 -- morally, the type input here should not have metadata. But we can just go with it anyway.
@@ -123,15 +124,24 @@ chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm (TermBinding i _) (Block
     = do displacedDefs <- sequence $ map (chDefinition ctx (deleteVar chs i)) defs
          displaceDefs displacedDefs
          chTerm ctx b (deleteVar chs i) NoChange t
-chTerm ctx ty chs ch (NeutralTerm t md) = do
-    (Tuple t' ch') <- chNeutral ctx chs t
-    let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
-    case maybeSub of
-        Just holeSub -> do subHoles holeSub
-                           pure $ NeutralTerm t' md
-        Nothing -> do displaceDefs (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) (applyTC ch' ty)
-                                                    (NeutralTerm t' md) defaultTermDefinitionMetadata))
-                      pure $ HoleTerm defaultHoleTermMetadata
+-- chTerm ctx ty chs ch (NeutralTerm t md) = do
+--     (Tuple t' ch') <- chNeutral ctx chs t
+--     let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
+--     case maybeSub of
+--         Just holeSub -> do subHoles holeSub
+--                            pure $ NeutralTerm t' md
+--         Nothing -> do displaceDefs (singleton (TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) (applyTC ch' ty)
+--                                                     (NeutralTerm t' md) defaultTermDefinitionMetadata))
+--                       pure $ HoleTerm defaultHoleTermMetadata
+chTerm ctx ty chs ch (NeutralTerm id args md) =
+    case lookup id chs.termChanges of
+        Just VariableDeletion -> ifChanged NoChange
+        Just (VariableTypeChange varTC) -> ifChanged varTC
+        Nothing -> ifChanged NoChange
+    where
+    ifChanged varTC = do
+        (Tuple args' ch') <- chArgs ctx undefined chs varTC args
+        undefined
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
     cases' <- sequence $ (map (chCase ctx ty chs ch) cases)
@@ -166,12 +176,6 @@ isNoChange (ArrowCh c1 c2) = isNoChange c1 && isNoChange c2
 isNoChange NoChange = true
 isNoChange _ = false
 
-chNeutral :: Context -> Changes -> NeutralTerm -> State (Tuple (List Definition) HoleSub) (Tuple NeutralTerm TypeChange)
-chNeutral ctx chs (VariableTerm id md) = case lookup id chs.termChanges of
-    Just ch -> undefined
-    Nothing -> pure $ Tuple (VariableTerm id md) NoChange
-chNeutral ctx chs (ApplicationTerm t1 t2 md) = undefined
-
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> Block
 chBlock ctx ty chs ch (Block defs t md)
     = undefined
@@ -200,8 +204,9 @@ chArgs ctx tys chs NoChange args = do
     args' <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
     pure $ Tuple args' NoChange
 chArgs ctx tys chs (Dig hId) args = do
-    displaceDefs (zipWith (\ty t -> TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys args)
-    pure $ 
+    -- displaceDefs (zipWith (\ty t -> TermDefinition (TermBinding (freshTermID unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys args)
+    -- pure $ Tuple (HoleTerm defaultHoleTermMetadata) Dig
+    undefined
 chArgs _ _ _ _ _ = error "shouldn't get here"
 
 
@@ -209,3 +214,5 @@ chArgs _ _ _ _ _ = error "shouldn't get here"
 -- TODO: for wrap stuff, remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
 -- have f a, and change it to f a b. Also, to change f a b to f a. In other words, make sure that
 -- when propagating changes upwards in wrap, this stuff all works.
+
+-- here
