@@ -5,7 +5,6 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
-import Undefined (undefined)
 
 recModule ::
   forall a.
@@ -13,7 +12,7 @@ recModule ::
   } ->
   Module ->
   a
-recModule rec module_ = case module_ of
+recModule rec = case _ of
   Module defs meta -> rec.module_ defs meta
 
 recBlock ::
@@ -21,7 +20,7 @@ recBlock ::
   { block :: List Definition -> Term -> BlockMetadata -> a
   } ->
   Block -> a
-recBlock rec block = case block of
+recBlock rec = case _ of
   Block defs term meta -> rec.block defs term meta
 
 recDefinition ::
@@ -30,14 +29,17 @@ recDefinition ::
   , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
   } ->
   Definition -> a
-recDefinition rec def = undefined
+recDefinition rec = case _ of
+  TermDefinition termBnd alpha a meta -> rec.term termBnd alpha a meta
+  DataDefinition typeBnd constrs meta -> rec.data typeBnd constrs meta
 
 recConstructor ::
   forall a.
   { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> a
   } ->
   Constructor -> a
-recConstructor rec constr = undefined
+recConstructor rec = case _ of
+  Constructor termBnd prms meta -> rec.constructor termBnd prms meta
 
 recType ::
   forall a.
@@ -47,7 +49,11 @@ recType ::
   , proxyHole :: HoleID -> a
   } ->
   Type -> a
-recType rec alpha = undefined
+recType rec = case _ of
+  ArrowType prm alpha meta -> rec.arrow prm alpha meta
+  DataType typeID meta -> rec.data typeID meta
+  HoleType holeID wkn meta -> rec.hole holeID wkn meta
+  ProxyHoleType holeID -> rec.proxyHole holeID
 
 recTerm ::
   forall a.
@@ -57,7 +63,11 @@ recTerm ::
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a
-recTerm rec a = undefined
+recTerm rec = case _ of
+  LambdaTerm termBnd block meta -> rec.lambda termBnd block meta
+  NeutralTerm neu meta -> rec.neutral neu meta
+  MatchTerm typeID a cases meta -> rec.match typeID a cases meta
+  HoleTerm meta -> rec.hole meta
 
 recNeutralTerm ::
   forall a.
@@ -65,16 +75,20 @@ recNeutralTerm ::
   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> a
   } ->
   NeutralTerm -> a
-recNeutralTerm rec n = undefined
+recNeutralTerm rec = case _ of
+  VariableTerm termID meta -> rec.variable termID meta
+  ApplicationTerm neu a meta -> rec.application neu a meta
 
 recCase ::
   forall a.
   { case_ :: List TermBinding -> Term -> CaseMetadata -> a } ->
   Case -> a
-recCase rec case_ = undefined
+recCase rec = case _ of
+  Case termBnds a meta -> rec.case_ termBnds a meta
 
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> a } ->
   Parameter -> a
-recParameter rec prm = undefined
+recParameter rec = case _ of
+  Parameter alpha meta -> rec.parameter alpha meta

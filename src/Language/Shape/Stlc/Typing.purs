@@ -11,7 +11,6 @@ import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Data.UUID as UUID
 import Language.Shape.Stlc.Metadata
-import Undefined (undefined)
 import Unsafe as Unsafe
 
 type Context

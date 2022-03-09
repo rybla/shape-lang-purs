@@ -12,7 +12,6 @@ import Data.Map as Map
 import Language.Holes (HoleSub)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as Rec
-import Undefined (undefined)
 import Unsafe as Unsafe
 
 data TypeChange
@@ -107,7 +106,7 @@ recTerm ::
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> Wrap Term -> IndexWrap Case -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> Wrap Term -> IndexWrap Case -> a
   } ->
   Term -> Context -> Type -> MetaContext -> Wrap Term -> a
 recTerm rec =
@@ -124,8 +123,8 @@ recTerm rec =
         \meta gamma alpha metaGamma _ ->
           rec.hole meta gamma alpha metaGamma
     , match:
-        \typeID a cases meta gamma alpha metaGamma wrap_term ->
-          rec.match typeID a cases meta gamma alpha metaGamma
+        \typeID a cases meta gamma alpha metaGamma constrIDs wrap_term ->
+          rec.match typeID a cases meta gamma alpha metaGamma constrIDs
             (wrap_term <<< \a' -> MatchTerm typeID a' cases meta)
             (\i -> wrap_term <<< \case' -> MatchTerm typeID a (List.updateAt' i case' cases) meta)
     }
@@ -151,7 +150,7 @@ recNeutralTerm rec =
 recCase ::
   forall a.
   { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Term -> a } ->
-  Case -> Context -> Type -> MetaContext -> Wrap Case -> a
+  Case -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Case -> a
 recCase rec =
   Rec.recCase
     { case_:
@@ -169,5 +168,5 @@ recParameter rec =
     { parameter:
         \alpha meta gamma metaGamma wrap_prm ->
           rec.parameter alpha meta gamma metaGamma
-            (wrap_prm <<< \alpha -> Parameter alpha meta)
+            (wrap_prm <<< \alpha' -> Parameter alpha' meta)
     }

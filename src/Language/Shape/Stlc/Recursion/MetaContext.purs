@@ -14,7 +14,6 @@ import Data.Map.Unsafe as Map
 import Language.Shape.Stlc.Recursion.Context as Rec
 import Record as R
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe as Unsafe
 
 -- Context for metadata info such as names, constructor names, shadowing, etc.
@@ -96,7 +95,7 @@ recTerm ::
   { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> a
+  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> a
   } ->
   Term -> Context -> Type -> MetaContext -> a
 recTerm rec =
@@ -110,7 +109,11 @@ recTerm rec =
                 ]
     , neutral: \neu meta gamma alpha -> rec.neutral neu meta gamma alpha <<< incrementIndentation
     , hole: \meta gamma alpha -> rec.hole meta gamma alpha <<< incrementIndentation
-    , match: \id a cases meta gamma alpha -> rec.match id a cases meta gamma alpha <<< incrementIndentation
+    , match:
+        \typeID a cases meta gamma alpha metaGamma ->
+          rec.match typeID a cases meta gamma alpha
+            (incrementIndentation metaGamma)
+            (Map.lookup' typeID metaGamma.constructorTermIDs)
     }
 
 recNeutralTerm ::
@@ -124,14 +127,14 @@ recNeutralTerm rec neu gamma alpha = Rec.recNeutralTerm rec neu gamma alpha <<< 
 recCase ::
   forall a.
   { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> a } ->
-  Case -> Context -> Type -> MetaContext -> a
+  Case -> Context -> Type -> TypeID -> TermID -> MetaContext -> a
 recCase rec =
   Rec.recCase
     { case_:
-        \xs a meta gamma alpha typeID constrID ->
-          rec.case_ xs a meta gamma alpha typeID constrID
+        \termBnds a meta gamma alpha typeID termID ->
+          rec.case_ termBnds a meta gamma alpha typeID termID
             <<< foldl (>>>) identity
-                [ registerTermBindings xs
+                [ registerTermBindings termBnds
                 , incrementIndentation
                 ]
     }
