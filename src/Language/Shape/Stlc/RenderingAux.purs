@@ -6,7 +6,6 @@ import Language.Shape.Stlc.Recursion.Wrap
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import App as App
 import Data.Foldable (class Foldable)
 import Data.List as List
 import Data.Map as Map

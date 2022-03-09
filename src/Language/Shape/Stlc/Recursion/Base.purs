@@ -57,14 +57,14 @@ recType rec = case _ of
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> a
+  { lambda :: TermID -> Block -> LambdaTermMetadata -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> a
   , hole :: HoleTermMetadata -> a
   } ->
   Term -> a
 recTerm rec = case _ of
-  LambdaTerm termBnd block meta -> rec.lambda termBnd block meta
+  LambdaTerm termID block meta -> rec.lambda termID block meta
   NeutralTerm neu meta -> rec.neutral neu meta
   MatchTerm typeID a cases meta -> rec.match typeID a cases meta
   HoleTerm meta -> rec.hole meta
@@ -81,10 +81,10 @@ recNeutralTerm rec = case _ of
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> a } ->
+  { case_ :: List TermID -> Term -> CaseMetadata -> a } ->
   Case -> a
 recCase rec = case _ of
-  Case termBnds a meta -> rec.case_ termBnds a meta
+  Case termIDs a meta -> rec.case_ termIDs a meta
 
 recParameter ::
   forall a.

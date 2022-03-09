@@ -62,7 +62,7 @@ recType = Rec.recType
 
 recTerm ::
   forall a.
-  { lambda :: TermBinding -> Block -> LambdaTermMetadata -> Context -> Type -> a
+  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> a
   , neutral :: NeutralTerm -> NeutralTermMetadata -> Context -> Type -> a
   , hole :: HoleTermMetadata -> Context -> Type -> a
   , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
@@ -71,8 +71,8 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \x@(TermBinding id _) block meta gamma alpha -> case alpha of
-          ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert id beta gamma) delta
+        \x block meta gamma alpha -> case alpha of
+          ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert x beta gamma) delta
           _ -> Unsafe.error "impossible"
     , neutral:
         \neu meta gamma alpha ->
@@ -102,7 +102,7 @@ recNeutralTerm rec =
 
 recCase ::
   forall a.
-  { case_ :: List TermBinding -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->
+  { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->
   Case -> Context -> Type -> TypeID -> TermID -> a
 recCase = Rec.recCase
 

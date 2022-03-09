@@ -17,7 +17,7 @@ import Unsafe as Unsafe
 data TypeChange
 
 type Wrap a
-  = a -> TypeChange -> HoleSub -> Module
+  = a -> TypeChange -> Module
 
 type IndexWrap a
   = Int -> Wrap a

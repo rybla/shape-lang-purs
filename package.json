@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "spago test",
-    "build": "spago bundle-app --main Main --to dist/app.js",
+    "build": "spago bundle-app --main Main --to dist/app.js --source-maps",
     "serve": "cd dist/; parcel index.html"
   }
 }
+ 
