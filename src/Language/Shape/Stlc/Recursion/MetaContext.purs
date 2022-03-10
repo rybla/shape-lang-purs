@@ -49,40 +49,29 @@ recModule ::
   { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> a
   } ->
   Module -> Context -> MetaContext -> a
-recModule rec =
-  Rec.recModule
-    { module_:
-        \defs meta gamma ->
-          rec.module_ defs meta gamma
-            <<< foldl (>>>) identity
-                [ registerDefinitions defs
-                , incrementIndentation
-                ]
-    }
+recModule rec mod gamma = Rec.recModule rec mod gamma <<< incrementIndentation
 
 recBlock ::
   forall a.
   { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> a
   } ->
   Block -> Context -> Type -> MetaContext -> a
-recBlock rec =
-  Rec.recBlock
-    { block:
-        \defs a meta gamma alpha ->
-          rec.block defs a meta gamma alpha
+recBlock rec block gamma alpha = Rec.recBlock rec block gamma alpha <<< incrementIndentation
+
+recDefinitions ::
+  forall a.
+  { definitions :: List Definition -> Context -> MetaContext -> a } ->
+  List Definition -> Context -> MetaContext -> a
+recDefinitions rec =
+  Rec.recDefinitions
+    { definitions:
+        \defs gamma ->
+          rec.definitions defs gamma
             <<< foldl (>>>) identity
                 [ registerDefinitions defs
                 , incrementIndentation
                 ]
     }
-
-recDefinition ::
-  forall a.
-  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> MetaContext -> a
-  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> MetaContext -> a
-  } ->
-  Definition -> Context -> MetaContext -> a
-recDefinition rec def gamma = Rec.recDefinition rec def gamma <<< incrementIndentation
 
 recConstructor ::
   forall a.

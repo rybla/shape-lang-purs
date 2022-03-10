@@ -36,13 +36,18 @@ recBlock rec =
           rec.block defs a meta (addDefinitionsToContext defs gamma) alpha
     }
 
-recDefinition ::
+-- recDefinition ::
+--   forall a.
+--   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> a
+--   , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> a
+--   } ->
+--   Definition -> Context -> a
+-- recDefinition = Rec.recDefinition
+recDefinitions ::
   forall a.
-  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> a
-  , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> a
-  } ->
-  Definition -> Context -> a
-recDefinition = Rec.recDefinition
+  { definitions :: List Definition -> Context -> a } ->
+  List Definition -> Context -> a
+recDefinitions rec = rec.definitions
 
 recConstructor ::
   forall a.
