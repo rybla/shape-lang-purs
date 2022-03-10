@@ -28,7 +28,7 @@ type IndexWrap a
 -- Recursion principles for handling IndexWrapng
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> IndexWrap Definition -> a
+  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> Wrap (List Definition) -> a
   } ->
   Module -> Context -> MetaContext -> Wrap Module -> a
 recModule rec =
@@ -36,12 +36,12 @@ recModule rec =
     { module_:
         \defs meta gamma metaGamma wrap_mod ->
           rec.module_ defs meta gamma metaGamma
-            (\i def' -> wrap_mod $ Module (List.updateAt' i def' defs) meta)
+            (\defs' -> wrap_mod $ Module defs' meta)
     }
 
 recBlock ::
   forall a.
-  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> IndexWrap Definition -> a
+  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> Wrap (List Definition) -> Wrap Term -> a
   } ->
   Block -> Context -> Type -> MetaContext -> Wrap Block -> a
 recBlock rec =
@@ -49,8 +49,8 @@ recBlock rec =
     { block:
         \defs a meta gamma alpha metaGamma wrap_block ->
           rec.block defs a meta gamma alpha metaGamma
-            (\i -> wrap_block <<< \def' -> Block (List.updateAt' i def' defs) a meta)
-    -- (\i def' tc )
+            (wrap_block <<< \defs' -> Block defs' a meta)
+            (wrap_block <<< \a' -> Block defs a' meta)
     }
 
 recDefinitions ::
