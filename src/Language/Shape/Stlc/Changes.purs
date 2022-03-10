@@ -4,6 +4,7 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
+import Data.Either (Either)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.List (List(..), fold, foldr, singleton, zip, zipWith, (:))
 import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
@@ -34,8 +35,8 @@ data TypeChange
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
--- DataChange is used where data type is used in type OR a value of it is matched upon
-data ConstructorChange = ChangeC TypeChange | InsertConstructor Constructor
+data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
+data ConstructorChange = ConstructorNoChange | InsertConstructor Int Constructor | DeleteConstructor Int | ChangeConstructor ParamsChange
 
 type Changes = {
     termChanges :: Map TermId VarChange,
@@ -120,30 +121,36 @@ chDefinition ctx chs (TermDefinition binding ty t md)
 chDefinition ctx chs (DataDefinition binding constrs md) -- TODO: make sure that types of constructors end up in the context of the rest of the block.
     = undefined
 
+liiift :: forall a b c. State a c -> State (Tuple b a) c
+liiift s = do (Tuple b a) <- get
+              let (Tuple c a') = runState s a
+              put (Tuple b a')
+              pure c
+
 -- morally, the type input here should not have metadata. But we can just go with it anyway.
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List Definition) HoleSub) Term
 chTerm ctx ty chs (Dig _) t = pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
-    = pure $ LambdaTerm binding
-        (chBlock (insert binding a ctx) b (varChange chs binding change) c2 block) md
-             where (Tuple _ change) = (chType chs.dataTypeDeletions a)
+    = do let (Tuple _ change) = chType chs.dataTypeDeletions a
+         block' <- liiift $ chBlock (insert binding a ctx) b (varChange chs binding change) c2 block
+         pure $ LambdaTerm binding block' md
 chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
-    = pure $ LambdaTerm index (chBlock (insert index a' ctx) b (varChange chs index change) NoChange block) md
-        where (Tuple a' change) = (chType chs.dataTypeDeletions a)
+    = do let (Tuple a' change) = chType chs.dataTypeDeletions a
+         block' <- liiift $ chBlock (insert index a' ctx) b (varChange chs index change) NoChange block
+         pure $ LambdaTerm index block' md
 chTerm ctx ty chs (InsertArg a) t =
     do t' <- (chTerm (insert newBinding a ctx) (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
        pure $ LambdaTerm newBinding (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
     where newBinding = (freshTermId unit)
-chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3)
-    = pure $ LambdaTerm i2
-        (Block Nil (LambdaTerm i1
-            (chBlock ctx' c chs' NoChange (Block (defs <> defs2) t md4)) md3) md2) md1
-      where (Tuple a' change1) = (chType chs.dataTypeDeletions a)
-            (Tuple b' change2) = (chType chs.dataTypeDeletions b)
-            ctx' = (insert i2 b' (insert i1 a' ctx))
-            chs' = varChange (varChange chs i1 change1) i2 change2
-chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _)
-    = do displacedDefs <- sequence $ map (chDefinition ctx (deleteVar chs i)) defs
+chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
+    do let (Tuple a' change1) = (chType chs.dataTypeDeletions a)
+       let (Tuple b' change2) = (chType chs.dataTypeDeletions b)
+       let ctx' = (insert i2 b' (insert i1 a' ctx))
+       let chs' = varChange (varChange chs i1 change1) i2 change2
+       block <- liiift $ chBlock ctx' c chs' NoChange (Block (defs <> defs2) t md4)
+       pure $ LambdaTerm i2 (Block Nil (LambdaTerm i1 block md3) md2) md1
+chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
+      do displacedDefs <- sequence $ map (chDefinition ctx (deleteVar chs i)) defs
          displaceDefs displacedDefs
          chTerm ctx b (deleteVar chs i) NoChange t
 chTerm ctx ty chs ch (NeutralTerm id args md) =
@@ -163,7 +170,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
                           pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
-    cases' <- sequence $ (map (chCase ctx ty chs ch) cases)
+    cases' <- sequence $ (map (chCase ctx ty chs ParamsNoChange ch) cases)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen?
@@ -185,9 +192,16 @@ subHoles sub = do
     put $ Tuple currDisplaced (combineSubs holeSub sub)
 
 
+-- data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
 -- The Type is type of term in the case excluding bindings
-chCase :: Context -> Type -> Changes -> TypeChange -> Case -> State (Tuple (List Definition) HoleSub) Case
-chCase = undefined
+chCase :: Context -> Type -> Changes -> ParamsChange -> TypeChange -> Case -> State (Tuple (List Definition) HoleSub) Case
+chCase ctx ty chs paramsChange innerTC (Case bindings t md) = case paramsChange of
+    ParamsNoChange -> do
+        t' <- (chTerm ctx ty chs innerTC t)
+        pure $ Case bindings t' md
+    DeleteParam i -> undefined
+    InsertParam i p -> undefined
+    ChangeParam i tc -> undefined
 
 
 isNoChange :: TypeChange -> Boolean
@@ -195,7 +209,9 @@ isNoChange (ArrowCh c1 c2) = isNoChange c1 && isNoChange c2
 isNoChange NoChange = true
 isNoChange _ = false
 
-chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> Block
+-- State (Tuple (List Definition) HoleSub) Term
+-- morally, shouldn't have the (List Definition) in the state of chBlock, as it always outputs the empty list.
+chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> State HoleSub Block
 chBlock ctx ty chs ch (Block defs t md)
     = undefined
     -- = let (Tuple t' displaced1) = runState (chTerm undefined ty chs ch t) undefined -- was Nil
@@ -225,13 +241,18 @@ chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (ConsArgs arg args md) =
     arg' <- chTerm ctx a chs NoChange arg
     (Tuple args' outCh) <- chArgs ctx b chs NoChange args
     pure $ Tuple (ConsArgs arg' args' md) outCh -- outCh = nochange
-chArgs ctx tys chs (Dig hId) args = do
-    -- TODO: displace the rest of args.
-    -- probably write a helper function displaceArgs.
-    -- displaceDefs (zipWith (\ty t -> TermDefinition
-        -- (TermBinding (freshTermId unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys (argsToTermList args))
+chArgs ctx ty chs (Dig hId) args = do
+    displaceArgs ty args
     pure $ Tuple NoneArgs (Dig hId)
 chArgs _ _ _ _ _ = error "shouldn't get here"
+
+displaceArgs :: Type -> Args -> State (Tuple (List Definition) HoleSub) Unit
+displaceArgs _ NoneArgs = pure unit
+displaceArgs (ArrowType (Parameter a _) b _) (ConsArgs arg args _) = do
+    displaceDefs $ singleton $ TermDefinition (TermBinding (freshTermId unit)  defaultTermBindingMetadata)
+        a arg defaultTermDefinitionMetadata
+    displaceArgs b args
+displaceArgs _ _ = error "no"
 
 argsToTermList :: Args -> List Term
 argsToTermList NoneArgs = Nil
