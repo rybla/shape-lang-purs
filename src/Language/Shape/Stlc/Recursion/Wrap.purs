@@ -67,7 +67,7 @@ recDefinitions rec =
                 let
                   defs'' /\ sub =
                     foldl
-                      ( \(displaceds /\ sub) -> case _ of
+                      ( \(defs'' /\ sub) -> case _ of
                           DataDefinition typeBnd constr meta -> undefined -- TODO: not sure what to do here...
                           TermDefinition termBnd alpha a meta ->
                             let
@@ -75,9 +75,9 @@ recDefinitions rec =
 
                               st = undefined :: List Definition /\ Map HoleID Type {-JACOB-}
 
-                              (a' /\ displaceds' /\ sub') = runState (chTerm gamma alpha changes tc a) st
+                              (a' /\ displaceds /\ sub') = runState (chTerm gamma alpha changes tc a) st
                             in
-                              (displaceds <> List.singleton (TermDefinition termBnd alpha a' meta) <> displaceds') /\ Map.union sub sub'
+                              (defs'' <> displaceds <> List.singleton (TermDefinition termBnd alpha a' meta)) /\ Map.union sub sub'
                       )
                       (List.Nil /\ Map.empty)
                       defs'
