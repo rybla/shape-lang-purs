@@ -4,15 +4,16 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
-import Data.List (List(..), singleton, union, zip, zipWith, (:))
-import Data.Map (Map, insert, lookup)
+import Data.FoldableWithIndex (foldrWithIndex)
+import Data.List (List(..), fold, foldr, singleton, zip, zipWith, (:))
+import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
-import Language.Shape.Stlc.Holes (HoleSub, unifyType)
+import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
 import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleID, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
@@ -90,9 +91,22 @@ indexOf (TermBinding i _) = i
 cons :: TermBinding -> Type -> Context -> Context
 cons (TermBinding i _) t ctx = insert i t ctx
 
+-- subContradict :: HoleSub -> HoleSub -> Boolean
+-- subContradict sub1 sub2 = mapMaybeWithKey
+
 -- If subs conflict, give error. Else, combine them.
+-- This function is terrible
 combineSubs :: HoleSub -> HoleSub -> HoleSub
-combineSubs = undefined
+combineSubs original new =
+    foldrWithIndex combineSub original new
+    where combineSub :: HoleID -> Type -> HoleSub -> HoleSub
+          combineSub id ty acc
+            = let ty' = subType acc ty in
+              case lookup id acc of
+                Nothing -> insert id ty' acc
+                Just tyAcc -> case unifyType ty' tyAcc of
+                    Nothing -> error "this breaks my assumption that unifications in chTerm should never result in ambiguous situations"
+                    Just secondarySubs -> combineSubs (insert id (subType secondarySubs ty') acc) secondarySubs
 
 chDefinition :: Context -> Changes -> Definition -> State (Tuple (List Definition) HoleSub) Definition
 -- for data definitions, do nothing?
