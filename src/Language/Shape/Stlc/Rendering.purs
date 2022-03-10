@@ -48,7 +48,7 @@ type SyntaxSlots q
     , constructor :: SyntaxSlot q
     , type :: SyntaxSlot q
     , term :: SyntaxSlot q
-    , neutralTerm :: SyntaxSlot q
+    , args :: SyntaxSlot q
     , case_ :: SyntaxSlot q
     , parameter :: SyntaxSlot q
     , typeName :: SyntaxSlot q
@@ -69,7 +69,7 @@ _type = Proxy :: Proxy "type"
 
 _term = Proxy :: Proxy "term"
 
-_neutralTerm = Proxy :: Proxy "neutralTerm"
+_args = Proxy :: Proxy "args"
 
 _case = Proxy :: Proxy "case_"
 
@@ -341,8 +341,8 @@ renderTerm =
               ]
     }
 
-renderArg :: forall q m. Args -> Context -> List Type -> MetaContext -> Wrap Args -> SyntaxComponent q m
-renderArg =
+renderArgs :: forall q m. Args -> Context -> List Type -> MetaContext -> Wrap Args -> SyntaxComponent q m
+renderArgs =
   RecWrap.recArgs
     { none: mkSyntaxComponent \st -> HH.span_ []
     , cons:
@@ -350,7 +350,10 @@ renderArg =
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "arg" ]
-              []
+              [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
+              , punctuation.space
+              , slotSyntax _args 0 $ renderArgs args gamma alphas metaGamma wrap_args
+              ]
     }
 
 -- renderNeutralTerm :: forall q m. NeutralTerm -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> SyntaxComponent q m
