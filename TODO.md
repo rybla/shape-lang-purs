@@ -18,8 +18,9 @@
     - [x] context + type
     - [x] metacontext (for derived metadata stuff: names, shadows, constructor
           ids, etc)
-    - [ ] wrap
+    - [ ] wrap (still have to handle typechanges)
   - [ ] rendering
-    - [ ] basic outline
+    - [x] basic outline
+    - [ ] indentation
     - [ ] actions
     - [ ] make sure cursor works correctly

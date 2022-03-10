@@ -7,6 +7,8 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+import AppAction as AppAction
+import Data.Array as Array
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
@@ -16,6 +18,7 @@ import Data.Tuple as Tuple
 import Debug as Debug
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
@@ -82,6 +85,7 @@ _termName = Proxy :: Proxy "termName"
 data SyntaxAction
   = AppAction AppAction
   | ModifyState (SyntaxState -> SyntaxState)
+  | UpdateModule Module
 
 initialSyntaxState :: SyntaxState
 initialSyntaxState =
@@ -105,6 +109,7 @@ mkSyntaxComponent render =
               case _ of
                 AppAction appAction -> H.raise appAction
                 ModifyState modifyState -> H.modify_ modifyState
+                UpdateModule mod' -> H.raise (AppAction.UpdateModule mod')
             -- , receive = Just <<< ModifyState <<< const
             }
     , render: render
@@ -149,10 +154,15 @@ renderBlock =
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "block" ]
-              [ slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
-              , punctuation.newline
-              , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
-              ]
+              $ if List.length defs > 0 then
+                  [ indent meta metaGamma
+                  , slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
+                  , indent meta metaGamma
+                  , keyword.in_
+                  , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
+                  ]
+                else
+                  [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a ]
     }
 
 renderDefinitions :: forall q m. List Definition -> Context -> MetaContext -> Wrap (List Definition) -> SyntaxComponent q m
@@ -162,36 +172,36 @@ renderDefinitions =
         \defs gamma metaGamma wrap_defs ->
           let
             renderDefinition def wrap_def = case def of
-              TermDefinition x alpha a meta ->
+              TermDefinition termBnd@(TermBinding termId _) alpha a meta ->
                 mkSyntaxComponent \st ->
                   HH.span
                     [ classSyntax st "term definition" ]
                     [ keyword.let_
                     , punctuation.space
-                    , slotSyntax _termName 0 $ renderTermBinding x gamma metaGamma
+                    , slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
                     , punctuation.space
                     , punctuation.colon
                     , punctuation.space
-                    , slotSyntax _type 0 $ renderType alpha gamma metaGamma (wrap_def <<< \alpha' -> TermDefinition x alpha' a meta)
+                    , slotSyntax _type 0 $ renderType alpha gamma metaGamma (wrap_def <<< \alpha' -> TermDefinition termBnd alpha' a meta)
                     , punctuation.space
                     , punctuation.termdef
                     , punctuation.space
-                    , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma (wrap_def <<< \a' -> TermDefinition x alpha a meta)
+                    , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma (wrap_def <<< \a' -> TermDefinition termBnd alpha a meta)
                     ]
-              DataDefinition typeId constrs meta ->
+              DataDefinition typeBnd@(TypeBinding typeId _) constrs meta ->
                 mkSyntaxComponent \st ->
                   HH.span
                     [ classSyntax st "data definition" ]
                     [ keyword.data_
                     , punctuation.space
-                    , slotSyntax _typeName 0 $ renderTypeBinding typeId gamma metaGamma
+                    , slotSyntax _typeName 0 $ renderTypeId typeId gamma metaGamma
                     , punctuation.space
                     , punctuation.typedef
                     , punctuation.space
                     , intercalateHTML (List.fromFoldable [ punctuation.space, punctuation.alt, punctuation.space ])
                         ( List.mapWithIndex
                             ( \i constr ->
-                                slotSyntax _constructor i $ renderConstructor constr gamma typeId metaGamma (wrap_def <<< \constr' -> DataDefinition typeId (List.updateAt' i constr' constrs) meta)
+                                slotSyntax _constructor i $ renderConstructor constr gamma typeBnd metaGamma (wrap_def <<< \constr' -> DataDefinition typeBnd (List.updateAt' i constr' constrs) meta)
                             )
                             constrs
                         )
@@ -214,10 +224,10 @@ renderConstructor :: forall q m. Constructor -> Context -> TypeBinding -> MetaCo
 renderConstructor =
   RecWrap.recConstructor
     { constructor:
-        \x prms meta gamma xType metaGamma wrap_prm_at ->
+        \termBnd@(TermBinding termId _) prms meta gamma xType metaGamma wrap_prm_at ->
           mkSyntaxComponent \st ->
             HH.span [ classSyntax st "constructor" ]
-              $ [ slotSyntax _termName 0 $ renderTermBinding x gamma metaGamma
+              $ [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
                 , punctuation.space
                 , punctuation.colon
                 , punctuation.space
@@ -245,7 +255,7 @@ renderConstructor =
                   else
                     []
                 )
-              <> [ slotSyntax _termName 0 $ renderTypeBinding xType gamma metaGamma ]
+              <> [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma ]
     }
 
 renderType :: forall q m. Type -> Context -> MetaContext -> Wrap Type -> SyntaxComponent q m
@@ -263,11 +273,11 @@ renderType =
               , slotSyntax _type 0 $ renderType beta gamma metaGamma wrap_alpha
               ]
     , data:
-        \id meta gamma metaGamma ->
+        \typeId meta gamma metaGamma ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "data type" ]
-              [ slotSyntax _typeName 0 $ renderTypeId id gamma metaGamma
+              [ slotSyntax _typeName 0 $ renderTypeId typeId gamma metaGamma
               ]
     , hole:
         \id wkn meta gamma metaGamma ->
@@ -287,27 +297,32 @@ renderTerm :: forall q m. Term -> Context -> Type -> MetaContext -> Wrap Term ->
 renderTerm =
   RecWrap.recTerm
     { lambda:
-        \termId block meta gamma beta metaGamma wrap_block ->
+        \termId block meta gamma prm beta metaGamma wrap_block ->
           mkSyntaxComponent \st ->
             HH.span
-              [ classSyntax st "term lambda" ]
-              [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
-              , punctuation.lparen
+              [ classSyntax st "term lambda"
+              , HE.onClick (\event -> UpdateModule ?a)
+              ]
+              [ punctuation.lparen
+              , slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
               , punctuation.space
               , punctuation.mapsto
-              , punctuation.space
+              , indentOrSpace meta metaGamma
               , slotSyntax _block 0 $ renderBlock block gamma beta metaGamma wrap_block
               , punctuation.rparen
               ]
     , neutral:
-        \termId args meta gamma alpha metaGamma wrap_neu ->
+        \termId args meta gamma alpha metaGamma wrap_args ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "term neutral" ]
-              -- [ slotSyntax _neutralTerm 0 $ renderNeutralTerm neu gamma alpha metaGamma wrap_neu ]
-              [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
-              , undefined -- TODO
-              ]
+              $ case args of
+                  NoneArgs -> [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma ]
+                  _ ->
+                    [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
+                    , punctuation.space
+                    , slotSyntax _args 0 $ renderArgs args gamma alpha metaGamma wrap_args
+                    ]
     , hole:
         \meta gamma alpha metaGamma ->
           mkSyntaxComponent \st ->
@@ -325,7 +340,13 @@ renderTerm =
               , punctuation.space
               , keyword.with
               , punctuation.space
-              , intercalateHTML (List.fromFoldable [ punctuation.space, punctuation.alt, punctuation.space ])
+              , intercalateHTML
+                  ( List.fromFoldable
+                      [ indentOrSpace meta metaGamma
+                      , punctuation.alt
+                      , punctuation.space
+                      ]
+                  )
                   ( List.mapWithIndex
                       ( \i (case_ /\ constrID) ->
                           slotSyntax _case i
@@ -336,18 +357,18 @@ renderTerm =
               ]
     }
 
-renderArgs :: forall q m. Args -> Context -> List Type -> MetaContext -> Wrap Args -> SyntaxComponent q m
+renderArgs :: forall q m. Args -> Context -> Type -> MetaContext -> Wrap Args -> SyntaxComponent q m
 renderArgs =
   RecWrap.recArgs
     { none: mkSyntaxComponent \st -> HH.span_ []
     , cons:
-        \a args meta gamma alpha alphas metaGamma wrap_a wrap_args ->
+        \a args meta gamma (Parameter alpha _) beta metaGamma wrap_a wrap_args ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "arg" ]
               [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
-              , punctuation.space
-              , slotSyntax _args 0 $ renderArgs args gamma alphas metaGamma wrap_args
+              , indentOrSpace meta metaGamma
+              , slotSyntax _args 0 $ renderArgs args gamma beta metaGamma wrap_args
               ]
     }
 
@@ -379,68 +400,64 @@ renderParameter =
   RecWrap.recParameter
     { parameter:
         \alpha meta gamma metaGamma wrap_alpha ->
-          let
-            shadowIndex = Map.lookup' meta.name metaGamma.termScope.shadows
-          in
-            mkSyntaxComponent \st ->
-              HH.span
-                [ classSyntax st "parameter" ]
-                [ punctuation.lparen
-                , slotSyntax _termName 0 $ renderTermName meta.name shadowIndex gamma metaGamma
-                , punctuation.space
-                , punctuation.colon
-                , punctuation.space
-                , slotSyntax _type 0 $ renderType alpha gamma metaGamma wrap_alpha
-                , punctuation.rparen
-                ]
+          mkSyntaxComponent \st ->
+            HH.span
+              [ classSyntax st "parameter" ]
+              [ punctuation.lparen
+              , slotSyntax _termName 0 $ renderTermName meta.name gamma metaGamma
+              , punctuation.space
+              , punctuation.colon
+              , punctuation.space
+              , slotSyntax _type 0 $ renderType alpha gamma metaGamma wrap_alpha
+              , punctuation.rparen
+              ]
     }
 
-renderTypeBinding :: forall q m. TypeBinding -> Context -> MetaContext -> SyntaxComponent q m
-renderTypeBinding (TypeBinding id meta) gamma metaGamma = renderTypeName meta.name shadowIndex gamma metaGamma
-  where
-  shadowIndex = Map.lookup' id metaGamma.typeScope.shadowIndices
-
-renderTermBinding :: forall q m. TermBinding -> Context -> MetaContext -> SyntaxComponent q m
-renderTermBinding (TermBinding id meta) gamma metaGamma = renderTermName meta.name shadowIndex gamma metaGamma
-  where
-  shadowIndex = Map.lookup' id metaGamma.termScope.shadowIndices
-
 renderTypeId :: forall q m. TypeId -> Context -> MetaContext -> SyntaxComponent q m
-renderTypeId id gamma metaGamma = renderTypeName name shadowIndex gamma metaGamma
+renderTypeId typeId gamma metaGamma =
+  mkSyntaxComponent \st ->
+    HH.span
+      [ classSyntax st "typeId" ]
+      $ [ case typeName of
+            TypeName Nothing -> HH.text "_"
+            TypeName (Just label) -> HH.text label
+        ]
+      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
   where
-  name = Map.lookup' id metaGamma.typeScope.names
+  _ = Debug.trace ("renderTypeId: " <> show typeId) identity
 
-  shadowIndex = Map.lookup' id metaGamma.typeScope.shadowIndices
+  typeName = Map.lookup' typeId metaGamma.typeScope.names
+
+  shadowIndex = Map.lookup' typeId metaGamma.typeScope.shadowIndices
 
 renderTermId :: forall q m. TermId -> Context -> MetaContext -> SyntaxComponent q m
-renderTermId id gamma metaGamma = renderTermName name shadowIndex gamma metaGamma
+renderTermId termId gamma metaGamma =
+  mkSyntaxComponent \st ->
+    HH.span
+      [ classSyntax st "termId" ]
+      $ [ case termName of
+            TermName Nothing -> HH.text "_"
+            TermName (Just label) -> HH.text label
+        ]
+      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
   where
-  name = Map.lookup' id metaGamma.termScope.names
+  _ = Debug.trace ("renderTermId: " <> show termId) identity
 
-  shadowIndex = Map.lookup' id metaGamma.termScope.shadowIndices
+  termName = Map.lookup' termId metaGamma.termScope.names
 
-renderTypeName :: forall q m. TypeName -> Int -> Context -> MetaContext -> SyntaxComponent q m
-renderTypeName (TypeName name) shadowIndex gamma metaGamma =
-  let
-    shadowSuffix = if shadowIndex > 0 then show shadowIndex else ""
-  in
-    mkSyntaxComponent \st ->
-      HH.span
-        [ classSyntax st "type name" ]
-        [ case name of
-            Just label -> HH.text $ label <> shadowSuffix
-            Nothing -> HH.text "_"
+  shadowIndex = Map.lookup' termId metaGamma.termScope.shadowIndices
+
+renderTermName :: forall q m. TermName -> Context -> MetaContext -> SyntaxComponent q m
+renderTermName termName gamma metaGamma =
+  mkSyntaxComponent \st ->
+    HH.span
+      [ classSyntax st "termName" ]
+      $ [ case termName of
+            TermName Nothing -> HH.text "_"
+            TermName (Just label) -> HH.text label
         ]
+      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+  where
+  _ = Debug.trace ("renderTermName: " <> show termName) identity
 
-renderTermName :: forall q m. TermName -> Int -> Context -> MetaContext -> SyntaxComponent q m
-renderTermName (TermName name) shadowIndex gamma metaGamma =
-  let
-    shadowSuffix = if shadowIndex > 0 then show shadowIndex else ""
-  in
-    mkSyntaxComponent \st ->
-      HH.span
-        [ classSyntax st "term name" ]
-        [ case name of
-            Just label -> HH.text $ label <> shadowSuffix
-            Nothing -> HH.text "_"
-        ]
+  shadowIndex = Map.lookup' termName metaGamma.termScope.shadows

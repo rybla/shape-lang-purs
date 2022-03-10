@@ -7,7 +7,7 @@ import Prelude
 import Prim hiding (Type)
 import Data.List (List)
 import Data.List as List
-import Data.Map as Map
+import Data.Map.Unsafe as Map
 import Language.Shape.Stlc.Recursion.Base as Rec
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -62,7 +62,7 @@ recType = Rec.recType
 
 recTerm ::
   forall a.
-  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Type -> a
+  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Parameter -> Type -> a
   , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> a
   , hole :: HoleTermMetadata -> Context -> Type -> a
   , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
@@ -71,12 +71,12 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \x block meta gamma alpha -> case alpha of
-          ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert x beta gamma) delta
-          _ -> Unsafe.error "impossible"
+        \termId block meta gamma alpha -> case alpha of
+          ArrowType prm@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) prm beta
+          _ -> Unsafe.error $ "[Context.recTerm.lambda] impossible: the term " <> show (LambdaTerm termId block meta) <> " has type " <> show alpha
     , neutral:
         \termId args meta gamma alpha ->
-          rec.neutral termId args meta gamma alpha
+          rec.neutral termId args meta gamma (Map.lookup' termId gamma)
     , hole:
         \meta gamma alpha ->
           rec.hole meta gamma alpha
@@ -88,16 +88,16 @@ recTerm rec =
 recArgs ::
   forall a.
   { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> List Type -> a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Parameter -> Type -> a
   } ->
-  Args -> Context -> List Type -> a
+  Args -> Context -> Type -> a
 recArgs rec =
   Rec.recArgs
     { none: \_ _ -> rec.none
     , cons:
         \a args meta gamma -> case _ of
-          List.Cons alpha alphas -> rec.cons a args meta gamma alpha alphas
-          List.Nil -> Unsafe.error "impossible"
+          ArrowType prm beta _ -> rec.cons a args meta gamma prm beta
+          _ -> Unsafe.error "impossible"
     }
 
 recCase ::

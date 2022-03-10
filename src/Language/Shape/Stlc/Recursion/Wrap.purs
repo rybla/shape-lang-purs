@@ -121,7 +121,7 @@ recType rec =
 
 recTerm ::
   forall a.
-  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
+  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Parameter -> Type -> MetaContext -> Wrap Block -> a
   , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap Args -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
   , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermId -> Wrap Term -> IndexWrap Case -> a
@@ -130,8 +130,8 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termId block meta gamma alpha metaGamma wrap_term ->
-          rec.lambda termId block meta gamma alpha metaGamma
+        \termId block meta gamma prm beta metaGamma wrap_term ->
+          rec.lambda termId block meta gamma prm beta metaGamma
             (\block' tc -> wrap_term (LambdaTerm termId block' meta) (ArrowCh NoChange tc))
     , neutral:
         \termId args meta gamma alpha metaGamma wrap_term ->
@@ -150,15 +150,15 @@ recTerm rec =
 recArgs ::
   forall a.
   { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> List Type -> MetaContext -> Wrap Term -> Wrap Args -> a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Parameter -> Type -> MetaContext -> Wrap Term -> Wrap Args -> a
   } ->
-  Args -> Context -> List Type -> MetaContext -> Wrap Args -> a
+  Args -> Context -> Type -> MetaContext -> Wrap Args -> a
 recArgs rec =
   Rec.recArgs
     { none: \_ -> rec.none
     , cons:
-        \a args meta gamma alpha alphas metaGamma wrap_args ->
-          rec.cons a args meta gamma alpha alphas metaGamma
+        \a args meta gamma prm beta metaGamma wrap_args ->
+          rec.cons a args meta gamma prm beta metaGamma
             (wrap_args <<< \a' -> ConsArgs a' args meta)
             (wrap_args <<< \args' -> ConsArgs a args' meta)
     }
