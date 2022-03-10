@@ -151,11 +151,11 @@ recParameter rec =
   Rec.recParameter
     { parameter:
         \alpha meta gamma ->
-          let
-            _ = Debug.trace ("incrementing shadow for " <> show meta.name) identity
-          in
-            rec.parameter alpha meta gamma
-              <<< R.modify _termScope (incrementShadow meta.name)
+          -- let
+          --   _ = Debug.trace ("incrementing shadow for " <> show meta.name) identity
+          -- in
+          rec.parameter alpha meta gamma
+            <<< R.modify _termScope (incrementShadow meta.name)
     }
 
 -- Scope
@@ -186,31 +186,33 @@ incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i) name 0
 -- 2. set id's shadow index
 registerName :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerName id name =
-  foldl (>>>) identity
-    [ R.modify _names $ Map.insert id name
-    , incrementShadow name
-    , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
-    ]
-  where
-  _ = Debug.trace "registerName"
+  let
+    _ = Debug.trace "registerName"
 
-  _ = Debug.trace id
+    _ = Debug.trace id
 
-  _ = Debug.trace name
+    _ = Debug.trace name
+  in
+    foldl (>>>) identity
+      [ R.modify _names $ Map.insert id name
+      , incrementShadow name
+      , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
+      ]
 
 registerId :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
-  foldl (>>>) identity
-    [ R.modify _shadows (Map.insertWith (\i _ -> i + 1) name 0)
-    , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
-    , R.modify _names (Map.insert id name)
-    ]
-  where
-  _ = Debug.trace "registerId"
+  let
+    _ = Debug.trace "registerId"
 
-  _ = Debug.trace id
+    _ = Debug.trace id
 
-  _ = Debug.trace name
+    _ = Debug.trace name
+  in
+    foldl (>>>) identity
+      [ R.modify _shadows (Map.insertWith (\i _ -> i + 1) name 0)
+      , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
+      , R.modify _names (Map.insert id name)
+      ]
 
 incrementIndentation :: MetaContext -> MetaContext
 incrementIndentation = R.modify _indentation (_ + 1)

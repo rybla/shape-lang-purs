@@ -1,18 +1,19 @@
 module Language.Shape.Stlc.Rendering where
 
-import AppAction
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import AppAction as AppAction
+import App.Action (setModule)
+import App.Action as Action
 import Data.Array as Array
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
+import Data.Set as Set
 import Data.Symbol (class IsSymbol)
 import Data.Tuple as Tuple
 import Debug as Debug
@@ -20,6 +21,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Language.Shape.Stlc.Changes (TypeChange(..))
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
 import Language.Shape.Stlc.Recursion.Wrap (Wrap, IndexWrap)
@@ -33,32 +35,40 @@ import Unsafe as Unsafe
 {-
 Universal syntax interface
 -}
-type SyntaxComponent q m
-  = H.Component q SyntaxState AppAction m
+-- type SyntaxComponent syntax m
+--   = H.Component (SyntaxQuery syntax) Unit Action.EditorAction m
+type SyntaxComponent st m
+  = H.Component (SyntaxQuery st) Unit Action.EditorAction m
 
-type SyntaxState
+data SyntaxAction syntax
+  = EditorAction Action.EditorAction
+  | ModifyStateSyntaxAction (SyntaxState syntax -> SyntaxState syntax)
+
+data SyntaxQuery syntax a
+  = ModifyStateSyntaxQuery (SyntaxState syntax -> SyntaxState syntax)
+
+type SyntaxState syntax
   = { cursor :: Boolean
+    , syntax :: syntax
     }
 
-type SyntaxSlot q
-  = H.Slot q AppAction Int
+type SyntaxSlot syntax
+  = H.Slot (SyntaxQuery syntax) Action.EditorAction Int
 
-type SyntaxSlots q
-  = ( module :: SyntaxSlot q
-    , definitions :: SyntaxSlot q
-    , definition :: SyntaxSlot q
-    , block :: SyntaxSlot q
-    , constructor :: SyntaxSlot q
-    , type :: SyntaxSlot q
-    , term :: SyntaxSlot q
-    , args :: SyntaxSlot q
-    , case_ :: SyntaxSlot q
-    , parameter :: SyntaxSlot q
-    , typeName :: SyntaxSlot q
-    , termName :: SyntaxSlot q
+type SyntaxSlots
+  = ( module :: SyntaxSlot Module
+    , definitions :: SyntaxSlot (List Definition)
+    , definition :: SyntaxSlot Definition
+    , block :: SyntaxSlot Block
+    , constructor :: SyntaxSlot Constructor
+    , type :: SyntaxSlot Type
+    , term :: SyntaxSlot Term
+    , args :: SyntaxSlot Args
+    , case_ :: SyntaxSlot Case
+    , parameter :: SyntaxSlot Parameter
+    , typeName :: SyntaxSlot TypeName
+    , termName :: SyntaxSlot TermName
     )
-
-_module = Proxy :: Proxy "module"
 
 _definitions = Proxy :: Proxy "definitions"
 
@@ -82,55 +92,68 @@ _typeName = Proxy :: Proxy "typeName"
 
 _termName = Proxy :: Proxy "termName"
 
-data SyntaxAction
-  = AppAction AppAction
-  | ModifyState (SyntaxState -> SyntaxState)
-  | UpdateModule Module
-
-initialSyntaxState :: SyntaxState
-initialSyntaxState =
+initialSyntaxState :: forall syntax. syntax -> SyntaxState syntax
+initialSyntaxState syntax =
   { cursor: false
+  , syntax
   }
 
 mkSyntaxComponent ::
-  forall q m.
-  (SyntaxState -> HH.ComponentHTML SyntaxAction (SyntaxSlots q) m) ->
-  SyntaxComponent q m
-mkSyntaxComponent render =
+  forall syntax m.
+  syntax ->
+  (SyntaxState syntax -> HH.ComponentHTML (SyntaxAction syntax) SyntaxSlots m) ->
+  SyntaxComponent syntax m
+mkSyntaxComponent syntax render =
   H.mkComponent
-    { initialState:
-        const
-          { cursor: false
-          }
+    { initialState: const $ initialSyntaxState syntax
     , eval:
-        H.mkEval
-          H.defaultEval
-            { handleAction =
-              case _ of
-                AppAction appAction -> H.raise appAction
-                ModifyState modifyState -> H.modify_ modifyState
-                UpdateModule mod' -> H.raise (AppAction.UpdateModule mod')
-            -- , receive = Just <<< ModifyState <<< const
-            }
-    , render: render
+        -- H.mkEval
+        --   H.defaultEval
+        --     { handleAction = handleAction
+        --     , receive = Just <<< ModifyStateSyntaxAction <<< const
+        --     }
+        undefined
+    , render: undefined -- render
     }
+  where
+  handleAction = case _ of
+    ModifyStateSyntaxAction modifyState -> undefined --  H.modify_ modifyState
+    EditorAction editorAction -> H.raise editorAction
 
 slotSyntax ::
-  forall label slot q m _1.
+  forall syntax label slot m _1.
   IsSymbol label =>
   Ord slot =>
-  Cons label (H.Slot q AppAction slot) _1 (SyntaxSlots q) =>
+  Cons label (H.Slot (SyntaxQuery syntax) Action.EditorAction slot) _1 SyntaxSlots =>
   Proxy label ->
   slot ->
-  SyntaxComponent q m ->
-  H.ComponentHTML SyntaxAction (SyntaxSlots q) m
-slotSyntax label i html = HH.slot label i html initialSyntaxState AppAction
+  SyntaxComponent syntax m ->
+  H.ComponentHTML (SyntaxAction syntax) SyntaxSlots m
+slotSyntax label i html = HH.slot label i html unit EditorAction
 
 {-
 Universal syntax utilities
 -}
-classSyntax :: forall r i. SyntaxState -> String -> HP.IProp ( class ∷ String | r ) i
+classSyntax :: forall r1 r2 i. { cursor :: Boolean | r1 } -> String -> HP.IProp ( class ∷ String | r2 ) i
 classSyntax st label = HP.class_ (HH.ClassName $ label <> if st.cursor then " selected" else "")
+
+{-
+Render types
+-}
+type ModuleState
+  = (Module /\ Context /\ MetaContext /\ Wrap Module)
+
+type BlockState
+  = (Block /\ Context /\ Type /\ MetaContext /\ Wrap Block)
+
+type DefinitionsState
+  = (List Definition /\ Context /\ MetaContext /\ Wrap (List Definition))
+
+type ConstructorState
+  = (Constructor /\ Context /\ TypeBinding /\ MetaContext /\ Wrap Constructor)
+
+type SyntaxRenderer st m
+  = st -> SyntaxComponent st m
 
 {-
 Specific syntax renderers
@@ -139,7 +162,7 @@ renderModule :: forall q m. Module -> Context -> MetaContext -> Wrap Module -> S
 renderModule =
   RecWrap.recModule
     { module_:
-        \defs meta gamma metaGamma wrap_defs ->
+        \defs meta gamma metaGamma wrap_mod wrap_defs ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "module" ]
@@ -150,26 +173,27 @@ renderBlock :: forall q m. Block -> Context -> Type -> MetaContext -> Wrap Block
 renderBlock =
   RecWrap.recBlock
     { block:
-        \defs a meta gamma alpha metaGamma wrap_defs wrap_a ->
+        \defs a meta gamma alpha metaGamma wrap_block wrap_defs wrap_a ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "block" ]
-              $ if List.length defs > 0 then
-                  [ indent meta metaGamma
-                  , slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
-                  , indent meta metaGamma
-                  , keyword.in_
-                  , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
-                  ]
-                else
-                  [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a ]
+              $ ( if List.length defs > 0 then
+                    [ indent meta metaGamma
+                    , slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
+                    , indent meta metaGamma
+                    , keyword.in_
+                    , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
+                    ]
+                  else
+                    [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a ]
+                )
     }
 
 renderDefinitions :: forall q m. List Definition -> Context -> MetaContext -> Wrap (List Definition) -> SyntaxComponent q m
 renderDefinitions =
   RecWrap.recDefinitions
     { definitions:
-        \defs gamma metaGamma wrap_defs ->
+        \defs gamma metaGamma wrap_defs wrap_def_at ->
           let
             renderDefinition def wrap_def = case def of
               TermDefinition termBnd@(TermBinding termId _) alpha a meta ->
@@ -210,11 +234,28 @@ renderDefinitions =
             mkSyntaxComponent \st ->
               HH.span
                 [ classSyntax st "definitions" ]
-                [ intercalateHTML (List.singleton punctuation.newline)
+                [ HH.button
+                    [ HE.onClick \event ->
+                        let
+                          def = TermDefinition termBnd alpha a defaultTermDefinitionMetadata
+
+                          termBnd = TermBinding (freshTermId unit) defaultTermBindingMetadata { name = TermName $ Just "z" }
+
+                          alpha = HoleType (freshHoleID unit) Set.empty defaultHoleTypeMetadata
+
+                          a = HoleTerm defaultHoleTermMetadata
+
+                          _ = Debug.trace (wrap_defs (def List.: defs) NoChange) identity
+                        in
+                          EditorAction <<< setModule $ wrap_defs (def List.: defs) NoChange
+                    ]
+                    [ HH.text "add def" ]
+                , punctuation.newline
+                , intercalateHTML (List.singleton punctuation.newline)
                     $ List.mapWithIndex
                         ( \i def ->
                             slotSyntax _definition i
-                              $ (renderDefinition def (wrap_defs <<< \def' -> List.updateAt' i def' defs))
+                              $ (renderDefinition def (wrap_def_at i))
                         )
                         defs
                 ]
@@ -224,7 +265,7 @@ renderConstructor :: forall q m. Constructor -> Context -> TypeBinding -> MetaCo
 renderConstructor =
   RecWrap.recConstructor
     { constructor:
-        \termBnd@(TermBinding termId _) prms meta gamma xType metaGamma wrap_prm_at ->
+        \termBnd@(TermBinding termId _) prms meta gamma xType metaGamma wrap_constr wrap_prm_at ->
           mkSyntaxComponent \st ->
             HH.span [ classSyntax st "constructor" ]
               $ [ slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
@@ -262,7 +303,7 @@ renderType :: forall q m. Type -> Context -> MetaContext -> Wrap Type -> SyntaxC
 renderType =
   RecWrap.recType
     { arrow:
-        \prm beta meta gamma metaGamma wrap_prm wrap_alpha ->
+        \prm beta meta gamma metaGamma wrap_type wrap_prm wrap_alpha ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "arrow type" ]
@@ -273,20 +314,20 @@ renderType =
               , slotSyntax _type 0 $ renderType beta gamma metaGamma wrap_alpha
               ]
     , data:
-        \typeId meta gamma metaGamma ->
+        \typeId meta gamma metaGamma wrap_type ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "data type" ]
               [ slotSyntax _typeName 0 $ renderTypeId typeId gamma metaGamma
               ]
     , hole:
-        \id wkn meta gamma metaGamma ->
+        \id wkn meta gamma metaGamma wrap_type ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "hole type" ]
               [ HH.text "?" ]
     , proxyHole:
-        \id gamma metaGamma ->
+        \id gamma metaGamma wrap_type ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "hole proxy type" ]
@@ -297,11 +338,30 @@ renderTerm :: forall q m. Term -> Context -> Type -> MetaContext -> Wrap Term ->
 renderTerm =
   RecWrap.recTerm
     { lambda:
-        \termId block meta gamma prm beta metaGamma wrap_block ->
+        \termId block meta gamma prm beta metaGamma wrap_term wrap_block ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "term lambda"
-              , HE.onClick (\event -> UpdateModule ?a)
+              -- toggle indent
+              , HE.onClick
+                  ( \event ->
+                      let
+                        _ = Debug.trace "toggle indent on lambda term:" identity
+
+                        _ = Debug.trace (LambdaTerm termId block meta) identity
+
+                        _ = Debug.trace "resulting module:" identity
+
+                        -- TODO: for some reason this wrap is not replacing the term..
+                        _ = Debug.trace (wrap_term (LambdaTerm termId block meta { indented = not meta.indented }) NoChange) identity
+                      in
+                        -- EditorAction $ Action.UpdateEditorAction (_ { module_ = wrap_term (HoleTerm defaultHoleTermMetadata) NoChange })
+                        EditorAction
+                          $ Action.SequenceEditorActions
+                              [ Action.LiftEditorAction $ Action.LogAppAction "toggle indentation of lambda"
+                              , Action.setModule $ wrap_term (LambdaTerm termId block meta { indented = not meta.indented }) NoChange
+                              ]
+                  )
               ]
               [ punctuation.lparen
               , slotSyntax _termName 0 $ renderTermId termId gamma metaGamma
@@ -312,7 +372,7 @@ renderTerm =
               , punctuation.rparen
               ]
     , neutral:
-        \termId args meta gamma alpha metaGamma wrap_args ->
+        \termId args meta gamma alpha metaGamma wrap_term wrap_args ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "term neutral" ]
@@ -324,13 +384,13 @@ renderTerm =
                     , slotSyntax _args 0 $ renderArgs args gamma alpha metaGamma wrap_args
                     ]
     , hole:
-        \meta gamma alpha metaGamma ->
+        \meta gamma alpha metaGamma wrap_term ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "term hole" ]
               [ HH.text "?" ]
     , match:
-        \typeId a cases meta gamma alpha metaGamma constrIDs wrap_a wrap_case_at ->
+        \typeId a cases meta gamma alpha metaGamma constrIDs wrap_term wrap_a wrap_case_at ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "term match" ]
@@ -362,13 +422,13 @@ renderArgs =
   RecWrap.recArgs
     { none: mkSyntaxComponent \st -> HH.span_ []
     , cons:
-        \a args meta gamma (Parameter alpha _) beta metaGamma wrap_a wrap_args ->
+        \a args meta gamma (Parameter alpha _) beta metaGamma wrap_args wrap_a wrap_args' ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "arg" ]
               [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
               , indentOrSpace meta metaGamma
-              , slotSyntax _args 0 $ renderArgs args gamma beta metaGamma wrap_args
+              , slotSyntax _args 0 $ renderArgs args gamma beta metaGamma wrap_args'
               ]
     }
 
@@ -376,7 +436,7 @@ renderCase :: forall q m. Case -> Context -> Type -> TypeId -> TermId -> MetaCon
 renderCase =
   RecWrap.recCase
     { case_:
-        \termIds a meta gamma alpha typeId constrID metaGamma wrap_a ->
+        \termIds a meta gamma alpha typeId constrID metaGamma wrap_case wrap_a ->
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "case" ]
@@ -396,68 +456,48 @@ renderCase =
     }
 
 renderParameter :: forall q m. Parameter -> Context -> MetaContext -> Wrap Parameter -> SyntaxComponent q m
-renderParameter =
-  RecWrap.recParameter
-    { parameter:
-        \alpha meta gamma metaGamma wrap_alpha ->
-          mkSyntaxComponent \st ->
-            HH.span
-              [ classSyntax st "parameter" ]
-              [ punctuation.lparen
-              , slotSyntax _termName 0 $ renderTermName meta.name gamma metaGamma
-              , punctuation.space
-              , punctuation.colon
-              , punctuation.space
-              , slotSyntax _type 0 $ renderType alpha gamma metaGamma wrap_alpha
-              , punctuation.rparen
-              ]
-    }
+renderParameter =  -- RecWrap.recParameter --   { parameter: --       \alpha meta gamma metaGamma wrap_prm wrap_alpha ->
+  --         mkSyntaxComponent \st ->
+  --           HH.span
+  --             [ classSyntax st "parameter" ]
+  --             [ punctuation.lparen
+  --             , slotSyntax _termName 0 $ renderTermName meta.name gamma metaGamma
+  --             , punctuation.space
+  --             , punctuation.colon
+  --             , punctuation.space
+  --             , slotSyntax _type 0 $ renderType alpha gamma metaGamma wrap_alpha
+  --             , punctuation.rparen
+  --             ]
+  --   }
+  undefined
 
 renderTypeId :: forall q m. TypeId -> Context -> MetaContext -> SyntaxComponent q m
-renderTypeId typeId gamma metaGamma =
-  mkSyntaxComponent \st ->
-    HH.span
-      [ classSyntax st "typeId" ]
-      $ [ case typeName of
-            TypeName Nothing -> HH.text "_"
-            TypeName (Just label) -> HH.text label
-        ]
-      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+renderTypeId typeId gamma metaGamma =  -- mkSyntaxComponent \st -> --   HH.span --     [ classSyntax st "typeId" ] --     $ [ case typeName of --           TypeName Nothing -> HH.text "_"
+  --           TypeName (Just label) -> HH.text label
+  --       ]
+  --     <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+  undefined
   where
-  _ = Debug.trace ("renderTypeId: " <> show typeId) identity
-
+  -- _ = Debug.trace ("renderTypeId: " <> show typeId) identity
   typeName = Map.lookup' typeId metaGamma.typeScope.names
 
   shadowIndex = Map.lookup' typeId metaGamma.typeScope.shadowIndices
 
-renderTermId :: forall q m. TermId -> Context -> MetaContext -> SyntaxComponent q m
-renderTermId termId gamma metaGamma =
-  mkSyntaxComponent \st ->
-    HH.span
-      [ classSyntax st "termId" ]
-      $ [ case termName of
-            TermName Nothing -> HH.text "_"
-            TermName (Just label) -> HH.text label
-        ]
-      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+renderTermId :: forall syntax m. TermId -> Context -> MetaContext -> SyntaxComponent syntax m
+renderTermId termId gamma metaGamma =  -- mkSyntaxComponent \st -> --   HH.span --     [ classSyntax st "termId" ] --     $ [ case termName of --           TermName Nothing -> HH.text "_" --           TermName (Just label) -> HH.text label --       ]
+  --     <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+  undefined
   where
-  _ = Debug.trace ("renderTermId: " <> show termId) identity
-
+  -- _ = Debug.trace ("renderTermId: " <> show termId) identity
   termName = Map.lookup' termId metaGamma.termScope.names
 
   shadowIndex = Map.lookup' termId metaGamma.termScope.shadowIndices
 
 renderTermName :: forall q m. TermName -> Context -> MetaContext -> SyntaxComponent q m
-renderTermName termName gamma metaGamma =
-  mkSyntaxComponent \st ->
-    HH.span
-      [ classSyntax st "termName" ]
-      $ [ case termName of
-            TermName Nothing -> HH.text "_"
-            TermName (Just label) -> HH.text label
-        ]
-      <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+renderTermName termName gamma metaGamma =  -- mkSyntaxComponent \st -> --   HH.span --     [ classSyntax st "termName" ] --     $ [ case termName of --           TermName Nothing -> HH.text "_" --           TermName (Just label) -> HH.text label
+  --       ]
+  --     <> if shadowIndex > 0 then [ HH.sub_ [ HH.text $ show shadowIndex ] ] else []
+  undefined
   where
-  _ = Debug.trace ("renderTermName: " <> show termName) identity
-
+  -- _ = Debug.trace ("renderTermName: " <> show termName) identity
   shadowIndex = Map.lookup' termName metaGamma.termScope.shadows
