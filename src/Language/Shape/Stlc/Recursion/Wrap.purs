@@ -63,7 +63,6 @@ recDefinitions rec =
     { definitions:
         \defs gamma metaGamma wrap_defs ->
           rec.definitions defs gamma metaGamma
-            -- foldl ?f defs ?a
             ( \defs' tc ->
                 let
                   defs'' /\ sub =
