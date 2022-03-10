@@ -112,7 +112,7 @@ renderEditor =
   render st =
     HH.div
       [ HP.class_ (HH.ClassName "editor") ]
-      [ HH.slot _module 0 (renderModule st.module_ Map.empty emptyMetaContext (\mod _ _ -> mod)) initialSyntaxState AppAction ]
+      [ HH.slot _module 0 (renderModule st.module_ Map.empty emptyMetaContext const) initialSyntaxState AppAction ]
 
 renderConsole :: forall q m. H.Component q ConsoleState AppAction m
 renderConsole =
@@ -137,6 +137,7 @@ renderConsole =
 
 initialModule :: Effect Module
 initialModule = do
+  id_termId <- TermId <$> UUID.genUUID
   x_termId <- TermId <$> UUID.genUUID
   h1_holeID <- HoleID <$> UUID.genUUID
   h2_holeID <- HoleID <$> UUID.genUUID
@@ -144,13 +145,20 @@ initialModule = do
     $ Module
         ( List.fromFoldable
             [ TermDefinition
-                (TermBinding x_termId defaultTermBindingMetadata { name = TermName $ Just "identity" })
+                (TermBinding id_termId defaultTermBindingMetadata { name = TermName $ Just "identity" })
                 ( ArrowType
                     (Parameter (HoleType h1_holeID Set.empty defaultHoleTypeMetadata) defaultParameterMetadata { name = TermName $ Just "x" })
                     (HoleType h2_holeID Set.empty defaultHoleTypeMetadata)
                     defaultArrowTypeMetadata
                 )
-                undefined -- (LambdaTerm ())
+                ( LambdaTerm
+                    x_termId
+                    ( Block List.Nil
+                        (NeutralTerm x_termId NoneArgs defaultNeutralTermMetadata)
+                        defaultBlockMetadata
+                    )
+                    defaultLambdaTermMetadata
+                )
                 defaultTermDefinitionMetadata
             ]
         )

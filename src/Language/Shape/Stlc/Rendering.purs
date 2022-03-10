@@ -7,8 +7,8 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
-import Data.List as List
+import Data.List.Unsafe (List)
+import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
@@ -88,7 +88,6 @@ initialSyntaxState =
   { cursor: false
   }
 
--- HH.HTML (H.ComponentSlot slots m SyntaxAction)
 mkSyntaxComponent ::
   forall q m.
   (SyntaxState -> HH.ComponentHTML SyntaxAction (SyntaxSlots q) m) ->
@@ -139,15 +138,7 @@ renderModule =
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "module" ]
-              [ slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
-              -- intercalateHTML (List.singleton punctuation.newline)
-              --   $ List.mapWithIndex
-              --       ( \i def ->
-              --           slotSyntax _definition i
-              --             $ (renderDefinition def gamma metaGamma (wrap_def_at i))
-              --       )
-              --       defs
-              ]
+              [ slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs ]
     }
 
 renderBlock :: forall q m. Block -> Context -> Type -> MetaContext -> Wrap Block -> SyntaxComponent q m
@@ -158,14 +149,6 @@ renderBlock =
           mkSyntaxComponent \st ->
             HH.span
               [ classSyntax st "block" ]
-              -- [ intercalateHTML (List.singleton punctuation.newline)
-              --     $ List.mapWithIndex
-              --         ( \i def ->
-              --             slotSyntax _definition i
-              --               $ renderDefinition def gamma metaGamma (wrap_def_at i)
-              --         )
-              --         defs
-              -- ]
               [ slotSyntax _definitions 0 $ renderDefinitions defs gamma metaGamma wrap_defs
               , punctuation.newline
               , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
@@ -173,48 +156,60 @@ renderBlock =
     }
 
 renderDefinitions :: forall q m. List Definition -> Context -> MetaContext -> Wrap (List Definition) -> SyntaxComponent q m
-renderDefinitions = undefined
+renderDefinitions =
+  RecWrap.recDefinitions
+    { definitions:
+        \defs gamma metaGamma wrap_defs ->
+          let
+            renderDefinition def wrap_def = case def of
+              TermDefinition x alpha a meta ->
+                mkSyntaxComponent \st ->
+                  HH.span
+                    [ classSyntax st "term definition" ]
+                    [ keyword.let_
+                    , punctuation.space
+                    , slotSyntax _termName 0 $ renderTermBinding x gamma metaGamma
+                    , punctuation.space
+                    , punctuation.colon
+                    , punctuation.space
+                    , slotSyntax _type 0 $ renderType alpha gamma metaGamma (wrap_def <<< \alpha' -> TermDefinition x alpha' a meta)
+                    , punctuation.space
+                    , punctuation.termdef
+                    , punctuation.space
+                    , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma (wrap_def <<< \a' -> TermDefinition x alpha a meta)
+                    ]
+              DataDefinition typeId constrs meta ->
+                mkSyntaxComponent \st ->
+                  HH.span
+                    [ classSyntax st "data definition" ]
+                    [ keyword.data_
+                    , punctuation.space
+                    , slotSyntax _typeName 0 $ renderTypeBinding typeId gamma metaGamma
+                    , punctuation.space
+                    , punctuation.typedef
+                    , punctuation.space
+                    , intercalateHTML (List.fromFoldable [ punctuation.space, punctuation.alt, punctuation.space ])
+                        ( List.mapWithIndex
+                            ( \i constr ->
+                                slotSyntax _constructor i $ renderConstructor constr gamma typeId metaGamma (wrap_def <<< \constr' -> DataDefinition typeId (List.updateAt' i constr' constrs) meta)
+                            )
+                            constrs
+                        )
+                    ]
+          in
+            mkSyntaxComponent \st ->
+              HH.span
+                [ classSyntax st "definitions" ]
+                [ intercalateHTML (List.singleton punctuation.newline)
+                    $ List.mapWithIndex
+                        ( \i def ->
+                            slotSyntax _definition i
+                              $ (renderDefinition def (wrap_defs <<< \def' -> List.updateAt' i def' defs))
+                        )
+                        defs
+                ]
+    }
 
--- renderDefinition :: forall q m. Definition -> Context -> MetaContext -> Wrap Definition -> SyntaxComponent q m
--- renderDefinition =
---   RecWrap.recDefinition
---     { term:
---         \x alpha a meta gamma metaGamma wrap_alpha wrap_a ->
---           mkSyntaxComponent \st ->
---             HH.span
---               [ classSyntax st "term definition" ]
---               [ keyword.let_
---               , punctuation.space
---               , slotSyntax _termName 0 $ renderTermBinding x gamma metaGamma
---               , punctuation.space
---               , punctuation.colon
---               , punctuation.space
---               , slotSyntax _type 0 $ renderType alpha gamma metaGamma wrap_alpha
---               , punctuation.space
---               , punctuation.termdef
---               , punctuation.space
---               , slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a
---               ]
---     , data:
---         \x constrs meta gamma metaGamma wrap_constr_at ->
---           mkSyntaxComponent \st ->
---             HH.span
---               [ classSyntax st "data definition" ]
---               [ keyword.data_
---               , punctuation.space
---               , slotSyntax _typeName 0 $ renderTypeBinding x gamma metaGamma
---               , punctuation.space
---               , punctuation.typedef
---               , punctuation.space
---               , intercalateHTML (List.fromFoldable [ punctuation.space, punctuation.alt, punctuation.space ])
---                   ( List.mapWithIndex
---                       ( \i constr ->
---                           slotSyntax _constructor i $ renderConstructor constr gamma x metaGamma (wrap_constr_at i)
---                       )
---                       constrs
---                   )
---               ]
---     }
 renderConstructor :: forall q m. Constructor -> Context -> TypeBinding -> MetaContext -> Wrap Constructor -> SyntaxComponent q m
 renderConstructor =
   RecWrap.recConstructor
@@ -356,35 +351,6 @@ renderArgs =
               ]
     }
 
--- renderNeutralTerm :: forall q m. NeutralTerm -> Context -> Type -> MetaContext -> Wrap NeutralTerm -> SyntaxComponent q m
--- renderNeutralTerm =
---   RecWrap.recNeutralTerm
---     { variable:
---         \id meta gamma alpha metaGamma ->
---           mkSyntaxComponent \st ->
---             HH.span
---               [ classSyntax st "neutral term variable" ]
---               [ slotSyntax _termName 0 $ renderTermId id gamma metaGamma ]
---     , application:
---         \neu a meta gamma prm@(Parameter alpha _) beta metaGamma wrap_neu wrap_a ->
---           let
---             prefix /\ suffix = case a of
---               LambdaTerm _ _ _ -> [ punctuation.lparen ] /\ [ punctuation.rparen ]
---               NeutralTerm (ApplicationTerm _ _ _) _ -> [ punctuation.lparen ] /\ [ punctuation.rparen ]
---               NeutralTerm (VariableTerm _ _) _ -> [] /\ []
---               HoleTerm _ -> [] /\ []
---               MatchTerm _ _ _ _ -> [ punctuation.lparen ] /\ [ punctuation.rparen ]
---           in
---             mkSyntaxComponent \st ->
---               HH.span
---                 [ classSyntax st "neutral term application" ]
---                 $ [ slotSyntax _neutralTerm 0 $ renderNeutralTerm neu gamma (ArrowType prm beta defaultArrowTypeMetadata) metaGamma wrap_neu
---                   , punctuation.space
---                   ]
---                 <> prefix
---                 <> [ slotSyntax _term 0 $ renderTerm a gamma alpha metaGamma wrap_a ]
---                 <> suffix
---     }
 renderCase :: forall q m. Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> Wrap Case -> SyntaxComponent q m
 renderCase =
   RecWrap.recCase

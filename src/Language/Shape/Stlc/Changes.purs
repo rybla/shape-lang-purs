@@ -14,7 +14,6 @@ import Language.Shape.Stlc.Holes (HoleSub, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
 import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleID, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
-import Pipes.Prelude (mapM)
 import Prim.Boolean (True)
 import Undefined (undefined)
 import Unsafe (error)
@@ -117,7 +116,7 @@ chDefinition ctx chs (TermDefinition binding ty t md) =
         t' <- chTerm ctx ty' chs' change t
         pure $ TermDefinition binding ty' t' md
 
-chDefinition ctx chs (DataDefinition binding constrs md) -- TODO: make sure that types of constructors end up in the context of the rest of the block. = undefined
+chDefinition ctx chs (DataDefinition binding constrs md) = undefined -- TODO: make sure that types of constructors end up in the context of the rest of the block. = undefined
 
 -- morally, the type input here should not have metadata. But we can just go with it anyway.
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List Definition) HoleSub) Term
@@ -192,7 +191,7 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
   pure $ MatchTerm i t' cases' md
 
 -- TODO: does this last case ever actually happen?
-chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole =
+chTerm ctx ty chs _ t = -- anything that doesn't fit a pattern just goes into a hole =
   let
     (Tuple ty' change) = chType chs.dataTypeDeletions ty
   in

@@ -15,6 +15,7 @@
   , "partial"
   , "prelude"
   , "record"
+  , "transformers"
   , "tuples"
   , "undefined"
   , "uuid"
