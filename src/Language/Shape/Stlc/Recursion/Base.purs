@@ -24,15 +24,6 @@ recBlock ::
 recBlock rec = case _ of
   Block defs term meta -> rec.block defs term meta
 
--- recDefinition ::
---   forall a.
---   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
---   , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
---   } ->
---   Definition -> a
--- recDefinition rec = case _ of
---   TermDefinition termBnd alpha a meta -> rec.term termBnd alpha a meta
---   DataDefinition typeBnd constrs meta -> rec.data typeBnd constrs meta
 recDefinitions ::
   forall a.
   { definitions :: List Definition -> a
@@ -82,7 +73,9 @@ recArgs ::
   , cons :: Term -> Args -> ArgConsMetaData -> a
   } ->
   Args -> a
-recArgs = undefined
+recArgs rec = case _ of
+  NoneArgs -> rec.none
+  ConsArgs a args meta -> rec.cons a args meta
 
 recCase ::
   forall a.

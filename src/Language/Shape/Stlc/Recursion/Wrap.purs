@@ -150,10 +150,18 @@ recTerm rec =
 recArgs ::
   forall a.
   { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> MetaContext -> Wrap Term -> Wrap Args -> a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> List Type -> MetaContext -> Wrap Term -> Wrap Args -> a
   } ->
-  Args -> Context -> Type -> MetaContext -> Wrap Args -> a
-recArgs = undefined
+  Args -> Context -> List Type -> MetaContext -> Wrap Args -> a
+recArgs rec =
+  Rec.recArgs
+    { none: \_ -> rec.none
+    , cons:
+        \a args meta gamma alpha alphas metaGamma wrap_args ->
+          rec.cons a args meta gamma alpha alphas metaGamma
+            (wrap_args <<< \a' -> ConsArgs a' args meta)
+            (wrap_args <<< \args' -> ConsArgs a args' meta)
+    }
 
 recCase ::
   forall a.

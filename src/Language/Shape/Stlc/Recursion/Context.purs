@@ -6,6 +6,7 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
+import Data.List as List
 import Data.Map as Map
 import Language.Shape.Stlc.Recursion.Base as Rec
 import Undefined (undefined)
@@ -36,13 +37,6 @@ recBlock rec =
           rec.block defs a meta (addDefinitionsToContext defs gamma) alpha
     }
 
--- recDefinition ::
---   forall a.
---   { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> a
---   , data :: TypeBinding -> (List Constructor) -> DataDefinitionMetadata -> Context -> a
---   } ->
---   Definition -> Context -> a
--- recDefinition = Rec.recDefinition
 recDefinitions ::
   forall a.
   { definitions :: List Definition -> Context -> a } ->
@@ -94,25 +88,18 @@ recTerm rec =
 recArgs ::
   forall a.
   { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> List Type -> a
   } ->
-  Args -> Context -> Type -> a
-recArgs = undefined
+  Args -> Context -> List Type -> a
+recArgs rec =
+  Rec.recArgs
+    { none: \_ _ -> rec.none
+    , cons:
+        \a args meta gamma -> case _ of
+          List.Cons alpha alphas -> rec.cons a args meta gamma alpha alphas
+          List.Nil -> Unsafe.error "impossible"
+    }
 
--- recNeutralTerm ::
---   forall a.
---   { variable :: TermID -> VariableTermMetadata -> Context -> Type -> a
---   , application :: NeutralTerm -> Term -> ApplicationTermMetadata -> Context -> Parameter -> Type -> a
---   } ->
---   NeutralTerm -> Context -> Type -> a
--- recNeutralTerm rec =
---   Rec.recNeutralTerm
---     { variable: rec.variable
---     , application:
---         \neu a meta gamma -> case _ of
---           ArrowType prm beta _ -> rec.application neu a meta gamma prm beta
---           _ -> Unsafe.error "impossible"
---     }
 recCase ::
   forall a.
   { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->

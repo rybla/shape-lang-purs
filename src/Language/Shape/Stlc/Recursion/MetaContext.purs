@@ -101,12 +101,14 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termID b meta gamma alpha ->
-          rec.lambda termID b meta gamma alpha
-            <<< foldl (>>>) identity
-                [ undefined -- registerTermID termID
-                , incrementIndentation
-                ]
+        \termID b meta gamma alpha -> case alpha of
+          ArrowType (Parameter alpha { name }) beta _ ->
+            rec.lambda termID b meta gamma beta
+              <<< foldl (>>>) identity
+                  [ registerTermID termID name
+                  , incrementIndentation
+                  ]
+          _ -> Unsafe.error "impossible"
     , neutral: \termID args meta gamma alpha -> rec.neutral termID args meta gamma alpha <<< incrementIndentation
     , hole: \meta gamma alpha -> rec.hole meta gamma alpha <<< incrementIndentation
     , match:
@@ -119,10 +121,14 @@ recTerm rec =
 recArgs ::
   forall a.
   { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> MetaContext -> a
+  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Type -> List Type -> MetaContext -> a
   } ->
-  Args -> Context -> Type -> MetaContext -> a
-recArgs = undefined
+  Args -> Context -> List Type -> MetaContext -> a
+recArgs rec =
+  Rec.recArgs
+    { none: \_ -> rec.none
+    , cons: rec.cons
+    }
 
 recCase ::
   forall a.
@@ -143,13 +149,10 @@ recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> a } ->
   Parameter -> Context -> MetaContext -> a
--- Rec.recParameter rec prm gamma <<< incrementIndentation
 recParameter rec =
   Rec.recParameter
     { parameter:
         \alpha meta gamma ->
-          -- add parameter name to metaGamma
-          -- increment name's shadow
           rec.parameter alpha meta gamma
             <<< R.modify _termScope (incrementShadow meta.name)
     }
@@ -200,11 +203,12 @@ registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerNa
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ List.foldl (flip registerTermBinding)
 
--- TODO
--- registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
--- registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
--- registerTermIDs :: TermID -> TermName -> MetaContext -> MetaContext
--- registerTermIDs id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
+registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+
+registerTermIDs :: TermID -> TermName -> MetaContext -> MetaContext
+registerTermIDs id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+
 registerDatatype :: TypeBinding -> List TermBinding -> MetaContext -> MetaContext
 registerDatatype x@(TypeBinding typeID _) constrBnds metaGamma =
   ( foldl (>>>) identity
