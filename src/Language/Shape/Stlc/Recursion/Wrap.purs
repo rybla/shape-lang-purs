@@ -1,18 +1,18 @@
 module Language.Shape.Stlc.Recursion.Wrap where
 
+import Data.Foldable
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-
-import Control.Monad.State (runState)
+import Control.Monad.State (State, runState)
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
-import Language.Shape.Stlc.Changes (TypeChange(..), chTerm)
+import Language.Shape.Stlc.Changes (TypeChange(..), Changes, chTerm)
 import Language.Shape.Stlc.Holes (HoleSub, subModule)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as Rec
@@ -50,31 +50,41 @@ recBlock rec =
         \defs a meta gamma alpha metaGamma wrap_block ->
           rec.block defs a meta gamma alpha metaGamma
             (\i -> wrap_block <<< \def' -> Block (List.updateAt' i def' defs) a meta)
-            -- (\i def' tc )
+    -- (\i def' tc )
     }
 
-recDefinition ::
+recDefinitions ::
   forall a.
-  { term :: TermBinding -> Type -> Term -> TermDefinitionMetadata -> Context -> MetaContext -> Wrap Type -> Wrap Term -> a
-  , data :: TypeBinding -> List Constructor -> DataDefinitionMetadata -> Context -> MetaContext -> IndexWrap Constructor -> a
-  } ->
-  Definition -> Context -> MetaContext -> Wrap Definition -> a
-recDefinition rec =
-  Rec.recDefinition
-    { term:
-        \termBnd alpha a meta gamma metaGamma wrap_def ->
-          rec.term termBnd alpha a meta gamma metaGamma
-            -- (wrap_def <<< \alpha' -> TermDefinition termBnd alpha' a meta)
-            (\alpha' tc ->
-              let state = chTerm gamma alpha undefined {-empty-} tc a in
-              let (a' /\ displaced /\ sub) = runState state undefined {-startingState-} in
-              subModule sub (wrap_def (TermDefinition termBnd alpha' a' meta) tc))
-                    
-            (wrap_def <<< \a' -> TermDefinition termBnd alpha a' meta)
-    , data:
-        \typeBnd constrs meta gamma metaGamma wrap_def ->
-          rec.data typeBnd constrs meta gamma metaGamma
-            (\i -> wrap_def <<< \constr' -> DataDefinition typeBnd (List.updateAt' i constr' constrs) meta)
+  { definitions :: List Definition -> Context -> MetaContext -> Wrap (List Definition) -> a } ->
+  List Definition -> Context -> MetaContext -> Wrap (List Definition) -> a
+recDefinitions rec =
+  Rec.recDefinitions
+    -- TODO: put the displaced terms resulting from typechanges applied to terms into this list of definitions
+    { definitions:
+        \defs gamma metaGamma wrap_defs ->
+          rec.definitions defs gamma metaGamma
+            -- foldl ?f defs ?a
+            ( \defs' tc ->
+                let
+                  defs'' /\ sub =
+                    foldl
+                      ( \(displaceds /\ sub) -> case _ of
+                          DataDefinition typeBnd constr meta -> undefined -- TODO: not sure what to do here...
+                          TermDefinition termBnd alpha a meta ->
+                            let
+                              changes = undefined :: Changes {-JACOB-}
+
+                              st = undefined :: List Definition /\ Map HoleID Type {-JACOB-}
+
+                              (a' /\ displaceds' /\ sub') = runState (chTerm gamma alpha changes tc a) st
+                            in
+                              (displaceds <> List.singleton (TermDefinition termBnd alpha a' meta) <> displaceds') /\ Map.union sub sub'
+                      )
+                      (List.Nil /\ Map.empty)
+                      defs'
+                in
+                  subModule sub $ wrap_defs defs'' tc
+            )
     }
 
 recConstructor ::
