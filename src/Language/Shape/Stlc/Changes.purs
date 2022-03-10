@@ -6,14 +6,15 @@ import Prim hiding (Type)
 import Control.Monad.State (State, get, put, runState)
 import Data.List (List(..), singleton, union, zip, zipWith, (:))
 import Data.Map (Map, insert, lookup)
+import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, filter, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, unifyType)
-import Language.Shape.Stlc.Metadata (defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleID, freshTermId)
+import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
+import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleID, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
 import Pipes.Prelude (mapM)
 import Prim.Boolean (True)
@@ -39,6 +40,13 @@ type Changes = {
     termChanges :: Map TermId VarChange,
     matchChanges :: Map TypeId (List ConstructorChange),
     dataTypeDeletions :: KindChanges
+}
+
+emptyChanges :: Changes
+emptyChanges = {
+    termChanges : Map.empty,
+    matchChanges : Map.empty,
+    dataTypeDeletions : empty
 }
 
 deleteVar :: Changes -> TermId -> Changes
@@ -124,15 +132,6 @@ chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _)
     = do displacedDefs <- sequence $ map (chDefinition ctx (deleteVar chs i)) defs
          displaceDefs displacedDefs
          chTerm ctx b (deleteVar chs i) NoChange t
--- chTerm ctx ty chs ch (NeutralTerm t md) = do
---     (Tuple t' ch') <- chNeutral ctx chs t
---     let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
---     case maybeSub of
---         Just holeSub -> do subHoles holeSub
---                            pure $ NeutralTerm t' md
---         Nothing -> do displaceDefs (singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) (applyTC ch' ty)
---                                                     (NeutralTerm t' md) defaultTermDefinitionMetadata))
---                       pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx ty chs ch (NeutralTerm id args md) =
     case lookup id chs.termChanges of
         Just VariableDeletion -> ifChanged NoChange
@@ -140,8 +139,14 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
-        (Tuple args' ch') <- chArgs ctx undefined chs varTC undefined -- args
-        undefined
+        (Tuple args' ch') <- chArgs ctx ty chs varTC args
+        let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
+        case maybeSub of
+            Just holeSub -> do subHoles holeSub
+                               pure $ NeutralTerm id args' md
+            Nothing -> do displaceDefs (singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) (applyTC ch' ty)
+                                                        (NeutralTerm id args' md) defaultTermDefinitionMetadata))
+                          pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
     cases' <- sequence $ (map (chCase ctx ty chs ch) cases)
@@ -183,32 +188,40 @@ chBlock ctx ty chs ch (Block defs t md)
     --   in let (Tuple defs' displaced2) = runState (sequence (map (chDefinition ctx chs) defs)) undefined--waas Nil
     --   in Block (defs' <> displaced1 <> displaced2) t' md -- TODO: maybe consider positioning the displaced terms better rather than all at the end. This is fine for now though.
 
--- tys is list of types of the terms.
-chArgs :: Context -> (List Type) -> Changes -> TypeChange -> (List Term) -> State (Tuple (List Definition) HoleSub) (Tuple (List Term) TypeChange)
-chArgs ctx tys chs RemoveArg (arg : args) = do
-    args' <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
-    pure $ Tuple args' NoChange
-chArgs ctx tys chs (InsertArg t) args = do
-    rest <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
-    pure $ Tuple ((HoleTerm defaultHoleTermMetadata) : rest) NoChange
-chArgs ctx (ty : tys) chs (ArrowCh c1 c2) (arg : args) = do
-    arg' <- chTerm ctx ty chs c1 arg
-    (Tuple args' tc) <- chArgs ctx tys chs c2 args
-    pure $ Tuple (arg' : args') tc
-chArgs ctx (ty1 : ty2 : tys) chs Swap (arg1 : arg2 : args) = do
-    arg1' <- chTerm ctx ty1 chs NoChange arg1
-    arg2' <- chTerm ctx ty2 chs NoChange arg2
-    rest <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
-    pure $ Tuple (arg2' : arg1' : rest) NoChange
-chArgs ctx tys chs NoChange args = do
-    args' <- sequence (zipWith (\ty -> chTerm ctx ty chs NoChange) tys args)
-    pure $ Tuple args' NoChange
+-- the Type is type of function which would input these args.
+-- the TypeChange is the change of the function which inputs these arguments
+chArgs :: Context -> Type -> Changes -> TypeChange -> Args -> State (Tuple (List Definition) HoleSub) (Tuple Args TypeChange)
+chArgs ctx (ArrowType (Parameter a _) b _) chs RemoveArg (ConsArgs arg args md) = do
+    (Tuple args' chOut) <- chArgs ctx b chs NoChange args
+    pure $ Tuple args' chOut -- note chOut should always be NoChange
+chArgs ctx a chs (InsertArg t) args = do
+    (Tuple rest chOut) <- chArgs ctx a chs NoChange args
+    pure $ Tuple (ConsArgs (HoleTerm defaultHoleTermMetadata) rest defaultArgConsMetaData) chOut -- always chOut = noChange
+chArgs ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (ConsArgs arg args md) = do
+    arg' <- chTerm ctx a chs c1 arg
+    (Tuple args' tc) <- chArgs ctx b chs c2 args
+    pure $ Tuple (ConsArgs arg' args' md) tc
+chArgs ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (ConsArgs arg1 (ConsArgs arg2 args md1) md2) = do
+    arg1' <- chTerm ctx a chs NoChange arg1
+    arg2' <- chTerm ctx b chs NoChange arg2
+    (Tuple rest chOut) <- chArgs ctx c chs NoChange args
+    pure $ Tuple (ConsArgs arg2' (ConsArgs arg1' rest md1) md2) chOut -- chOut = NoChange alwyas
+chArgs ctx a chs NoChange NoneArgs = pure $ Tuple NoneArgs NoChange
+chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (ConsArgs arg args md) = do
+    arg' <- chTerm ctx a chs NoChange arg
+    (Tuple args' outCh) <- chArgs ctx b chs NoChange args
+    pure $ Tuple (ConsArgs arg' args' md) outCh -- outCh = nochange
 chArgs ctx tys chs (Dig hId) args = do
-    -- displaceDefs (zipWith (\ty t -> TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys args)
-    -- pure $ Tuple (HoleTerm defaultHoleTermMetadata) Dig
-    undefined
+    -- TODO: displace the rest of args.
+    -- probably write a helper function displaceArgs.
+    -- displaceDefs (zipWith (\ty t -> TermDefinition
+        -- (TermBinding (freshTermId unit) defaultTermBindingMetadata) undefined t defaultTermDefinitionMetadata) tys (argsToTermList args))
+    pure $ Tuple NoneArgs (Dig hId)
 chArgs _ _ _ _ _ = error "shouldn't get here"
 
+argsToTermList :: Args -> List Term
+argsToTermList NoneArgs = Nil
+argsToTermList (ConsArgs arg args _) = arg : (argsToTermList args)
 
 
 -- TODO: for wrap stuff, remember that it needs to be possible to have f : A -> B -> C, and in a buffer,
