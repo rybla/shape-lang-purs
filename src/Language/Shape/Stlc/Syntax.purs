@@ -25,47 +25,47 @@ data Constructor
   = Constructor TermBinding (List Parameter) ConstructorMetadata
 
 data Term
-  = LambdaTerm TermID Block LambdaTermMetadata
+  = LambdaTerm TermId Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
-  | MatchTerm TypeID Term (List Case) MatchTermMetadata
-  | NeutralTerm TermID Args NeutralTermMetadata
+  | MatchTerm TypeId Term (List Case) MatchTermMetadata
+  | NeutralTerm TermId Args NeutralTermMetadata
 
 data Args
   = NoneArgs
   | ConsArgs Term Args ArgConsMetaData
 
-data Case = Case (List TermID) Term CaseMetadata
+data Case = Case (List TermId) Term CaseMetadata
 
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
-  | DataType TypeID DataTypeMetadata
+  | DataType TypeId DataTypeMetadata
   | HoleType HoleID TypeWeakening HoleTypeMetadata
   | ProxyHoleType HoleID
 
 data Parameter = Parameter Type ParameterMetadata
 
 type TypeWeakening
-  = Set TypeID
+  = Set TypeId
 
-data TermBinding = TermBinding TermID TermBindingMetadata
+data TermBinding = TermBinding TermId TermBindingMetadata
 
-data TypeBinding = TypeBinding TypeID TypeBindingMetadata
+data TypeBinding = TypeBinding TypeId TypeBindingMetadata
 
-data TermID
-  = TermID UUID
+data TermId
+  = TermId UUID
 
-data TypeID
-  = TypeID UUID
+data TypeId
+  = TypeId UUID
 
 data HoleID
   = HoleID UUID
 
 -- Fresh
-freshTermID :: Unit -> TermID
-freshTermID _ = unsafePerformEffect $ TermID <$> genUUID
+freshTermId :: Unit -> TermId
+freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
 
-freshTypeID :: Unit -> TypeID
-freshTypeID _ = unsafePerformEffect $ TypeID <$> genUUID
+freshTypeId :: Unit -> TypeId
+freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
 
 freshHoleID :: Unit -> HoleID
 freshHoleID _ = unsafePerformEffect $ HoleID <$> genUUID
@@ -82,8 +82,8 @@ derive instance Generic Case _
 derive instance Generic Parameter _
 derive instance Generic TypeBinding _
 derive instance Generic TermBinding _
-derive instance Generic TermID _
-derive instance Generic TypeID  _
+derive instance Generic TermId _
+derive instance Generic TypeId  _
 derive instance Generic HoleID _
 
 -- Show instances
@@ -98,16 +98,16 @@ instance Show Case where show x = genericShow x
 instance Show Parameter where show x = genericShow x 
 instance Show TypeBinding where show x = genericShow x 
 instance Show TermBinding where show x = genericShow x 
-instance Show TermID where show x = genericShow x 
-instance Show TypeID  where show x = genericShow x 
+instance Show TermId where show x = genericShow x 
+instance Show TypeId  where show x = genericShow x 
 instance Show HoleID where show x = genericShow x 
 
 -- Eq instances
-derive instance Eq TermID
+derive instance Eq TermId
 derive instance Eq HoleID
-derive instance Eq TypeID
+derive instance Eq TypeId
 
 -- Ord instances
-derive instance Ord TermID
-derive instance Ord TypeID
+derive instance Ord TermId
+derive instance Ord TypeId
 derive instance Ord HoleID

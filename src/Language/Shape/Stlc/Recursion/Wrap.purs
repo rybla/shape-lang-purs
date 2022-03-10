@@ -102,7 +102,7 @@ recConstructor rec =
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> Wrap Parameter -> Wrap Type -> a
-  , data :: TypeID -> DataTypeMetadata -> Context -> MetaContext -> a
+  , data :: TypeId -> DataTypeMetadata -> Context -> MetaContext -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
   , proxyHole :: HoleID -> Context -> MetaContext -> a
   } ->
@@ -114,37 +114,37 @@ recType rec =
           rec.arrow prm beta meta gamma metaGamma
             (wrap_arr <<< \prm' -> ArrowType prm' beta meta)
             (wrap_arr <<< \beta' -> ArrowType prm beta' meta)
-    , data: \typeID meta gamma metaGamma _ -> rec.data typeID meta gamma metaGamma
+    , data: \typeId meta gamma metaGamma _ -> rec.data typeId meta gamma metaGamma
     , hole: \holeID wkn meta gamma metaGamma _ -> rec.hole holeID wkn meta gamma metaGamma
     , proxyHole: \holeID gamma metaGamma _ -> rec.proxyHole holeID gamma metaGamma
     }
 
 recTerm ::
   forall a.
-  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
-  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap Args -> a
+  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> Wrap Block -> a
+  , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> Wrap Args -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> Wrap Term -> IndexWrap Case -> a
+  , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermId -> Wrap Term -> IndexWrap Case -> a
   } ->
   Term -> Context -> Type -> MetaContext -> Wrap Term -> a
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termID block meta gamma alpha metaGamma wrap_term ->
-          rec.lambda termID block meta gamma alpha metaGamma
-            (\block' tc -> wrap_term (LambdaTerm termID block' meta) (ArrowCh NoChange tc))
+        \termId block meta gamma alpha metaGamma wrap_term ->
+          rec.lambda termId block meta gamma alpha metaGamma
+            (\block' tc -> wrap_term (LambdaTerm termId block' meta) (ArrowCh NoChange tc))
     , neutral:
-        \termID args meta gamma alpha metaGamma wrap_term ->
-          rec.neutral termID args meta gamma alpha metaGamma
-            (wrap_term <<< \args' -> NeutralTerm termID args' meta)
+        \termId args meta gamma alpha metaGamma wrap_term ->
+          rec.neutral termId args meta gamma alpha metaGamma
+            (wrap_term <<< \args' -> NeutralTerm termId args' meta)
     , hole:
         \meta gamma alpha metaGamma _ ->
           rec.hole meta gamma alpha metaGamma
     , match:
-        \typeID a cases meta gamma alpha metaGamma constrIDs wrap_term ->
-          rec.match typeID a cases meta gamma alpha metaGamma constrIDs
-            (wrap_term <<< \a' -> MatchTerm typeID a' cases meta)
-            (\i -> wrap_term <<< \case' -> MatchTerm typeID a (List.updateAt' i case' cases) meta)
+        \typeId a cases meta gamma alpha metaGamma constrIDs wrap_term ->
+          rec.match typeId a cases meta gamma alpha metaGamma constrIDs
+            (wrap_term <<< \a' -> MatchTerm typeId a' cases meta)
+            (\i -> wrap_term <<< \case' -> MatchTerm typeId a (List.updateAt' i case' cases) meta)
     }
 
 recArgs ::
@@ -165,13 +165,13 @@ recArgs rec =
 
 recCase ::
   forall a.
-  { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Term -> a } ->
-  Case -> Context -> Type -> TypeID -> TermID -> MetaContext -> Wrap Case -> a
+  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> Wrap Term -> a } ->
+  Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> Wrap Case -> a
 recCase rec =
   Rec.recCase
     { case_:
-        \termBnds a meta gamma alpha typeID termID metaGamma wrap_case ->
-          rec.case_ termBnds a meta gamma alpha typeID termID metaGamma
+        \termBnds a meta gamma alpha typeId termId metaGamma wrap_case ->
+          rec.case_ termBnds a meta gamma alpha typeId termId metaGamma
             (wrap_case <<< \a' -> Case termBnds a' meta)
     }
 

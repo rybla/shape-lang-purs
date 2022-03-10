@@ -53,7 +53,7 @@ recConstructor = Rec.recConstructor
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
-  , data :: TypeID -> DataTypeMetadata -> Context -> a
+  , data :: TypeId -> DataTypeMetadata -> Context -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> a
   , proxyHole :: HoleID -> Context -> a
   } ->
@@ -62,10 +62,10 @@ recType = Rec.recType
 
 recTerm ::
   forall a.
-  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> a
-  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> a
+  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Type -> a
+  , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> a
   , hole :: HoleTermMetadata -> Context -> Type -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
+  , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
   } ->
   Term -> Context -> Type -> a
 recTerm rec =
@@ -75,8 +75,8 @@ recTerm rec =
           ArrowType (Parameter beta _) delta _ -> rec.lambda x block meta (Map.insert x beta gamma) delta
           _ -> Unsafe.error "impossible"
     , neutral:
-        \termID args meta gamma alpha ->
-          rec.neutral termID args meta gamma alpha
+        \termId args meta gamma alpha ->
+          rec.neutral termId args meta gamma alpha
     , hole:
         \meta gamma alpha ->
           rec.hole meta gamma alpha
@@ -102,8 +102,8 @@ recArgs rec =
 
 recCase ::
   forall a.
-  { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> a } ->
-  Case -> Context -> Type -> TypeID -> TermID -> a
+  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> a } ->
+  Case -> Context -> Type -> TypeId -> TermId -> a
 recCase = Rec.recCase
 
 recParameter ::

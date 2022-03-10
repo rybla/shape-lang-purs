@@ -21,9 +21,9 @@ import Unsafe as Unsafe
 
 -- Context for metadata info such as names, constructor names, shadowing, etc.
 type MetaContext
-  = { typeScope :: Scope TypeID TypeName
-    , termScope :: Scope TermID TermName
-    , constructorTermIDs :: Map TypeID (List TermID)
+  = { typeScope :: Scope TypeId TypeName
+    , termScope :: Scope TermId TermName
+    , constructorTermIds :: Map TypeId (List TermId)
     , indentation :: Int
     }
 
@@ -31,7 +31,7 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
-  , constructorTermIDs: Map.empty
+  , constructorTermIds: Map.empty
   , indentation: 0
   }
 
@@ -39,7 +39,7 @@ _typeScope = Proxy :: Proxy "typeScope"
 
 _termScope = Proxy :: Proxy "termScope"
 
-_constructorTermIDs = Proxy :: Proxy "constructorTermIDs"
+_constructorTermIds = Proxy :: Proxy "constructorTermIds"
 
 _indentation = Proxy :: Proxy "indentation"
 
@@ -83,7 +83,7 @@ recConstructor rec constr gamma x = Rec.recConstructor rec constr gamma x <<< in
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
-  , data :: TypeID -> DataTypeMetadata -> Context -> MetaContext -> a
+  , data :: TypeId -> DataTypeMetadata -> Context -> MetaContext -> a
   , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
   , proxyHole :: HoleID -> Context -> MetaContext -> a
   } ->
@@ -92,30 +92,30 @@ recType rec alpha gamma = Rec.recType rec alpha gamma <<< incrementIndentation
 
 recTerm ::
   forall a.
-  { lambda :: TermID -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
-  , neutral :: TermID -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
+  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Type -> MetaContext -> a
+  , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
   , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeID -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermID -> a
+  , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermId -> a
   } ->
   Term -> Context -> Type -> MetaContext -> a
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termID b meta gamma alpha -> case alpha of
+        \termId b meta gamma alpha -> case alpha of
           ArrowType (Parameter alpha { name }) beta _ ->
-            rec.lambda termID b meta gamma beta
+            rec.lambda termId b meta gamma beta
               <<< foldl (>>>) identity
-                  [ registerTermID termID name
+                  [ registerTermId termId name
                   , incrementIndentation
                   ]
           _ -> Unsafe.error "impossible"
-    , neutral: \termID args meta gamma alpha -> rec.neutral termID args meta gamma alpha <<< incrementIndentation
+    , neutral: \termId args meta gamma alpha -> rec.neutral termId args meta gamma alpha <<< incrementIndentation
     , hole: \meta gamma alpha -> rec.hole meta gamma alpha <<< incrementIndentation
     , match:
-        \typeID a cases meta gamma alpha metaGamma ->
-          rec.match typeID a cases meta gamma alpha
+        \typeId a cases meta gamma alpha metaGamma ->
+          rec.match typeId a cases meta gamma alpha
             (incrementIndentation metaGamma)
-            (Map.lookup' typeID metaGamma.constructorTermIDs)
+            (Map.lookup' typeId metaGamma.constructorTermIds)
     }
 
 recArgs ::
@@ -132,15 +132,15 @@ recArgs rec =
 
 recCase ::
   forall a.
-  { case_ :: List TermID -> Term -> CaseMetadata -> Context -> Type -> TypeID -> TermID -> MetaContext -> a } ->
-  Case -> Context -> Type -> TypeID -> TermID -> MetaContext -> a
+  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> a } ->
+  Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> a
 recCase rec =
   Rec.recCase
     { case_:
-        \termIDs a meta gamma alpha typeID termID ->
-          rec.case_ termIDs a meta gamma alpha typeID termID
+        \termIds a meta gamma alpha typeId termId ->
+          rec.case_ termIds a meta gamma alpha typeId termId
             <<< foldl (>>>) identity
-                [ undefined -- TODO: registerTermIDs termIDs
+                [ undefined -- TODO: registerTermIds termIds
                 , incrementIndentation
                 ]
     }
@@ -203,18 +203,18 @@ registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerNa
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ List.foldl (flip registerTermBinding)
 
-registerTermID :: TermID -> TermName -> MetaContext -> MetaContext
-registerTermID id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+registerTermId :: TermId -> TermName -> MetaContext -> MetaContext
+registerTermId id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
 
-registerTermIDs :: TermID -> TermName -> MetaContext -> MetaContext
-registerTermIDs id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
+registerTermIds :: TermId -> TermName -> MetaContext -> MetaContext
+registerTermIds id name = R.modify _termScope $ R.modify _shadows (Map.insertWith (\i _ -> i) name 0)
 
 registerDatatype :: TypeBinding -> List TermBinding -> MetaContext -> MetaContext
-registerDatatype x@(TypeBinding typeID _) constrBnds metaGamma =
+registerDatatype x@(TypeBinding typeId _) constrBnds metaGamma =
   ( foldl (>>>) identity
       [ registerTypeBinding x
       , registerTermBindings constrBnds
-      , R.modify _constructorTermIDs $ Map.insert typeID (map (\(TermBinding constrID _) -> constrID) constrBnds)
+      , R.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
       ]
       metaGamma
   )

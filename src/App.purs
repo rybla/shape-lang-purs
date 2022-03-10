@@ -137,14 +137,14 @@ renderConsole =
 
 initialModule :: Effect Module
 initialModule = do
-  x_termID <- TermID <$> UUID.genUUID
+  x_termId <- TermId <$> UUID.genUUID
   h1_holeID <- HoleID <$> UUID.genUUID
   h2_holeID <- HoleID <$> UUID.genUUID
   pure
     $ Module
         ( List.fromFoldable
             [ TermDefinition
-                (TermBinding x_termID defaultTermBindingMetadata { name = TermName $ Just "identity" })
+                (TermBinding x_termId defaultTermBindingMetadata { name = TermName $ Just "identity" })
                 ( ArrowType
                     (Parameter (HoleType h1_holeID Set.empty defaultHoleTypeMetadata) defaultParameterMetadata { name = TermName $ Just "x" })
                     (HoleType h2_holeID Set.empty defaultHoleTypeMetadata)
