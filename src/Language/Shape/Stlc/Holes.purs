@@ -5,7 +5,7 @@ import Prim
 import Data.Map (Map, empty, lookup, singleton, union)
 import Data.Maybe (Maybe(..))
 import Data.Set (member)
-import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Module(..), Parameter(..), Term(..), Type(..), TypeId(..), TypeWeakening)
+import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Module(..), Parameter(..), Term(..), Type(..), TypeId(..), TypeWeakening)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -14,7 +14,7 @@ This file will deal with unification of types, and applying hole substitutions
 to Blocks, Terms, ...
 -}
 type HoleSub
-  = Map HoleID Type
+  = Map HoleId Type
 
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType param b md2) = ArrowType (subParameter sub param) (subType sub b) md2

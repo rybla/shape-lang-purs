@@ -16,7 +16,7 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleID(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleID, freshTermId)
+import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleId, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
 import Pipes.Prelude (mapM)
 import Prim.Boolean (True)
@@ -30,7 +30,7 @@ data TypeChange
     | Swap -- only applies to types of form (ArrowType a (ArrowType b c _) _)
     | RemoveArg -- only applies to types of form (ArrowType a b _)
     -- | Replace Type
-    | Dig HoleID
+    | Dig HoleId
 -- Note for the future: could e.g. make Swap take a typechange which says what happens to rest of type after swap. Currently, it is implicitly NoChange.
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
@@ -68,7 +68,7 @@ applyTC NoChange t = t
 applyTC (InsertArg a) t = ArrowType (Parameter a defaultParameterMetadata) t defaultArrowTypeMetadata
 applyTC Swap (ArrowType a (ArrowType b c md1) md2) = ArrowType b (ArrowType a c md1) md2
 applyTC RemoveArg (ArrowType a b _) = b
-applyTC (Dig id) t = HoleType (freshHoleID unit) empty defaultHoleTypeMetadata
+applyTC (Dig id) t = HoleType (freshHoleId unit) empty defaultHoleTypeMetadata
 applyTC _ _ = error "Shouldn't get ehre"
 
 -- TODO: consider just outputting TypeChange, and then use chType : Type -> TypeChange -> Type to actually get the Type.
@@ -80,7 +80,7 @@ chType chs (ArrowType (Parameter a pmd) b md)
 chType chs (HoleType i w md)
     = Tuple (HoleType i (difference w chs) md) NoChange -- remove deleted datatypes from weakening -- TODO: is this how difference works?
 chType chs (DataType i md) = if member i chs
-    then let id = (freshHoleID unit)
+    then let id = (freshHoleId unit)
         in Tuple (HoleType id empty defaultHoleTypeMetadata) (Dig id)
     else Tuple (DataType i md) NoChange
 chType chs (ProxyHoleType i) = Tuple (ProxyHoleType i) NoChange
@@ -100,7 +100,7 @@ cons (TermBinding i _) t ctx = insert i t ctx
 combineSubs :: HoleSub -> HoleSub -> HoleSub
 combineSubs original new =
     foldrWithIndex combineSub original new
-    where combineSub :: HoleID -> Type -> HoleSub -> HoleSub
+    where combineSub :: HoleId -> Type -> HoleSub -> HoleSub
           combineSub id ty acc
             = let ty' = subType acc ty in
               case lookup id acc of
