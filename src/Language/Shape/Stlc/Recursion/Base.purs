@@ -43,15 +43,15 @@ recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> a
   , data :: TypeId -> DataTypeMetadata -> a
-  , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> a
-  , proxyHole :: HoleID -> a
+  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> a
+  , proxyHole :: HoleId -> a
   } ->
   Type -> a
 recType rec = case _ of
   ArrowType prm alpha meta -> rec.arrow prm alpha meta
   DataType typeId meta -> rec.data typeId meta
-  HoleType holeID wkn meta -> rec.hole holeID wkn meta
-  ProxyHoleType holeID -> rec.proxyHole holeID
+  HoleType holeId wkn meta -> rec.hole holeId wkn meta
+  ProxyHoleType holeId -> rec.proxyHole holeId
 
 recTerm ::
   forall a.
