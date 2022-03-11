@@ -73,13 +73,14 @@ recDefinitions rec =
                 ]
     }
 
+{-
 recConstructor ::
   forall a.
   { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> MetaContext -> a
   } ->
   Constructor -> Context -> TypeBinding -> MetaContext -> a
 recConstructor rec constr gamma x = Rec.recConstructor rec constr gamma x <<< incrementIndentation
-
+-}
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
@@ -125,9 +126,10 @@ recArgs ::
 recArgs rec =
   Rec.recArgs
     { none: \_ -> rec.none
-    , cons: rec.cons
+    , cons: \a args meta gamma prm alpha -> rec.cons a args meta gamma prm alpha <<< incrementIndentation
     }
 
+{-
 recCase ::
   forall a.
   { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> a } ->
@@ -142,7 +144,8 @@ recCase rec =
                 , incrementIndentation
                 ]
     }
-
+-}
+{-
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> a } ->
@@ -157,7 +160,7 @@ recParameter rec =
           rec.parameter alpha meta gamma
             <<< R.modify _termScope (incrementShadow meta.name)
     }
-
+-}
 -- Scope
 type Scope id name
   = { names :: Map id name

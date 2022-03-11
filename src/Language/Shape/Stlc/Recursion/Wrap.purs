@@ -19,6 +19,7 @@ import Language.Shape.Stlc.Recursion.MetaContext as Rec
 import Undefined (undefined)
 import Unsafe as Unsafe
 
+{-
 type Wrap a
   = a -> Ch.TypeChange -> Module
 
@@ -73,8 +74,8 @@ recDefinitions rec =
               --           DataDefinition typeBnd constr meta -> undefined -- TODO: not sure what to do here...
               --           TermDefinition termBnd alpha a meta ->
               --             let
-              --               changes = undefined :: Ch.Changes {-JACOB-}
-              --               st = undefined :: List Definition /\ Map HoleId Type {-JACOB-}
+              --               changes = undefined :: Ch.Changes -- JACOB
+              --               st = undefined :: List Definition /\ Map HoleId Type -- JACOB
               --               (a' /\ displaceds /\ sub') = runState (Ch.chTerm gamma alpha changes tc a) st
               --             in
               --               (defs'' <> displaceds <> List.singleton (TermDefinition termBnd alpha a' meta)) /\ Map.union sub sub'
@@ -198,3 +199,4 @@ recParameter rec =
             wrap_prm
             (wrap_prm <<< \alpha' -> Parameter alpha' meta)
     }
+-}

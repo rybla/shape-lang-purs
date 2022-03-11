@@ -43,13 +43,6 @@ recDefinitions ::
   List Definition -> Context -> a
 recDefinitions rec = rec.definitions
 
-recConstructor ::
-  forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> a
-  } ->
-  Constructor -> Context -> TypeBinding -> a
-recConstructor = Rec.recConstructor
-
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
@@ -100,14 +93,17 @@ recArgs rec =
           _ -> Unsafe.error "impossible"
     }
 
+{-
 recCase ::
   forall a.
   { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> a } ->
   Case -> Context -> Type -> TypeId -> TermId -> a
 recCase = Rec.recCase
-
+-}
+{-
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Context -> a } ->
   Parameter -> Context -> a
 recParameter = Rec.recParameter
+-}

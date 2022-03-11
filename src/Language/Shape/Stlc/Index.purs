@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Index where
 
 import Prelude
+import Data.Array as Array
 
 type Index
   = Array IndexStep
@@ -34,4 +35,6 @@ data IndexStep
   | Here
 
 pushIndex :: Index -> IndexStep -> Index
-pushIndex ix step = ix <> [ step ]
+pushIndex = Array.snoc
+
+infix 5 pushIndex as :>

@@ -31,14 +31,6 @@ recDefinitions ::
   List Definition -> a
 recDefinitions rec = rec.definitions
 
-recConstructor ::
-  forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> a
-  } ->
-  Constructor -> a
-recConstructor rec = case _ of
-  Constructor termBnd prms meta -> rec.constructor termBnd prms meta
-
 recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> a
@@ -77,16 +69,19 @@ recArgs rec = case _ of
   NoneArgs -> rec.none
   ConsArgs a args meta -> rec.cons a args meta
 
+{-
 recCase ::
   forall a.
   { case_ :: List TermId -> Term -> CaseMetadata -> a } ->
   Case -> a
 recCase rec = case _ of
   Case termIds a meta -> rec.case_ termIds a meta
-
+-}
+{-
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> a } ->
   Parameter -> a
 recParameter rec = case _ of
   Parameter alpha meta -> rec.parameter alpha meta
+-}
