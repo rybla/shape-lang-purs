@@ -19,7 +19,6 @@ data IndexStep
   | LambdaTerm_TermId
   | LambdaTerm_Block
   | HoleTerm
-  | MatchTerm_TypeId
   | MatchTerm_Term
   | MatchTerm_Case Int
   | NeutralTerm_TermId
