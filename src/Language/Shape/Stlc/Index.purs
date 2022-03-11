@@ -1,5 +1,7 @@
 module Language.Shape.Stlc.Index where
 
+import Prelude
+
 type Index
   = Array IndexStep
 
@@ -31,3 +33,6 @@ data IndexStep
   | ArrowType_Type
   | Parameter_Type
   | Here
+
+pushIndex :: Index -> IndexStep -> Index
+pushIndex ix step = ix <> [ step ]
