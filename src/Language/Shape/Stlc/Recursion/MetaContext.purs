@@ -84,8 +84,8 @@ recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
   , data :: TypeId -> DataTypeMetadata -> Context -> MetaContext -> a
-  , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
-  , proxyHole :: HoleID -> Context -> MetaContext -> a
+  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
+  , proxyHole :: HoleId -> Context -> MetaContext -> a
   } ->
   Type -> Context -> MetaContext -> a
 recType rec alpha gamma = Rec.recType rec alpha gamma <<< incrementIndentation

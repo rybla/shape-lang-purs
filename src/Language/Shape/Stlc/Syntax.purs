@@ -39,8 +39,8 @@ data Case = Case (List TermId) Term CaseMetadata
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
   | DataType TypeId DataTypeMetadata
-  | HoleType HoleID TypeWeakening HoleTypeMetadata
-  | ProxyHoleType HoleID
+  | HoleType HoleId TypeWeakening HoleTypeMetadata
+  | ProxyHoleType HoleId
 
 data Parameter = Parameter Type ParameterMetadata
 
@@ -57,8 +57,8 @@ data TermId
 data TypeId
   = TypeId UUID
 
-data HoleID
-  = HoleID UUID
+data HoleId
+  = HoleId UUID
 
 -- Fresh
 freshTermId :: Unit -> TermId
@@ -67,8 +67,8 @@ freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
 freshTypeId :: Unit -> TypeId
 freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
 
-freshHoleID :: Unit -> HoleID
-freshHoleID _ = unsafePerformEffect $ HoleID <$> genUUID
+freshHoleId :: Unit -> HoleId
+freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
 
 -- Generic instances
 derive instance Generic Module _
@@ -84,7 +84,7 @@ derive instance Generic TypeBinding _
 derive instance Generic TermBinding _
 derive instance Generic TermId _
 derive instance Generic TypeId  _
-derive instance Generic HoleID _
+derive instance Generic HoleId _
 
 -- Show instances
 instance Show Module where show x = genericShow x 
@@ -100,14 +100,14 @@ instance Show TypeBinding where show x = genericShow x
 instance Show TermBinding where show x = genericShow x 
 instance Show TermId where show x = genericShow x 
 instance Show TypeId  where show x = genericShow x 
-instance Show HoleID where show x = genericShow x 
+instance Show HoleId where show x = genericShow x 
 
 -- Eq instances
 derive instance Eq TermId
-derive instance Eq HoleID
+derive instance Eq HoleId
 derive instance Eq TypeId
 
 -- Ord instances
 derive instance Ord TermId
 derive instance Ord TypeId
-derive instance Ord HoleID
+derive instance Ord HoleId

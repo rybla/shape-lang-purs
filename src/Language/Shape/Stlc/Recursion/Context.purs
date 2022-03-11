@@ -54,8 +54,8 @@ recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
   , data :: TypeId -> DataTypeMetadata -> Context -> a
-  , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> a
-  , proxyHole :: HoleID -> Context -> a
+  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> Context -> a
+  , proxyHole :: HoleId -> Context -> a
   } ->
   Type -> Context -> a
 recType = Rec.recType

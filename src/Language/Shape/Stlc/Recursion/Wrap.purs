@@ -74,7 +74,7 @@ recDefinitions rec =
               --           TermDefinition termBnd alpha a meta ->
               --             let
               --               changes = undefined :: Ch.Changes {-JACOB-}
-              --               st = undefined :: List Definition /\ Map HoleID Type {-JACOB-}
+              --               st = undefined :: List Definition /\ Map HoleId Type {-JACOB-}
               --               (a' /\ displaceds /\ sub') = runState (Ch.chTerm gamma alpha changes tc a) st
               --             in
               --               (defs'' <> displaceds <> List.singleton (TermDefinition termBnd alpha a' meta)) /\ Map.union sub sub'
@@ -108,8 +108,8 @@ recType ::
   forall a.
   { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> Wrap Type -> Wrap Parameter -> Wrap Type -> a
   , data :: TypeId -> DataTypeMetadata -> Context -> MetaContext -> Wrap Type -> a
-  , hole :: HoleID -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> Wrap Type -> a
-  , proxyHole :: HoleID -> Context -> MetaContext -> Wrap Type -> a
+  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> Wrap Type -> a
+  , proxyHole :: HoleId -> Context -> MetaContext -> Wrap Type -> a
   } ->
   Type -> Context -> MetaContext -> Wrap Type -> a
 recType rec =

@@ -145,8 +145,8 @@ initialModule = do
   log $ "id_termId: " <> show id_termId
   x_termId <- TermId <$> UUID.genUUID
   log $ "x_termId: " <> show x_termId
-  h1_holeId <- HoleID <$> UUID.genUUID
-  h2_holeId <- HoleID <$> UUID.genUUID
+  h1_holeId <- HoleId <$> UUID.genUUID
+  h2_holeId <- HoleId <$> UUID.genUUID
   pure
     $ Module
         ( List.fromFoldable
