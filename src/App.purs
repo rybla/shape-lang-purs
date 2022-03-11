@@ -9,6 +9,7 @@ import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Rendering
 import Language.Shape.Stlc.Syntax
 import Prelude
+import Prim hiding (Type)
 import Data.Array as Array
 import Data.List as List
 import Data.Map as Map
@@ -38,17 +39,17 @@ import Unsafe as Unsafe
 type AppSlots
   = ( editor :: H.Slot EditorQuery AppAction Int
     , console :: H.Slot ConsoleQuery AppAction Int
-    , module :: SyntaxSlot
-    , definition :: SyntaxSlot
-    , block :: SyntaxSlot
-    , constructor :: SyntaxSlot
-    , type :: SyntaxSlot
-    , term :: SyntaxSlot
-    , neutralTerm :: SyntaxSlot
-    , case_ :: SyntaxSlot
-    , parameter :: SyntaxSlot
-    , typeName :: SyntaxSlot
-    , termName :: SyntaxSlot
+    , module_ :: SyntaxSlot ModuleState
+    , definitions :: SyntaxSlot DefinitionsState
+    , block :: SyntaxSlot BlockState
+    , constructor :: SyntaxSlot ConstructorState
+    , type_ :: SyntaxSlot TypeState
+    , term :: SyntaxSlot TermState
+    , args :: SyntaxSlot ArgsState
+    , case_ :: SyntaxSlot CaseState
+    , parameter :: SyntaxSlot ParameterState
+    , typeName :: SyntaxSlot TypeNameState
+    , termName :: SyntaxSlot TermNameState
     )
 
 _editor = Proxy :: Proxy "editor"
@@ -103,7 +104,15 @@ renderEditor =
   render st =
     HH.div
       [ HP.class_ (HH.ClassName "editor") ]
-      [ HH.slot _module 0 (renderModule st.module_ Map.empty emptyMetaContext const) initialSyntaxState identity ]
+      [ HH.slot _module 0 moduleComponent stModule identity ]
+    where
+    stModule =
+      { module_: st.module_
+      , gamma: Map.empty
+      , metaGamma: emptyMetaContext
+      , wrap_module: \module' _ -> module'
+      , cursor: false
+      }
 
 renderConsole :: forall i m. H.Component ConsoleQuery i AppAction m
 renderConsole =
