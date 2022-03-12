@@ -54,7 +54,8 @@ recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
-recModule rec mod gamma = RecContext.recModule rec mod gamma <<< incrementIndentation
+-- recModule rec mod gamma = RecContext.recModule rec mod gamma <<< incrementIndentation
+recModule = RecContext.recModule
 
 type RecBlock a
   = RecContext.RecBlock (MetaContext -> a)
@@ -105,6 +106,10 @@ recDefinition ::
   , data :: RecDefinition_DataDefinition a
   } ->
   RecDefinition a
+-- RecContext.recDefinition
+--   { term: \termBinding alpha a meta gamma -> rec.term termBinding alpha a meta gamma <<< incrementIndentation
+--   , data: \typeBinding cases meta gamma -> rec.data typeBinding cases meta gamma <<< incrementIndentation
+--   }
 recDefinition = RecContext.recDefinition
 
 type RecConstructor a

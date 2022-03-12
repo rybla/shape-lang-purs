@@ -53,7 +53,6 @@ punctuation =
         , colon: ":"
         , mapsto: "=>"
         , space: " "
-        , indent: "  "
         , newline: "\n"
         }
   where
@@ -77,7 +76,7 @@ indent { indented } metaGamma =
     DOM.span
       [ Props.className "indentation" ]
       $ [ punctuation.newline ]
-      <> (Array.replicate metaGamma.indentation punctuation.indent)
+      <> (Array.replicate metaGamma.indentation (DOM.span [ Props.className "indent" ] []))
   else
     DOM.span' []
 
@@ -87,6 +86,6 @@ indentOrSpace { indented } metaGamma =
     DOM.span
       [ Props.className "indentation" ]
       $ [ punctuation.newline ]
-      <> (Array.replicate metaGamma.indentation punctuation.indent)
+      <> (Array.replicate metaGamma.indentation (DOM.span [ Props.className "indent" ] []))
   else
     DOM.span' [ punctuation.space ]

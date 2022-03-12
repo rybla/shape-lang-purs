@@ -57,7 +57,16 @@
   font-weight: bold;
 }
 
+/* keyword */
+
 .keyword {
   font-weight: bold;
   color: purple;
+}
+
+/* punctuation */
+
+.indent {
+  display: inline-block;
+  width: 10px;
 }

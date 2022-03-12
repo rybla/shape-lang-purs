@@ -87,7 +87,7 @@ programComponent this =
             DOM.span
               [ Props.className "definitions" ]
               [ intercalateHTML
-                  [ indent { indented: true } metaGamma, indent { indented: true } metaGamma ]
+                  [ punctuation.newline, punctuation.newline ]
                   $ List.toUnfoldable
                   $ List.mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) defs
               ]
