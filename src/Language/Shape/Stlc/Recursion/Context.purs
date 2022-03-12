@@ -1,5 +1,7 @@
 module Language.Shape.Stlc.Recursion.Context where
 
+import Data.Foldable
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
@@ -59,9 +61,34 @@ recDefinitions ::
   RecDefinitions a
 recDefinitions rec = rec.definitions
 
-recDefinition = undefined
+type RecDefinition a
+  = RecBase.RecDefinition (Context -> a)
 
-recConstructor = undefined
+type RecDefinition_TermDefinition a
+  = RecBase.RecDefinition_TermDefinition (Context -> a)
+
+type RecDefinition_DataDefinition a
+  = RecBase.RecDefinition_DataDefinition (Context -> a)
+
+recDefinition ::
+  forall a.
+  { term :: RecDefinition_TermDefinition a
+  , data :: RecDefinition_DataDefinition a
+  } ->
+  RecDefinition a
+recDefinition = RecBase.recDefinition
+
+type RecConstructor a
+  = RecBase.RecConstructor (Context -> a)
+
+type RecConstructor_Constructor a
+  = RecBase.RecConstructor_Constructor (Context -> a)
+
+recConstructor ::
+  forall a.
+  { constructor :: RecConstructor_Constructor a } ->
+  RecConstructor a
+recConstructor = RecBase.recConstructor
 
 type RecType a
   = RecBase.RecType (Context -> a)
@@ -152,17 +179,38 @@ recArgs rec =
           _ -> Unsafe.error "impossible"
     }
 
-{-
+type RecCase a
+  = RecBase.RecCase (Context -> a)
+
+type RecCase_Case a
+  = RecBase.RecCase_Case (Context -> a)
+
 recCase ::
   forall a.
-  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> a } ->
-  Case -> Context -> Type -> TypeId -> TermId -> a
-recCase = RecBase.recCase
--}
-{-
+  { case_ :: RecCase_Case a } ->
+  RecCase a
+recCase rec =
+  RecBase.recCase
+    { case_:
+        \termIds a meta typeId constrId gamma ->
+          let
+            prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+          in
+            rec.case_ termIds a meta typeId constrId
+              $ foldl
+                  (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
+                  gamma
+                  (List.zip termIds prms)
+    }
+
+type RecParameter a
+  = RecBase.RecParameter (Context -> a)
+
+type RecParameter_Parameter a
+  = RecBase.RecParameter_Parameter (Context -> a)
+
 recParameter ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> Context -> a } ->
-  Parameter -> Context -> a
+  { parameter :: RecParameter_Parameter a } ->
+  RecParameter a
 recParameter = RecBase.recParameter
--}

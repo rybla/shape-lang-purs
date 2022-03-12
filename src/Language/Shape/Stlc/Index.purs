@@ -30,7 +30,7 @@ data IndexStep
   | NoneArgs
   | ConsArgs_Term
   | ConsArgs_Args
-  | Case_TermId
+  | Case_TermId Int
   | Case_Term
   | ArrowType_Parameter
   | ArrowType_Type

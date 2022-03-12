@@ -2,6 +2,7 @@ module Language.Shape.Stlc.Typing where
 
 import Data.Foldable
 import Data.Maybe
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
@@ -11,6 +12,7 @@ import Data.List as List
 import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Data.UUID as UUID
+import Undefined (undefined)
 import Unsafe (error)
 import Unsafe as Unsafe
 
@@ -24,7 +26,7 @@ replaceHolesWithProxy (DataType i md) = DataType i md
 
 replaceHolesWithProxy (ProxyHoleType i) = error "This probably shouldn't happen"
 
-replaceHolesWithProxy (HoleType id wea md) = ProxyHoleType id
+replaceHolesWithProxy (HoleType id wkn md) = ProxyHoleType id
 
 addDefinitionToContext :: Definition -> Context -> Context
 addDefinitionToContext = case _ of
@@ -46,3 +48,6 @@ typeOfConstructor prms typeId =
     (\prm beta -> ArrowType prm beta defaultArrowTypeMetadata)
     (DataType typeId defaultDataTypeMetadata)
     prms
+
+flattenArrowType :: Type -> List Parameter /\ Type
+flattenArrowType = undefined

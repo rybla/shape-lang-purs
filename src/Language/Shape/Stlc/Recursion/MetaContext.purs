@@ -89,18 +89,37 @@ recDefinitions rec =
                 ]
     }
 
-recDefinition = undefined
+type RecDefinition a
+  = RecContext.RecDefinition (MetaContext -> a)
 
-recConstructor = undefined
+type RecDefinition_TermDefinition a
+  = RecContext.RecDefinition_TermDefinition (MetaContext -> a)
 
-{-
+type RecDefinition_DataDefinition a
+  = RecContext.RecDefinition_DataDefinition (MetaContext -> a)
+
+-- registration already handled by recDefinitions
+recDefinition ::
+  forall a.
+  { term :: RecDefinition_TermDefinition a
+  , data :: RecDefinition_DataDefinition a
+  } ->
+  RecDefinition a
+recDefinition = RecContext.recDefinition
+
+type RecConstructor a
+  = RecContext.RecConstructor (MetaContext -> a)
+
+type RecConstructor_Constructor a
+  = RecContext.RecConstructor_Constructor (MetaContext -> a)
+
+-- registration already handled by recDefinitions
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> MetaContext -> TypeBinding -> a
-  } ->
-  Constructor -> Context -> TypeBinding -> MetaContext -> a
-recConstructor rec constr gamma x = RecContext.recConstructor rec constr gamma x <<< incrementIndentation
--}
+  { constructor :: RecConstructor_Constructor a } ->
+  RecConstructor a
+recConstructor = RecContext.recConstructor
+
 type RecType a
   = RecContext.RecType (MetaContext -> a)
 
@@ -188,38 +207,51 @@ recArgs rec =
     , cons: \a args meta gamma prm alpha -> rec.cons a args meta gamma prm alpha <<< incrementIndentation
     }
 
-{-
+type RecCase a
+  = RecContext.RecCase (MetaContext -> a)
+
+type RecCase_Case a
+  = RecContext.RecCase_Case (MetaContext -> a)
+
 recCase ::
   forall a.
-  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> a } ->
-  Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> a
+  { case_ :: RecCase_Case a } ->
+  RecCase a
 recCase rec =
   RecContext.recCase
     { case_:
-        \termIds a meta gamma alpha typeId termId ->
-          rec.case_ termIds a meta gamma alpha typeId termId
-            <<< foldl (>>>) identity
-                [ undefined -- TODO: registerTermIds termIds
-                , incrementIndentation
-                ]
+        \termIds a meta typeId constrId gamma ->
+          let
+            prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+          in
+            rec.case_ termIds a meta typeId constrId gamma
+              <<< foldl (>>>) identity
+                  [ registerTermIds (List.zip termIds (map (\(Parameter _ { name }) -> name) prms))
+                  , incrementIndentation
+                  ]
     }
--}
-{-
+
+type RecParameter a
+  = RecContext.RecParameter (MetaContext -> a)
+
+type RecParameter_Parameter a
+  = RecContext.RecParameter_Parameter (MetaContext -> a)
+
 recParameter ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> a } ->
-  Parameter -> Context -> MetaContext -> a
+  { parameter :: RecParameter_Parameter a } ->
+  RecParameter a
 recParameter rec =
   RecContext.recParameter
     { parameter:
         \alpha meta gamma ->
-          -- let
-          --   _ = Debug.trace ("incrementing shadow for " <> show meta.name) identity
-          -- in
           rec.parameter alpha meta gamma
-            <<< R.modify _termScope (incrementShadow meta.name)
+            <<< foldl (>>>) identity
+                [ registerParameterName meta.name
+                , incrementIndentation
+                ]
     }
--}
+
 -- Scope
 type Scope id name
   = { names :: Map id name
@@ -287,6 +319,9 @@ registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerNa
 
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ foldl (flip registerTermBinding)
+
+registerParameterName :: TermName -> MetaContext -> MetaContext
+registerParameterName name = R.modify _termScope $ incrementShadow name
 
 registerTermId :: TermId -> TermName -> MetaContext -> MetaContext
 registerTermId id name = R.modify _termScope $ registerId id name

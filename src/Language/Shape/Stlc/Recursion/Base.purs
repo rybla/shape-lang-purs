@@ -45,9 +45,34 @@ recDefinitions ::
   RecDefinitions a
 recDefinitions rec = rec.definitions
 
-recDefinition = undefined
+type RecDefinition a
+  = Definition -> a
 
-recConstructor = undefined
+type RecDefinition_TermDefinition a
+  = TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
+
+type RecDefinition_DataDefinition a
+  = TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
+
+recDefinition ::
+  forall a.
+  { term :: RecDefinition_TermDefinition a
+  , data :: RecDefinition_DataDefinition a
+  } ->
+  RecDefinition a
+recDefinition rec = case _ of
+  TermDefinition termBinding alpha a meta -> rec.term termBinding alpha a meta
+  DataDefinition typeBinding constrs meta -> rec.data typeBinding constrs meta
+
+type RecConstructor a
+  = Constructor -> TypeId -> a
+
+type RecConstructor_Constructor a
+  = TermBinding -> List Parameter -> ConstructorMetadata -> TypeId -> a
+
+recConstructor :: forall a. { constructor :: RecConstructor_Constructor a } -> RecConstructor a
+recConstructor rec constr typeId = case constr of
+  Constructor termBinding prms meta -> rec.constructor termBinding prms meta typeId
 
 type RecType a
   = Type -> a
@@ -127,17 +152,17 @@ recArgs rec = case _ of
   ConsArgs a args meta -> rec.cons a args meta
 
 type RecCase a
-  = Case -> a
+  = Case -> TypeId -> TermId -> a
 
 type RecCase_Case a
-  = List TermId -> Term -> CaseMetadata -> a
+  = List TermId -> Term -> CaseMetadata -> TypeId -> TermId -> a
 
 recCase ::
   forall a.
   { case_ :: RecCase_Case a } ->
   RecCase a
-recCase rec = case _ of
-  Case termIds a meta -> rec.case_ termIds a meta
+recCase rec case_ typeId constrId = case case_ of
+  Case termIds a meta -> rec.case_ termIds a meta typeId constrId
 
 type RecParameter a
   = Parameter -> a
