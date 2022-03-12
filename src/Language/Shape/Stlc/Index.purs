@@ -32,7 +32,6 @@ data IndexStep
   | ArrowType_Parameter
   | ArrowType_Type
   | Parameter_Type
-  | Here
 
 pushIndex :: Index -> IndexStep -> Index
 pushIndex = Array.snoc
