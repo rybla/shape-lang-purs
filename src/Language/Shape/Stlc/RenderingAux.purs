@@ -16,10 +16,12 @@ import Data.Tuple as Tuple
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Typing (Context)
 import Prim.Row (class Cons)
+import React as React
+import React.DOM as DOM
+import React.DOM.Props as Props
 import Type.Proxy (Proxy(..))
 import Unsafe as Unsafe
 
-{-
 keyword :: _
 keyword =
   fromHomogeneous $ (pure makeKeyword)
@@ -32,9 +34,9 @@ keyword =
         }
   where
   makeKeyword label =
-    HH.span
-      [ HP.class_ (HH.ClassName $ List.intercalate " " [ "keyword", label ]) ]
-      [ HH.text label ]
+    DOM.span
+      [ Props.className ("keyword " <> label) ]
+      [ DOM.text label ]
 
 punctuation :: _
 punctuation =
@@ -57,33 +59,32 @@ punctuation =
   where
   makePunctuation label =
     if label == "\n" then
-      HH.br_
+      DOM.br'
     else
-      HH.span
-        [ HP.class_ (HH.ClassName "punctuation") ]
-        [ HH.text label ]
+      DOM.span
+        [ Props.className "punctuation" ]
+        [ DOM.text label ]
 
-intercalateHTML inter = HH.span_ <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
+intercalateHTML inter = DOM.span' <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
 
-intersperseLeftHTML inter = HH.span_ <<< List.toUnfoldable <<< List.foldMap (\x -> inter <> (List.singleton x))
+intersperseLeftHTML inter = DOM.span' <<< List.toUnfoldable <<< List.foldMap (\x -> inter <> (List.singleton x))
 
-indent :: forall r w i. { indented :: Boolean | r } -> MetaContext -> HH.HTML w i
+indent :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indent { indented } metaGamma =
   if indented then
-    HH.span
-      [ HP.class_ (HH.ClassName "indentation") ]
+    DOM.span
+      [ Props.className "indentation" ]
       $ [ punctuation.newline ]
       <> (Array.replicate metaGamma.indentation punctuation.indent)
   else
-    HH.span_ []
+    DOM.span' []
 
-indentOrSpace :: forall r w i. { indented :: Boolean | r } -> MetaContext -> HH.HTML w i
+indentOrSpace :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indentOrSpace { indented } metaGamma =
   if indented then
-    HH.span
-      [ HP.class_ (HH.ClassName "indentation") ]
+    DOM.span
+      [ Props.className "indentation" ]
       $ [ punctuation.newline ]
       <> (Array.replicate metaGamma.indentation punctuation.indent)
   else
-    HH.span_ [ punctuation.space ]
--}
+    DOM.span' [ punctuation.space ]
