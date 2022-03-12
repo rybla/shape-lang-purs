@@ -69,6 +69,8 @@ intercalateHTML inter = DOM.span' <<< Array.intercalate inter <<< map Array.sing
 
 intersperseLeftHTML inter = DOM.span' <<< Array.foldMap (\x -> inter <> [ x ])
 
+intersperseRightHTML inter = DOM.span' <<< Array.foldMap (\x -> [ x ] <> inter)
+
 indent :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indent { indented } metaGamma =
   if indented then

@@ -123,7 +123,11 @@ programComponent this =
               , punctuation.typedef
               , punctuation.space
               , DOM.span'
-                  (Array.fromFoldable $ List.mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) constrs)
+                  [ intersperseLeftHTML
+                      [ indentOrSpace { indented: true } metaGamma, punctuation.alt, punctuation.space ]
+                      $ Array.fromFoldable
+                      $ List.mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) constrs
+                  ]
               ]
       }
 
@@ -134,27 +138,25 @@ programComponent this =
           \termBinding prms meta typeId gamma metaGamma ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
             DOM.span
               [ Props.className "constructor" ]
-              $ [ punctuation.alt
-                , punctuation.space
-                , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+              $ [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
                 , punctuation.space
                 , punctuation.colon
+                , punctuation.space
                 ]
               <> ( if List.length prms == 0 then
                     []
                   else
                     [ DOM.span
                         [ Props.className "constructor parameters" ]
-                        [ intersperseLeftHTML
+                        [ intersperseRightHTML
                             [ punctuation.space, punctuation.arrow, punctuation.space ]
                             $ Array.fromFoldable
                             $ List.mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
                         ]
+                    , punctuation.space
                     ]
                 )
-              <> [ punctuation.space
-                , renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma
-                ]
+              <> [ renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma ]
       }
 
   renderType :: RecIndex.RecType React.ReactElement
