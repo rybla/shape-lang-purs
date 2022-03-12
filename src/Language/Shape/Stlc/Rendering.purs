@@ -87,7 +87,7 @@ programComponent this =
             DOM.span
               [ Props.className "definitions" ]
               [ intercalateHTML
-                  [ indent { indented: true } metaGamma ]
+                  [ indent { indented: true } metaGamma, indent { indented: true } metaGamma ]
                   $ List.toUnfoldable
                   $ List.mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) defs
               ]
@@ -166,13 +166,11 @@ programComponent this =
           \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
             DOM.span
               [ Props.className "arrow type" ]
-              [ punctuation.lparen
-              , renderParameter prm gamma metaGamma ix_prm cursor_prm
+              [ renderParameter prm gamma metaGamma ix_prm cursor_prm
               , punctuation.space
               , punctuation.arrow
               , punctuation.space
               , renderType beta gamma metaGamma ix_beta cursor_beta
-              , punctuation.rparen
               ]
       , data:
           \typeId meta gamma metaGamma ix isSelected ->
@@ -198,13 +196,11 @@ programComponent this =
           \prm beta meta gamma metaGamma ->
             DOM.span
               [ Props.className "type arrow" ]
-              [ punctuation.lparen
-              , renderParameter' prm gamma metaGamma
+              [ renderParameter' prm gamma metaGamma
               , punctuation.space
               , punctuation.arrow
               , punctuation.space
               , renderType' beta gamma metaGamma
-              , punctuation.rparen
               ]
       , data:
           \typeId meta gamma metaGamma ->
@@ -230,13 +226,11 @@ programComponent this =
           \termId block meta gamma prm beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
             DOM.span
               [ Props.className "lambda term" ]
-              [ punctuation.lparen
-              , renderTermId termId gamma metaGamma ix_termId cursor_termId
+              [ renderTermId termId gamma metaGamma ix_termId cursor_termId
               , punctuation.space
               , punctuation.mapsto
               , punctuation.space
               , renderBlock block gamma beta metaGamma ix_block cursor_block
-              , punctuation.rparen
               ]
       , neutral:
           \termId args meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_args cursor_args ->
@@ -259,9 +253,7 @@ programComponent this =
                   [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
                       $ Array.fromFoldable
                       $ List.mapWithIndex
-                          ( \i case_ ->
-                              renderCase case_ typeId (List.index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i)
-                          )
+                          (\i case_ -> renderCase case_ typeId (List.index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
                           cases
                   ]
               ]
@@ -281,9 +273,10 @@ programComponent this =
           \a args meta gamma (Parameter alpha _) beta metaGamma ix isSelected ix_a cursor_a ix_args cursor_args ->
             DOM.span
               [ Props.className "args" ]
-              $ [ punctuation.space
-                , renderTerm a gamma alpha metaGamma ix_a cursor_a
-                ]
+              $ [ punctuation.space ]
+              <> case a of
+                  LambdaTerm _ _ _ -> [ punctuation.lparen, renderTerm a gamma alpha metaGamma ix_a cursor_a, punctuation.lparen ]
+                  _ -> [ renderTerm a gamma alpha metaGamma ix_a cursor_a ]
               <> if args == Syntax.NoneArgs then
                   []
                 else
@@ -364,7 +357,7 @@ programComponent this =
     RecIndex.recTermId
       { termId:
           \termId gamma metaGamma ix isSelected ->
-            DOM.span [ Props.className "termId" ] [ printTermId termId metaGamma ]
+            DOM.span' [ printTermId termId metaGamma ]
       }
 
   printTypeId :: TypeId -> MetaContext -> React.ReactElement

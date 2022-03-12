@@ -45,7 +45,11 @@
   color: darkgreen;
 }
 
-.typeName {
+.termId {
+  color: darkgreen;
+}
+
+.typeId {
   color: blue;
 }
 
