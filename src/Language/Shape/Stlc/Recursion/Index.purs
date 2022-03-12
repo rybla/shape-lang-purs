@@ -20,6 +20,7 @@ import Undefined (undefined)
 import Unsafe as Unsafe
 import Language.Shape.Stlc.Index
 
+-- TODO: add ix_cursor :: Maybe Index to traversal, keeping track of whether the cursor is here or at child of here
 -- Recursion principles for handling indexing
 recModule ::
   forall a.
