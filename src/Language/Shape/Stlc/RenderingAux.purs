@@ -13,15 +13,13 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Tuple as Tuple
-import Halogen as H
-import Halogen.HTML as HH
-import Halogen.HTML.Properties as HP
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Typing (Context)
 import Prim.Row (class Cons)
 import Type.Proxy (Proxy(..))
 import Unsafe as Unsafe
 
+{-
 keyword :: _
 keyword =
   fromHomogeneous $ (pure makeKeyword)
@@ -88,3 +86,4 @@ indentOrSpace { indented } metaGamma =
       <> (Array.replicate metaGamma.indentation punctuation.indent)
   else
     HH.span_ [ punctuation.space ]
+-}

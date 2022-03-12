@@ -7,7 +7,6 @@
   , "effect"
   , "either"
   , "foldable-traversable"
-  , "halogen"
   , "homogeneous"
   , "lists"
   , "maybe"
