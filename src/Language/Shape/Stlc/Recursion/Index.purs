@@ -40,11 +40,10 @@ checkCursorHere = case _ of
   Nothing -> false
   Just ix -> Array.null ix
 
--- TODO: add ix_cursor :: Cursor to traversal, keeping track of whether the cursor is here or at child of here
 -- Recursion principles for handling indexing
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> Index -> (Int -> Index) -> Boolean -> (Int -> Cursor) -> a
+  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> Index -> (Int -> Index) -> Boolean -> (Int -> Boolean) -> (Int -> Cursor) -> a
   } ->
   Module -> Context -> MetaContext -> Index -> Cursor -> a
 recModule rec =
@@ -55,12 +54,13 @@ recModule rec =
             ix
             (\i -> ix :> Module_Definition i)
             (checkCursorHere cursor)
+            (\i -> checkCursorHere (checkCursorStep (Module_Definition i) cursor))
             (\i -> checkCursorStep (Module_Definition i) cursor)
     }
 
 recBlock ::
   forall a.
-  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> Index -> (Int -> Index) -> Index -> Boolean -> (Int -> Cursor) -> Cursor -> a
+  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> Index -> (Int -> Index) -> Index -> Boolean -> (Int -> Boolean) -> (Int -> Cursor) -> Cursor -> a
   } ->
   Block -> Context -> Type -> MetaContext -> Index -> Cursor -> a
 recBlock rec =
@@ -72,6 +72,7 @@ recBlock rec =
             (\i -> ix :> Block_Definition i)
             (ix :> Block_Term)
             (checkCursorHere cursor)
+            (\i -> checkCursorHere (checkCursorStep (Block_Definition i) cursor))
             (\i -> checkCursorStep (Block_Definition i) cursor)
             (checkCursorStep Block_Term cursor)
     }
