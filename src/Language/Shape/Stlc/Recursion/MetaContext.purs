@@ -220,11 +220,11 @@ recCase ::
 recCase rec =
   RecContext.recCase
     { case_:
-        \termIds a meta typeId constrId gamma ->
+        \termIds a meta typeId constrId gamma alpha ->
           let
             prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
-            rec.case_ termIds a meta typeId constrId gamma
+            rec.case_ termIds a meta typeId constrId gamma alpha
               <<< foldl (>>>) identity
                   [ registerTermIds (List.zip termIds (map (\(Parameter _ { name }) -> name) prms))
                   , incrementIndentation

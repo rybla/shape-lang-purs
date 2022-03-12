@@ -180,10 +180,10 @@ recArgs rec =
     }
 
 type RecCase a
-  = RecBase.RecCase (Context -> a)
+  = RecBase.RecCase (Context -> Type -> a)
 
 type RecCase_Case a
-  = RecBase.RecCase_Case (Context -> a)
+  = RecBase.RecCase_Case (Context -> Type -> a)
 
 recCase ::
   forall a.
@@ -192,15 +192,17 @@ recCase ::
 recCase rec =
   RecBase.recCase
     { case_:
-        \termIds a meta typeId constrId gamma ->
+        \termIds a meta typeId constrId gamma alpha ->
           let
             prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
             rec.case_ termIds a meta typeId constrId
-              $ foldl
+              ( foldl
                   (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
                   gamma
                   (List.zip termIds prms)
+              )
+              alpha
     }
 
 type RecParameter a

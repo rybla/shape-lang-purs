@@ -153,8 +153,8 @@ type RecDefinition_DataDefinition a
       ( Index -> -- module/block
         Index -> -- definition
         Boolean -> -- definition
-        Index -> -- typeId
-        Cursor -> -- typeId
+        Index -> -- typeBinding
+        Cursor -> -- typeBinding
         (Int -> Index) -> -- constructors
         (Int -> Cursor) -> -- constructors
         a
@@ -453,7 +453,7 @@ type RecCase a
 
 type RecCase_Case a
   = RecMetaContext.RecCase_Case
-      ( Index ->
+      ( Index -> -- match
         Index -> -- case
         Boolean -> -- case
         (Int -> Index) -> -- termId
@@ -470,8 +470,8 @@ recCase ::
 recCase rec =
   RecMetaContext.recCase
     { case_:
-        \termIds a meta typeId constrId gamma metaGamma ix_match ix cursor ->
-          rec.case_ termIds a meta typeId constrId gamma metaGamma
+        \termIds a meta typeId constrId gamma alpha metaGamma ix_match ix cursor ->
+          rec.case_ termIds a meta typeId constrId gamma alpha metaGamma
             -- match
             ix_match
             -- case 
@@ -514,31 +514,37 @@ recParameter rec =
             (checkCursorStep Parameter_Type cursor)
     }
 
-{-
-recCase ::
+type RecTypeBinding a
+  = TypeBinding -> Context -> MetaContext -> Index -> Cursor -> a
+
+type RecTypeBinding_TypeBinding a
+  = TypeId -> TypeBindingMetadata -> Context -> MetaContext -> Index -> Boolean -> a
+
+recTypeBinding ::
   forall a.
-  { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> Index -> Index -> a } ->
-  Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> Index -> a
-recCase rec =
-  RecMetaContext.recCase
-    { case_:
-        \termBnds a meta gamma alpha typeId termId metaGamma ix_case ->
-          rec.case_ termBnds a meta gamma alpha typeId termId metaGamma
-            ix_case
-            (ix_case <<< \a' -> Case termBnds a' meta)
-    }
--}
-{-
-recParameter ::
+  { typeBinding :: RecTypeBinding_TypeBinding a
+  } ->
+  RecTypeBinding a
+recTypeBinding rec (TypeBinding typeId meta) gamma metaGamma ix cursor = rec.typeBinding typeId meta gamma metaGamma ix (checkCursorHere cursor)
+
+type RecTermBinding a
+  = TermBinding -> Context -> MetaContext -> Index -> Cursor -> a
+
+type RecTermBinding_TermBinding a
+  = TermId -> TermBindingMetadata -> Context -> MetaContext -> Index -> Boolean -> a
+
+recTermBinding ::
   forall a.
-  { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> Index -> Index -> a } ->
-  Parameter -> Context -> MetaContext -> Index -> a
-recParameter rec =
-  RecMetaContext.recParameter
-    { parameter:
-        \alpha meta gamma metaGamma ix_prm ->
-          rec.parameter alpha meta gamma metaGamma
-            ix_prm
-            (ix_prm <<< \alpha' -> Parameter alpha' meta)
-    }
--}
+  { termBinding :: RecTermBinding_TermBinding a
+  } ->
+  RecTermBinding a
+recTermBinding rec (TermBinding termId meta) gamma metaGamma ix cursor = rec.termBinding termId meta gamma metaGamma ix (checkCursorHere cursor)
+
+type RecTermId a
+  = TermId -> Context -> MetaContext -> Index -> Cursor -> a
+
+type RecTermId_TermId a
+  = TermId -> Context -> MetaContext -> Index -> Boolean -> a
+
+recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
+recTermId rec termId gamma metaGamma ix cursor = rec.termId termId gamma metaGamma ix (checkCursorHere cursor)
