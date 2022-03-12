@@ -5,6 +5,7 @@ import Effect (Effect)
 import Language.Shape.Stlc.Rendering (programClass)
 import React as React
 import React.DOM as DOM
+import React.DOM.Props as Props
 
 type AppProps
   = {}
@@ -29,6 +30,7 @@ appComponent this =
 
   render :: AppState -> React.ReactElement
   render st =
-    DOM.div'
+    DOM.div
+      [ Props.className "app" ]
       [ React.createLeafElement programClass {}
       ]
