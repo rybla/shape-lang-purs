@@ -1,7 +1,10 @@
 module Language.Shape.Stlc.Rendering where
 
 import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Index as Index
+import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Syntax as Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
@@ -20,6 +23,7 @@ import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
 import React as React
 import React.DOM as DOM
 import React.DOM.Props as Props
+import Undefined (undefined)
 
 type ProgramProps
   = {}
@@ -82,10 +86,13 @@ programComponent this =
           \defs gamma metaGamma ix_mod ix_def_at cursor_def_at ->
             DOM.span
               [ Props.className "definitions" ]
-              (Array.fromFoldable $ List.mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) defs)
+              [ intercalateHTML
+                  [ indent { indented: true } metaGamma ]
+                  $ List.toUnfoldable
+                  $ List.mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) defs
+              ]
       }
 
-  -- renderDefinitions defs gama metaGamma ix ix_def_at cursor_at =
   renderDefinition :: RecIndex.RecDefinition React.ReactElement
   renderDefinition =
     RecIndex.recDefinition
@@ -93,15 +100,28 @@ programComponent this =
           \termBinding alpha a meta gamma metaGamma ix_parent ix isSelected ix_termBinding cursor_termBinding ix_alpha cursor_alpha ix_a cursor_a ->
             DOM.span
               [ Props.className "term definition" ]
-              [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+              [ keyword.let_
+              , punctuation.space
+              , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+              , punctuation.space
+              , punctuation.colon
+              , punctuation.space
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
+              , punctuation.space
+              , punctuation.termdef
+              , punctuation.space
               , renderTerm a gamma alpha metaGamma ix_a cursor_a
               ]
       , data:
           \typeBinding@(TypeBinding typeId _) constrs meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constr_at cursor_constr_at ->
             DOM.span
               [ Props.className "data definition" ]
-              [ renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding
+              [ keyword.data_
+              , punctuation.space
+              , renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding
+              , punctuation.space
+              , punctuation.typedef
+              , punctuation.space
               , DOM.span'
                   (Array.fromFoldable $ List.mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) constrs)
               ]
@@ -114,12 +134,27 @@ programComponent this =
           \termBinding prms meta typeId gamma metaGamma ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
             DOM.span
               [ Props.className "constructor" ]
-              [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
-              , DOM.span
-                  [ Props.className "constructor parameters" ]
-                  (Array.fromFoldable $ List.mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms)
-              , renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma
-              ]
+              $ [ punctuation.alt
+                , punctuation.space
+                , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                , punctuation.space
+                , punctuation.colon
+                ]
+              <> ( if List.length prms == 0 then
+                    []
+                  else
+                    [ DOM.span
+                        [ Props.className "constructor parameters" ]
+                        [ intersperseLeftHTML
+                            [ punctuation.space, punctuation.arrow, punctuation.space ]
+                            $ Array.fromFoldable
+                            $ List.mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
+                        ]
+                    ]
+                )
+              <> [ punctuation.space
+                , renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma
+                ]
       }
 
   renderType :: RecIndex.RecType React.ReactElement
@@ -129,8 +164,13 @@ programComponent this =
           \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
             DOM.span
               [ Props.className "arrow type" ]
-              [ renderParameter prm gamma metaGamma ix_prm cursor_prm
+              [ punctuation.lparen
+              , renderParameter prm gamma metaGamma ix_prm cursor_prm
+              , punctuation.space
+              , punctuation.arrow
+              , punctuation.space
               , renderType beta gamma metaGamma ix_beta cursor_beta
+              , punctuation.rparen
               ]
       , data:
           \typeId meta gamma metaGamma ix isSelected ->
@@ -156,8 +196,13 @@ programComponent this =
           \prm beta meta gamma metaGamma ->
             DOM.span
               [ Props.className "type arrow" ]
-              [ renderParameter' prm gamma metaGamma
+              [ punctuation.lparen
+              , renderParameter' prm gamma metaGamma
+              , punctuation.space
+              , punctuation.arrow
+              , punctuation.space
               , renderType' beta gamma metaGamma
+              , punctuation.rparen
               ]
       , data:
           \typeId meta gamma metaGamma ->
@@ -183,8 +228,13 @@ programComponent this =
           \termId block meta gamma prm beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
             DOM.span
               [ Props.className "lambda term" ]
-              [ renderTermId termId gamma metaGamma ix_termId cursor_termId
+              [ punctuation.lparen
+              , renderTermId termId gamma metaGamma ix_termId cursor_termId
+              , punctuation.space
+              , punctuation.mapsto
+              , punctuation.space
               , renderBlock block gamma beta metaGamma ix_block cursor_block
+              , punctuation.rparen
               ]
       , neutral:
           \termId args meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_args cursor_args ->
@@ -197,15 +247,21 @@ programComponent this =
           \typeId a cases meta gamma alpha metaGamma constrIds ix isSelected ix_term cursor_term ix_case_at cursor_case_at ->
             DOM.span
               [ Props.className "match term" ]
-              [ renderTerm a gamma (DataType typeId defaultDataTypeMetadata) metaGamma ix_term cursor_term
-              , DOM.span'
-                  ( Array.fromFoldable
+              [ keyword.match
+              , punctuation.space
+              , renderTerm a gamma (DataType typeId defaultDataTypeMetadata) metaGamma ix_term cursor_term
+              , punctuation.space
+              , keyword.with
+              , DOM.span
+                  [ Props.className "match cases" ]
+                  [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
+                      $ Array.fromFoldable
                       $ List.mapWithIndex
                           ( \i case_ ->
                               renderCase case_ typeId (List.index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i)
                           )
                           cases
-                  )
+                  ]
               ]
       , hole:
           \holeId meta gamma metaGamma ix isSelected ->
@@ -214,6 +270,7 @@ programComponent this =
               [ DOM.text "?" ]
       }
 
+  -- space before
   renderArgs :: RecIndex.RecArgs React.ReactElement
   renderArgs =
     RecIndex.recArgs
@@ -222,9 +279,15 @@ programComponent this =
           \a args meta gamma (Parameter alpha _) beta metaGamma ix isSelected ix_a cursor_a ix_args cursor_args ->
             DOM.span
               [ Props.className "args" ]
-              [ renderTerm a gamma alpha metaGamma ix_a cursor_a
-              , renderArgs args gamma beta metaGamma ix_args cursor_args
-              ]
+              $ [ punctuation.space
+                , renderTerm a gamma alpha metaGamma ix_a cursor_a
+                ]
+              <> if args == Syntax.NoneArgs then
+                  []
+                else
+                  [ punctuation.space
+                  , renderArgs args gamma beta metaGamma ix_args cursor_args
+                  ]
       }
 
   renderCase :: RecIndex.RecCase React.ReactElement
@@ -236,7 +299,10 @@ programComponent this =
               [ Props.className "case" ]
               [ DOM.span
                   [ Props.className "case termIds" ]
-                  (Array.fromFoldable $ List.mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) termIds)
+                  [ intercalateHTML [ punctuation.space ]
+                      $ Array.fromFoldable
+                      $ List.mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) termIds
+                  ]
               , renderTerm term gamma alpha metaGamma ix_term cursor_term
               ]
       }
@@ -248,8 +314,13 @@ programComponent this =
           \alpha meta gamma metaGamma ix isSelected ix_alpha cursor_alpha ->
             DOM.span
               [ Props.className "parameter" ]
-              [ printTermName meta.name metaGamma
+              [ punctuation.lparen
+              , printTermName meta.name metaGamma
+              , punctuation.space
+              , punctuation.colon
+              , punctuation.space
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
+              , punctuation.rparen
               ]
       }
 
@@ -260,8 +331,13 @@ programComponent this =
           \alpha meta gamma metaGamma ->
             DOM.span
               [ Props.className "parameter" ]
-              [ printTermName meta.name metaGamma
+              [ punctuation.lparen
+              , printTermName meta.name metaGamma
+              , punctuation.space
+              , punctuation.colon
+              , punctuation.space
               , renderType' alpha gamma metaGamma
+              , punctuation.rparen
               ]
       }
 

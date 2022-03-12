@@ -65,9 +65,9 @@ punctuation =
         [ Props.className "punctuation" ]
         [ DOM.text label ]
 
-intercalateHTML inter = DOM.span' <<< List.toUnfoldable <<< List.intercalate inter <<< map List.singleton
+intercalateHTML inter = DOM.span' <<< Array.intercalate inter <<< map Array.singleton
 
-intersperseLeftHTML inter = DOM.span' <<< List.toUnfoldable <<< List.foldMap (\x -> inter <> (List.singleton x))
+intersperseLeftHTML inter = DOM.span' <<< Array.foldMap (\x -> inter <> [ x ])
 
 indent :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indent { indented } metaGamma =

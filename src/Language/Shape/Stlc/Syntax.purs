@@ -103,6 +103,17 @@ instance Show TypeId  where show x = genericShow x
 instance Show HoleId where show x = genericShow x 
 
 -- Eq instances
+derive instance Eq Module
+derive instance Eq Block
+derive instance Eq Definition
+derive instance Eq Constructor
+derive instance Eq Type
+derive instance Eq Term
+derive instance Eq Args
+derive instance Eq Case
+derive instance Eq Parameter
+derive instance Eq TypeBinding
+derive instance Eq TermBinding
 derive instance Eq TermId
 derive instance Eq HoleId
 derive instance Eq TypeId
