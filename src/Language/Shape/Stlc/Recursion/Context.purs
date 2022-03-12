@@ -8,61 +8,111 @@ import Prim hiding (Type)
 import Data.List (List)
 import Data.List as List
 import Data.Map.Unsafe as Map
-import Language.Shape.Stlc.Recursion.Base as Rec
+import Language.Shape.Stlc.Recursion.Base as RecBase
 import Undefined (undefined)
 import Unsafe as Unsafe
 
 -- Recursion principles for handling context & type
+type RecModule a
+  = RecBase.RecModule (Context -> a)
+
+type RecModule_Module a
+  = RecBase.RecModule_Module (Context -> a)
+
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> a
-  } ->
-  Module -> Context -> a
+  { module_ :: RecModule_Module a } ->
+  RecModule a
 recModule rec =
-  Rec.recModule
+  RecBase.recModule
     { module_:
         \defs meta gamma ->
           rec.module_ defs meta (addDefinitionsToContext defs gamma)
     }
 
+type RecBlock a
+  = RecBase.RecBlock (Context -> Type -> a)
+
+type RecBlock_Block a
+  = RecBase.RecBlock_Block (Context -> Type -> a)
+
 recBlock ::
   forall a.
-  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> a
-  } ->
-  Block -> Context -> Type -> a
+  { block :: RecBlock_Block a } ->
+  RecBlock a
 recBlock rec =
-  Rec.recBlock
+  RecBase.recBlock
     { block:
         \defs a meta gamma alpha ->
           rec.block defs a meta (addDefinitionsToContext defs gamma) alpha
     }
 
+type RecDefinitions a
+  = RecBase.RecDefinitions (Context -> a)
+
+type RecDefinitions_Definitions a
+  = RecBase.RecDefinitions_Definitions (Context -> a)
+
 recDefinitions ::
   forall a.
-  { definitions :: List Definition -> Context -> a } ->
-  List Definition -> Context -> a
+  { definitions :: RecDefinitions_Definitions a } ->
+  RecDefinitions a
 recDefinitions rec = rec.definitions
+
+recDefinition = undefined
+
+recConstructor = undefined
+
+type RecType a
+  = RecBase.RecType (Context -> a)
+
+type RecType_Arrow a
+  = RecBase.RecType_Arrow (Context -> a)
+
+type RecType_Data a
+  = RecBase.RecType_Data (Context -> a)
+
+type RecType_Hole a
+  = RecBase.RecType_Hole (Context -> a)
+
+type RecType_ProxyHole a
+  = RecBase.RecType_ProxyHole (Context -> a)
 
 recType ::
   forall a.
-  { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> a
-  , data :: TypeId -> DataTypeMetadata -> Context -> a
-  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> Context -> a
-  , proxyHole :: HoleId -> Context -> a
+  { arrow :: RecType_Arrow a
+  , data :: RecType_Data a
+  , hole :: RecType_Hole a
+  , proxyHole :: RecType_ProxyHole a
   } ->
-  Type -> Context -> a
-recType = Rec.recType
+  RecType a
+recType = RecBase.recType
+
+type RecTerm a
+  = RecBase.RecTerm (Context -> Type -> a)
+
+type RecTerm_Lambda a
+  = RecBase.RecTerm_Lambda (Context -> Parameter -> Type -> a)
+
+type RecTerm_Neutral a
+  = RecBase.RecTerm_Neutral (Context -> Type -> a)
+
+type RecTerm_Match a
+  = RecBase.RecTerm_Match (Context -> Type -> a)
+
+type RecTerm_Hole a
+  = RecBase.RecTerm_Hole (Context -> Type -> a)
 
 recTerm ::
   forall a.
-  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Parameter -> Type -> a
-  , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> a
-  , hole :: HoleTermMetadata -> Context -> Type -> a
-  , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> a
+  { lambda :: RecTerm_Lambda a
+  , neutral :: RecTerm_Neutral a
+  , match :: RecTerm_Match a
+  , hole :: RecTerm_Hole a
   } ->
-  Term -> Context -> Type -> a
+  RecTerm a
 recTerm rec =
-  Rec.recTerm
+  RecBase.recTerm
     { lambda:
         \termId block meta gamma alpha -> case alpha of
           ArrowType prm@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) prm beta
@@ -78,14 +128,23 @@ recTerm rec =
           rec.match dataID a cases meta gamma alpha
     }
 
+type RecArgs a
+  = RecBase.RecArgs (Context -> Type -> a)
+
+type RecArgs_None (a :: Prim.Type)
+  = RecBase.RecArgs_None a
+
+type RecArgs_Cons a
+  = RecBase.RecArgs_Cons (Context -> Parameter -> Type -> a)
+
 recArgs ::
   forall a.
-  { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Parameter -> Type -> a
+  { none :: RecArgs_None a
+  , cons :: RecArgs_Cons a
   } ->
-  Args -> Context -> Type -> a
+  RecArgs a
 recArgs rec =
-  Rec.recArgs
+  RecBase.recArgs
     { none: \_ _ -> rec.none
     , cons:
         \a args meta gamma -> case _ of
@@ -98,12 +157,12 @@ recCase ::
   forall a.
   { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> a } ->
   Case -> Context -> Type -> TypeId -> TermId -> a
-recCase = Rec.recCase
+recCase = RecBase.recCase
 -}
 {-
 recParameter ::
   forall a.
   { parameter :: Type -> ParameterMetadata -> Context -> a } ->
   Parameter -> Context -> a
-recParameter = Rec.recParameter
+recParameter = RecBase.recParameter
 -}

@@ -13,7 +13,7 @@ import Data.List as List
 import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Debug as Debug
-import Language.Shape.Stlc.Recursion.Context as Rec
+import Language.Shape.Stlc.Recursion.Context as RecContext
 import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -44,26 +44,42 @@ _constructorTermIds = Proxy :: Proxy "constructorTermIds"
 _indentation = Proxy :: Proxy "indentation"
 
 -- Recursion principles for handling the metacontext
+type RecModule a
+  = RecContext.RecModule (MetaContext -> a)
+
+type RecModule_Module a
+  = RecContext.RecModule_Module (MetaContext -> a)
+
 recModule ::
   forall a.
-  { module_ :: List Definition -> ModuleMetadata -> Context -> MetaContext -> a
-  } ->
-  Module -> Context -> MetaContext -> a
-recModule rec mod gamma = Rec.recModule rec mod gamma <<< incrementIndentation
+  { module_ :: RecModule_Module a } ->
+  RecModule a
+recModule rec mod gamma = RecContext.recModule rec mod gamma <<< incrementIndentation
+
+type RecBlock a
+  = RecContext.RecBlock (MetaContext -> a)
+
+type RecBlock_Block a
+  = RecContext.RecBlock_Block (MetaContext -> a)
 
 recBlock ::
   forall a.
-  { block :: List Definition -> Term -> BlockMetadata -> Context -> Type -> MetaContext -> a
-  } ->
-  Block -> Context -> Type -> MetaContext -> a
-recBlock rec block gamma alpha = Rec.recBlock rec block gamma alpha <<< incrementIndentation
+  { block :: RecBlock_Block a } ->
+  RecBlock a
+recBlock rec block gamma alpha = RecContext.recBlock rec block gamma alpha <<< incrementIndentation
+
+type RecDefinitions a
+  = RecContext.RecDefinitions (MetaContext -> a)
+
+type RecDefinitions_Definitions a
+  = RecContext.RecDefinitions_Definitions (MetaContext -> a)
 
 recDefinitions ::
   forall a.
-  { definitions :: List Definition -> Context -> MetaContext -> a } ->
-  List Definition -> Context -> MetaContext -> a
+  { definitions :: RecDefinitions_Definitions a } ->
+  RecDefinitions a
 recDefinitions rec =
-  Rec.recDefinitions
+  RecContext.recDefinitions
     { definitions:
         \defs gamma ->
           rec.definitions defs gamma
@@ -73,34 +89,68 @@ recDefinitions rec =
                 ]
     }
 
+recDefinition = undefined
+
+recConstructor = undefined
+
 {-
 recConstructor ::
   forall a.
-  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> TypeBinding -> MetaContext -> a
+  { constructor :: TermBinding -> List Parameter -> ConstructorMetadata -> Context -> MetaContext -> TypeBinding -> a
   } ->
   Constructor -> Context -> TypeBinding -> MetaContext -> a
-recConstructor rec constr gamma x = Rec.recConstructor rec constr gamma x <<< incrementIndentation
+recConstructor rec constr gamma x = RecContext.recConstructor rec constr gamma x <<< incrementIndentation
 -}
+type RecType a
+  = RecContext.RecType (MetaContext -> a)
+
+type RecType_Arrow a
+  = RecContext.RecType_Arrow (MetaContext -> a)
+
+type RecType_Data a
+  = RecContext.RecType_Data (MetaContext -> a)
+
+type RecType_Hole a
+  = RecContext.RecType_Hole (MetaContext -> a)
+
+type RecType_ProxyHole a
+  = RecContext.RecType_ProxyHole (MetaContext -> a)
+
 recType ::
   forall a.
-  { arrow :: Parameter -> Type -> ArrowTypeMetadata -> Context -> MetaContext -> a
-  , data :: TypeId -> DataTypeMetadata -> Context -> MetaContext -> a
-  , hole :: HoleId -> TypeWeakening -> HoleTypeMetadata -> Context -> MetaContext -> a
-  , proxyHole :: HoleId -> Context -> MetaContext -> a
+  { arrow :: RecType_Arrow a
+  , data :: RecType_Data a
+  , hole :: RecType_Hole a
+  , proxyHole :: RecType_ProxyHole a
   } ->
-  Type -> Context -> MetaContext -> a
-recType rec alpha gamma = Rec.recType rec alpha gamma <<< incrementIndentation
+  RecType a
+recType rec alpha gamma = RecContext.recType rec alpha gamma <<< incrementIndentation
+
+type RecTerm a
+  = RecContext.RecTerm (MetaContext -> a)
+
+type RecTerm_Lambda a
+  = RecContext.RecTerm_Lambda (MetaContext -> a)
+
+type RecTerm_Neutral a
+  = RecContext.RecTerm_Neutral (MetaContext -> a)
+
+type RecTerm_Match a
+  = RecContext.RecTerm_Match (MetaContext -> List TermId -> a)
+
+type RecTerm_Hole a
+  = RecContext.RecTerm_Hole (MetaContext -> a)
 
 recTerm ::
   forall a.
-  { lambda :: TermId -> Block -> LambdaTermMetadata -> Context -> Parameter -> Type -> MetaContext -> a
-  , neutral :: TermId -> Args -> NeutralTermMetadata -> Context -> Type -> MetaContext -> a
-  , hole :: HoleTermMetadata -> Context -> Type -> MetaContext -> a
-  , match :: TypeId -> Term -> List Case -> MatchTermMetadata -> Context -> Type -> MetaContext -> List TermId -> a
+  { lambda :: RecTerm_Lambda a
+  , neutral :: RecTerm_Neutral a
+  , match :: RecTerm_Match a
+  , hole :: RecTerm_Hole a
   } ->
-  Term -> Context -> Type -> MetaContext -> a
+  RecTerm a
 recTerm rec =
-  Rec.recTerm
+  RecContext.recTerm
     { lambda:
         \termId block meta gamma prm@(Parameter _ { name }) beta ->
           rec.lambda termId block meta gamma prm beta
@@ -117,14 +167,23 @@ recTerm rec =
             (Map.lookup' typeId metaGamma.constructorTermIds)
     }
 
+type RecArgs a
+  = RecContext.RecArgs (MetaContext -> a)
+
+type RecArgs_None (a :: Prim.Type)
+  = RecContext.RecArgs_None a
+
+type RecArgs_Cons a
+  = RecContext.RecArgs_Cons (MetaContext -> a)
+
 recArgs ::
   forall a.
-  { none :: a
-  , cons :: Term -> Args -> ArgConsMetaData -> Context -> Parameter -> Type -> MetaContext -> a
+  { none :: RecArgs_None a
+  , cons :: RecArgs_Cons a
   } ->
-  Args -> Context -> Type -> MetaContext -> a
+  RecArgs a
 recArgs rec =
-  Rec.recArgs
+  RecContext.recArgs
     { none: \_ -> rec.none
     , cons: \a args meta gamma prm alpha -> rec.cons a args meta gamma prm alpha <<< incrementIndentation
     }
@@ -135,7 +194,7 @@ recCase ::
   { case_ :: List TermId -> Term -> CaseMetadata -> Context -> Type -> TypeId -> TermId -> MetaContext -> a } ->
   Case -> Context -> Type -> TypeId -> TermId -> MetaContext -> a
 recCase rec =
-  Rec.recCase
+  RecContext.recCase
     { case_:
         \termIds a meta gamma alpha typeId termId ->
           rec.case_ termIds a meta gamma alpha typeId termId
@@ -151,7 +210,7 @@ recParameter ::
   { parameter :: Type -> ParameterMetadata -> Context -> MetaContext -> a } ->
   Parameter -> Context -> MetaContext -> a
 recParameter rec =
-  Rec.recParameter
+  RecContext.recParameter
     { parameter:
         \alpha meta gamma ->
           -- let
