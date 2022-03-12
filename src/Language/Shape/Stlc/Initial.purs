@@ -60,9 +60,10 @@ module_ =
                       (NeutralTerm x_id NoneArgs defaultNeutralTermMetadata)
                       defaultBlockMetadata
                   )
-                  defaultLambdaTermMetadata
+                  defaultLambdaTermMetadata { indented = true }
               )
               defaultTermDefinitionMetadata
+                { indented = true }
           ]
       )
       defaultModuleMetadata

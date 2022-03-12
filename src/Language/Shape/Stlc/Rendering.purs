@@ -105,11 +105,11 @@ programComponent this =
               , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
               , punctuation.space
               , punctuation.colon
-              , punctuation.space
+              , indent meta metaGamma
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
               , punctuation.space
               , punctuation.termdef
-              , punctuation.space
+              , indentOrSpace meta metaGamma
               , renderTerm a gamma alpha metaGamma ix_a cursor_a
               ]
       , data:
@@ -229,7 +229,7 @@ programComponent this =
               [ renderTermId termId gamma metaGamma ix_termId cursor_termId
               , punctuation.space
               , punctuation.mapsto
-              , punctuation.space
+              , indentOrSpace meta metaGamma
               , renderBlock block gamma beta metaGamma ix_block cursor_block
               ]
       , neutral:
@@ -264,7 +264,6 @@ programComponent this =
               [ DOM.text "?" ]
       }
 
-  -- space before
   renderArgs :: RecIndex.RecArgs React.ReactElement
   renderArgs =
     RecIndex.recArgs

@@ -20,10 +20,10 @@ defaultBlockMetadata :: BlockMetadata
 defaultBlockMetadata = { indented:false, hidden: false }
 
 type TermDefinitionMetadata
-  = { hidden :: Boolean }
+  = { indented::Boolean, hidden :: Boolean }
 
 defaultTermDefinitionMetadata :: TermDefinitionMetadata
-defaultTermDefinitionMetadata = { hidden: false }
+defaultTermDefinitionMetadata = { indented:false, hidden: false }
 
 type DataDefinitionMetadata
   = { hidden :: Boolean }
