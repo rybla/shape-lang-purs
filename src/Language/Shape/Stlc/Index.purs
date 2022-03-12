@@ -1,7 +1,10 @@
 module Language.Shape.Stlc.Index where
 
 import Prelude
+
 import Data.Array as Array
+import Data.Eq.Generic (genericEq)
+import Data.Generic.Rep (class Generic)
 
 type Index
   = Array IndexStep
@@ -32,6 +35,9 @@ data IndexStep
   | ArrowType_Parameter
   | ArrowType_Type
   | Parameter_Type
+
+derive instance Generic IndexStep _
+instance Eq IndexStep where eq step step' = genericEq step step' 
 
 pushIndex :: Index -> IndexStep -> Index
 pushIndex = Array.snoc
