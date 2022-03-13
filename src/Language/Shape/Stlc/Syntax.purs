@@ -126,7 +126,7 @@ derive instance Ord HoleId
 data Syntax = 
     SyntaxModule Module
   | SyntaxBlock Block
-  | SyntaxDefinition 
+  | SyntaxDefinition Definition
   | SyntaxConstructor Constructor
   | SyntaxTerm Term
   | SyntaxArgs Args
