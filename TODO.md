@@ -25,5 +25,5 @@
     - [ ] shadowing
       - [ ] bug: paramter names in types not shadowing correctly, but lambdas
             do??
+    - [ ] cursor
     - [ ] actions
-    - [ ] make sure cursor works correctly
