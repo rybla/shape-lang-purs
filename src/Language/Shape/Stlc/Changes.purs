@@ -4,10 +4,9 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
-import Data.Either (Either)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.List (List(..), fold, foldr, singleton, zip, zipWith, (:))
-import Data.List.Unsafe (deleteAt', insertAt')
+import Data.List.Unsafe (deleteAt', index', insertAt')
 import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
@@ -17,11 +16,8 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultCaseMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Model (saneIndex)
 import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleId, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
-import Language.Shape.Stlc.WrapChanges (freshName)
-import Prim.Boolean (True)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -31,12 +27,13 @@ data TypeChange
     | InsertArg Type
     | Swap -- only applies to types of form (ArrowType a (ArrowType b c _) _)
     | RemoveArg -- only applies to types of form (ArrowType a b _)
-    -- | Replace Type
+    -- | Replace Type -- can't allow Replace, because it would break the invariant that holesubs collected from chTerm can be applied at the end and never conflict with each other.
     | Dig HoleId
 -- Note for the future: could e.g. make Swap take a typechange which says what happens to rest of type after swap. Currently, it is implicitly NoChange.
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
+-- TODO: need to generalize ParamsChange to allow for e.g. delete data A, and then data B has c : A -> A -> B
 data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
 -- data ConstructorChange = ConstructorNoChange | InsertConstructor Int Constructor | DeleteConstructor Int | ChangeConstructor ParamsChange
 data ConstructorChange = ChangeConstructor ParamsChange Int | InsertConstructor (List Parameter)
@@ -177,7 +174,7 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
         Nothing -> sequence $ (map (chCase ctx ty chs ParamsNoChange ch) cases)
         Just changes -> sequence $ (map (\ctrCh -> case ctrCh of
                                             InsertConstructor params -> pure $ freshCase params
-                                            ChangeConstructor pch n -> chCase ctx ty chs pch ch (saneIndex cases n)) changes)
+                                            ChangeConstructor pch n -> chCase ctx ty chs pch ch (index' cases n)) changes)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen?
@@ -210,7 +207,7 @@ chCase ctx ty chs paramsChange innerTC (Case bindings t md) = case paramsChange 
         t' <- (chTerm ctx ty chs innerTC t)
         pure $ Case bindings t' md
     DeleteParam i -> do
-        t' <- (chTerm ctx ty chs{termChanges = insert (saneIndex bindings i) VariableDeletion chs.termChanges } innerTC t)
+        t' <- (chTerm ctx ty chs{termChanges = insert (index' bindings i) VariableDeletion chs.termChanges } innerTC t)
         pure $ Case (deleteAt' i bindings) t' md
     InsertParam i p -> do
         t' <- (chTerm ctx ty chs innerTC t)
