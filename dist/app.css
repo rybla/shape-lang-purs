@@ -1,3 +1,7 @@
+html {
+  user-select: none;
+}
+
 /* app */
 .app {
   font-family: monospace;
