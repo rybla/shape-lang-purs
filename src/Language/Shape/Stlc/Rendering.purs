@@ -67,7 +67,7 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = case code event of
-    "ArrowUp" -> Debug.traceM "ArrowUp"
+    "ArrowUp" -> React.modifyState this \st -> st { ixCursor = moveIndexUp st.ixCursor }
     "ArrowDown" -> Debug.traceM "ArrowDown"
     "ArrowLeft" -> Debug.traceM "ArrowLeft"
     "ArrowRight" -> Debug.traceM "ArrowRight"

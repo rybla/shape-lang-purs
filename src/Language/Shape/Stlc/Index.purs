@@ -7,6 +7,7 @@ import Prelude
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List.Unsafe as List
+import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
 import Unsafe (error)
@@ -48,6 +49,16 @@ instance Eq IndexStep where eq step step' = genericEq step step'
 
 pushIndex :: Index -> IndexStep -> Index
 pushIndex = snoc
+
+data Direction = Up | Down | Left | Right
+
+moveIndex :: Direction -> Index -> Index 
+moveIndex dir ix = ix 
+
+moveIndexUp :: Index -> Index 
+moveIndexUp ix = case unsnoc ix of 
+  Nothing -> []
+  Just {init: ix'} -> ix' 
 
 infix 5 pushIndex as :>
 
