@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Changes where
 
+{-
 import Prelude
 import Prim hiding (Type)
 
@@ -17,10 +18,10 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultCaseMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
-import Language.Shape.Stlc.Model (saneIndex)
+-- import Language.Shape.Stlc.Model (saneIndex)
 import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleId, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
-import Language.Shape.Stlc.WrapChanges (freshName)
+-- import Language.Shape.Stlc.WrapChanges (freshName)
 import Prim.Boolean (True)
 import Undefined (undefined)
 import Unsafe (error)
@@ -278,3 +279,4 @@ argsToTermList (ConsArgs arg args _) = arg : (argsToTermList args)
 -- when propagating changes upwards in wrap, this stuff all works.
 
 -- here
+-}

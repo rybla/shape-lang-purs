@@ -277,19 +277,17 @@ recParameter rec =
   RecContext.recParameter
     { parameter:
         \alpha meta gamma metaGamma ->
-          let
-            _ = Debug.trace ("RecMetacContext.recParameter: " <> show meta.name) identity
-
-            _ = Debug.trace (show metaGamma.termScope.shadows) identity
-
-            _ = Debug.trace (show (foldl (>>>) identity [ registerParameterName meta.name, incrementIndentation ] metaGamma).termScope.shadows) identity
-          in
-            rec.parameter alpha meta gamma
-              $ foldl (>>>) identity
-                  [ registerParameterName meta.name
-                  , incrementIndentation
-                  ]
-                  metaGamma
+          -- let
+          --   _ = Debug.trace ("RecMetacContext.recParameter: " <> show meta.name) identity
+          --   _ = Debug.trace (show metaGamma.termScope.shadows) identity
+          --   _ = Debug.trace (show (foldl (>>>) identity [ registerParameterName meta.name, incrementIndentation ] metaGamma).termScope.shadows) identity
+          -- in
+          rec.parameter alpha meta gamma
+            $ foldl (>>>) identity
+                [ registerParameterName meta.name
+                , incrementIndentation
+                ]
+                metaGamma
     }
 
 {-
