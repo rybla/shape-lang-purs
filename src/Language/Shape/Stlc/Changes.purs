@@ -7,6 +7,7 @@ import Control.Monad.State (State, get, put, runState)
 import Data.Either (Either)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.List (List(..), fold, foldr, singleton, zip, zipWith, (:))
+import Data.List.Unsafe (deleteAt', insertAt')
 import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
@@ -15,9 +16,11 @@ import Data.Set (Set(..), difference, empty, filter, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
-import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
+import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultCaseMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
+import Language.Shape.Stlc.Model (saneIndex)
 import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleId, freshTermId)
 import Language.Shape.Stlc.Typing (Context)
+import Language.Shape.Stlc.WrapChanges (freshName)
 import Prim.Boolean (True)
 import Undefined (undefined)
 import Unsafe (error)
@@ -35,7 +38,8 @@ data TypeChange
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
 data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
-data ConstructorChange = ConstructorNoChange | InsertConstructor Int Constructor | DeleteConstructor Int | ChangeConstructor ParamsChange
+-- data ConstructorChange = ConstructorNoChange | InsertConstructor Int Constructor | DeleteConstructor Int | ChangeConstructor ParamsChange
+data ConstructorChange = ChangeConstructor ParamsChange Int | InsertConstructor (List Parameter)
 
 type Changes = {
     termChanges :: Map TermId VarChange,
@@ -169,7 +173,11 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
                           pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
-    cases' <- sequence $ (map (chCase ctx ty chs ParamsNoChange ch) cases)
+    cases' <- case lookup i chs.matchChanges of
+        Nothing -> sequence $ (map (chCase ctx ty chs ParamsNoChange ch) cases)
+        Just changes -> sequence $ (map (\ctrCh -> case ctrCh of
+                                            InsertConstructor params -> pure $ freshCase params
+                                            ChangeConstructor pch n -> chCase ctx ty chs pch ch (saneIndex cases n)) changes)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen?
@@ -179,6 +187,9 @@ chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a ho
     t' <- chTerm ctx ty chs change t -- is passing in ty correct? the type input to chTerm is the type of the term that is inputted?
     _ <- displaceDefs $ singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) ty' t' defaultTermDefinitionMetadata)
     pure $ HoleTerm defaultHoleTermMetadata
+
+freshCase :: forall a . List a -> Case
+freshCase params = Case (map (\_ -> freshTermId unit) params) (HoleTerm defaultHoleTermMetadata) defaultCaseMetadata
 
 displaceDefs :: (List Definition) -> State (Tuple (List Definition) HoleSub) Unit
 displaceDefs defs = do
@@ -198,8 +209,12 @@ chCase ctx ty chs paramsChange innerTC (Case bindings t md) = case paramsChange 
     ParamsNoChange -> do
         t' <- (chTerm ctx ty chs innerTC t)
         pure $ Case bindings t' md
-    DeleteParam i -> undefined
-    InsertParam i p -> undefined
+    DeleteParam i -> do
+        t' <- (chTerm ctx ty chs{termChanges = insert (saneIndex bindings i) VariableDeletion chs.termChanges } innerTC t)
+        pure $ Case (deleteAt' i bindings) t' md
+    InsertParam i p -> do
+        t' <- (chTerm ctx ty chs innerTC t)
+        pure $ Case (insertAt' i (freshTermId unit) bindings) t' md
     ChangeParam i tc -> undefined
 
 
