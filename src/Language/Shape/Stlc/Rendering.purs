@@ -11,18 +11,20 @@ import Data.List (List)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
+import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Metadata (TypeName(..), TermName(..), defaultDataTypeMetadata, defaultModuleMetadata)
 import Language.Shape.Stlc.Recursion.Index (Cursor, checkCursorStep)
 import Language.Shape.Stlc.Recursion.Index as RecIndex
-import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
+import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, _indentation, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
 import Language.Shape.Stlc.Syntax as Syntax
 import React as React
 import React.DOM as DOM
 import React.DOM.Props as Props
+import Record as R
 import Undefined (undefined)
 
 type ProgramProps
@@ -103,10 +105,10 @@ programComponent this =
               [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
               , punctuation.space
               , punctuation.colon
-              , indent meta metaGamma
+              , indentOrSpace meta metaGamma
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
               , punctuation.newline
-              , indentation metaGamma { indentation = metaGamma.indentation - 1 }
+              , indentation (R.modify _indentation (_ - 1) metaGamma)
               , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
               , punctuation.space
               , punctuation.termdef
@@ -390,3 +392,10 @@ programComponent this =
     shadow_i = Map.lookup' termName metaGamma.termScope.shadows
 
     shadow_suffix = if shadow_i == 0 then [] else [ DOM.sub' [ DOM.text (show shadow_i) ] ]
+
+-- _ = Debug.trace "[!] printTermName" identity
+-- _ = Debug.trace termName identity
+-- _ = Debug.trace (show metaGamma.termScope.shadows) identity
+-- _ = Debug.trace termString identity
+-- _ = Debug.trace shadow_i identity
+-- _ = Debug.trace shadow_suffix identity

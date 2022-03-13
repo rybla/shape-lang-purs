@@ -90,6 +90,30 @@ recConstructor ::
   RecConstructor a
 recConstructor = RecBase.recConstructor
 
+type RecType_ProxyHole a
+  = RecBase.RecType_ProxyHole (Context -> a)
+
+type RecDefinitionBindings a
+  = RecBase.RecDefinitionBindings (Context -> a)
+
+type RecDefinitionBindings_ArrowLambda a
+  = RecBase.RecDefinitionBindings_ArrowLambda (Context -> a)
+
+type RecDefinitionBindings_Wildcard a
+  = RecBase.RecDefinitionBindings_Wildcard (Context -> a)
+
+recDefinitionBindings ::
+  forall a.
+  { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
+  , wildcard :: RecDefinitionBindings_Wildcard a
+  } ->
+  RecDefinitionBindings a
+recDefinitionBindings rec =
+  RecBase.recDefinitionBindings
+    { arrow_lambda: \prm@(Parameter alpha _) beta termId block meta gamma -> rec.arrow_lambda prm beta termId block meta (Map.insert termId alpha gamma)
+    , wildcard: rec.wildcard
+    }
+
 type RecType a
   = RecBase.RecType (Context -> a)
 
@@ -101,9 +125,6 @@ type RecType_Data a
 
 type RecType_Hole a
   = RecBase.RecType_Hole (Context -> a)
-
-type RecType_ProxyHole a
-  = RecBase.RecType_ProxyHole (Context -> a)
 
 recType ::
   forall a.
