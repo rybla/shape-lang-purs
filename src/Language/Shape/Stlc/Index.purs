@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Index where
 
 import Data.Array.Unsafe
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
 
@@ -9,6 +10,7 @@ import Data.Generic.Rep (class Generic)
 import Data.List.Unsafe as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.Tuple (fst, snd)
 import Undefined (undefined)
 import Unsafe (error)
 import Unsafe.Coerce (unsafeCoerce)
@@ -52,8 +54,14 @@ pushIndex = snoc
 
 infix 5 pushIndex as :>
 
+visitSyntaxAt :: Index -> (Syntax -> Syntax) -> Module -> Syntax /\ Module
+visitSyntaxAt ix f mod = undefined
+
+getSyntaxAt :: Index -> Module -> Syntax
+getSyntaxAt ix mod = fst $ visitSyntaxAt ix identity mod 
+
 modifySyntaxAt :: Index -> (Syntax -> Syntax) -> Module -> Module 
-modifySyntaxAt ix f mod = mod
+modifySyntaxAt ix f mod = snd $ visitSyntaxAt ix identity mod
 
 -- TODO
 -- setMetadataAt :: forall a. Index -> a -> Module -> Module 
