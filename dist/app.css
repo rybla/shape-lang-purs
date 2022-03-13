@@ -53,10 +53,6 @@
   color: blue;
 }
 
-.punctuation {
-  font-weight: bold;
-}
-
 /* keyword */
 
 .keyword {
@@ -66,7 +62,17 @@
 
 /* punctuation */
 
+.punctuation {
+  font-weight: bold;
+}
+
 .indent {
   display: inline-block;
   width: 10px;
+}
+
+/* selected */
+
+.selected {
+  box-shadow: 0 0 0 1px red;
 }

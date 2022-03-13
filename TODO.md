@@ -18,9 +18,12 @@
     - [x] context + type
     - [x] metacontext (for derived metadata stuff: names, shadows, constructor
           ids, etc)
-    - [ ] wrap (still have to handle typechanges)
+    - [ ] index (still have to handle typechanges)
   - [ ] rendering
     - [x] basic outline
-    - [ ] indentation
+    - [x] indentation
+    - [ ] shadowing
+      - [ ] bug: paramter names in types not shadowing correctly, but lambdas
+            do??
+    - [ ] cursor
     - [ ] actions
-    - [ ] make sure cursor works correctly

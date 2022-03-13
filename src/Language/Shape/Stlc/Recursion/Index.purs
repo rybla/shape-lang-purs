@@ -27,8 +27,8 @@ type Cursor
   = Maybe Index
 
 checkCursorStep :: IndexStep -> Cursor -> Cursor
-checkCursorStep step cursor = do
-  ix <- cursor
+checkCursorStep step csr = do
+  ix <- csr
   { head, tail } <- Array.uncons ix
   if head == step then
     Just tail
@@ -60,14 +60,14 @@ recModule ::
 recModule rec =
   RecMetaContext.recModule
     { module_:
-        \defs meta gamma metaGamma ix cursor ->
+        \defs meta gamma metaGamma ix csr ->
           rec.module_ defs meta gamma metaGamma
             -- module
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- definitions
             (\i -> ix :> Module_Definition i)
-            (\i -> checkCursorStep (Module_Definition i) cursor)
+            (\i -> checkCursorStep (Module_Definition i) csr)
     }
 
 type RecBlock a
@@ -91,17 +91,17 @@ recBlock ::
 recBlock rec =
   RecMetaContext.recBlock
     { block:
-        \defs a meta gamma alpha metaGamma ix cursor ->
+        \defs a meta gamma alpha metaGamma ix csr ->
           rec.block defs a meta gamma alpha metaGamma
             -- block
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- definitions
             (\i -> ix :> Block_Definition i)
-            (\i -> checkCursorStep (Block_Definition i) cursor)
+            (\i -> checkCursorStep (Block_Definition i) csr)
             -- term
             (ix :> Block_Term)
-            (checkCursorStep Block_Term cursor)
+            (checkCursorStep Block_Term csr)
     }
 
 type RecDefinitions a
@@ -169,34 +169,34 @@ recDefinition ::
 recDefinition rec =
   RecMetaContext.recDefinition
     { term:
-        \termBinding alpha a meta gamma metaGamma ix_parent ix cursor ->
+        \termBinding alpha a meta gamma metaGamma ix_parent ix csr ->
           rec.term termBinding alpha a meta gamma metaGamma
             ix_parent
             -- definition
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- termBinding
             (ix :> TermDefinition_TermBinding)
-            (checkCursorStep TermDefinition_TermBinding cursor)
+            (checkCursorStep TermDefinition_TermBinding csr)
             -- type
             (ix :> TermDefinition_Type)
-            (checkCursorStep TermDefinition_Type cursor)
+            (checkCursorStep TermDefinition_Type csr)
             -- term
             (ix :> TermDefinition_Term)
-            (checkCursorStep TermDefinition_Term cursor)
+            (checkCursorStep TermDefinition_Term csr)
     , data:
-        \typeBinding constrs meta gamma metaGamma ix_parent ix cursor ->
+        \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
           rec.data typeBinding constrs meta gamma metaGamma
             ix_parent
             -- definition
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- typeBinding
             (ix :> DataDefinition_TypeBinding)
-            (checkCursorStep DataDefinition_TypeBinding cursor)
+            (checkCursorStep DataDefinition_TypeBinding csr)
             -- constructors
             (\i -> ix :> DataDefinition_Constructor i)
-            (\i -> checkCursorStep (DataDefinition_Constructor i) cursor)
+            (\i -> checkCursorStep (DataDefinition_Constructor i) csr)
     }
 
 type RecConstructor a
@@ -229,22 +229,104 @@ recConstructor ::
 recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma metaGamma ix_parent ix_def ix cursor ->
+        \termBinding prms meta typeId gamma metaGamma ix_parent ix_def ix csr ->
           rec.constructor termBinding prms meta typeId gamma metaGamma
             ix_parent
             ix_def
             -- constructor
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- termBinding
             (ix :> Constructor_TermBinding)
-            (checkCursorStep Constructor_TermBinding cursor)
+            (checkCursorStep Constructor_TermBinding csr)
             -- parameters
             (\i -> ix :> Constructor_Parameter i)
-            (\i -> checkCursorStep (Constructor_Parameter i) cursor)
+            (\i -> checkCursorStep (Constructor_Parameter i) csr)
     }
 
--- TODO: update+annotate order or arguments
+type RecDefinitionBindings a
+  = RecMetaContext.RecDefinitionBindings
+      ( Index -> -- definition
+        Index -> -- type
+        Cursor -> -- type 
+        Index -> -- term
+        Cursor -> -- term
+        a
+      )
+
+type RecDefinitionBindings_ArrowLambda a
+  = RecMetaContext.RecDefinitionBindings_ArrowLambda
+      ( Index -> -- definition
+        Index -> -- type
+        Boolean -> -- type
+        Index -> -- term
+        Boolean -> -- term
+        Index -> -- parameter
+        Cursor -> -- parameter
+        Index -> -- type (sub)
+        Cursor -> -- type (sub)
+        Index -> -- termId
+        Cursor -> -- termId
+        Index -> -- block
+        Cursor -> -- block
+        a
+      )
+
+type RecDefinitionBindings_Wildcard a
+  = RecMetaContext.RecDefinitionBindings_Wildcard
+      ( Index ->
+        Index ->
+        Boolean ->
+        Index ->
+        Boolean -> a
+      )
+
+-- TODO: if necessary
+{-
+recDefinitionBindings ::
+  forall a.
+  { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
+  , wildcard :: RecDefinitionBindings_Wildcard a
+  } ->
+  RecDefinitionBindings a
+recDefinitionBindings rec =
+  RecMetaContext.recDefinitionBindings
+    { arrow_lambda:
+        \prm beta termId block meta gamma metaGamma ix_def ix_type csr_type ix_term csr_term ->
+          rec.arrow_lambda prm beta termId block meta gamma metaGamma
+            -- def
+            ix_def
+            -- type
+            ix_type
+            csr_type
+            -- term
+            ix_term
+            csr_term
+            -- prm
+            (ix_type :> ArrowType_Parameter)
+            (checkCursorStep ArrowType_Parameter ?csr_type)
+            -- beta
+            (ix_type :> ArrowType_Type)
+            (checkCursorStep ArrowType_Type ?csr_type)
+            -- termId
+            (ix_term :> LambdaTerm_TermId)
+            (checkCursorStep LambdaTerm_TermId ?csr_term)
+            -- block
+            (ix_term :> LambdaTerm_Block)
+            (checkCursorStep LambdaTerm_Block ?csr_term)
+    , wildcard:
+        \alpha a gamma metaGamma ix_def ix_alpha csr_alpha ix_a csr_a ->
+          rec.wildcard alpha a gamma metaGamma
+            -- def
+            ix_def
+            -- alpha
+            ix_alpha
+            (checkCursorHere csr_alpha)
+            -- a 
+            ix_a
+            (checkCursorHere csr_a)
+    }
+-}
 type RecType a
   = RecMetaContext.RecType (Index -> Cursor -> a)
 
@@ -291,23 +373,22 @@ recType ::
 recType rec =
   RecMetaContext.recType
     { arrow:
-        \prm beta meta gamma metaGamma ix cursor ->
+        \prm beta meta gamma metaGamma ix csr ->
           rec.arrow prm beta meta gamma metaGamma
             -- type
             ix
-            (checkCursorHere cursor)
-            -- parameter
+            (checkCursorHere csr)
+            -- prm
             (ix :> ArrowType_Parameter)
-            (checkCursorStep ArrowType_Parameter cursor)
-            -- type (sub)
+            (checkCursorStep ArrowType_Parameter csr)
+            -- beta
             (ix :> ArrowType_Type)
-            (checkCursorStep ArrowType_Type cursor)
-    , data: \typeId meta gamma metaGamma ix cursor -> rec.data typeId meta gamma metaGamma ix (checkCursorHere cursor)
-    , hole: \holeID wkn meta gamma metaGamma ix cursor -> rec.hole holeID wkn meta gamma metaGamma ix (checkCursorHere cursor)
-    , proxyHole: \holeID gamma metaGamma ix cursor -> rec.proxyHole holeID gamma metaGamma ix (checkCursorHere cursor)
+            (checkCursorStep ArrowType_Type csr)
+    , data: \typeId meta gamma metaGamma ix csr -> rec.data typeId meta gamma metaGamma ix (checkCursorHere csr)
+    , hole: \holeID wkn meta gamma metaGamma ix csr -> rec.hole holeID wkn meta gamma metaGamma ix (checkCursorHere csr)
+    , proxyHole: \holeID gamma metaGamma ix csr -> rec.proxyHole holeID gamma metaGamma ix (checkCursorHere csr)
     }
 
--- TODO: reorder+annotate types
 type RecTerm a
   = RecMetaContext.RecTerm (Index -> Cursor -> a)
 
@@ -362,47 +443,46 @@ recTerm ::
 recTerm rec =
   RecMetaContext.recTerm
     { lambda:
-        \termId block meta gamma prm beta metaGamma ix cursor ->
+        \termId block meta gamma prm beta metaGamma ix csr ->
           rec.lambda termId block meta gamma prm beta metaGamma
             -- term
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- termId
             (ix :> LambdaTerm_TermId)
-            (checkCursorStep LambdaTerm_TermId cursor)
+            (checkCursorStep LambdaTerm_TermId csr)
             -- block
             (ix :> LambdaTerm_Block)
-            (checkCursorStep LambdaTerm_Block cursor)
+            (checkCursorStep LambdaTerm_Block csr)
     , neutral:
-        \termId args meta gamma alpha metaGamma ix cursor ->
+        \termId args meta gamma alpha metaGamma ix csr ->
           rec.neutral termId args meta gamma alpha metaGamma
             -- term
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- termId
             (ix :> NeutralTerm_TermId)
-            (checkCursorStep NeutralTerm_TermId cursor)
+            (checkCursorStep NeutralTerm_TermId csr)
             -- args
             (ix :> NeutralTerm_Args)
-            (checkCursorStep NeutralTerm_Args cursor)
+            (checkCursorStep NeutralTerm_Args csr)
     , match:
-        \typeId a cases meta gamma alpha metaGamma constrIDs ix cursor ->
+        \typeId a cases meta gamma alpha metaGamma constrIDs ix csr ->
           rec.match typeId a cases meta gamma alpha metaGamma constrIDs
             -- term
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- term (sub)
             (ix :> MatchTerm_Term)
-            (checkCursorStep MatchTerm_Term cursor)
+            (checkCursorStep MatchTerm_Term csr)
             -- cases
             (\i -> ix :> MatchTerm_Case i)
-            (\i -> checkCursorStep (MatchTerm_Case i) cursor)
+            (\i -> checkCursorStep (MatchTerm_Case i) csr)
     , hole:
-        \meta gamma alpha metaGamma ix cursor ->
-          rec.hole meta gamma alpha metaGamma ix (checkCursorHere cursor)
+        \meta gamma alpha metaGamma ix csr ->
+          rec.hole meta gamma alpha metaGamma ix (checkCursorHere csr)
     }
 
--- TODO: reorder+annotate types
 type RecArgs a
   = RecMetaContext.RecArgs (Index -> Cursor -> a)
 
@@ -430,17 +510,17 @@ recArgs rec =
   RecMetaContext.recArgs
     { none: \_ _ -> rec.none
     , cons:
-        \a args meta gamma prm beta metaGamma ix cursor ->
+        \a args meta gamma prm beta metaGamma ix csr ->
           rec.cons a args meta gamma prm beta metaGamma
             -- args
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- term
             (ix :> ConsArgs_Term)
-            (checkCursorStep ConsArgs_Term cursor)
+            (checkCursorStep ConsArgs_Term csr)
             -- args (sub)
             (ix :> ConsArgs_Args)
-            (checkCursorStep ConsArgs_Args cursor)
+            (checkCursorStep ConsArgs_Args csr)
     }
 
 type RecCase a
@@ -470,19 +550,19 @@ recCase ::
 recCase rec =
   RecMetaContext.recCase
     { case_:
-        \termIds a meta typeId constrId gamma alpha metaGamma ix_match ix cursor ->
+        \termIds a meta typeId constrId gamma alpha metaGamma ix_match ix csr ->
           rec.case_ termIds a meta typeId constrId gamma alpha metaGamma
             -- match
             ix_match
             -- case 
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- termId
             (\i -> ix :> Case_TermId i)
-            (\i -> checkCursorStep (Case_TermId i) cursor)
+            (\i -> checkCursorStep (Case_TermId i) csr)
             -- term
             (ix :> Case_Term)
-            (checkCursorStep Case_Term cursor)
+            (checkCursorStep Case_Term csr)
     }
 
 type RecParameter a
@@ -504,14 +584,14 @@ recParameter ::
 recParameter rec =
   RecMetaContext.recParameter
     { parameter:
-        \alpha meta gamma metaGamma ix cursor ->
+        \alpha meta gamma metaGamma ix csr ->
           rec.parameter alpha meta gamma metaGamma
             -- parameter
             ix
-            (checkCursorHere cursor)
+            (checkCursorHere csr)
             -- type
             (ix :> Parameter_Type)
-            (checkCursorStep Parameter_Type cursor)
+            (checkCursorStep Parameter_Type csr)
     }
 
 type RecTypeBinding a
@@ -525,7 +605,7 @@ recTypeBinding ::
   { typeBinding :: RecTypeBinding_TypeBinding a
   } ->
   RecTypeBinding a
-recTypeBinding rec (TypeBinding typeId meta) gamma metaGamma ix cursor = rec.typeBinding typeId meta gamma metaGamma ix (checkCursorHere cursor)
+recTypeBinding rec (TypeBinding typeId meta) gamma metaGamma ix csr = rec.typeBinding typeId meta gamma metaGamma ix (checkCursorHere csr)
 
 type RecTermBinding a
   = TermBinding -> Context -> MetaContext -> Index -> Cursor -> a
@@ -538,7 +618,7 @@ recTermBinding ::
   { termBinding :: RecTermBinding_TermBinding a
   } ->
   RecTermBinding a
-recTermBinding rec (TermBinding termId meta) gamma metaGamma ix cursor = rec.termBinding termId meta gamma metaGamma ix (checkCursorHere cursor)
+recTermBinding rec (TermBinding termId meta) gamma metaGamma ix csr = rec.termBinding termId meta gamma metaGamma ix (checkCursorHere csr)
 
 type RecTermId a
   = TermId -> Context -> MetaContext -> Index -> Cursor -> a
@@ -547,4 +627,4 @@ type RecTermId_TermId a
   = TermId -> Context -> MetaContext -> Index -> Boolean -> a
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
-recTermId rec termId gamma metaGamma ix cursor = rec.termId termId gamma metaGamma ix (checkCursorHere cursor)
+recTermId rec termId gamma metaGamma ix csr = rec.termId termId gamma metaGamma ix (checkCursorHere csr)

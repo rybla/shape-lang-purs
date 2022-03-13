@@ -32,6 +32,7 @@ keyword =
         , with: "with"
         , let_: "let"
         , in_: "in"
+        , lambda: "λ"
         }
   where
   makeKeyword label =
@@ -48,11 +49,11 @@ punctuation =
         , lparen: "("
         , rparen: ")"
         , alt: "|"
-        , arrow: "->"
+        , arrow: "→"
         , termdef: "="
         , typedef: "::="
         , colon: ":"
-        , mapsto: "=>"
+        , mapsto: "⇒"
         , space: " "
         , newline: "\n"
         }

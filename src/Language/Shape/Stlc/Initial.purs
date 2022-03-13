@@ -30,7 +30,13 @@ module_ =
 
     n_name = TermName (Just "n")
 
-    x_id /\ x_name = makeTermVar "x"
+    a_id /\ a_name = makeTermVar "a"
+
+    const_id /\ const_name = makeTermVar "const"
+
+    x1_id /\ x1_name = makeTermVar "x"
+
+    x2_id /\ x2_name = makeTermVar "x"
   in
     Module
       ( fromFoldable
@@ -50,20 +56,46 @@ module_ =
           , TermDefinition
               (TermBinding identity_id defaultTermBindingMetadata { name = identity_name })
               ( ArrowType
-                  (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = x_name })
+                  (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = a_name })
                   (DataType nat_id defaultDataTypeMetadata)
                   defaultArrowTypeMetadata
               )
               ( LambdaTerm
-                  x_id
+                  a_id
                   ( Block Nil
-                      (NeutralTerm x_id NoneArgs defaultNeutralTermMetadata)
+                      (NeutralTerm a_id NoneArgs defaultNeutralTermMetadata)
                       defaultBlockMetadata
                   )
-                  defaultLambdaTermMetadata { indented = true }
+                  defaultLambdaTermMetadata { indented = false }
               )
               defaultTermDefinitionMetadata
-                { indented = true }
+                { indented = false }
+          , TermDefinition
+              (TermBinding const_id defaultTermBindingMetadata { name = const_name })
+              ( ArrowType
+                  (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = x1_name })
+                  ( ArrowType
+                      (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = x2_name })
+                      (DataType nat_id defaultDataTypeMetadata)
+                      defaultArrowTypeMetadata
+                  )
+                  defaultArrowTypeMetadata
+              )
+              ( LambdaTerm
+                  x1_id
+                  ( Block Nil
+                      ( LambdaTerm x2_id
+                          ( Block Nil
+                              (NeutralTerm x1_id NoneArgs defaultNeutralTermMetadata)
+                              defaultBlockMetadata
+                          )
+                          defaultLambdaTermMetadata
+                      )
+                      defaultBlockMetadata
+                  )
+                  defaultLambdaTermMetadata
+              )
+              defaultTermDefinitionMetadata
           ]
       )
       defaultModuleMetadata

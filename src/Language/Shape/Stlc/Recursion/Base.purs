@@ -1,11 +1,13 @@
 module Language.Shape.Stlc.Recursion.Base where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Data.List (List)
 import Undefined (undefined)
+import Unsafe (error)
 
 type RecModule a
   = Module -> a
@@ -73,6 +75,25 @@ type RecConstructor_Constructor a
 recConstructor :: forall a. { constructor :: RecConstructor_Constructor a } -> RecConstructor a
 recConstructor rec constr typeId = case constr of
   Constructor termBinding prms meta -> rec.constructor termBinding prms meta typeId
+
+type RecDefinitionBindings a
+  = Type -> Term -> a
+
+type RecDefinitionBindings_ArrowLambda a
+  = Parameter -> Type -> TermId -> Block -> LambdaTermMetadata -> a
+
+type RecDefinitionBindings_Wildcard a
+  = Type -> Term -> a
+
+recDefinitionBindings ::
+  forall a.
+  { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
+  , wildcard :: RecDefinitionBindings_Wildcard a
+  } ->
+  RecDefinitionBindings a
+recDefinitionBindings rec alpha a = case alpha /\ a of
+  ArrowType prm beta _ /\ LambdaTerm termId block meta -> rec.arrow_lambda prm beta termId block meta
+  _ /\ _ -> rec.wildcard alpha a
 
 type RecType a
   = Type -> a

@@ -125,6 +125,33 @@ recConstructor ::
   RecConstructor a
 recConstructor = RecContext.recConstructor
 
+type RecDefinitionBindings a
+  = RecContext.RecDefinitionBindings (MetaContext -> a)
+
+type RecDefinitionBindings_ArrowLambda a
+  = RecContext.RecDefinitionBindings_ArrowLambda (MetaContext -> a)
+
+type RecDefinitionBindings_Wildcard a
+  = RecContext.RecDefinitionBindings_Wildcard (MetaContext -> a)
+
+recDefinitionBindings ::
+  forall a.
+  { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
+  , wildcard :: RecDefinitionBindings_Wildcard a
+  } ->
+  RecDefinitionBindings a
+recDefinitionBindings rec =
+  RecContext.recDefinitionBindings
+    { arrow_lambda:
+        \prm@(Parameter _ { name }) beta termId block meta gamma ->
+          rec.arrow_lambda prm beta termId block meta gamma
+            <<< foldl (>>>) identity
+                [ registerTermId termId name
+                , incrementIndentation
+                ]
+    , wildcard: rec.wildcard
+    }
+
 type RecType a
   = RecContext.RecType (MetaContext -> a)
 
@@ -249,6 +276,22 @@ recParameter ::
 recParameter rec =
   RecContext.recParameter
     { parameter:
+        \alpha meta gamma metaGamma ->
+          -- let
+          --   _ = Debug.trace ("RecMetacContext.recParameter: " <> show meta.name) identity
+          --   _ = Debug.trace (show metaGamma.termScope.shadows) identity
+          --   _ = Debug.trace (show (foldl (>>>) identity [ registerParameterName meta.name, incrementIndentation ] metaGamma).termScope.shadows) identity
+          -- in
+          rec.parameter alpha meta gamma
+            $ foldl (>>>) identity
+                [ registerParameterName meta.name
+                , incrementIndentation
+                ]
+                metaGamma
+    }
+
+{-
+    { parameter:
         \alpha meta gamma ->
           rec.parameter alpha meta gamma
             <<< foldl (>>>) identity
@@ -256,7 +299,7 @@ recParameter rec =
                 , incrementIndentation
                 ]
     }
-
+    -}
 -- Scope
 type Scope id name
   = { names :: Map id name
@@ -278,26 +321,11 @@ emptyScope =
   }
 
 incrementShadow :: forall id name. Ord name => name -> Scope id name -> Scope id name
-incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i) name 0
+incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 
--- 1. set id's name
--- 2. increment name's shadow
--- 2. set id's shadow index
-registerName :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
-registerName id name =
-  let
-    _ = Debug.trace "registerName"
-
-    _ = Debug.trace id
-
-    _ = Debug.trace name
-  in
-    foldl (>>>) identity
-      [ R.modify _names $ Map.insert id name
-      , incrementShadow name
-      , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
-      ]
-
+-- set id's name 
+-- increment name's shadow
+-- set id's shadow index
 registerId :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
   let
@@ -308,19 +336,19 @@ registerId id name =
     _ = Debug.trace name
   in
     foldl (>>>) identity
-      [ R.modify _shadows (Map.insertWith (\i _ -> i + 1) name 0)
+      [ R.modify _names (Map.insert id name)
+      , incrementShadow name
       , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
-      , R.modify _names (Map.insert id name)
       ]
 
 incrementIndentation :: MetaContext -> MetaContext
 incrementIndentation = R.modify _indentation (_ + 1)
 
 registerTypeBinding :: TypeBinding -> MetaContext -> MetaContext
-registerTypeBinding (TypeBinding id { name }) = R.modify _typeScope $ registerName id name
+registerTypeBinding (TypeBinding id { name }) = R.modify _typeScope $ registerId id name
 
 registerTermBinding :: TermBinding -> MetaContext -> MetaContext
-registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerName id name
+registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerId id name
 
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ foldl (flip registerTermBinding)

@@ -108,13 +108,20 @@ data TermName = TermName (Maybe String)
 
 -- instances for TypeName
 derive instance Generic TypeName _
-instance Show TypeName where show x = genericShow x
 derive instance Eq TypeName
 derive instance Ord TypeName
 
+instance Show TypeName where
+  show (TypeName (Just label)) = label
+  show (TypeName Nothing) = "_"
+
 -- instances for TermName
 derive instance Generic TermName _
-instance Show TermName where show x = genericShow x
 derive instance Eq TermName
 derive instance Ord TermName
+
+instance Show TermName where
+  show (TermName (Just label)) = label
+  show (TermName Nothing) = "_"
+
 

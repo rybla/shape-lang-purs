@@ -7,6 +7,7 @@ import Prelude
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List.Unsafe as List
+import Data.Show.Generic (genericShow)
 import Undefined (undefined)
 import Unsafe (error)
 import Unsafe.Coerce (unsafeCoerce)
@@ -42,6 +43,7 @@ data IndexStep
   | Parameter_Type
 
 derive instance Generic IndexStep _
+instance Show IndexStep where show step = genericShow step
 instance Eq IndexStep where eq step step' = genericEq step step' 
 
 pushIndex :: Index -> IndexStep -> Index
