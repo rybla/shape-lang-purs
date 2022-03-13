@@ -38,7 +38,7 @@ type ProgramProps
 
 type ProgramState
   = { module_ :: Module
-    , ixCursor :: Index
+    , ix_cursor :: Index
     }
 
 type ProgramGiven
@@ -67,7 +67,7 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = case code event of
-    "ArrowUp" -> React.modifyState this \st -> st { ixCursor = moveIndexUp st.ixCursor }
+    "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveIndexUp st.module_ st.ix_cursor }
     "ArrowDown" -> Debug.traceM "ArrowDown"
     "ArrowLeft" -> Debug.traceM "ArrowLeft"
     "ArrowRight" -> Debug.traceM "ArrowRight"
@@ -76,7 +76,7 @@ programComponent this =
   state :: ProgramState
   state =
     { module_: Initial.module_
-    , ixCursor: []
+    , ix_cursor: []
     }
 
   selectableProps :: String -> Boolean -> Index -> Array Props.Props
@@ -88,14 +88,14 @@ programComponent this =
   selectableTriggerProps ix =
     [ Props.onClick \event -> do
         Debug.traceM $ "setting index to: " <> show ix
-        React.modifyState this \st -> st { ixCursor = ix }
+        React.modifyState this \st -> st { ix_cursor = ix }
     ]
 
   inertProps :: String -> Array Props.Props
   inertProps title = [ Props.className title ]
 
   render :: ProgramState -> React.ReactElement
-  render st = renderModule st.module_ Map.empty emptyMetaContext [] (Just st.ixCursor)
+  render st = renderModule st.module_ Map.empty emptyMetaContext [] (Just st.ix_cursor)
 
   renderModule :: RecIndex.RecModule React.ReactElement
   renderModule =
