@@ -13,6 +13,7 @@ import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Debug as Debug
 import Effect (Effect)
+import Effect.Class.Console as Console
 import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Metadata (TypeName(..), TermName(..), defaultDataTypeMetadata, defaultModuleMetadata)
@@ -26,6 +27,11 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as R
 import Undefined (undefined)
+import Unsafe as Unsafe
+import Web.Event.Event (Event, EventType(..))
+import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.HTML (window)
+import Web.HTML.Window (toEventTarget)
 
 type ProgramProps
   = {}
@@ -38,7 +44,10 @@ type ProgramState
 type ProgramGiven
   = { state :: ProgramState
     , render :: Effect React.ReactElement
+    , componentDidMount :: Effect Unit
     }
+
+foreign import code :: Event -> String
 
 programClass :: React.ReactClass ProgramProps
 programClass = React.component "Program" programComponent
@@ -48,8 +57,22 @@ programComponent this =
   pure
     { state
     , render: render <$> React.getState this
+    , componentDidMount:
+        do
+          Console.log "componentDidMount"
+          win <- window
+          listener <- eventListener keyboardEventHandler
+          addEventListener (EventType "keydown") listener false (toEventTarget win)
     }
   where
+  keyboardEventHandler :: Event -> Effect Unit
+  keyboardEventHandler event = case code event of
+    "ArrowUp" -> Debug.traceM "ArrowUp"
+    "ArrowDown" -> Debug.traceM "ArrowDown"
+    "ArrowLeft" -> Debug.traceM "ArrowLeft"
+    "ArrowRight" -> Debug.traceM "ArrowRight"
+    _ -> pure unit
+
   state :: ProgramState
   state =
     { module_: Initial.module_
