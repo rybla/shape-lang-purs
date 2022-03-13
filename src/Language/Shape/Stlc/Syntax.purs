@@ -122,3 +122,17 @@ derive instance Eq TypeId
 derive instance Ord TermId
 derive instance Ord TypeId
 derive instance Ord HoleId
+
+data Syntax = 
+    SyntaxModule Module
+  | SyntaxBlock Block
+  | SyntaxDefinition 
+  | SyntaxConstructor Constructor
+  | SyntaxTerm Term
+  | SyntaxArgs Args
+  | SyntaxCase Case
+  | SyntaxType Type
+  | SyntaxParameter Parameter
+  | SyntaxTermBinding TermBinding
+  | SyntaxTypeBinding TypeBinding
+  | SyntaxTermId TermId
