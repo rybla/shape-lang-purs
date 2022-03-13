@@ -1,10 +1,8 @@
 module Language.Shape.Stlc.Rendering where
 
 import Language.Shape.Stlc.Index
-import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
-import Language.Shape.Stlc.Syntax as Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
@@ -14,12 +12,14 @@ import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
+import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Metadata (TypeName(..), TermName(..), defaultDataTypeMetadata, defaultModuleMetadata)
 import Language.Shape.Stlc.Recursion.Index (Cursor, checkCursorStep)
 import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
+import Language.Shape.Stlc.Syntax as Syntax
 import React as React
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -100,13 +100,14 @@ programComponent this =
           \termBinding alpha a meta gamma metaGamma ix_parent ix isSelected ix_termBinding cursor_termBinding ix_alpha cursor_alpha ix_a cursor_a ->
             DOM.span
               [ Props.className "term definition" ]
-              [ keyword.let_
-              , punctuation.space
-              , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+              [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
               , punctuation.space
               , punctuation.colon
               , indent meta metaGamma
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
+              , punctuation.newline
+              , indentation metaGamma { indentation = metaGamma.indentation - 1 }
+              , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
               , punctuation.space
               , punctuation.termdef
               , indentOrSpace meta metaGamma

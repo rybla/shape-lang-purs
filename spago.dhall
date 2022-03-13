@@ -19,6 +19,7 @@
   , "transformers"
   , "tuples"
   , "undefined"
+  , "unsafe-coerce"
   , "uuid"
   , "variant"
   , "web-dom"

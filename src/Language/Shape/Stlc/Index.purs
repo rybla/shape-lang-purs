@@ -1,10 +1,15 @@
 module Language.Shape.Stlc.Index where
 
+import Data.Array.Unsafe
+import Language.Shape.Stlc.Syntax
 import Prelude
 
-import Data.Array as Array
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
+import Data.List.Unsafe as List
+import Undefined (undefined)
+import Unsafe (error)
+import Unsafe.Coerce (unsafeCoerce)
 
 type Index
   = Array IndexStep
@@ -40,6 +45,30 @@ derive instance Generic IndexStep _
 instance Eq IndexStep where eq step step' = genericEq step step' 
 
 pushIndex :: Index -> IndexStep -> Index
-pushIndex = Array.snoc
+pushIndex = snoc
 
 infix 5 pushIndex as :>
+
+-- TODO
+setMetadataAt :: forall a. Index -> a -> Module -> Module 
+setMetadataAt ix meta' = goModule 0 
+  where 
+  l = length ix
+  goModule i (Module defs meta) =
+    if i == l - 1
+      then Module defs (unsafeCoerce meta')
+      else case index' ix i of
+        Module_Definition j -> Module (List.updateAt' j (goDefinition (i + 1) (List.index' defs j)) defs) meta
+        _ -> error "impossible"
+  goDefinition i (TermDefinition termBinding alpha a meta) =
+    if i == l - 1
+      then TermDefinition termBinding alpha a $ unsafeCoerce meta'
+      else case index' ix i of 
+        TermDefinition_TermBinding -> TermDefinition (goTermBinding (i + 1) termBinding) alpha a meta
+        TermDefinition_Type -> TermDefinition termBinding (goType (i + 1) alpha) a meta
+        TermDefinition_Term -> TermDefinition termBinding alpha (goTerm (i + 1) a) meta
+        _ -> error "impossible"
+  goDefinition i (DataDefinition typeBinding constrs meta) = undefined
+  goType = undefined 
+  goTerm = undefined 
+  goTermBinding = undefined 

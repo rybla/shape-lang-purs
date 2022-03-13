@@ -20,6 +20,7 @@ import React as React
 import React.DOM as DOM
 import React.DOM.Props as Props
 import Type.Proxy (Proxy(..))
+import Undefined (undefined)
 import Unsafe as Unsafe
 
 keyword :: _
@@ -48,7 +49,7 @@ punctuation =
         , rparen: ")"
         , alt: "|"
         , arrow: "->"
-        , termdef: ":="
+        , termdef: "="
         , typedef: "::="
         , colon: ":"
         , mapsto: "=>"
@@ -73,19 +74,20 @@ intersperseRightHTML inter = DOM.span' <<< Array.foldMap (\x -> [ x ] <> inter)
 indent :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indent { indented } metaGamma =
   if indented then
-    DOM.span
-      [ Props.className "indentation" ]
-      $ [ punctuation.newline ]
-      <> (Array.replicate metaGamma.indentation (DOM.span [ Props.className "indent" ] []))
+    DOM.span' [ punctuation.newline, indentation metaGamma ]
   else
     DOM.span' []
 
 indentOrSpace :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
 indentOrSpace { indented } metaGamma =
   if indented then
-    DOM.span
-      [ Props.className "indentation" ]
-      $ [ punctuation.newline ]
-      <> (Array.replicate metaGamma.indentation (DOM.span [ Props.className "indent" ] []))
+    DOM.span' [ punctuation.newline, indentation metaGamma ]
   else
     DOM.span' [ punctuation.space ]
+
+-- without newline
+indentation :: MetaContext -> React.ReactElement
+indentation metaGamma =
+  DOM.span
+    [ Props.className "indentation" ]
+    $ Array.replicate metaGamma.indentation (DOM.span [ Props.className "indent" ] [])
