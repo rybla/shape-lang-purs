@@ -5,7 +5,10 @@ html {
 /* app */
 .app {
   font-family: monospace;
+  line-height: 16pt;
+  font-size: 12pt;
 }
+/* TODO: disallow sub from making the line taller */
 
 /* editor */
 

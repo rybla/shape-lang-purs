@@ -177,6 +177,28 @@ programComponent this =
     RecIndex.recConstructor
       { constructor:
           \termBinding prms meta typeId gamma alpha metaGamma ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
+            -- DOM.span
+            --   (selectableProps "constructor" isSelected ix)
+            --   $ [ DOM.span (selectableTriggerProps ix)
+            --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
+            --     , punctuation.space
+            --     , punctuation.colon
+            --     , punctuation.space
+            --     ]
+            --   <> ( if List.length prms == 0 then
+            --         []
+            --       else
+            --         [ DOM.span
+            --             (inertProps "constructor parameters")
+            --             [ intersperseRightHTML
+            --                 [ punctuation.space ]
+            --                 $ Array.fromFoldable
+            --                 $ List.mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
+            --             ]
+            --         , punctuation.space
+            --         ]
+            --     )
+            --   <> [ renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma ]
             DOM.span
               (selectableProps "constructor" isSelected ix)
               $ [ DOM.span (selectableTriggerProps ix)
