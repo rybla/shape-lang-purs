@@ -195,12 +195,18 @@ programComponent this =
           \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
             DOM.span
               (selectableProps "arrow type" isSelected ix)
-              [ renderParameter prm gamma metaGamma ix_prm cursor_prm
-              , punctuation.space
-              , punctuation.arrow
-              , punctuation.space
-              , renderType beta gamma metaGamma ix_beta cursor_beta
-              ]
+              $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
+                , punctuation.space
+                ]
+              <> case beta of
+                  ArrowType _ _ _ ->
+                    [ renderType beta gamma metaGamma ix_beta cursor_beta
+                    ]
+                  _ ->
+                    [ punctuation.arrow
+                    , punctuation.space
+                    , renderType beta gamma metaGamma ix_beta cursor_beta
+                    ]
       , data:
           \typeId meta gamma metaGamma ix isSelected ->
             DOM.span
@@ -224,13 +230,19 @@ programComponent this =
       { arrow:
           \prm beta meta gamma metaGamma ->
             DOM.span
-              (inertProps "type arrow")
-              [ renderParameter' prm gamma metaGamma
-              , punctuation.space
-              , punctuation.arrow
-              , punctuation.space
-              , renderType' beta gamma metaGamma
-              ]
+              (inertProps "arrow type")
+              $ [ renderParameter' prm gamma metaGamma
+                , punctuation.space
+                ]
+              <> case beta of
+                  ArrowType _ _ _ ->
+                    [ renderType' beta gamma metaGamma
+                    ]
+                  _ ->
+                    [ punctuation.arrow
+                    , punctuation.space
+                    , renderType' beta gamma metaGamma
+                    ]
       , data:
           \typeId meta gamma metaGamma ->
             DOM.span
@@ -255,15 +267,20 @@ programComponent this =
           \termId block meta gamma prm beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
             DOM.span
               (selectableProps "lambda term" isSelected ix)
-              [ DOM.span (selectableTriggerProps ix)
-                  [ keyword.lambda ]
-              , punctuation.space
-              , renderTermId termId gamma metaGamma ix_termId cursor_termId
-              , punctuation.space
-              , punctuation.mapsto
-              , indentOrSpace meta metaGamma
-              , renderBlock block gamma beta metaGamma ix_block cursor_block
-              ]
+              $ [ DOM.span (selectableTriggerProps ix)
+                    [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
+                , punctuation.space
+                ]
+              <> case block of
+                  Block List.Nil (LambdaTerm _ _ _) _ ->
+                    [ punctuation.space
+                    , renderBlock block gamma beta metaGamma ix_block cursor_block
+                    ]
+                  _ ->
+                    [ punctuation.mapsto
+                    , indentOrSpace meta metaGamma
+                    , renderBlock block gamma beta metaGamma ix_block cursor_block
+                    ]
       , neutral:
           \termId args meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_args cursor_args ->
             DOM.span
