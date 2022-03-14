@@ -229,8 +229,8 @@ recConstructor ::
 recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma metaGamma ix_parent ix_def ix csr ->
-          rec.constructor termBinding prms meta typeId gamma metaGamma
+        \termBinding prms meta typeId gamma alpha metaGamma ix_parent ix_def ix csr ->
+          rec.constructor termBinding prms meta typeId gamma alpha metaGamma
             ix_parent
             ix_def
             -- constructor

@@ -82,13 +82,19 @@ type RecConstructor a
   = RecBase.RecConstructor (Context -> a)
 
 type RecConstructor_Constructor a
-  = RecBase.RecConstructor_Constructor (Context -> a)
+  = RecBase.RecConstructor_Constructor (Context -> Type -> a)
 
 recConstructor ::
   forall a.
   { constructor :: RecConstructor_Constructor a } ->
   RecConstructor a
-recConstructor = RecBase.recConstructor
+recConstructor rec =
+  RecBase.recConstructor
+    { constructor:
+        \termBinding prms meta typeId gamma ->
+          rec.constructor termBinding prms meta typeId gamma
+            (typeOfConstructor prms typeId)
+    }
 
 type RecType_ProxyHole a
   = RecBase.RecType_ProxyHole (Context -> a)

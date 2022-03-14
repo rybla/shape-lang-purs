@@ -175,7 +175,19 @@ recType ::
   , proxyHole :: RecType_ProxyHole a
   } ->
   RecType a
-recType rec alpha gamma = RecContext.recType rec alpha gamma <<< incrementIndentation
+recType rec =
+  RecContext.recType
+    { arrow:
+        \prm@(Parameter _ { name }) beta meta gamma ->
+          rec.arrow prm beta meta gamma
+            <<< foldl (>>>) identity
+                [ registerParameterName name
+                , incrementIndentation
+                ]
+    , data: rec.data
+    , hole: rec.hole
+    , proxyHole: rec.proxyHole
+    }
 
 type RecTerm a
   = RecContext.RecTerm (MetaContext -> a)
@@ -269,6 +281,9 @@ type RecParameter a
 type RecParameter_Parameter a
   = RecContext.RecParameter_Parameter (MetaContext -> a)
 
+-- `recParameter` doesn't need to `registerParameterName` because recType
+-- already does. This is because the updated `metaGamma` needs to be passed to
+-- `beta` of `ArrowType`.
 recParameter ::
   forall a.
   { parameter :: RecParameter_Parameter a } ->
@@ -276,30 +291,13 @@ recParameter ::
 recParameter rec =
   RecContext.recParameter
     { parameter:
-        \alpha meta gamma metaGamma ->
-          -- let
-          --   _ = Debug.trace ("RecMetacContext.recParameter: " <> show meta.name) identity
-          --   _ = Debug.trace (show metaGamma.termScope.shadows) identity
-          --   _ = Debug.trace (show (foldl (>>>) identity [ registerParameterName meta.name, incrementIndentation ] metaGamma).termScope.shadows) identity
-          -- in
-          rec.parameter alpha meta gamma
-            $ foldl (>>>) identity
-                [ registerParameterName meta.name
-                , incrementIndentation
-                ]
-                metaGamma
-    }
-
-{-
-    { parameter:
         \alpha meta gamma ->
           rec.parameter alpha meta gamma
             <<< foldl (>>>) identity
-                [ registerParameterName meta.name
-                , incrementIndentation
+                [ incrementIndentation
                 ]
     }
-    -}
+
 -- Scope
 type Scope id name
   = { names :: Map id name
