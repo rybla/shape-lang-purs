@@ -160,9 +160,7 @@ programComponent this =
             DOM.span
               (selectableProps "data definition" isSelected ix)
               [ DOM.span (selectableTriggerProps ix)
-                  [ keyword.data_ ]
-              , punctuation.space
-              , renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding
+                  [ renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding ]
               , punctuation.space
               , punctuation.typedef
               , DOM.span'
