@@ -13,6 +13,7 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (fst, snd)
 import Undefined (undefined)
 import Unsafe (error)
+import Unsafe as Unsafe
 import Unsafe.Coerce (unsafeCoerce)
 
 type Index
@@ -54,39 +55,45 @@ pushIndex = snoc
 
 infix 5 pushIndex as :>
 
+-- returns new syntax and module with new syntax updated in it
 visitSyntaxAt :: Index -> (Syntax -> Syntax) -> Module -> Syntax /\ Module
-visitSyntaxAt ix f mod = undefined
+visitSyntaxAt ix f mod = goModule 0 mod
+  where 
+  l = length ix 
+
+  visit :: forall a. Int -> a -> (a -> Syntax) -> (Syntax -> a) -> (a -> Module) -> (IndexStep -> Syntax /\ Module) -> Syntax /\ Module
+  visit i a toSyntax fromSyntax wrap k = if i == l then syntax /\ wrap (fromSyntax syntax) else k (index' ix i)
+    where syntax = f $ toSyntax a 
+
+  goModule i mod@(Module defs meta) = visit i mod SyntaxModule toModule identity
+    case _ of 
+      Module_Definition i_def -> goDefinition (i + 1) (List.index' defs i_def) \def' -> Module (List.updateAt' i_def def' defs) meta
+      _ -> Unsafe.error "impossible"
+
+  goDefinition i def wrap = case def of 
+    TermDefinition termBinding alpha a meta -> visit i def SyntaxDefinition toDefinition wrap
+      case _ of 
+        TermDefinition_TermBinding -> goTermBinding (i + 1) termBinding \termBinding' -> TermDefinition termBinding' alpha a meta
+        TermDefinition_Type -> goType (i + 1) alpha \alpha' -> TermDefinition termBinding alpha' a meta
+        TermDefinition_Term -> goTerm (i + 1) a \a' -> TermDefinition termBinding alpha a' meta
+        _ -> Unsafe.error "impossible"
+    DataDefinition typeBinding constrs meta -> visit i def SyntaxDefinition toDefinition wrap
+      case _ of 
+        DataDefinition_TypeBinding -> goTypeBinding (i + 1) typeBinding \typeBinding' -> DataDefinition typeBinding' constrs meta
+        DataDefinition_Constructor i_constr -> goConstructor (i + 1) (List.index' constrs i_constr) \constr' -> DataDefinition typeBinding (List.updateAt' i_constr constr' constrs) meta
+        _ -> Unsafe.error "impossible"
+
+  goConstructor = undefined
+  goType = undefined
+  goTerm = undefined
+  goTermBinding = undefined
+  goTypeBinding = undefined
 
 getSyntaxAt :: Index -> Module -> Syntax
 getSyntaxAt ix mod = fst $ visitSyntaxAt ix identity mod 
 
 modifySyntaxAt :: Index -> (Syntax -> Syntax) -> Module -> Module 
 modifySyntaxAt ix f mod = snd $ visitSyntaxAt ix identity mod
-
--- TODO
--- setMetadataAt :: forall a. Index -> a -> Module -> Module 
--- setMetadataAt ix meta' = goModule 
-  -- where 
-  -- l = length ix
-  -- goModule i (Module defs meta) =
-  --   if i == l - 1
-  --     then Module defs (unsafeCoerce meta')
-  --     else case index' ix i of
-  --       Module_Definition j -> Module (List.updateAt' j (goDefinition (i + 1) (List.index' defs j)) defs) meta
-  --       _ -> error "impossible"
-  -- goDefinition i (TermDefinition termBinding alpha a meta) =
-  --   if i == l - 1
-  --     then TermDefinition termBinding alpha a $ unsafeCoerce meta'
-  --     else case index' ix i of 
-  --       TermDefinition_TermBinding -> TermDefinition (goTermBinding (i + 1) termBinding) alpha a meta
-  --       TermDefinition_Type -> TermDefinition termBinding (goType (i + 1) alpha) a meta
-  --       TermDefinition_Term -> TermDefinition termBinding alpha (goTerm (i + 1) a) meta
-  --       _ -> error "impossible"
-  -- goDefinition i (DataDefinition typeBinding constrs meta) = undefined
-  -- goType = undefined 
-  -- goTerm = undefined 
-  -- goTermBinding = undefined 
-
 
 data Direction = Up | Down | Left | Right
 

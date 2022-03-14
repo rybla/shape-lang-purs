@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Syntax where
 
+import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
 
@@ -9,7 +10,7 @@ import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Metadata
+import Unsafe as Unsafe
 
 data Module
   = Module (List Definition) ModuleMetadata
@@ -136,3 +137,51 @@ data Syntax =
   | SyntaxTermBinding TermBinding
   | SyntaxTypeBinding TypeBinding
   | SyntaxTermId TermId
+
+toModule :: Syntax -> Module
+toModule (SyntaxModule mod) = mod
+toModule _ = Unsafe.error "impossible cast from Syntax"
+
+toBlock :: Syntax -> Block
+toBlock (SyntaxBlock block) = block
+toBlock _ = Unsafe.error "impossible cast from Syntax"
+
+toDefinition :: Syntax -> Definition
+toDefinition (SyntaxDefinition def) = def 
+toDefinition _ = Unsafe.error "impossible cast from Syntax"
+
+toConstructor :: Syntax -> Constructor
+toConstructor (SyntaxConstructor constr) = constr
+toConstructor _ = Unsafe.error "impossible cast from Syntax"
+
+toTerm :: Syntax -> Term
+toTerm (SyntaxTerm a)  = a 
+toTerm _ = Unsafe.error "impossible cast from Syntax"
+
+toArgs :: Syntax -> Args
+toArgs (SyntaxArgs args) = args
+toArgs _ = Unsafe.error "impossible cast from Syntax"
+
+toCase :: Syntax -> Case
+toCase (SyntaxCase case_) = case_ 
+toCase _ = Unsafe.error "impossible cast from Syntax"
+
+toType :: Syntax -> Type
+toType (SyntaxType alpha) = alpha
+toType _ = Unsafe.error "impossible cast from Syntax"
+
+toParameter :: Syntax -> Parameter
+toParameter (SyntaxParameter prm) = prm 
+toParameter _ = Unsafe.error "impossible cast from Syntax"
+
+toTermBinding :: Syntax -> TermBinding
+toTermBinding (SyntaxTermBinding termBinding) = termBinding
+toTermBinding _ = Unsafe.error "impossible cast from Syntax"
+
+toTypeBinding :: Syntax -> TypeBinding
+toTypeBinding (SyntaxTypeBinding typeBinding) = typeBinding
+toTypeBinding _ = Unsafe.error "impossible cast from Syntax"
+
+toTermId :: Syntax -> TermId
+toTermId (SyntaxTermId termId) = termId 
+toTermId _ = Unsafe.error "impossible cast from Syntax"
