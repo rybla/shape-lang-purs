@@ -11,7 +11,6 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.State (State, runState)
-import Data.Array as Array
 import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map (Map)
@@ -24,31 +23,32 @@ import Undefined (undefined)
 import Unsafe as Unsafe
 
 type Cursor
-  = Maybe Index
+  = Maybe DownwardIndex
 
+-- check to see if the next step of the recursion "downward" corresponds to the next downward step of the cursor
 checkCursorStep :: IndexStep -> Cursor -> Cursor
-checkCursorStep step csr = do
+checkCursorStep step' csr = do
   ix <- csr
-  { head, tail } <- Array.uncons ix
-  if head == step then
-    Just tail
+  { step, ix' } <- unconsDownwardIndex ix
+  if step == step' then
+    Just ix'
   else
     Nothing
 
 checkCursorHere :: Cursor -> Boolean
 checkCursorHere = case _ of
   Nothing -> false
-  Just ix -> Array.null ix
+  Just (DownwardIndex steps) -> List.null steps
 
 -- Recursion principles for handling indexing
 type RecModule a
-  = RecMetaContext.RecModule (Index -> Cursor -> a)
+  = RecMetaContext.RecModule (UpwardIndex -> Cursor -> a)
 
 type RecModule_Module a
   = RecMetaContext.RecModule_Module
-      ( Index -> -- module
+      ( UpwardIndex -> -- module
         Boolean -> -- module
-        (Int -> Index) -> -- definition
+        (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
         a
       )
@@ -66,20 +66,20 @@ recModule rec =
             ix
             (checkCursorHere csr)
             -- definitions
-            (\i -> ix :> Module_Definition i)
+            (\i -> Module_Definition i <: ix)
             (\i -> checkCursorStep (Module_Definition i) csr)
     }
 
 type RecBlock a
-  = RecMetaContext.RecBlock (Index -> Cursor -> a)
+  = RecMetaContext.RecBlock (UpwardIndex -> Cursor -> a)
 
 type RecBlock_Block a
   = RecMetaContext.RecBlock_Block
-      ( Index -> -- block
+      ( UpwardIndex -> -- block
         Boolean -> -- block
-        (Int -> Index) -> -- definition
+        (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
-        Index -> -- term
+        UpwardIndex -> -- term
         Cursor -> -- term
         a
       )
@@ -97,25 +97,25 @@ recBlock rec =
             ix
             (checkCursorHere csr)
             -- definitions
-            (\i -> ix :> Block_Definition i)
+            (\i -> Block_Definition i <: ix)
             (\i -> checkCursorStep (Block_Definition i) csr)
             -- term
-            (ix :> Block_Term)
+            (Block_Term <: ix)
             (checkCursorStep Block_Term csr)
     }
 
 type RecDefinitions a
   = RecMetaContext.RecDefinitions
-      ( Index -> -- module/block
-        (Int -> Index) -> -- definition
+      ( UpwardIndex -> -- module/block
+        (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
         a
       )
 
 type RecDefinitions_Definitions a
   = RecMetaContext.RecDefinitions_Definitions
-      ( Index -> -- module/block
-        (Int -> Index) -> -- definition
+      ( UpwardIndex -> -- module/block
+        (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
         a
       )
@@ -128,34 +128,34 @@ recDefinitions = RecMetaContext.recDefinitions
 
 type RecDefinition a
   = RecMetaContext.RecDefinition
-      ( Index -> -- module/block
-        Index -> -- definition
+      ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definition
         Cursor -> -- definition
         a
       )
 
 type RecDefinition_TermDefinition a
   = RecMetaContext.RecDefinition_TermDefinition
-      ( Index -> -- module/block
-        Index -> -- definition
+      ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definition
         Boolean -> -- definition
-        Index -> -- termId
+        UpwardIndex -> -- termId
         Cursor -> -- termId
-        Index -> -- type
+        UpwardIndex -> -- type
         Cursor -> -- type
-        Index -> -- term
+        UpwardIndex -> -- term
         Cursor -> -- term
         a
       )
 
 type RecDefinition_DataDefinition a
   = RecMetaContext.RecDefinition_DataDefinition
-      ( Index -> -- module/block
-        Index -> -- definition
+      ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definition
         Boolean -> -- definition
-        Index -> -- typeBinding
+        UpwardIndex -> -- typeBinding
         Cursor -> -- typeBinding
-        (Int -> Index) -> -- constructors
+        (Int -> UpwardIndex) -> -- constructors
         (Int -> Cursor) -> -- constructors
         a
       )
@@ -176,13 +176,13 @@ recDefinition rec =
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> TermDefinition_TermBinding)
+            (TermDefinition_TermBinding <: ix)
             (checkCursorStep TermDefinition_TermBinding csr)
             -- type
-            (ix :> TermDefinition_Type)
+            (TermDefinition_Type <: ix)
             (checkCursorStep TermDefinition_Type csr)
             -- term
-            (ix :> TermDefinition_Term)
+            (TermDefinition_Term <: ix)
             (checkCursorStep TermDefinition_Term csr)
     , data:
         \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
@@ -192,31 +192,31 @@ recDefinition rec =
             ix
             (checkCursorHere csr)
             -- typeBinding
-            (ix :> DataDefinition_TypeBinding)
+            (DataDefinition_TypeBinding <: ix)
             (checkCursorStep DataDefinition_TypeBinding csr)
             -- constructors
-            (\i -> ix :> DataDefinition_Constructor i)
+            (\i -> DataDefinition_Constructor i <: ix)
             (\i -> checkCursorStep (DataDefinition_Constructor i) csr)
     }
 
 type RecConstructor a
   = RecMetaContext.RecConstructor
-      ( Index -> -- module/block
-        Index -> -- definition
-        Index -> -- constructor
+      ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definition
+        UpwardIndex -> -- constructor
         Cursor -> -- constructor
         a
       )
 
 type RecConstructor_Constructor a
   = RecMetaContext.RecConstructor_Constructor
-      ( Index -> -- module/block
-        Index -> -- definition
-        Index -> -- constructor
+      ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definition
+        UpwardIndex -> -- constructor
         Boolean -> -- constructor
-        Index -> -- termBinding
+        UpwardIndex -> -- termBinding
         Cursor -> -- termBinding
-        (Int -> Index) -> -- parameters
+        (Int -> UpwardIndex) -> -- parameters
         (Int -> Cursor) -> -- parameters
         a
       )
@@ -237,47 +237,47 @@ recConstructor rec =
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> Constructor_TermBinding)
+            (Constructor_TermBinding <: ix)
             (checkCursorStep Constructor_TermBinding csr)
             -- parameters
-            (\i -> ix :> Constructor_Parameter i)
+            (\i -> Constructor_Parameter i <: ix)
             (\i -> checkCursorStep (Constructor_Parameter i) csr)
     }
 
 type RecDefinitionBindings a
   = RecMetaContext.RecDefinitionBindings
-      ( Index -> -- definition
-        Index -> -- type
+      ( UpwardIndex -> -- definition
+        UpwardIndex -> -- type
         Cursor -> -- type 
-        Index -> -- term
+        UpwardIndex -> -- term
         Cursor -> -- term
         a
       )
 
 type RecDefinitionBindings_ArrowLambda a
   = RecMetaContext.RecDefinitionBindings_ArrowLambda
-      ( Index -> -- definition
-        Index -> -- type
+      ( UpwardIndex -> -- definition
+        UpwardIndex -> -- type
         Boolean -> -- type
-        Index -> -- term
+        UpwardIndex -> -- term
         Boolean -> -- term
-        Index -> -- parameter
+        UpwardIndex -> -- parameter
         Cursor -> -- parameter
-        Index -> -- type (sub)
+        UpwardIndex -> -- type (sub)
         Cursor -> -- type (sub)
-        Index -> -- termId
+        UpwardIndex -> -- termId
         Cursor -> -- termId
-        Index -> -- block
+        UpwardIndex -> -- block
         Cursor -> -- block
         a
       )
 
 type RecDefinitionBindings_Wildcard a
   = RecMetaContext.RecDefinitionBindings_Wildcard
-      ( Index ->
-        Index ->
+      ( UpwardIndex ->
+        UpwardIndex ->
         Boolean ->
-        Index ->
+        UpwardIndex ->
         Boolean -> a
       )
 
@@ -328,36 +328,36 @@ recDefinitionBindings rec =
     }
 -}
 type RecType a
-  = RecMetaContext.RecType (Index -> Cursor -> a)
+  = RecMetaContext.RecType (UpwardIndex -> Cursor -> a)
 
 type RecType_Arrow a
   = RecMetaContext.RecType_Arrow
-      ( Index -> -- type
+      ( UpwardIndex -> -- type
         Boolean -> -- type
-        Index -> -- parameter
+        UpwardIndex -> -- parameter
         Cursor -> -- parameter
-        Index -> -- type (sub)
+        UpwardIndex -> -- type (sub)
         Cursor -> -- type (sub)
         a
       )
 
 type RecType_Data a
   = RecMetaContext.RecType_Data
-      ( Index -> -- type
+      ( UpwardIndex -> -- type
         Boolean -> -- type
         a
       )
 
 type RecType_Hole a
   = RecMetaContext.RecType_Hole
-      ( Index -> -- type
+      ( UpwardIndex -> -- type
         Boolean -> -- type
         a
       )
 
 type RecType_ProxyHole a
   = RecMetaContext.RecType_ProxyHole
-      ( Index -> -- type
+      ( UpwardIndex -> -- type
         Boolean -> -- type
         a
       )
@@ -379,10 +379,10 @@ recType rec =
             ix
             (checkCursorHere csr)
             -- prm
-            (ix :> ArrowType_Parameter)
+            (ArrowType_Parameter <: ix)
             (checkCursorStep ArrowType_Parameter csr)
             -- beta
-            (ix :> ArrowType_Type)
+            (ArrowType_Type <: ix)
             (checkCursorStep ArrowType_Type csr)
     , data: \typeId meta gamma metaGamma ix csr -> rec.data typeId meta gamma metaGamma ix (checkCursorHere csr)
     , hole: \holeID wkn meta gamma metaGamma ix csr -> rec.hole holeID wkn meta gamma metaGamma ix (checkCursorHere csr)
@@ -390,44 +390,44 @@ recType rec =
     }
 
 type RecTerm a
-  = RecMetaContext.RecTerm (Index -> Cursor -> a)
+  = RecMetaContext.RecTerm (UpwardIndex -> Cursor -> a)
 
 type RecTerm_Lambda a
   = RecMetaContext.RecTerm_Lambda
-      ( Index -> -- term
+      ( UpwardIndex -> -- term
         Boolean -> -- term
-        Index -> -- termId
+        UpwardIndex -> -- termId
         Cursor -> -- termId
-        Index -> -- block
+        UpwardIndex -> -- block
         Cursor -> -- block
         a
       )
 
 type RecTerm_Neutral a
   = RecMetaContext.RecTerm_Neutral
-      ( Index -> -- term
+      ( UpwardIndex -> -- term
         Boolean -> -- term
-        Index -> -- termId
+        UpwardIndex -> -- termId
         Cursor -> -- termId
-        Index -> -- args
+        UpwardIndex -> -- args
         Cursor -> -- args
         a
       )
 
 type RecTerm_Match a
   = RecMetaContext.RecTerm_Match
-      ( Index -> -- term
+      ( UpwardIndex -> -- term
         Boolean -> -- term
-        Index -> -- term (sub)
+        UpwardIndex -> -- term (sub)
         Cursor -> -- term (sub)
-        (Int -> Index) -> -- cases
+        (Int -> UpwardIndex) -> -- cases
         (Int -> Cursor) -> -- cases
         a
       )
 
 type RecTerm_Hole a
   = RecMetaContext.RecTerm_Hole
-      ( Index -> -- term
+      ( UpwardIndex -> -- term
         Boolean -> -- term
         a
       )
@@ -449,10 +449,10 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> LambdaTerm_TermId)
+            (LambdaTerm_TermId <: ix)
             (checkCursorStep LambdaTerm_TermId csr)
             -- block
-            (ix :> LambdaTerm_Block)
+            (LambdaTerm_Block <: ix)
             (checkCursorStep LambdaTerm_Block csr)
     , neutral:
         \termId args meta gamma alpha metaGamma ix csr ->
@@ -461,10 +461,10 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> NeutralTerm_TermId)
+            (NeutralTerm_TermId <: ix)
             (checkCursorStep NeutralTerm_TermId csr)
             -- args
-            (ix :> NeutralTerm_Args)
+            (NeutralTerm_Args <: ix)
             (checkCursorStep NeutralTerm_Args csr)
     , match:
         \typeId a cases meta gamma alpha metaGamma constrIDs ix csr ->
@@ -473,10 +473,10 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- term (sub)
-            (ix :> MatchTerm_Term)
+            (MatchTerm_Term <: ix)
             (checkCursorStep MatchTerm_Term csr)
             -- cases
-            (\i -> ix :> MatchTerm_Case i)
+            (\i -> MatchTerm_Case i <: ix)
             (\i -> checkCursorStep (MatchTerm_Case i) csr)
     , hole:
         \meta gamma alpha metaGamma ix csr ->
@@ -484,18 +484,18 @@ recTerm rec =
     }
 
 type RecArgs a
-  = RecMetaContext.RecArgs (Index -> Cursor -> a)
+  = RecMetaContext.RecArgs (UpwardIndex -> Cursor -> a)
 
 type RecArgs_None (a :: Prim.Type)
   = RecMetaContext.RecArgs_None a
 
 type RecArgs_Cons a
   = RecMetaContext.RecArgs_Cons
-      ( Index -> -- args
+      ( UpwardIndex -> -- args
         Boolean -> -- args
-        Index -> -- term
+        UpwardIndex -> -- term
         Cursor -> -- term
-        Index -> -- args (sub)
+        UpwardIndex -> -- args (sub)
         Cursor -> -- args (sub)
         a
       )
@@ -516,29 +516,29 @@ recArgs rec =
             ix
             (checkCursorHere csr)
             -- term
-            (ix :> ConsArgs_Term)
+            (ConsArgs_Term <: ix)
             (checkCursorStep ConsArgs_Term csr)
             -- args (sub)
-            (ix :> ConsArgs_Args)
+            (ConsArgs_Args <: ix)
             (checkCursorStep ConsArgs_Args csr)
     }
 
 type RecCase a
   = RecMetaContext.RecCase
-      ( Index -> -- match
-        Index -> -- case
+      ( UpwardIndex -> -- match
+        UpwardIndex -> -- case
         Cursor -> -- case
         a
       )
 
 type RecCase_Case a
   = RecMetaContext.RecCase_Case
-      ( Index -> -- match
-        Index -> -- case
+      ( UpwardIndex -> -- match
+        UpwardIndex -> -- case
         Boolean -> -- case
-        (Int -> Index) -> -- termId
+        (Int -> UpwardIndex) -> -- termId
         (Int -> Cursor) -> -- termId
-        Index -> -- term
+        UpwardIndex -> -- term
         Cursor -> -- term 
         a
       )
@@ -558,21 +558,21 @@ recCase rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (\i -> ix :> Case_TermId i)
+            (\i -> Case_TermId i <: ix)
             (\i -> checkCursorStep (Case_TermId i) csr)
             -- term
-            (ix :> Case_Term)
+            (Case_Term <: ix)
             (checkCursorStep Case_Term csr)
     }
 
 type RecParameter a
-  = RecMetaContext.RecParameter (Index -> Cursor -> a)
+  = RecMetaContext.RecParameter (UpwardIndex -> Cursor -> a)
 
 type RecParameter_Parameter a
   = RecMetaContext.RecParameter_Parameter
-      ( Index -> -- parameter
+      ( UpwardIndex -> -- parameter
         Boolean -> -- parameter
-        Index -> -- type 
+        UpwardIndex -> -- type 
         Cursor -> -- type
         a
       )
@@ -590,15 +590,15 @@ recParameter rec =
             ix
             (checkCursorHere csr)
             -- type
-            (ix :> Parameter_Type)
+            (Parameter_Type <: ix)
             (checkCursorStep Parameter_Type csr)
     }
 
 type RecTypeBinding a
-  = TypeBinding -> Context -> MetaContext -> Index -> Cursor -> a
+  = TypeBinding -> Context -> MetaContext -> UpwardIndex -> Cursor -> a
 
 type RecTypeBinding_TypeBinding a
-  = TypeId -> TypeBindingMetadata -> Context -> MetaContext -> Index -> Boolean -> a
+  = TypeId -> TypeBindingMetadata -> Context -> MetaContext -> UpwardIndex -> Boolean -> a
 
 recTypeBinding ::
   forall a.
@@ -608,10 +608,10 @@ recTypeBinding ::
 recTypeBinding rec (TypeBinding typeId meta) gamma metaGamma ix csr = rec.typeBinding typeId meta gamma metaGamma ix (checkCursorHere csr)
 
 type RecTermBinding a
-  = TermBinding -> Context -> MetaContext -> Index -> Cursor -> a
+  = TermBinding -> Context -> MetaContext -> UpwardIndex -> Cursor -> a
 
 type RecTermBinding_TermBinding a
-  = TermId -> TermBindingMetadata -> Context -> MetaContext -> Index -> Boolean -> a
+  = TermId -> TermBindingMetadata -> Context -> MetaContext -> UpwardIndex -> Boolean -> a
 
 recTermBinding ::
   forall a.
@@ -621,10 +621,10 @@ recTermBinding ::
 recTermBinding rec (TermBinding termId meta) gamma metaGamma ix csr = rec.termBinding termId meta gamma metaGamma ix (checkCursorHere csr)
 
 type RecTermId a
-  = TermId -> Context -> MetaContext -> Index -> Cursor -> a
+  = TermId -> Context -> MetaContext -> UpwardIndex -> Cursor -> a
 
 type RecTermId_TermId a
-  = TermId -> Context -> MetaContext -> Index -> Boolean -> a
+  = TermId -> Context -> MetaContext -> UpwardIndex -> Boolean -> a
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
 recTermId rec termId gamma metaGamma ix csr = rec.termId termId gamma metaGamma ix (checkCursorHere csr)
