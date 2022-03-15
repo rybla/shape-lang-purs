@@ -4,14 +4,14 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
-import Data.FoldableWithIndex (foldrWithIndex)
-import Data.List (List(..), fold, foldr, singleton, zip, zipWith, (:))
+import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex)
+import Data.List (List(..), elem, filter, fold, foldl, foldr, mapMaybe, mapWithIndex, singleton, zip, zipWith, (:))
 import Data.List.Unsafe (deleteAt', index', insertAt')
 import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
-import Data.Set (Set(..), difference, empty, filter, member)
+import Data.Set (Set(..), difference, empty, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
@@ -33,10 +33,10 @@ data TypeChange
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
--- TODO: need to generalize ParamsChange to allow for e.g. delete data A, and then data B has c : A -> A -> B
-data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
--- data ConstructorChange = ConstructorNoChange | InsertConstructor Int Constructor | DeleteConstructor Int | ChangeConstructor ParamsChange
-data ConstructorChange = ChangeConstructor ParamsChange Int | InsertConstructor (List Parameter)
+data ParamChange = InsertParam Parameter | ChangeParam Int TypeChange
+-- invariant assumption: the List ParamChange contains no duplicates,
+-- e.g. if both (ChangeParam i c) and (ChangeParam j c') are in the list, then i =/= j.
+data ConstructorChange = ChangeConstructor (List ParamChange) Int | InsertConstructor (List Parameter)
 
 type Changes = {
     termChanges :: Map TermId VarChange,
@@ -50,6 +50,12 @@ emptyChanges = {
     matchChanges : Map.empty,
     dataTypeDeletions : empty
 }
+
+emptyDatatypeChange :: forall a. List a -> List ConstructorChange
+emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
+
+emptyParamsChange :: forall a. List a -> List ParamChange
+emptyParamsChange = mapWithIndex (\index _ -> ChangeParam index NoChange)
 
 deleteVar :: Changes -> TermId -> Changes
 deleteVar {termChanges, matchChanges, dataTypeDeletions} i
@@ -171,7 +177,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
     cases' <- case lookup i chs.matchChanges of
-        Nothing -> sequence $ (map (chCase ctx ty chs ParamsNoChange ch) cases)
+        Nothing -> sequence $ (map (\cas@(Case ids _ _) -> chCase ctx ty chs (emptyParamsChange ids) ch cas) cases)
         Just changes -> sequence $ (map (\ctrCh -> case ctrCh of
                                             InsertConstructor params -> pure $ freshCase params
                                             ChangeConstructor pch n -> chCase ctx ty chs pch ch (index' cases n)) changes)
@@ -201,20 +207,26 @@ subHoles sub = do
 
 -- data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
 -- The Type is type of term in the case excluding bindings
-chCase :: Context -> Type -> Changes -> ParamsChange -> TypeChange -> Case -> State (Tuple (List Definition) HoleSub) Case
-chCase ctx ty chs paramsChange innerTC (Case bindings t md) = case paramsChange of
-    ParamsNoChange -> do
-        t' <- (chTerm ctx ty chs innerTC t)
-        pure $ Case bindings t' md
-    DeleteParam i -> do
-        t' <- (chTerm ctx ty chs{termChanges = insert (index' bindings i) VariableDeletion chs.termChanges } innerTC t)
-        pure $ Case (deleteAt' i bindings) t' md
-    InsertParam i p -> do
-        t' <- (chTerm ctx ty chs innerTC t)
-        pure $ Case (insertAt' i (freshTermId unit) bindings) t' md
-    ChangeParam i tc -> undefined
+chCase :: Context -> Type -> Changes -> (List ParamChange) -> TypeChange -> Case -> State (Tuple (List Definition) HoleSub) Case
+chCase ctx ty chs paramChanges innerTC (Case bindings t md) = do
+    -- Int -> chs -> ParamChange -> chs
+    let chs' = foldlWithIndex (\index chsAcc paramCh
+        -> case paramCh of
+            InsertParam t -> chsAcc
+            ChangeParam i ch -> chsAcc{termChanges = insert (index' bindings i) (VariableTypeChange ch) chsAcc.termChanges})
+            chs paramChanges
+    let bindings' = map (case _ of InsertParam _ -> freshTermId unit
+                                   ChangeParam i _ -> index' bindings i) paramChanges
+    let keptIndices = mapMaybe (case _ of InsertParam _ -> Nothing
+                                          ChangeParam i _ -> Just i) paramChanges
+    let toDelete = filter (\i -> not (elem i keptIndices)) (mapWithIndex (\i _ -> i) bindings)
+    let varsToDelete = map (\i -> index' bindings i) toDelete
+    let chs'' = foldl (\chsAcc i -> chsAcc{termChanges = insert i VariableDeletion chsAcc.termChanges}) chs' varsToDelete
+    t' <- chTerm ctx ty chs'' innerTC t
+    pure $ Case bindings' t' md
 
 
+-- TODO: where was this supposed to be needed?
 isNoChange :: TypeChange -> Boolean
 isNoChange (ArrowCh c1 c2) = isNoChange c1 && isNoChange c2
 isNoChange NoChange = true
