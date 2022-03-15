@@ -79,6 +79,7 @@ unconsUpwardIndex (UpwardIndex ix) = do
   {head: step, tail: steps'} <- List.uncons ix
   Just {step, ix': UpwardIndex steps'}
 
+infix 5 pushDownwardIndex as :>
 infix 5 pushUpwardIndex as <:
 
 modifySyntaxAt :: DownwardIndex -> (Syntax -> Syntax) -> Syntax -> Syntax
@@ -139,109 +140,163 @@ lookupSyntaxAt ix syn = case unconsDownwardIndex ix of
     SyntaxParameter (Parameter alpha meta) /\ Parameter_Type -> lookupSyntaxAt ix $ SyntaxType alpha
     _ -> Unsafe.error "impossible"
 
--- TODO
--- data Direction = Up | Down | Left | Right
+data Direction = Up | Down | Left | Right
 
--- moveIndex :: Direction -> Module -> Index -> Index 
--- moveIndex dir mod ix = case dir of 
---   Up -> case unsnoc ix of 
---     Nothing -> ix
---     Just {init: ix'} -> ix'
---   Down ->
---     case getSyntaxAt ix mod of 
---       SyntaxModule (Module defs _) -> if List.length defs > 0 then ix :> Module_Definition 0 else ix 
---       SyntaxBlock (Block defs a _) -> if List.length defs > 0 then ix :> Block_Definition 0 else ix
---       SyntaxDefinition (TermDefinition _ _ _ _) -> ix :> TermDefinition_TermBinding
---       SyntaxDefinition (DataDefinition _ _ _) -> ix :> DataDefinition_TypeBinding
---       SyntaxConstructor (Constructor _ _ _) -> ix :> Constructor_TermBinding
---       SyntaxTerm (LambdaTerm _ _ _) -> ix :> LambdaTerm_TermId
---       SyntaxTerm (Syntax.HoleTerm _) -> ix
---       SyntaxTerm (MatchTerm _ _ _ _) -> ix :> MatchTerm_Term
---       SyntaxTerm (NeutralTerm _ _ _) -> ix :> NeutralTerm_TermId
---       SyntaxArgs Syntax.NoneArgs -> ix
---       SyntaxArgs (ConsArgs _ _ _) -> ix :> ConsArgs_Term
---       SyntaxCase (Case termIds _ _) -> if List.length termIds > 0 then ix :> Case_TermId 0 else ix :> Case_Term
---       SyntaxType (ArrowType _ _ _)  -> ix :> ArrowType_Parameter
---       SyntaxType (DataType _ _)  -> ix
---       SyntaxType (HoleType _ _ _)  -> ix
---       SyntaxType (ProxyHoleType _)  -> ix
---       SyntaxParameter (Parameter _ _) -> ix :> Parameter_Type
---       SyntaxTermBinding termBinding -> ix
---       SyntaxTypeBinding typeBinding -> ix
---       SyntaxTermId termId -> ix
---   Left ->
---     case unsnoc ix of 
---       Nothing -> ix
---       Just {init: ix', last: step} ->
---         case step of
---           Module_Definition i_def ->
---             case getSyntaxAt ix' mod of 
---               SyntaxModule (Module defs _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
---               _ -> Unsafe.error "impossible"
---           Block_Definition i_def ->
---             case getSyntaxAt ix' mod of 
---               SyntaxBlock (Block defs _ _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
---               _ -> Unsafe.error "impossible"
---           Block_Term ->
---             case getSyntaxAt ix' mod of 
---               SyntaxBlock (Block defs _ _) -> if 0 < List.length defs then ix' :> Module_Definition (List.length defs - 1) else ix
---               _ -> Unsafe.error "impossible"
---           TermDefinition_TermBinding -> ix
---           TermDefinition_Type -> ix' :> TermDefinition_TermBinding
---           TermDefinition_Term  -> ix' :> TermDefinition_Type
---           DataDefinition_TypeBinding -> ix
---           DataDefinition_Constructor i_constr -> 
---             case getSyntaxAt ix' mod of 
---               SyntaxDefinition (DataDefinition _ constrs _) ->
---                 if 0 <= i_constr - 1 then ix' :> DataDefinition_Constructor (i_constr - 1) else ix' :> DataDefinition_TypeBinding
---               _ -> Unsafe.error "impossible"
---           Constructor_TermBinding -> ix
---           Constructor_Parameter i_prm ->
---             case getSyntaxAt ix' mod of 
---               SyntaxConstructor (Constructor _ prms _) -> if 0 <= i_prm - 1 then ix' :> Constructor_Parameter (i_prm - 1) else ix' :> Constructor_TermBinding
---               _ -> Unsafe.error "impossible"
---           LambdaTerm_TermId -> ix
---           LambdaTerm_Block -> ix' :> LambdaTerm_TermId
---           MatchTerm_Term -> ix
---           MatchTerm_Case i_case ->
---             case getSyntaxAt ix' mod of 
---               SyntaxTerm (MatchTerm _ _ cases _) -> if 0 <= i_case - 1 then ix' :> MatchTerm_Case (i_case - 1) else ix' :> MatchTerm_Term
---               _ -> Unsafe.error "impossible"
---           NeutralTerm_TermId -> ix
---           NeutralTerm_Args -> ix' :> NeutralTerm_TermId
---           ConsArgs_Term ->
---             case getSyntaxAt 
---           ConsArgs_Args -> undefined
---           Case_TermId i_termId -> undefined
---           Case_Term -> undefined
---           ArrowType_Parameter -> undefined
---           ArrowType_Type -> undefined
---           Parameter_Type -> undefined
+moveDownwardIndex :: Direction -> Module -> DownwardIndex -> DownwardIndex 
+moveDownwardIndex dir mod ix = case dir of 
+  Up -> case unconsDownwardIndex ix of 
+    Nothing -> ix
+    Just {ix'} -> ix'
+  Down ->
+    case lookupSyntaxAt ix (SyntaxModule mod) of 
+      SyntaxModule (Module defs _) -> if List.length defs > 0 then ix :> Module_Definition 0 else ix 
+      SyntaxBlock (Block defs a _) -> if List.length defs > 0 then ix :> Block_Definition 0 else ix
+      SyntaxDefinition (TermDefinition _ _ _ _) -> ix :> TermDefinition_TermBinding
+      SyntaxDefinition (DataDefinition _ _ _) -> ix :> DataDefinition_TypeBinding
+      SyntaxConstructor (Constructor _ _ _) -> ix :> Constructor_TermBinding
+      SyntaxTerm (LambdaTerm _ _ _) -> ix :> LambdaTerm_TermId
+      SyntaxTerm (Syntax.HoleTerm _) -> ix
+      SyntaxTerm (MatchTerm _ _ _ _) -> ix :> MatchTerm_Term
+      SyntaxTerm (NeutralTerm _ _ _) -> ix :> NeutralTerm_TermId
+      SyntaxArgs Syntax.NoneArgs -> ix
+      SyntaxArgs (ConsArgs _ _ _) -> ix :> ConsArgs_Term
+      SyntaxCase (Case termIds _ _) -> if List.length termIds > 0 then ix :> Case_TermId 0 else ix :> Case_Term
+      SyntaxType (ArrowType _ _ _)  -> ix :> ArrowType_Parameter
+      SyntaxType (DataType _ _)  -> ix
+      SyntaxType (HoleType _ _ _)  -> ix
+      SyntaxType (ProxyHoleType _)  -> ix
+      SyntaxParameter (Parameter _ _) -> ix :> Parameter_Type
+      SyntaxTermBinding termBinding -> ix
+      SyntaxTypeBinding typeBinding -> ix
+      SyntaxTermId termId -> ix
+  Left ->
+    case unconsDownwardIndex ix of 
+      Nothing -> ix
+      Just {step, ix'} ->
+        case step of
+          Module_Definition i_def ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxModule (Module defs _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
+              _ -> Unsafe.error "impossible"
+          Block_Definition i_def ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxBlock (Block defs _ _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
+              _ -> Unsafe.error "impossible"
+          Block_Term ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxBlock (Block defs _ _) -> if 0 < List.length defs then ix' :> Module_Definition (List.length defs - 1) else ix
+              _ -> Unsafe.error "impossible"
+          TermDefinition_TermBinding -> ix
+          TermDefinition_Type -> ix' :> TermDefinition_TermBinding
+          TermDefinition_Term  -> ix' :> TermDefinition_Type
+          DataDefinition_TypeBinding -> ix
+          DataDefinition_Constructor i_constr -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxDefinition (DataDefinition _ constrs _) ->
+                if 0 <= i_constr - 1 then ix' :> DataDefinition_Constructor (i_constr - 1) else ix' :> DataDefinition_TypeBinding
+              _ -> Unsafe.error "impossible"
+          Constructor_TermBinding -> ix
+          Constructor_Parameter i_prm ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxConstructor (Constructor _ prms _) -> if 0 <= i_prm - 1 then ix' :> Constructor_Parameter (i_prm - 1) else ix' :> Constructor_TermBinding
+              _ -> Unsafe.error "impossible"
+          LambdaTerm_TermId -> ix
+          LambdaTerm_Block -> ix' :> LambdaTerm_TermId
+          MatchTerm_Term -> ix
+          MatchTerm_Case i_case ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxTerm (MatchTerm _ _ cases _) -> if 0 <= i_case - 1 then ix' :> MatchTerm_Case (i_case - 1) else ix' :> MatchTerm_Term
+              _ -> Unsafe.error "impossible"
+          NeutralTerm_TermId -> ix
+          NeutralTerm_Args -> ix' :> NeutralTerm_TermId
+          ConsArgs_Term ->
+            case unconsDownwardIndex ix' of
+              Just {ix': ix''} ->
+                case lookupSyntaxAt ix'' (SyntaxModule mod) of 
+                  SyntaxArgs (ConsArgs _ _ _)  -> ix'' :> ConsArgs_Term
+                  _ -> ix
+              _ -> Unsafe.error "impossible"
+          ConsArgs_Args -> ix' :> ConsArgs_Term
+          Case_TermId i_termId -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxCase (Case _ _ _) -> if 0 <= i_termId then ix' :> Case_TermId (i_termId - 1) else ix
+              _ -> Unsafe.error "impossible"
+          Case_Term ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxCase (Case termIds _ _) -> if 0 < List.length termIds then ix' :> Case_TermId (List.length termIds - 1) else ix
+              _ -> Unsafe.error "impossible"
+          ArrowType_Parameter ->
+            case unconsDownwardIndex ix' of 
+              Just {ix': ix''} ->
+                case lookupSyntaxAt ix'' (SyntaxModule mod) of 
+                  SyntaxType (ArrowType _ _ _) -> ix'' :> ArrowType_Parameter
+                  _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "impossible"
+          ArrowType_Type -> ix' :> ArrowType_Parameter
+          Parameter_Type -> ix' -- goes "up" to parameter
+  Right -> Unsafe.error "not implemented: moveDownwardIndex Right"
+    case unconsDownwardIndex ix of 
+      Nothing -> ix
+      Just {step, ix'} ->
+        case step of
+          Module_Definition i_def ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxModule (Module defs _) -> if i_def + 1 < List.length defs then ix' :> Module_Definition (i_def + 1) else ix
+              _ -> Unsafe.error "impossible"
+          Block_Definition i_def ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxBlock (Block defs _ _) -> if i_def + 1 < List.length defs then ix' :> Module_Definition (i_def + 1) else ix' :> Block_Term
+              _ -> Unsafe.error "impossible"
+          Block_Term -> ix
+          TermDefinition_TermBinding -> ix' :> TermDefinition_Type
+          TermDefinition_Type -> ix' :> TermDefinition_Term
+          TermDefinition_Term  -> ix
+          DataDefinition_TypeBinding -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxDefinition (DataDefinition _ constrs _) ->
+                if 0 < List.length constrs then ix' :> DataDefinition_Constructor 0 else ix
+              _ -> Unsafe.error "impossible"
+          DataDefinition_Constructor i_constr -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxDefinition (DataDefinition _ constrs _) ->
+                if i_constr + 1 < List.length constrs then ix' :> DataDefinition_Constructor (i_constr + 1) else ix
+              _ -> Unsafe.error "impossible"
+          Constructor_TermBinding -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxConstructor (Constructor _ prms _) -> if 0 < List.length prms then ix' :> Constructor_Parameter 0 else ix
+              _ -> Unsafe.error "impossible"
+          Constructor_Parameter i_prm ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxConstructor (Constructor _ prms _) -> if i_prm + 1 < List.length prms then ix' :> Constructor_Parameter (i_prm + 1) else ix
+              _ -> Unsafe.error "impossible"
+          LambdaTerm_TermId -> ix' :> LambdaTerm_Block
+          LambdaTerm_Block -> ix
+          MatchTerm_Term -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxTerm (MatchTerm _ _ cases _) -> if 0 < List.length cases then ix' :> MatchTerm_Case 0 else ix
+              _ -> Unsafe.error "impossible"
+          MatchTerm_Case i_case ->
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxTerm (MatchTerm _ _ cases _) -> if i_case + 1 < List.length cases then ix' :> MatchTerm_Case (i_case + 1) else ix
+              _ -> Unsafe.error "impossible"
+          NeutralTerm_TermId -> ix' :> NeutralTerm_Args
+          NeutralTerm_Args -> ix
+          ConsArgs_Term -> ix' :> ConsArgs_Args
+          ConsArgs_Args -> 
+            case lookupSyntaxAt ix (SyntaxModule mod) of 
+              SyntaxArgs (ConsArgs _ (ConsArgs _ _ _) _) -> ix :> ConsArgs_Term -- goes down into next ConsArgs
+              SyntaxArgs (ConsArgs _ NoneArgs _) -> ix -- cannot go down to NoneArgs
+              _ -> Unsafe.error "impossible"
+          Case_TermId i_termId -> 
+            case lookupSyntaxAt ix' (SyntaxModule mod) of 
+              SyntaxCase (Case termIds _ _) -> if i_termId + 1 < List.length termIds then ix' :> Case_TermId (i_termId + 1) else ix' :> Case_Term
+              _ -> Unsafe.error "impossible"
+          Case_Term -> ix
+          ArrowType_Parameter -> ix' :> ArrowType_Type
+          ArrowType_Type ->
+            case lookupSyntaxAt ix (SyntaxModule mod) of 
+              SyntaxType (ArrowType _ _ _) -> ix :> ArrowType_Parameter
+              SyntaxType _ -> ix
+              _ -> Unsafe.error "impossible"
 
---         -- case getSyntaxAt ix mod of 
---         --   SyntaxModule (Module defs _) -> case step of
---         --     Module_Definition i -> if 0 < i - 1 then ix' :> Module_Definition (i - 1) else ix
---         --     _ -> Unsafe.error "impossible"
---         --   SyntaxBlock (Block defs a _) -> case step of
---         --     Block_Definition i -> if 0 < i - 1 then ix' :> Block_Definition (i - 1) else ix
---         --     Block_Term -> ix
---         --     _ -> Unsafe.error "impossible"
---         --   SyntaxDefinition (TermDefinition _ _ _ _) -> ix :> TermDefinition_TermBinding
---         --   SyntaxDefinition (DataDefinition _ _ _) -> ix :> DataDefinition_TypeBinding
---         --   SyntaxConstructor (Constructor _ _ _) -> ix :> Constructor_TermBinding
---         --   SyntaxTerm (LambdaTerm _ _ _) -> ix :> LambdaTerm_TermId
---         --   SyntaxTerm (Syntax.HoleTerm _) -> ix
---         --   SyntaxTerm (MatchTerm _ _ _ _) -> ix :> MatchTerm_Term
---         --   SyntaxTerm (NeutralTerm _ _ _) -> ix :> NeutralTerm_TermId
---         --   SyntaxArgs Syntax.NoneArgs -> ix
---         --   SyntaxArgs (ConsArgs _ _ _) -> ix :> ConsArgs_Term
---         --   SyntaxCase (Case termIds _ _) -> if List.length termIds > 0 then ix :> Case_TermId 0 else ix :> Case_Term
---         --   SyntaxType (ArrowType _ _ _)  -> ix :> ArrowType_Parameter
---         --   SyntaxType (DataType _ _)  -> ix
---         --   SyntaxType (HoleType _ _ _)  -> ix
---         --   SyntaxType (ProxyHoleType _)  -> ix
---         --   SyntaxParameter (Parameter _ _) -> ix :> Parameter_Type
---         --   SyntaxTermBinding termBinding -> ix
---         --   SyntaxTypeBinding typeBinding -> ix
---         --   SyntaxTermId termId -> ix
---   Right -> undefined
+          Parameter_Type -> ix' -- goes "up" to parameter
