@@ -203,7 +203,7 @@ recArgs rec =
     , cons:
         \a args meta gamma -> case _ of
           ArrowType prm beta _ -> rec.cons a args meta gamma prm beta
-          _ -> Unsafe.error "impossible"
+          _ -> Unsafe.error "recArgs: impossible"
     }
 
 type RecCase a

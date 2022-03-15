@@ -6,11 +6,12 @@ import Prelude
 
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
-import Data.List.Unsafe as List
 import Data.List.Unsafe (List)
+import Data.List.Unsafe as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (fst, snd)
+import Debug as Debug
 import Language.Shape.Stlc.Syntax as Syntax
 import Partial.Unsafe as Partial
 import Undefined (undefined)
@@ -109,7 +110,7 @@ modifySyntaxAt ix f syn = case unconsDownwardIndex ix of
     SyntaxType (ArrowType prm beta meta) /\ ArrowType_Parameter -> SyntaxType $ ArrowType (toParameter $ modifySyntaxAt ix f $ SyntaxParameter prm) beta meta
     SyntaxType (ArrowType prm beta meta) /\ ArrowType_Type -> SyntaxType $ ArrowType prm (toType $ modifySyntaxAt ix f $ SyntaxType beta) meta
     SyntaxParameter (Parameter alpha meta) /\ Parameter_Type -> SyntaxParameter $ Parameter (toType $ modifySyntaxAt ix f $ SyntaxType alpha) meta
-    _ -> Unsafe.error "impossible"
+    _ -> Unsafe.error "modifySyntaxAt: impossible"
 
 lookupSyntaxAt :: DownwardIndex -> Syntax -> Syntax
 lookupSyntaxAt ix syn = case unconsDownwardIndex ix of
@@ -138,7 +139,7 @@ lookupSyntaxAt ix syn = case unconsDownwardIndex ix of
     SyntaxType (ArrowType prm beta meta) /\ ArrowType_Parameter -> lookupSyntaxAt ix $ SyntaxParameter prm
     SyntaxType (ArrowType prm beta meta) /\ ArrowType_Type -> lookupSyntaxAt ix $ SyntaxType beta
     SyntaxParameter (Parameter alpha meta) /\ Parameter_Type -> lookupSyntaxAt ix $ SyntaxType alpha
-    _ -> Unsafe.error "impossible"
+    _ -> Debug.trace (ix /\ syn) \_ -> Unsafe.error "lookupSyntaxAt: impossible"
 
 data Direction = Up | Down | Left | Right
 
@@ -177,15 +178,15 @@ moveDownwardIndex dir mod ix = case dir of
           Module_Definition i_def ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxModule (Module defs _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           Block_Definition i_def ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxBlock (Block defs _ _) -> if 0 <= i_def - 1 then ix' :> Module_Definition (i_def - 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           Block_Term ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxBlock (Block defs _ _) -> if 0 < List.length defs then ix' :> Module_Definition (List.length defs - 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           TermDefinition_TermBinding -> ix
           TermDefinition_Type -> ix' :> TermDefinition_TermBinding
           TermDefinition_Term  -> ix' :> TermDefinition_Type
@@ -194,19 +195,19 @@ moveDownwardIndex dir mod ix = case dir of
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxDefinition (DataDefinition _ constrs _) ->
                 if 0 <= i_constr - 1 then ix' :> DataDefinition_Constructor (i_constr - 1) else ix' :> DataDefinition_TypeBinding
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           Constructor_TermBinding -> ix
           Constructor_Parameter i_prm ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxConstructor (Constructor _ prms _) -> if 0 <= i_prm - 1 then ix' :> Constructor_Parameter (i_prm - 1) else ix' :> Constructor_TermBinding
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           LambdaTerm_TermId -> ix
           LambdaTerm_Block -> ix' :> LambdaTerm_TermId
           MatchTerm_Term -> ix
           MatchTerm_Case i_case ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxTerm (MatchTerm _ _ cases _) -> if 0 <= i_case - 1 then ix' :> MatchTerm_Case (i_case - 1) else ix' :> MatchTerm_Term
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           NeutralTerm_TermId -> ix
           NeutralTerm_Args -> ix' :> NeutralTerm_TermId
           ConsArgs_Term ->
@@ -215,23 +216,23 @@ moveDownwardIndex dir mod ix = case dir of
                 case lookupSyntaxAt ix'' (SyntaxModule mod) of 
                   SyntaxArgs (ConsArgs _ _ _)  -> ix'' :> ConsArgs_Term
                   _ -> ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           ConsArgs_Args -> ix' :> ConsArgs_Term
           Case_TermId i_termId -> 
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxCase (Case _ _ _) -> if 0 <= i_termId then ix' :> Case_TermId (i_termId - 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           Case_Term ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxCase (Case termIds _ _) -> if 0 < List.length termIds then ix' :> Case_TermId (List.length termIds - 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           ArrowType_Parameter ->
             case unconsDownwardIndex ix' of 
               Just {ix': ix''} ->
                 case lookupSyntaxAt ix'' (SyntaxModule mod) of 
                   SyntaxType (ArrowType _ _ _) -> ix'' :> ArrowType_Parameter
-                  _ -> Unsafe.error "impossible"
-              _ -> Unsafe.error "impossible"
+                  _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
           ArrowType_Type -> ix' :> ArrowType_Parameter
           Parameter_Type -> ix' -- goes "up" to parameter
   Right -> Unsafe.error "not implemented: moveDownwardIndex Right"
@@ -242,11 +243,11 @@ moveDownwardIndex dir mod ix = case dir of
           Module_Definition i_def ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxModule (Module defs _) -> if i_def + 1 < List.length defs then ix' :> Module_Definition (i_def + 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Block_Definition i_def ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxBlock (Block defs _ _) -> if i_def + 1 < List.length defs then ix' :> Module_Definition (i_def + 1) else ix' :> Block_Term
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Block_Term -> ix
           TermDefinition_TermBinding -> ix' :> TermDefinition_Type
           TermDefinition_Type -> ix' :> TermDefinition_Term
@@ -255,30 +256,30 @@ moveDownwardIndex dir mod ix = case dir of
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxDefinition (DataDefinition _ constrs _) ->
                 if 0 < List.length constrs then ix' :> DataDefinition_Constructor 0 else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           DataDefinition_Constructor i_constr -> 
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxDefinition (DataDefinition _ constrs _) ->
                 if i_constr + 1 < List.length constrs then ix' :> DataDefinition_Constructor (i_constr + 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Constructor_TermBinding -> 
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxConstructor (Constructor _ prms _) -> if 0 < List.length prms then ix' :> Constructor_Parameter 0 else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Constructor_Parameter i_prm ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxConstructor (Constructor _ prms _) -> if i_prm + 1 < List.length prms then ix' :> Constructor_Parameter (i_prm + 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           LambdaTerm_TermId -> ix' :> LambdaTerm_Block
           LambdaTerm_Block -> ix
           MatchTerm_Term -> 
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxTerm (MatchTerm _ _ cases _) -> if 0 < List.length cases then ix' :> MatchTerm_Case 0 else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           MatchTerm_Case i_case ->
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxTerm (MatchTerm _ _ cases _) -> if i_case + 1 < List.length cases then ix' :> MatchTerm_Case (i_case + 1) else ix
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           NeutralTerm_TermId -> ix' :> NeutralTerm_Args
           NeutralTerm_Args -> ix
           ConsArgs_Term -> ix' :> ConsArgs_Args
@@ -286,17 +287,16 @@ moveDownwardIndex dir mod ix = case dir of
             case lookupSyntaxAt ix (SyntaxModule mod) of 
               SyntaxArgs (ConsArgs _ (ConsArgs _ _ _) _) -> ix :> ConsArgs_Term -- goes down into next ConsArgs
               SyntaxArgs (ConsArgs _ NoneArgs _) -> ix -- cannot go down to NoneArgs
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Case_TermId i_termId -> 
             case lookupSyntaxAt ix' (SyntaxModule mod) of 
               SyntaxCase (Case termIds _ _) -> if i_termId + 1 < List.length termIds then ix' :> Case_TermId (i_termId + 1) else ix' :> Case_Term
-              _ -> Unsafe.error "impossible"
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Case_Term -> ix
           ArrowType_Parameter -> ix' :> ArrowType_Type
           ArrowType_Type ->
             case lookupSyntaxAt ix (SyntaxModule mod) of 
               SyntaxType (ArrowType _ _ _) -> ix :> ArrowType_Parameter
               SyntaxType _ -> ix
-              _ -> Unsafe.error "impossible"
-
+              _ -> Unsafe.error "moveDownwardIndex.Right: impossible"
           Parameter_Type -> ix' -- goes "up" to parameter
