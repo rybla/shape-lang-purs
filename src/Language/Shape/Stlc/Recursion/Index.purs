@@ -628,3 +628,6 @@ type RecTermId_TermId a
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
 recTermId rec termId gamma metaGamma ix csr = rec.termId termId gamma metaGamma ix (checkCursorHere csr)
+
+xxx :: RecTerm Int
+xxx = undefined

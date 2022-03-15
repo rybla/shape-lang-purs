@@ -357,7 +357,10 @@ programComponent this =
           \termId args meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_args cursor_args ->
             DOM.span
               (selectableProps "neutral term" isSelected ix)
-              [ renderTermId termId gamma metaGamma ix_termId cursor_termId
+              [ DOM.span
+                  (selectableProps "termId" isSelected ix <> selectableTriggerProps ix (Just $ Map.lookup' termId gamma) gamma metaGamma)
+                  [ printTermId termId metaGamma ]
+              -- renderTermId termId gamma metaGamma ix_termId cursor_termId
               , renderArgs args gamma alpha metaGamma ix_args cursor_args
               ]
       , match:
@@ -466,7 +469,9 @@ programComponent this =
     RecIndex.recTypeBinding
       { typeBinding:
           \typeId meta gamma metaGamma ix isSelected ->
-            DOM.span (selectableProps "typeBinding" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma) [ printTypeId typeId metaGamma ]
+            DOM.span
+              (selectableProps "typeBinding" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma)
+              [ printTypeId typeId metaGamma ]
       }
 
   renderTermBinding :: RecIndex.RecTermBinding React.ReactElement
@@ -474,7 +479,9 @@ programComponent this =
     RecIndex.recTermBinding
       { termBinding:
           \termId meta gamma metaGamma ix isSelected ->
-            DOM.span (selectableProps "termBinding" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma) [ printTermId termId metaGamma ]
+            DOM.span
+              (selectableProps "termBinding" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma)
+              [ printTermId termId metaGamma ]
       }
 
   renderTermId :: RecIndex.RecTermId React.ReactElement
@@ -482,7 +489,9 @@ programComponent this =
     RecIndex.recTermId
       { termId:
           \termId gamma metaGamma ix isSelected ->
-            DOM.span (selectableProps "termId" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma) [ printTermId termId metaGamma ]
+            DOM.span
+              (selectableProps "termId" isSelected ix <> selectableTriggerProps ix Nothing gamma metaGamma)
+              [ printTermId termId metaGamma ]
       }
 
   renderTermId' :: TermId -> MetaContext -> React.ReactElement
@@ -518,10 +527,3 @@ programComponent this =
     shadow_i = Map.lookup' termName metaGamma.termScope.shadows
 
     shadow_suffix = if shadow_i == 0 then [] else [ DOM.sub' [ DOM.text (show shadow_i) ] ]
-
--- _ = Debug.trace "[!] printTermName" identity
--- _ = Debug.trace termName identity
--- _ = Debug.trace (show metaGamma.termScope.shadows) identity
--- _ = Debug.trace termString identity
--- _ = Debug.trace shadow_i identity
--- _ = Debug.trace shadow_suffix identity
