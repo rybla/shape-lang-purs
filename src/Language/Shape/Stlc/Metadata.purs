@@ -7,101 +7,77 @@ import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 
-type ModuleMetadata
-  = { hidden :: Boolean }
+type ModuleMetadata = { hidden :: Boolean }
+defaultModuleMetadata = { hidden: false } :: ModuleMetadata
 
-defaultModuleMetadata :: ModuleMetadata
-defaultModuleMetadata = { hidden: false }
+type BlockMetadata = { indented::Boolean , hidden :: Boolean }
+defaultBlockMetadata = { indented:false, hidden: false } :: BlockMetadata
 
-type BlockMetadata
-  = { indented::Boolean , hidden :: Boolean }
+type DefinitionItemMetadata = { indented::Boolean }
+defaultDefinitionItemMetadata = {indented: true} :: DefinitionItemMetadata
 
-defaultBlockMetadata :: BlockMetadata
-defaultBlockMetadata = { indented:false, hidden: false }
+type TermDefinitionMetadata = { indented::Boolean, hidden :: Boolean }
+defaultTermDefinitionMetadata = { indented:false, hidden: false } :: TermDefinitionMetadata
 
-type TermDefinitionMetadata
-  = { indented::Boolean, hidden :: Boolean }
+type DataDefinitionMetadata = { hidden :: Boolean }
+defaultDataDefinitionMetadata = { hidden: false } :: DataDefinitionMetadata
 
-defaultTermDefinitionMetadata :: TermDefinitionMetadata
-defaultTermDefinitionMetadata = { indented:false, hidden: false }
-
-type DataDefinitionMetadata
-  = { hidden :: Boolean }
-
-defaultDataDefinitionMetadata :: DataDefinitionMetadata
-defaultDataDefinitionMetadata = { hidden: false }
+type ConstructorItemMetadata = {indented::Boolean}
+defaultConstructorItemMetadata = {indented:false} :: ConstructorItemMetadata
 
 type ConstructorMetadata = {}
+defaultConstructorMetadata = {} :: ConstructorMetadata
 
-defaultConstructorMetadata :: ConstructorMetadata
-defaultConstructorMetadata = {}
+type ParameterItemMetadata = {indented::Boolean}
+defaultParameterItemMetadata = {indented:false} :: ParameterItemMetadata
 
 type ArrowTypeMetadata = {}
-
-defaultArrowTypeMetadata :: ArrowTypeMetadata
-defaultArrowTypeMetadata = {}
+defaultArrowTypeMetadata = {} :: ArrowTypeMetadata
 
 type DataTypeMetadata = {}
+defaultDataTypeMetadata = {} :: DataTypeMetadata
 
-defaultDataTypeMetadata :: DataTypeMetadata
-defaultDataTypeMetadata = {}
+type HoleTypeMetadata = {}
+defaultHoleTypeMetadata = {} :: HoleTypeMetadata
 
-type HoleTypeMetadata
-  = {}
-
-defaultHoleTypeMetadata :: HoleTypeMetadata
-defaultHoleTypeMetadata = {}
-
-type LambdaTermMetadata
-  = { annotated :: Boolean, indented :: Boolean }
-
-defaultLambdaTermMetadata :: LambdaTermMetadata
-defaultLambdaTermMetadata = { annotated: true, indented: false }
+type LambdaTermMetadata = { annotated :: Boolean, indented :: Boolean }
+defaultLambdaTermMetadata = { annotated: true, indented: false } :: LambdaTermMetadata
 
 type ArgConsMetaData = { indented :: Boolean }
-
-defaultArgConsMetaData :: ArgConsMetaData
-defaultArgConsMetaData = { indented : false }
+defaultArgConsMetaData = { indented : false } :: ArgConsMetaData
 
 type NeutralTermMetadata = {}
+defaultNeutralTermMetadata = {} :: NeutralTermMetadata
 
-defaultNeutralTermMetadata :: NeutralTermMetadata
-defaultNeutralTermMetadata = {}
+type ArgItemMetadata = {indented::Boolean}
+defaultArgItemMetadata = {indented:false} :: ArgItemMetadata
 
 type VariableTermMetadata =  {}
-defaultVariableTermMetadata :: VariableTermMetadata
-defaultVariableTermMetadata = {} 
+defaultVariableTermMetadata = {} :: VariableTermMetadata
 
-type MatchTermMetadata
-  = { indented :: Boolean }
+type MatchTermMetadata = { indented :: Boolean }
+defaultMatchTermMetadata = { indented: false } :: MatchTermMetadata
 
-defaultMatchTermMetadata :: MatchTermMetadata
-defaultMatchTermMetadata = { indented: false }
+type CaseItemMetadata = {indented::Boolean}
+defaultCaseItemMetadata = {indented:false} :: CaseItemMetadata
 
-type HoleTermMetadata
-  = {}
+type TermIdItemMetadata = {indented::Boolean}
+defaultTermIdItemMetadata = {indented:false} :: TermIdItemMetadata
 
-defaultHoleTermMetadata :: HoleTermMetadata
-defaultHoleTermMetadata = {}
+type HoleTermMetadata = {}
+defaultHoleTermMetadata = {} :: HoleTermMetadata
 
 type CaseMetadata = {}
-
-defaultCaseMetadata :: CaseMetadata
-defaultCaseMetadata = {}
+defaultCaseMetadata = {} :: CaseMetadata
 
 type ParameterMetadata = { name :: TermName }
-
-defaultParameterMetadata = {name: TermName Nothing}
+defaultParameterMetadata = {name: TermName Nothing} :: ParameterMetadata
 
 type TypeBindingMetadata = {name::TypeName}
-
-defaultTypeBindingMetadata :: TypeBindingMetadata
-defaultTypeBindingMetadata = {name:TypeName Nothing}
+defaultTypeBindingMetadata = {name:TypeName Nothing} :: TypeBindingMetadata
 
 type TermBindingMetadata = {name::TermName}
-
-defaultTermBindingMetadata :: TermBindingMetadata
-defaultTermBindingMetadata = {name: TermName Nothing}
+defaultTermBindingMetadata = {name: TermName Nothing} :: TermBindingMetadata
 
 data TypeName = TypeName (Maybe String)
 data TermName = TermName (Maybe String)

@@ -2,6 +2,7 @@ module Language.Shape.Stlc.Syntax where
 
 import Language.Shape.Stlc.Metadata
 import Prelude
+import Data.Tuple.Nested
 import Prim hiding (Type)
 
 import Data.Generic.Rep (class Generic)
@@ -13,29 +14,25 @@ import Effect.Unsafe (unsafePerformEffect)
 import Unsafe as Unsafe
 
 data Module
-  = Module (List Definition) ModuleMetadata
+  = Module (List (Definition /\ DefinitionItemMetadata)) ModuleMetadata
 
 data Block
   = Block (List Definition) Term BlockMetadata
 
 data Definition
   = TermDefinition TermBinding Type Term TermDefinitionMetadata
-  | DataDefinition TypeBinding (List Constructor) DataDefinitionMetadata
+  | DataDefinition TypeBinding (List (Constructor /\ ConstructorItemMetadata)) DataDefinitionMetadata
 
 data Constructor
-  = Constructor TermBinding (List Parameter) ConstructorMetadata
+  = Constructor TermBinding (List (Parameter /\ ParameterItemMetadata)) ConstructorMetadata
 
 data Term
   = LambdaTerm TermId Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
-  | MatchTerm TypeId Term (List Case) MatchTermMetadata
-  | NeutralTerm TermId Args NeutralTermMetadata
+  | MatchTerm TypeId Term (List (Case /\ CaseItemMetadata)) MatchTermMetadata
+  | NeutralTerm TermId (List (Term /\ ArgItemMetadata)) NeutralTermMetadata
 
-data Args
-  = NoneArgs
-  | ConsArgs Term Args ArgConsMetaData
-
-data Case = Case (List TermId) Term CaseMetadata
+data Case = Case (List (TermId /\ TermIdItemMetadata)) Term CaseMetadata
 
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
@@ -78,7 +75,6 @@ derive instance Generic Definition _
 derive instance Generic Constructor _
 derive instance Generic Type _
 derive instance Generic Term _
-derive instance Generic Args _
 derive instance Generic Case _
 derive instance Generic Parameter _
 derive instance Generic TypeBinding _
@@ -94,7 +90,6 @@ instance Show Definition where show x = genericShow x
 instance Show Constructor where show x = genericShow x 
 instance Show Type where show x = genericShow x 
 instance Show Term where show x = genericShow x 
-instance Show Args where show x = genericShow x 
 instance Show Case where show x = genericShow x 
 instance Show Parameter where show x = genericShow x 
 instance Show TypeBinding where show x = genericShow x 
@@ -110,7 +105,6 @@ derive instance Eq Definition
 derive instance Eq Constructor
 derive instance Eq Type
 derive instance Eq Term
-derive instance Eq Args
 derive instance Eq Case
 derive instance Eq Parameter
 derive instance Eq TypeBinding
@@ -130,7 +124,6 @@ data Syntax =
   | SyntaxDefinition Definition
   | SyntaxConstructor Constructor
   | SyntaxTerm Term
-  | SyntaxArgs Args
   | SyntaxCase Case
   | SyntaxType Type
   | SyntaxParameter Parameter
@@ -157,10 +150,6 @@ toConstructor _ = Unsafe.error "impossible cast from Syntax"
 toTerm :: Syntax -> Term
 toTerm (SyntaxTerm a)  = a 
 toTerm _ = Unsafe.error "impossible cast from Syntax"
-
-toArgs :: Syntax -> Args
-toArgs (SyntaxArgs args) = args
-toArgs _ = Unsafe.error "impossible cast from Syntax"
 
 toCase :: Syntax -> Case
 toCase (SyntaxCase case_) = case_ 

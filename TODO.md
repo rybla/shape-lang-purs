@@ -23,6 +23,8 @@
           ids, etc)
     - [ ] index (still have to handle typechanges)
   - [ ] index
+    - [x] upgrade syntax/metadata so that lists have an `*ItemMetadata` for each
+          element of the list
     - [ ] upgrade index so that each step has constant number of children (lists
           have 2 children: head, tail)
     - [ ] upgrade index recursor layer
