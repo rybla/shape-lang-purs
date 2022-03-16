@@ -159,6 +159,8 @@ lookupSyntaxAt ix syn =
     Nothing -> syn
     Just {step, ix'} -> lookupSyntaxAt ix' (stepSyntax step syn)
 
+-- with this new index that has a constant number of children for each StepLabel, going up is same, left/right is much easier now, and going down still requires a case-by-case check to see if the current node supports going downward (always to the 0 child) i.e. it is not a terminal node of the AST
+
 -- data Direction
 --   = Up
 --   | Down
