@@ -3,7 +3,7 @@ module Language.Shape.Stlc.Changes where
 import Prelude
 import Prim hiding (Type)
 
-import Control.Monad.State (State, get, put, runState)
+import Control.Monad.State (State, StateT, get, lift, put, runState)
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex)
 import Data.List (List(..), concat, elem, filter, fold, foldl, foldr, mapMaybe, mapWithIndex, singleton, zip, zipWith, (:))
 import Data.List.Unsafe (deleteAt', index', insertAt')
@@ -132,6 +132,12 @@ liiift s = do (Tuple b a) <- get
               let (Tuple c a') = runState s a
               put (Tuple b a')
               pure c
+
+split :: forall a b c . State (Tuple a b) c -> StateT a (State b) c
+split s = do a <- get
+             b <- lift get
+             let (Tuple (Tuple a b) c) = runState s (Tuple a b)
+             undefined
 
 -- morally, the type input here should not have metadata. But we can just go with it anyway.
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List Definition) HoleSub) Term
