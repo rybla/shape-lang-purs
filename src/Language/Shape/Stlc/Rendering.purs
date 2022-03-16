@@ -17,7 +17,7 @@ import Effect (Effect)
 import Effect.Class.Console as Console
 import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
-import Language.Shape.Stlc.Metadata (TermName(..), TypeName(..), defaultArrowTypeMetadata, defaultDataTypeMetadata, defaultModuleMetadata)
+import Language.Shape.Stlc.Metadata (TermName(..), TypeName(..), LambdaTermMetadata, defaultArrowTypeMetadata, defaultDataTypeMetadata, defaultModuleMetadata)
 import Language.Shape.Stlc.Recursion.Index (Cursor, checkCursorStep)
 import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, _indentation, emptyMetaContext)
@@ -74,12 +74,18 @@ programComponent this =
     }
   where
   keyboardEventHandler :: Event -> Effect Unit
-  keyboardEventHandler event = case code event of
-    "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-    "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-    "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-    "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-    _ -> pure unit
+  keyboardEventHandler event = do
+    st <- React.getState this
+    Debug.traceM $ "--------------------------------------------------------------------------------"
+    Debug.traceM $ show st.ix_cursor
+    case code event of
+      "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
+      "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
+      "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
+      "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
+      _ -> pure unit
+    st' <- React.getState this
+    Debug.traceM $ show st'.ix_cursor
 
   state :: ProgramState
   state =
@@ -101,29 +107,44 @@ programComponent this =
 
   renderEnvironment :: Environment -> React.ReactElement
   renderEnvironment env =
-    DOM.div [ Props.className "environment" ]
-      $ [ DOM.div
-            [ Props.className "context" ]
-            ( map
-                ( \(termId /\ type_) ->
-                    DOM.div
-                      [ Props.className "context-item" ]
-                      [ renderTermId' termId env.metaGamma
-                      , punctuation.space
-                      , punctuation.colon
-                      , punctuation.space
-                      , renderType' type_ Map.empty env.metaGamma -- actually, renderType' shouldn't take a type context at all
-                      ]
-                )
-                (Array.reverse $ Map.toUnfoldable env.gamma)
-            )
-        ]
-      <> case env.goal of
-          Just type_ ->
-            [ DOM.div [ Props.className "goal" ]
-                [ renderType' type_ Map.empty env.metaGamma ]
-            ]
-          Nothing -> []
+    let
+      contextItemProps termId type_ =
+        let
+          _ /\ beta = flattenArrowType type_
+        in
+          [ Props.className $ "context-item"
+          -- TODO: this doesnt work with `==` since that's syntactic equality
+          -- <> if Just type_ == env.goal then
+          --     " suggested exact"
+          --   else if Just beta == env.goal then
+          --     " suggested apply"
+          --   else
+          --     ""
+          ]
+    in
+      DOM.div [ Props.className "environment" ]
+        $ [ DOM.div
+              [ Props.className "context" ]
+              ( map
+                  ( \(termId /\ type_) ->
+                      DOM.div
+                        (contextItemProps termId type_)
+                        [ renderTermId' termId env.metaGamma
+                        , punctuation.space
+                        , punctuation.colon
+                        , punctuation.space
+                        , renderType' type_ Map.empty env.metaGamma -- actually, renderType' shouldn't take a type context at all
+                        ]
+                  )
+                  (Array.reverse $ Map.toUnfoldable env.gamma)
+              )
+          ]
+        <> case env.goal of
+            Just type_ ->
+              [ DOM.div [ Props.className "goal" ]
+                  [ renderType' type_ Map.empty env.metaGamma ]
+              ]
+            Nothing -> []
 
   setCursor :: UpwardIndex -> Maybe Type -> Context -> MetaContext -> Effect Unit
   setCursor ix goal gamma metaGamma =
@@ -135,7 +156,8 @@ programComponent this =
 
   selectableProps :: String -> Boolean -> UpwardIndex -> Array Props.Props
   selectableProps title isSelected ix =
-    [ Props.className $ title <> if isSelected then " selected" else ""
+    [ Props.className $ title -- <> if isSelected then " selected" else ""
+    , Props.style { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else "" }
     ]
 
   selectableTriggerProps :: UpwardIndex -> Maybe Type -> Context -> MetaContext -> Array Props.Props
@@ -153,8 +175,12 @@ programComponent this =
       { module_:
           \defs meta gamma metaGamma ix isSelected ix_def_at cursor_def_at ->
             DOM.span
-              (inertProps "module")
-              [ renderDefinitions defs gamma metaGamma ix ix_def_at cursor_def_at ]
+              (selectableProps "module" isSelected ix)
+              [ renderDefinitions defs gamma metaGamma ix ix_def_at cursor_def_at
+              , punctuation.newline
+              , punctuation.newline
+              , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
+              ]
       }
 
   renderBlock :: RecIndex.RecBlock React.ReactElement
@@ -163,8 +189,11 @@ programComponent this =
       { block:
           \defs a meta gamma alpha metaGamma ix isSelected ix_def_at cursor_def_at ix_term cursor_term ->
             DOM.span
-              (inertProps "block")
+              (selectableProps "block" isSelected ix)
               [ renderDefinitions defs gamma metaGamma ix ix_def_at cursor_def_at
+              , indent meta metaGamma
+              , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
+              , indent meta metaGamma
               , renderTerm a gamma alpha metaGamma ix_term cursor_term
               ]
       }
@@ -333,13 +362,13 @@ programComponent this =
       }
 
   renderTerm :: RecIndex.RecTerm React.ReactElement
-  renderTerm =
+  renderTerm term_prt gamma_prt type_prt metaGamma_prt ix_prt crs_prt =
     RecIndex.recTerm
       { lambda:
           \termId block meta gamma prm beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
             DOM.span
               (selectableProps "lambda term" isSelected ix)
-              $ [ DOM.span (selectableTriggerProps ix (Just (ArrowType prm beta defaultArrowTypeMetadata)) gamma metaGamma)
+              $ [ DOM.span (selectableTriggerProps ix (Just (ArrowType prm beta defaultArrowTypeMetadata)) gamma_prt metaGamma)
                     [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
                 , punctuation.space
                 ]
@@ -358,7 +387,7 @@ programComponent this =
             DOM.span
               (selectableProps "neutral term" isSelected ix)
               [ DOM.span
-                  (selectableProps "termId" isSelected ix <> selectableTriggerProps ix (Just $ Map.lookup' termId gamma) gamma metaGamma)
+                  (selectableProps "termId" isSelected ix <> selectableTriggerProps ix (Just $ Map.lookup' termId gamma) gamma_prt metaGamma)
                   [ printTermId termId metaGamma ]
               -- renderTermId termId gamma metaGamma ix_termId cursor_termId
               , renderArgs args gamma alpha metaGamma ix_args cursor_args
@@ -367,7 +396,7 @@ programComponent this =
           \typeId a cases meta gamma alpha metaGamma constrIds ix isSelected ix_term cursor_term ix_case_at cursor_case_at ->
             DOM.span
               (selectableProps "match term" isSelected ix)
-              [ DOM.span (selectableTriggerProps ix (Just alpha) gamma metaGamma)
+              [ DOM.span (selectableTriggerProps ix (Just alpha) gamma_prt metaGamma)
                   [ keyword.match ]
               , punctuation.space
               , renderTerm a gamma (DataType typeId defaultDataTypeMetadata) metaGamma ix_term cursor_term
@@ -385,9 +414,15 @@ programComponent this =
       , hole:
           \meta gamma alpha metaGamma ix isSelected ->
             DOM.span
-              (selectableProps "hole term" isSelected ix <> selectableTriggerProps ix (Just alpha) gamma metaGamma)
+              (selectableProps "hole term" isSelected ix <> selectableTriggerProps ix (Just alpha) gamma_prt metaGamma)
               [ DOM.text "?" ]
       }
+      term_prt
+      gamma_prt
+      type_prt
+      metaGamma_prt
+      ix_prt
+      crs_prt
 
   renderArgs :: RecIndex.RecArgs React.ReactElement
   renderArgs =
@@ -410,7 +445,7 @@ programComponent this =
       }
 
   renderCase :: RecIndex.RecCase React.ReactElement
-  renderCase =
+  renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ix_prt cursor_prt =
     RecIndex.recCase
       { case_:
           \termIds term meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
@@ -428,6 +463,14 @@ programComponent this =
               , renderTerm term gamma alpha metaGamma ix_term cursor_term
               ]
       }
+      case_prt
+      typeId_prt
+      termId_prt
+      gamma_prt
+      alpha_prt
+      metaGamma_prt
+      ix_prt
+      cursor_prt
 
   renderParameter :: RecIndex.RecParameter React.ReactElement
   renderParameter =
@@ -436,6 +479,7 @@ programComponent this =
           \alpha meta gamma metaGamma ix isSelected ix_alpha cursor_alpha ->
             DOM.span
               (selectableProps "parameter" isSelected ix)
+              -- [ renderType alpha gamma metaGamma ix_alpha cursor_alpha ]
               [ punctuation.lparen
               , DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
                   [ printTermName meta.name metaGamma ]
@@ -454,6 +498,7 @@ programComponent this =
           \alpha meta gamma metaGamma ->
             DOM.span
               (inertProps "parameter")
+              -- [ renderType' alpha gamma metaGamma ]
               [ punctuation.lparen
               , printTermName meta.name metaGamma
               , punctuation.space

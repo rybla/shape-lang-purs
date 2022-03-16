@@ -66,8 +66,8 @@ recModule rec =
             ix
             (checkCursorHere csr)
             -- definitions
-            (\i -> ix :> IndexStep StepLabelModule i)
-            (\i -> checkCursorStep (IndexStep StepLabelModule i) csr)
+            (\i -> ix :> IndexStep StepModule i)
+            (\i -> checkCursorStep (IndexStep StepModule i) csr)
     }
 
 type RecBlock a
@@ -97,11 +97,11 @@ recBlock rec =
             ix
             (checkCursorHere csr)
             -- definitions
-            (\i -> ix :> IndexStep StepLabelBlock i)
-            (\i -> checkCursorStep (IndexStep StepLabelBlock i) csr)
+            (\i -> ix :> IndexStep StepBlock i)
+            (\i -> checkCursorStep (IndexStep StepBlock i) csr)
             -- term
-            (ix :> IndexStep StepLabelBlock (List.length defs))
-            (checkCursorStep (IndexStep StepLabelBlock (List.length defs)) csr)
+            (ix :> IndexStep StepBlock (List.length defs))
+            (checkCursorStep (IndexStep StepBlock (List.length defs)) csr)
     }
 
 type RecDefinitions a
@@ -176,14 +176,14 @@ recDefinition rec =
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> IndexStep StepLabelTermDefinition 0)
-            (checkCursorStep (IndexStep StepLabelTermDefinition 0) csr)
+            (ix :> IndexStep StepTermDefinition 0)
+            (checkCursorStep (IndexStep StepTermDefinition 0) csr)
             -- type
-            (ix :> IndexStep StepLabelTermDefinition 1)
-            (checkCursorStep (IndexStep StepLabelTermDefinition 1) csr)
+            (ix :> IndexStep StepTermDefinition 1)
+            (checkCursorStep (IndexStep StepTermDefinition 1) csr)
             -- term
-            (ix :> IndexStep StepLabelTermDefinition 2)
-            (checkCursorStep (IndexStep StepLabelTermDefinition 2) csr)
+            (ix :> IndexStep StepTermDefinition 2)
+            (checkCursorStep (IndexStep StepTermDefinition 2) csr)
     , data:
         \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
           rec.data typeBinding constrs meta gamma metaGamma
@@ -192,11 +192,11 @@ recDefinition rec =
             ix
             (checkCursorHere csr)
             -- typeBinding
-            (ix :> IndexStep StepLabelDataDefinition 0)
-            (checkCursorStep (IndexStep StepLabelDataDefinition 0) csr)
+            (ix :> IndexStep StepDataDefinition 0)
+            (checkCursorStep (IndexStep StepDataDefinition 0) csr)
             -- constructors
-            (\i -> ix :> IndexStep StepLabelDataDefinition (i + 1))
-            (\i -> checkCursorStep (IndexStep StepLabelDataDefinition (i + 1)) csr)
+            (\i -> ix :> IndexStep StepDataDefinition (i + 1))
+            (\i -> checkCursorStep (IndexStep StepDataDefinition (i + 1)) csr)
     }
 
 type RecConstructor a
@@ -237,11 +237,11 @@ recConstructor rec =
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> IndexStep StepLabelConstructor 0)
-            (checkCursorStep (IndexStep StepLabelConstructor 0) csr)
+            (ix :> IndexStep StepConstructor 0)
+            (checkCursorStep (IndexStep StepConstructor 0) csr)
             -- parameters
-            (\i -> ix :> IndexStep StepLabelConstructor (i + 1))
-            (\i -> checkCursorStep (IndexStep StepLabelConstructor (i + 1)) csr)
+            (\i -> ix :> IndexStep StepConstructor (i + 1))
+            (\i -> checkCursorStep (IndexStep StepConstructor (i + 1)) csr)
     }
 
 type RecDefinitionBindings a
@@ -379,11 +379,11 @@ recType rec =
             ix
             (checkCursorHere csr)
             -- prm
-            (ix :> IndexStep StepLabelArrowType 0)
-            (checkCursorStep (IndexStep StepLabelArrowType 0) csr)
+            (ix :> IndexStep StepArrowType 0)
+            (checkCursorStep (IndexStep StepArrowType 0) csr)
             -- beta
-            (ix :> IndexStep StepLabelArrowType 1)
-            (checkCursorStep (IndexStep StepLabelArrowType 1) csr)
+            (ix :> IndexStep StepArrowType 1)
+            (checkCursorStep (IndexStep StepArrowType 1) csr)
     , data: \typeId meta gamma metaGamma ix csr -> rec.data typeId meta gamma metaGamma ix (checkCursorHere csr)
     , hole: \holeID wkn meta gamma metaGamma ix csr -> rec.hole holeID wkn meta gamma metaGamma ix (checkCursorHere csr)
     , proxyHole: \holeID gamma metaGamma ix csr -> rec.proxyHole holeID gamma metaGamma ix (checkCursorHere csr)
@@ -449,11 +449,11 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> IndexStep StepLabelLambdaTerm 0)
-            (checkCursorStep (IndexStep StepLabelLambdaTerm 0) csr)
+            (ix :> IndexStep StepLambdaTerm 0)
+            (checkCursorStep (IndexStep StepLambdaTerm 0) csr)
             -- block
-            (ix :> IndexStep StepLabelLambdaTerm 1)
-            (checkCursorStep (IndexStep StepLabelLambdaTerm 1) csr)
+            (ix :> IndexStep StepLambdaTerm 1)
+            (checkCursorStep (IndexStep StepLambdaTerm 1) csr)
     , neutral:
         \termId args meta gamma alpha metaGamma ix csr ->
           rec.neutral termId args meta gamma alpha metaGamma
@@ -461,11 +461,11 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> IndexStep StepLabelNeutralTerm 0)
-            (checkCursorStep (IndexStep StepLabelNeutralTerm 0) csr)
+            (ix :> IndexStep StepNeutralTerm 0)
+            (checkCursorStep (IndexStep StepNeutralTerm 0) csr)
             -- args
-            (ix :> IndexStep StepLabelNeutralTerm 1)
-            (checkCursorStep (IndexStep StepLabelNeutralTerm 1) csr)
+            (ix :> IndexStep StepNeutralTerm 1)
+            (checkCursorStep (IndexStep StepNeutralTerm 1) csr)
     , match:
         \typeId a cases meta gamma alpha metaGamma constrIDs ix csr ->
           rec.match typeId a cases meta gamma alpha metaGamma constrIDs
@@ -473,11 +473,11 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- term (sub)
-            (ix :> IndexStep StepLabelMatchTerm 0)
-            (checkCursorStep (IndexStep StepLabelMatchTerm 0) csr)
+            (ix :> IndexStep StepMatchTerm 0)
+            (checkCursorStep (IndexStep StepMatchTerm 0) csr)
             -- cases
-            (\i -> ix :> IndexStep StepLabelMatchTerm (i + 1))
-            (\i -> checkCursorStep (IndexStep StepLabelMatchTerm (i + 1)) csr)
+            (\i -> ix :> IndexStep StepMatchTerm (i + 1))
+            (\i -> checkCursorStep (IndexStep StepMatchTerm (i + 1)) csr)
     , hole:
         \meta gamma alpha metaGamma ix csr ->
           rec.hole meta gamma alpha metaGamma ix (checkCursorHere csr)
@@ -516,11 +516,11 @@ recArgs rec =
             ix
             (checkCursorHere csr)
             -- term
-            (ix :> IndexStep StepLabelConsArgs 0)
-            (checkCursorStep (IndexStep StepLabelConsArgs 0) csr)
+            (ix :> IndexStep StepConsArgs 0)
+            (checkCursorStep (IndexStep StepConsArgs 0) csr)
             -- args (sub)
-            (ix :> IndexStep StepLabelConsArgs 1)
-            (checkCursorStep (IndexStep StepLabelConsArgs 1) csr)
+            (ix :> IndexStep StepConsArgs 1)
+            (checkCursorStep (IndexStep StepConsArgs 1) csr)
     }
 
 type RecCase a
@@ -558,11 +558,11 @@ recCase rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (\i -> ix :> IndexStep StepLabelCase i)
-            (\i -> checkCursorStep (IndexStep StepLabelCase i) csr)
+            (\i -> ix :> IndexStep StepCase i)
+            (\i -> checkCursorStep (IndexStep StepCase i) csr)
             -- term
-            (ix :> IndexStep StepLabelCase (List.length termIds))
-            (checkCursorStep (IndexStep StepLabelCase (List.length termIds)) csr)
+            (ix :> IndexStep StepCase (List.length termIds))
+            (checkCursorStep (IndexStep StepCase (List.length termIds)) csr)
     }
 
 type RecParameter a
@@ -590,8 +590,8 @@ recParameter rec =
             ix
             (checkCursorHere csr)
             -- type
-            (ix :> IndexStep StepLabelParameter 0)
-            (checkCursorStep (IndexStep StepLabelParameter 0) csr)
+            (ix :> IndexStep StepParameter 0)
+            (checkCursorStep (IndexStep StepParameter 0) csr)
     }
 
 type RecTypeBinding a

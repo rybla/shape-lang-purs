@@ -50,4 +50,6 @@ typeOfConstructor prms typeId =
     prms
 
 flattenArrowType :: Type -> List Parameter /\ Type
-flattenArrowType = undefined
+flattenArrowType (ArrowType prm beta _) = let prms /\ delta = flattenArrowType beta in List.Cons prm prms /\ delta
+
+flattenArrowType type_ = List.Nil /\ type_
