@@ -5,15 +5,15 @@ import Prim hiding (Type)
 
 import Control.Monad.State (State, get, put, runState)
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex)
-import Data.List (List(..), elem, filter, fold, foldl, foldr, mapMaybe, mapWithIndex, singleton, zip, zipWith, (:))
+import Data.List (List(..), concat, elem, filter, fold, foldl, foldr, mapMaybe, mapWithIndex, singleton, zip, zipWith, (:))
 import Data.List.Unsafe (deleteAt', index', insertAt')
-import Data.Map (Map, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
+import Data.Map (Map, fromFoldable, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, member)
 import Data.Traversable (sequence)
-import Data.Tuple (Tuple(..), snd)
+import Data.Tuple (Tuple(..), fst, snd)
 import Language.Shape.Stlc.Holes (HoleSub, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metadata (defaultArgConsMetaData, defaultArrowTypeMetadata, defaultBlockMetadata, defaultCaseMetadata, defaultDataTypeMetadata, defaultHoleTermMetadata, defaultHoleTypeMetadata, defaultLambdaTermMetadata, defaultParameterMetadata, defaultTermBindingMetadata, defaultTermDefinitionMetadata)
 import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Parameter(..), Term(..), TermBinding(..), TermId(..), Type(..), TypeBinding(..), TypeId(..), freshHoleId, freshTermId)
@@ -51,8 +51,8 @@ emptyChanges = {
     dataTypeDeletions : empty
 }
 
-emptyDatatypeChange :: forall a. List a -> List ConstructorChange
-emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
+-- emptyDatatypeChange :: forall a. List a -> List ConstructorChange
+-- emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
 
 emptyParamsChange :: forall a. List a -> List ParamChange
 emptyParamsChange = mapWithIndex (\index _ -> ChangeParam index NoChange)
@@ -232,11 +232,51 @@ isNoChange (ArrowCh c1 c2) = isNoChange c1 && isNoChange c2
 isNoChange NoChange = true
 isNoChange _ = false
 
+chsToArrowCh :: List TypeChange -> TypeChange
+chsToArrowCh Nil = NoChange
+chsToArrowCh (Cons ch chs) = ArrowCh ch (chsToArrowCh chs)
+
 -- State (Tuple (List Definition) HoleSub) Term
 -- morally, shouldn't have the (List Definition) in the state of chBlock, as it always outputs the empty list.
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> State HoleSub Block
-chBlock ctx ty chs ch (Block defs t md)
-    = undefined
+chBlock ctx ty chs ch (Block defs t md) = do
+    let termDefs = mapMaybe (case _ of TermDefinition id ty te md -> Just (Tuple id ty)
+                                       DataDefinition id ctrs md -> Nothing) defs
+    let defChanges :: List (Tuple TermId TypeChange)
+        defChanges = map (\(Tuple (TermBinding id _) ty) -> Tuple id $ snd (chType chs.dataTypeDeletions ty)) termDefs
+    let dataDefs = mapMaybe (case _ of TermDefinition id ty te md -> Nothing
+                                       DataDefinition id ctrs md -> Just (Tuple id ctrs)) defs
+    let dataChanges :: List (Tuple TypeId (List (Tuple TermId (List TypeChange))))
+        dataChanges = map (\(Tuple (TypeBinding id _) ctrs)
+        -> Tuple id (map (\(Constructor (TermBinding cid _) params _)
+            -> Tuple cid (map (\(Parameter t _) -> snd (chType chs.dataTypeDeletions t)) params)) ctrs)) dataDefs
+    let constructorChangesTemp :: List (Tuple TermId (List TypeChange))
+        constructorChangesTemp = concat (map snd dataChanges)
+    -- let caseChanges :: List (Tuple TermId (List ParamChange))
+    --     caseChanges = map (\(Tuple id pchs)
+    --         -> Tuple id (mapWithIndex ChangeParam pchs)) constructorChangesTemp
+    let constructorChanges :: List (Tuple TermId TypeChange)
+        constructorChanges = map (\(Tuple id chs) -> Tuple id (chsToArrowCh chs)) constructorChangesTemp
+    let newMatchChanges :: List (Tuple TypeId (List ConstructorChange))
+        newMatchChanges = map (\(Tuple id ctrChs)
+            -> Tuple id (mapWithIndex (\ix (Tuple _ chs) ->
+                ChangeConstructor (mapWithIndex ChangeParam chs) ix) ctrChs)) dataChanges
+    let newVarChanges :: List (Tuple TermId VarChange)
+        newVarChanges = map (\(Tuple id tc) -> Tuple id (VariableTypeChange tc))
+            (append defChanges constructorChanges)
+    let chs' :: Changes
+        chs' = chs{
+                matchChanges = union chs.matchChanges (fromFoldable newMatchChanges),
+                termChanges = union chs.termChanges (fromFoldable newVarChanges)
+            }
+    
+    -- now, at long last I have the set of things whose types have changed in this block, chs'.
+    -- Finally, need to call chDefinition, chData, and chTerm and collect all displaced things.
+    
+    -- let constructorChanges :: List (Tuple TermId (List ParamChange))
+        -- constructorChanges = map (mapWithIndex ChangeParam) constructorChangesTemp
+    -- need to collect 1) changes to function types 2) changes to constructors 3) match changes
+    undefined
     -- = let (Tuple t' displaced1) = runState (chTerm undefined ty chs ch t) undefined -- was Nil
     --   in let (Tuple defs' displaced2) = runState (sequence (map (chDefinition ctx chs) defs)) undefined--waas Nil
     --   in Block (defs' <> displaced1 <> displaced2) t' md -- TODO: maybe consider positioning the displaced terms better rather than all at the end. This is fine for now though.
