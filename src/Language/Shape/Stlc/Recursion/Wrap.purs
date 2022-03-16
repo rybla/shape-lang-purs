@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Recursion.Wrap where
 
+{-
 import Data.Foldable
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
@@ -19,7 +20,6 @@ import Language.Shape.Stlc.Recursion.MetaContext as Rec
 import Undefined (undefined)
 import Unsafe as Unsafe
 
-{-
 type Wrap a
   = a -> Ch.TypeChange -> Module
 

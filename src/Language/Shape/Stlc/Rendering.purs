@@ -8,8 +8,7 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Data.Array as Array
-import Data.List (List)
-import Data.List.Unsafe as List
+import Data.List.Unsafe
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Debug as Debug
@@ -75,22 +74,23 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    st <- React.getState this
-    Debug.traceM $ "--------------------------------------------------------------------------------"
-    Debug.traceM $ show st.ix_cursor
-    case code event of
-      "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-      "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-      "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-      "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-      _ -> pure unit
-    st' <- React.getState this
-    Debug.traceM $ show st'.ix_cursor
+    -- st <- React.getState this
+    -- Debug.traceM $ "--------------------------------------------------------------------------------"
+    -- Debug.traceM $ show st.ix_cursor
+    -- case code event of
+    --   "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
+    --   "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
+    --   "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
+    --   "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
+    --   _ -> pure unit
+    -- st' <- React.getState this
+    -- Debug.traceM $ show st'.ix_cursor
+    Debug.traceM event
 
   state :: ProgramState
   state =
     { module_: Initial.module_
-    , ix_cursor: DownwardIndex List.Nil
+    , ix_cursor: DownwardIndex Nil
     , environment:
         { goal: Nothing
         , gamma: Map.empty
@@ -101,7 +101,7 @@ programComponent this =
   render :: ProgramState -> React.ReactElement
   render st =
     DOM.div [ Props.className "editor" ]
-      [ renderModule st.module_ Map.empty emptyMetaContext (UpwardIndex List.Nil) (Just st.ix_cursor)
+      [ renderModule st.module_ Map.empty emptyMetaContext (UpwardIndex Nil) (Just st.ix_cursor)
       , renderEnvironment st.environment
       ]
 
@@ -162,7 +162,10 @@ programComponent this =
 
   selectableTriggerProps :: UpwardIndex -> Maybe Type -> Context -> MetaContext -> Array Props.Props
   selectableTriggerProps ix type_ gamma metaGamma =
-    [ Props.onClick \event -> do
+    -- [ Props.onClick \event -> do
+    --     setCursor ix type_ gamma metaGamma
+    -- ]
+    [ Props.onMouseOver \event -> do
         setCursor ix type_ gamma metaGamma
     ]
 
@@ -173,10 +176,10 @@ programComponent this =
   renderModule =
     RecIndex.recModule
       { module_:
-          \defs meta gamma metaGamma ix isSelected ix_def_at cursor_def_at ->
+          \defItems meta gamma metaGamma ix isSelected ix_def_at cursor_def_at ->
             DOM.span
               (selectableProps "module" isSelected ix)
-              [ renderDefinitions defs gamma metaGamma ix ix_def_at cursor_def_at
+              [ renderDefinitionItems defItems gamma metaGamma ix ix_def_at cursor_def_at
               , punctuation.newline
               , punctuation.newline
               , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
@@ -187,10 +190,10 @@ programComponent this =
   renderBlock =
     RecIndex.recBlock
       { block:
-          \defs a meta gamma alpha metaGamma ix isSelected ix_def_at cursor_def_at ix_term cursor_term ->
+          \defItems a meta gamma alpha metaGamma ix isSelected ix_def_at cursor_def_at ix_term cursor_term ->
             DOM.span
               (selectableProps "block" isSelected ix)
-              [ renderDefinitions defs gamma metaGamma ix ix_def_at cursor_def_at
+              [ renderDefinitionItems defItems gamma metaGamma ix ix_def_at cursor_def_at
               , indent meta metaGamma
               , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
               , indent meta metaGamma
@@ -198,17 +201,17 @@ programComponent this =
               ]
       }
 
-  renderDefinitions :: RecIndex.RecDefinitions React.ReactElement
-  renderDefinitions =
-    RecIndex.recDefinitions
-      { definitions:
-          \defs gamma metaGamma ix_mod ix_def_at cursor_def_at ->
+  renderDefinitionItems :: RecIndex.RecDefinitionItems React.ReactElement
+  renderDefinitionItems =
+    RecIndex.recDefinitionItems
+      { definitionItems:
+          \defItems gamma metaGamma ix_mod ix_def_at cursor_def_at ->
             DOM.span
-              (inertProps "definitions")
+              (inertProps "definitionItems")
               [ intercalateHTML
                   [ punctuation.newline, punctuation.newline ]
-                  $ List.toUnfoldable
-                  $ List.mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) defs
+                  $ toUnfoldable
+                  $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
               ]
       }
 
@@ -235,7 +238,7 @@ programComponent this =
               , renderTerm a gamma alpha metaGamma ix_a cursor_a
               ]
       , data:
-          \typeBinding@(TypeBinding typeId _) constrs meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constr_at cursor_constr_at ->
+          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constr_at cursor_constr_at ->
             DOM.span
               (selectableProps "data definition" isSelected ix)
               [ DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
@@ -246,7 +249,7 @@ programComponent this =
                   [ intersperseLeftHTML
                       [ indentOrSpace { indented: true } metaGamma, punctuation.alt, punctuation.space ]
                       $ Array.fromFoldable
-                      $ List.mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) constrs
+                      $ mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) (fromItem <$> constrItems)
                   ]
               ]
       }
@@ -264,7 +267,7 @@ programComponent this =
             --     , punctuation.colon
             --     , punctuation.space
             --     ]
-            --   <> ( if List.length prms == 0 then
+            --   <> ( if length prms == 0 then
             --         []
             --       else
             --         [ DOM.span
@@ -272,7 +275,7 @@ programComponent this =
             --             [ intersperseRightHTML
             --                 [ punctuation.space ]
             --                 $ Array.fromFoldable
-            --                 $ List.mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
+            --                 $ mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
             --             ]
             --         , punctuation.space
             --         ]
@@ -373,7 +376,7 @@ programComponent this =
                 , punctuation.space
                 ]
               <> case block of
-                  Block List.Nil (LambdaTerm _ _ _) _ ->
+                  Block Nil (LambdaTerm _ _ _) _ ->
                     [ punctuation.space
                     , renderBlock block gamma beta metaGamma ix_block cursor_block
                     ]
@@ -383,17 +386,17 @@ programComponent this =
                     , renderBlock block gamma beta metaGamma ix_block cursor_block
                     ]
       , neutral:
-          \termId args meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_args cursor_args ->
+          \termId argItems meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_argItems cursor_argItems ->
             DOM.span
               (selectableProps "neutral term" isSelected ix)
               [ DOM.span
                   (selectableProps "termId" isSelected ix <> selectableTriggerProps ix (Just $ Map.lookup' termId gamma) gamma_prt metaGamma)
                   [ printTermId termId metaGamma ]
               -- renderTermId termId gamma metaGamma ix_termId cursor_termId
-              , renderArgs args gamma alpha metaGamma ix_args cursor_args
+              , renderArgItems argItems gamma alpha metaGamma ix_argItems cursor_argItems
               ]
       , match:
-          \typeId a cases meta gamma alpha metaGamma constrIds ix isSelected ix_term cursor_term ix_case_at cursor_case_at ->
+          \typeId a caseItems meta gamma alpha metaGamma constrIds ix isSelected ix_term cursor_term ix_case_at cursor_case_at ->
             DOM.span
               (selectableProps "match term" isSelected ix)
               [ DOM.span (selectableTriggerProps ix (Just alpha) gamma_prt metaGamma)
@@ -403,12 +406,12 @@ programComponent this =
               , punctuation.space
               , keyword.with
               , DOM.span
-                  (inertProps "match cases")
+                  (inertProps "match caseItems")
                   [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
                       $ Array.fromFoldable
-                      $ List.mapWithIndex
-                          (\i case_ -> renderCase case_ typeId (List.index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
-                          cases
+                      $ mapWithIndex
+                          (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
+                          (fromItem <$> caseItems)
                   ]
               ]
       , hole:
@@ -424,23 +427,23 @@ programComponent this =
       ix_prt
       crs_prt
 
-  renderArgs :: RecIndex.RecArgs React.ReactElement
-  renderArgs =
-    RecIndex.recArgs
-      { none: DOM.span' []
+  renderArgItems :: RecIndex.RecArgItems React.ReactElement
+  renderArgItems =
+    RecIndex.recArgItems
+      { nil: \gamma alpha metaGamma -> DOM.span' []
       , cons:
-          \a args meta gamma (Parameter alpha _) beta metaGamma ix isSelected ix_a cursor_a ix_args cursor_args ->
+          \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ix isSelected ix_a cursor_a ix_argItems cursor_argItems ->
             DOM.span
-              (selectableProps "args" isSelected ix)
+              (selectableProps "argItems" isSelected ix)
               $ [ punctuation.space ]
               <> case a of
                   LambdaTerm _ _ _ -> [ punctuation.lparen, renderTerm a gamma alpha metaGamma ix_a cursor_a, punctuation.lparen ]
                   _ -> [ renderTerm a gamma alpha metaGamma ix_a cursor_a ]
-              <> if args == Syntax.NoneArgs then
+              <> if argItems == Nil then
                   []
                 else
                   [ punctuation.space
-                  , renderArgs args gamma beta metaGamma ix_args cursor_args
+                  , renderArgItems argItems gamma beta metaGamma ix_argItems cursor_argItems
                   ]
       }
 
@@ -448,16 +451,16 @@ programComponent this =
   renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ix_prt cursor_prt =
     RecIndex.recCase
       { case_:
-          \termIds term meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
+          \termIdItems term meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
             DOM.span
               (selectableProps "case" isSelected ix)
               [ DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
                   [ renderTermId' constrId metaGamma ]
               , DOM.span
-                  (inertProps "case termIds")
+                  (inertProps "case termIdItems")
                   [ intersperseLeftHTML [ punctuation.space ]
                       $ Array.fromFoldable
-                      $ List.mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) termIds
+                      $ mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) (fromItem <$> termIdItems)
                   ]
               , punctuation.space
               , renderTerm term gamma alpha metaGamma ix_term cursor_term

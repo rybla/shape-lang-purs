@@ -1,14 +1,13 @@
 module Language.Shape.Stlc.Recursion.Context where
 
 import Data.Foldable
+import Data.List
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
-import Data.List as List
 import Data.Map.Unsafe as Map
 import Language.Shape.Stlc.Recursion.Base as RecBase
 import Undefined (undefined)
@@ -29,7 +28,7 @@ recModule rec =
   RecBase.recModule
     { module_:
         \defs meta gamma ->
-          rec.module_ defs meta (addDefinitionsToContext defs gamma)
+          rec.module_ defs meta (addDefinitionsToContext (fromItem <$> defs) gamma)
     }
 
 type RecBlock a
@@ -46,20 +45,20 @@ recBlock rec =
   RecBase.recBlock
     { block:
         \defs a meta gamma alpha ->
-          rec.block defs a meta (addDefinitionsToContext defs gamma) alpha
+          rec.block defs a meta (addDefinitionsToContext (fromItem <$> defs) gamma) alpha
     }
 
-type RecDefinitions a
-  = RecBase.RecDefinitions (Context -> a)
+type RecDefinitionItems a
+  = RecBase.RecDefinitionItems (Context -> a)
 
-type RecDefinitions_Definitions a
-  = RecBase.RecDefinitions_Definitions (Context -> a)
+type RecDefinitionItems_DefinitionItems a
+  = RecBase.RecDefinitionItems_DefinitionItems (Context -> a)
 
-recDefinitions ::
+recDefinitionItems ::
   forall a.
-  { definitions :: RecDefinitions_Definitions a } ->
-  RecDefinitions a
-recDefinitions rec = rec.definitions
+  { definitionItems :: RecDefinitionItems_DefinitionItems a } ->
+  RecDefinitionItems a
+recDefinitionItems rec = rec.definitionItems
 
 type RecDefinition a
   = RecBase.RecDefinition (Context -> a)
@@ -93,7 +92,7 @@ recConstructor rec =
     { constructor:
         \termBinding prms meta typeId gamma ->
           rec.constructor termBinding prms meta typeId gamma
-            (typeOfConstructor prms typeId)
+            (typeOfConstructor (fromItem <$> prms) typeId)
     }
 
 type RecType_ProxyHole a
@@ -108,6 +107,7 @@ type RecDefinitionBindings_ArrowLambda a
 type RecDefinitionBindings_Wildcard a
   = RecBase.RecDefinitionBindings_Wildcard (Context -> a)
 
+{-
 recDefinitionBindings ::
   forall a.
   { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
@@ -119,7 +119,7 @@ recDefinitionBindings rec =
     { arrow_lambda: \prm@(Parameter alpha _) beta termId block meta gamma -> rec.arrow_lambda prm beta termId block meta (Map.insert termId alpha gamma)
     , wildcard: rec.wildcard
     }
-
+-}
 type RecType a
   = RecBase.RecType (Context -> a)
 
@@ -172,8 +172,8 @@ recTerm rec =
           ArrowType prm@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) prm beta
           _ -> Unsafe.error $ "[Context.recTerm.lambda] impossible: the term " <> show (LambdaTerm termId block meta) <> " has type " <> show alpha
     , neutral:
-        \termId args meta gamma alpha ->
-          rec.neutral termId args meta gamma (Map.lookup' termId gamma)
+        \termId argItems meta gamma alpha ->
+          rec.neutral termId argItems meta gamma (Map.lookup' termId gamma)
     , hole:
         \meta gamma alpha ->
           rec.hole meta gamma alpha
@@ -182,28 +182,28 @@ recTerm rec =
           rec.match dataID a cases meta gamma alpha
     }
 
-type RecArgs a
-  = RecBase.RecArgs (Context -> Type -> a)
+type RecArgItems a
+  = RecBase.RecArgItems (Context -> Type -> a)
 
-type RecArgs_None (a :: Prim.Type)
-  = RecBase.RecArgs_None a
+type RecArgItems_Nil a
+  = RecBase.RecArgItems_Nil (Context -> Type -> a)
 
-type RecArgs_Cons a
-  = RecBase.RecArgs_Cons (Context -> Parameter -> Type -> a)
+type RecArgItems_Cons a
+  = RecBase.RecArgItems_Cons (Context -> Parameter -> Type -> a)
 
-recArgs ::
+recArgItems ::
   forall a.
-  { none :: RecArgs_None a
-  , cons :: RecArgs_Cons a
+  { nil :: RecArgItems_Nil a
+  , cons :: RecArgItems_Cons a
   } ->
-  RecArgs a
-recArgs rec =
-  RecBase.recArgs
-    { none: \_ _ -> rec.none
+  RecArgItems a
+recArgItems rec =
+  RecBase.recArgItems
+    { nil: rec.nil
     , cons:
-        \a args meta gamma -> case _ of
-          ArrowType prm beta _ -> rec.cons a args meta gamma prm beta
-          _ -> Unsafe.error "recArgs: impossible"
+        \argItem argItems gamma alpha -> case alpha of
+          ArrowType prm beta _ -> rec.cons argItem argItems gamma prm beta
+          _ -> Unsafe.error "Context.recArgItems: impossible"
     }
 
 type RecCase a
@@ -227,7 +227,7 @@ recCase rec =
               ( foldl
                   (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
                   gamma
-                  (List.zip termIds prms)
+                  (zip (fromItem <$> termIds) prms)
               )
               alpha
     }

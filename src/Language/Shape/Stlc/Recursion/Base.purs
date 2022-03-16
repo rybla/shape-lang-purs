@@ -5,7 +5,7 @@ import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
+import Data.List
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -13,39 +13,39 @@ type RecModule a
   = Module -> a
 
 type RecModule_Module a
-  = List Definition -> ModuleMetadata -> a
+  = List DefinitionItem -> ModuleMetadata -> a
 
 recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
 recModule rec = case _ of
-  Module defs meta -> rec.module_ defs meta
+  Module defItems meta -> rec.module_ defItems meta
 
 type RecBlock a
   = Block -> a
 
 type RecBlock_Block a
-  = List Definition -> Term -> BlockMetadata -> a
+  = List DefinitionItem -> Term -> BlockMetadata -> a
 
 recBlock ::
   forall a.
   { block :: RecBlock_Block a } ->
   RecBlock a
 recBlock rec = case _ of
-  Block defs term meta -> rec.block defs term meta
+  Block defItems term meta -> rec.block defItems term meta
 
-type RecDefinitions a
-  = List Definition -> a
+type RecDefinitionItems a
+  = List DefinitionItem -> a
 
-type RecDefinitions_Definitions a
-  = List Definition -> a
+type RecDefinitionItems_DefinitionItems a
+  = List DefinitionItem -> a
 
-recDefinitions ::
+recDefinitionItems ::
   forall a.
-  { definitions :: RecDefinitions_Definitions a } ->
-  RecDefinitions a
-recDefinitions rec = rec.definitions
+  { definitionItems :: RecDefinitionItems_DefinitionItems a } ->
+  RecDefinitionItems a
+recDefinitionItems rec = rec.definitionItems
 
 type RecDefinition a
   = Definition -> a
@@ -54,7 +54,7 @@ type RecDefinition_TermDefinition a
   = TermBinding -> Type -> Term -> TermDefinitionMetadata -> a
 
 type RecDefinition_DataDefinition a
-  = TypeBinding -> List Constructor -> DataDefinitionMetadata -> a
+  = TypeBinding -> List ConstructorItem -> DataDefinitionMetadata -> a
 
 recDefinition ::
   forall a.
@@ -70,7 +70,7 @@ type RecConstructor a
   = Constructor -> TypeId -> a
 
 type RecConstructor_Constructor a
-  = TermBinding -> List Parameter -> ConstructorMetadata -> TypeId -> a
+  = TermBinding -> List ParameterItem -> ConstructorMetadata -> TypeId -> a
 
 recConstructor :: forall a. { constructor :: RecConstructor_Constructor a } -> RecConstructor a
 recConstructor rec constr typeId = case constr of
@@ -85,6 +85,7 @@ type RecDefinitionBindings_ArrowLambda a
 type RecDefinitionBindings_Wildcard a
   = Type -> Term -> a
 
+{-
 recDefinitionBindings ::
   forall a.
   { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
@@ -94,7 +95,7 @@ recDefinitionBindings ::
 recDefinitionBindings rec alpha a = case alpha /\ a of
   ArrowType prm beta _ /\ LambdaTerm termId block meta -> rec.arrow_lambda prm beta termId block meta
   _ /\ _ -> rec.wildcard alpha a
-
+-}
 type RecType a
   = Type -> a
 
@@ -131,10 +132,10 @@ type RecTerm_Lambda a
   = TermId -> Block -> LambdaTermMetadata -> a
 
 type RecTerm_Neutral a
-  = TermId -> Args -> NeutralTermMetadata -> a
+  = TermId -> List ArgItem -> NeutralTermMetadata -> a
 
 type RecTerm_Match a
-  = TypeId -> Term -> List Case -> MatchTermMetadata -> a
+  = TypeId -> Term -> List CaseItem -> MatchTermMetadata -> a
 
 type RecTerm_Hole a
   = HoleTermMetadata -> a
@@ -149,41 +150,42 @@ recTerm ::
   RecTerm a
 recTerm rec = case _ of
   LambdaTerm termId block meta -> rec.lambda termId block meta
-  NeutralTerm termId args meta -> rec.neutral termId args meta
-  MatchTerm typeId a cases meta -> rec.match typeId a cases meta
+  NeutralTerm termId argItems meta -> rec.neutral termId argItems meta
+  MatchTerm typeId a caseItems meta -> rec.match typeId a caseItems meta
   HoleTerm meta -> rec.hole meta
 
-type RecArgs a
-  = Args -> a
+type RecArgItems a
+  = List ArgItem -> a
 
-type RecArgs_None (a :: Prim.Type)
+type RecArgItems_Nil :: forall k. k -> k
+type RecArgItems_Nil a
   = a
 
-type RecArgs_Cons a
-  = Term -> Args -> ArgConsMetaData -> a
+type RecArgItems_Cons a
+  = ArgItem -> List ArgItem -> a
 
-recArgs ::
+recArgItems ::
   forall a.
-  { none :: RecArgs_None a
-  , cons :: RecArgs_Cons a
+  { nil :: RecArgItems_Nil a
+  , cons :: RecArgItems_Cons a
   } ->
-  RecArgs a
-recArgs rec = case _ of
-  NoneArgs -> rec.none
-  ConsArgs a args meta -> rec.cons a args meta
+  RecArgItems a
+recArgItems rec argItems = case argItems of
+  Nil -> rec.nil
+  Cons argItem argItems -> rec.cons argItem argItems
 
 type RecCase a
   = Case -> TypeId -> TermId -> a
 
 type RecCase_Case a
-  = List TermId -> Term -> CaseMetadata -> TypeId -> TermId -> a
+  = List TermIdItem -> Term -> CaseMetadata -> TypeId -> TermId -> a
 
 recCase ::
   forall a.
   { case_ :: RecCase_Case a } ->
   RecCase a
 recCase rec case_ typeId constrId = case case_ of
-  Case termIds a meta -> rec.case_ termIds a meta typeId constrId
+  Case termIdItems a meta -> rec.case_ termIdItems a meta typeId constrId
 
 type RecParameter a
   = Parameter -> a

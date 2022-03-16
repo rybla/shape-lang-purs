@@ -25,10 +25,10 @@
   - [ ] index
     - [x] upgrade syntax/metadata so that lists have an `*ItemMetadata` for each
           element of the list
-    - [ ] upgrade index so that each step has constant number of children (lists
+    - [x] upgrade index so that each step has constant number of children (lists
           have 2 children: head, tail)
-    - [ ] upgrade index recursor layer
-    - [ ] upgrade renderer
+    - [x] upgrade index recursor layer
+    - [x] upgrade renderer
   - [ ] rendering
     - [x] basic outline
     - [x] indentation

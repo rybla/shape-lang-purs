@@ -1,13 +1,12 @@
 module Language.Shape.Stlc.Index where
 
+import Data.List.Unsafe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
 
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
-import Data.List.Unsafe (List)
-import Data.List.Unsafe as List
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Debug as Debug
@@ -17,36 +16,40 @@ import Unsafe as Unsafe
 newtype UpwardIndex
   = UpwardIndex (List IndexStep)
 
+
 newtype DownwardIndex
   = DownwardIndex (List IndexStep)
 
-instance Show UpwardIndex where  show (UpwardIndex steps) = show steps
-instance Show DownwardIndex where  show (DownwardIndex steps) = show steps
+derive newtype instance Semigroup UpwardIndex
+derive newtype instance Semigroup DownwardIndex
+
+instance Show UpwardIndex where show (UpwardIndex steps) = show steps
+instance Show DownwardIndex where show (DownwardIndex steps) = show steps
 
 pushDownwardIndex :: IndexStep -> DownwardIndex -> DownwardIndex
-pushDownwardIndex step (DownwardIndex steps) = DownwardIndex $ List.Cons step steps
+pushDownwardIndex step (DownwardIndex steps) = DownwardIndex $ Cons step steps
 
-infix 5 pushDownwardIndex as <:
+infixr 5 pushDownwardIndex as <:
 
 pushUpwardIndex :: UpwardIndex -> IndexStep -> UpwardIndex
-pushUpwardIndex (UpwardIndex steps) step = UpwardIndex $ List.Cons step steps
+pushUpwardIndex (UpwardIndex steps) step = UpwardIndex $ Cons step steps
 
-infix 5 pushUpwardIndex as :>
+infixr 5 pushUpwardIndex as :>
 
 toUpwardIndex :: DownwardIndex -> UpwardIndex
-toUpwardIndex (DownwardIndex steps) = UpwardIndex $ List.reverse steps
+toUpwardIndex (DownwardIndex steps) = UpwardIndex $ reverse steps
 
 toDownwardIndex :: UpwardIndex -> DownwardIndex
-toDownwardIndex (UpwardIndex steps) = DownwardIndex $ List.reverse steps
+toDownwardIndex (UpwardIndex steps) = DownwardIndex $ reverse steps
 
 unconsDownwardIndex :: DownwardIndex -> Maybe { step :: IndexStep, ix' :: DownwardIndex }
 unconsDownwardIndex (DownwardIndex steps) = do
-  { head: step, tail: steps' } <- List.uncons steps
+  { head: step, tail: steps' } <- uncons steps
   Just { step, ix': DownwardIndex steps' }
 
 unconsUpwardIndex :: UpwardIndex -> Maybe { step :: IndexStep, ix' :: UpwardIndex }
 unconsUpwardIndex (UpwardIndex ix) = do
-  { head: step, tail: steps' } <- List.uncons ix
+  { head: step, tail: steps' } <- uncons ix
   Just { step, ix': UpwardIndex steps' }
 
 data StepLabel
@@ -63,8 +66,11 @@ data StepLabel
   | StepMatchTerm
   | StepHoleTerm
   | StepCase
-  | StepConsArgs
   | StepParameter
+  -- in SyntaxList
+  | StepCons
+  | StepNil
+
 
 derive instance Generic StepLabel _ 
 instance Eq StepLabel where eq l1 l2 = genericEq l1 l2
@@ -77,8 +83,104 @@ derive instance Generic IndexStep _
 instance Eq IndexStep where eq ix1 ix2 = genericEq ix1 ix2
 instance Show IndexStep where show (IndexStep l i) = show l <> "(" <> show i <> ")"
 
+-- i^th element of Cons list
+fromListIndexToUpwardIndex :: Int -> UpwardIndex
+fromListIndexToUpwardIndex i =
+  if i == 0 then 
+    UpwardIndex $ singleton $ IndexStep StepCons 0
+  else 
+    fromListIndexToUpwardIndex (i - 1) :> IndexStep StepCons 1
+
+childrenCount :: StepLabel -> Int
+childrenCount = case _ of 
+  StepModule -> 1
+  StepBlock -> 2
+  StepTermDefinition -> 3
+  StepDataDefinition -> 2
+  StepConstructor -> 2
+  StepArrowType -> 2
+  StepDataType -> 0
+  StepHoleType -> 0
+  StepLambdaTerm -> 2
+  StepNeutralTerm -> 2
+  StepMatchTerm -> 2
+  StepHoleTerm -> 0
+  StepCase -> 2
+  StepParameter -> 1
+  StepCons -> 2
+  StepNil -> 0
+
+stepSyntax :: IndexStep -> Syntax -> Syntax
+stepSyntax step syn = case syn /\ step of 
+  SyntaxModule (Module defItems meta) /\ IndexStep StepModule i
+    | i == 0 -> SyntaxList $ SyntaxDefinitionItem <$> defItems
+  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock i
+    | i == 0 -> SyntaxList $ SyntaxDefinitionItem <$> defItems
+    | i == 1 -> SyntaxTerm a
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition i
+    | i == 0 -> SyntaxTermBinding x 
+    | i == 1 -> SyntaxType alpha 
+    | i == 2 -> SyntaxTerm a 
+  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition i
+    | i == 0 -> SyntaxTypeBinding t
+    | i == 1 -> SyntaxList $ SyntaxConstructorItem <$> constrItems 
+  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor i
+    | i == 0 -> SyntaxTermBinding x 
+    | i == 1 -> SyntaxList $ SyntaxParameterItem <$> prmItems 
+  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
+    | i == 0 -> SyntaxParameter prm 
+    | i == 1 -> SyntaxType beta 
+  -- SyntaxType (DataType typeId meta) /\ IndexStep StepDataType i
+  -- SyntaxType (HoleType holeId wkn meta) /\ IndexStep StepHoleType i
+  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm i
+    | i == 0 -> SyntaxTermId x 
+    | i == 1 -> SyntaxBlock block 
+  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm i
+    | i == 0 -> SyntaxTermId x 
+    | i == 1 -> SyntaxList $ SyntaxArgItem <$> argItems 
+  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm i
+    | i == 0 -> SyntaxTerm a 
+    | i == 1 -> SyntaxList $ SyntaxCaseItem <$> caseItems 
+  -- SyntaxTerm (HoleTerm meta) /\ IndexStep StepHoleTerm i
+  SyntaxCase (Case xItems a meta) /\ IndexStep StepCase i
+    | i == 0 -> SyntaxList $ SyntaxTermIdItem <$> xItems
+    | i == 1 -> SyntaxTerm a 
+  SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter i
+    | i == 0 -> SyntaxType alpha 
+  SyntaxList (Cons h t) /\ IndexStep StepCons i
+    | i == 0 -> h
+    | i == 1 -> SyntaxList t
+  -- SyntaxList Nil /\ IndexStep StepNil i
+  _ -> Unsafe.error "stepSyntax: impossible"
+
+lookupSyntaxAt :: DownwardIndex -> Syntax -> Syntax
+lookupSyntaxAt ix syn = 
+  case unconsDownwardIndex ix of 
+    Nothing -> syn
+    Just {step, ix'} -> lookupSyntaxAt ix' (stepSyntax step syn)
+
+-- data Direction
+--   = Up
+--   | Down
+--   | Left
+--   | Right
+
+-- moveDownwardIndex :: Direction -> Module -> DownwardIndex -> DownwardIndex
+-- moveDownwardIndex dir mod ixDownward = 
+--   let ixUpward = toUpwardIndex ixDownward in
+--   case dir of 
+--     Up ->
+--       case unconsUpwardIndex ixUpward of 
+--         Nothing -> ixDownward 
+--         Just {ix', step} -> toDownwardIndex ix'
+--     Down ->
+--       case 
+--     Left  -> undefined
+--     Right -> undefined
+
+{-
 inListBounds :: forall a. Int -> List a -> Boolean
-inListBounds i ls = 0 <= i && i < List.length ls
+inListBounds i ls = 0 <= i && i < Conslength ls
 
 inBounds :: Int -> Int -> Int -> Boolean
 inBounds i min max = min <= i && i <= max
@@ -89,26 +191,26 @@ lookupSyntaxAt ix syn =
     Nothing -> syn
     Just { ix', step } -> case syn /\ step of
       SyntaxModule (Module defs meta) /\ IndexStep StepModule i
-        | inListBounds i defs -> lookupSyntaxAt ix' $ SyntaxDefinition (List.index' defs i)
+        | inListBounds i defs -> lookupSyntaxAt ix' $ SyntaxDefinition (Consindex' defs i)
       SyntaxBlock (Block defs a meta) /\ IndexStep StepBlock i
-        | inListBounds i defs -> lookupSyntaxAt ix' $ SyntaxDefinition (List.index' defs i)
-        | i == List.length defs -> lookupSyntaxAt ix' $ SyntaxTerm a
+        | inListBounds i defs -> lookupSyntaxAt ix' $ SyntaxDefinition (Consindex' defs i)
+        | i == Conslength defs -> lookupSyntaxAt ix' $ SyntaxTerm a
       SyntaxDefinition (TermDefinition termBinding alpha a meta) /\ IndexStep StepTermDefinition i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermBinding termBinding
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxType alpha
         | i == 2 -> lookupSyntaxAt ix' $ SyntaxTerm a
       SyntaxDefinition (DataDefinition typeBinding constrs meta) /\ IndexStep StepDataDefinition i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTypeBinding typeBinding
-        | inListBounds (i - 1) constrs -> lookupSyntaxAt ix' $ SyntaxConstructor $ List.index' constrs (i - 1)
+        | inListBounds (i - 1) constrs -> lookupSyntaxAt ix' $ SyntaxConstructor $ Consindex' constrs (i - 1)
       SyntaxConstructor (Constructor termBinding prms meta) /\ IndexStep StepConstructor i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermBinding termBinding
-        | inListBounds (i - 1) prms -> lookupSyntaxAt ix' $ SyntaxParameter $ List.index' prms i
+        | inListBounds (i - 1) prms -> lookupSyntaxAt ix' $ SyntaxParameter $ Consindex' prms i
       SyntaxTerm (LambdaTerm termId block meta) /\ IndexStep StepLambdaTerm i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermId termId
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxBlock block
       SyntaxTerm (MatchTerm typeId term cases meta) /\ IndexStep StepMatchTerm i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTerm term
-        | inListBounds (i - 1) cases -> lookupSyntaxAt ix' $ SyntaxCase $ List.index' cases (i - 1)
+        | inListBounds (i - 1) cases -> lookupSyntaxAt ix' $ SyntaxCase $ Consindex' cases (i - 1)
       SyntaxTerm (NeutralTerm termId args meta) /\ IndexStep StepNeutralTerm i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermId termId
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxArgs args
@@ -116,8 +218,8 @@ lookupSyntaxAt ix syn =
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTerm a
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxArgs args
       SyntaxCase (Case termIds term meta) /\ IndexStep StepCase i
-        | inListBounds i termIds -> lookupSyntaxAt ix' $ SyntaxTermId (List.index' termIds i)
-        | i == List.length termIds -> lookupSyntaxAt ix' $ SyntaxTerm term
+        | inListBounds i termIds -> lookupSyntaxAt ix' $ SyntaxTermId (Consindex' termIds i)
+        | i == Conslength termIds -> lookupSyntaxAt ix' $ SyntaxTerm term
       SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxParameter prm
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxType beta
@@ -130,26 +232,26 @@ modifyIndexAt ix f syn = case unconsDownwardIndex ix of
   Nothing -> f syn
   Just { step, ix' } -> case syn /\ step of
     SyntaxModule (Module defs meta) /\ IndexStep StepModule i
-      | inListBounds i defs -> SyntaxModule $ Module (List.modifyAt' i (toDefinition <<< modifyIndexAt ix' f <<< SyntaxDefinition) defs) meta
+      | inListBounds i defs -> SyntaxModule $ Module (ConsmodifyAt' i (toDefinition <<< modifyIndexAt ix' f <<< SyntaxDefinition) defs) meta
     SyntaxBlock (Block defs a meta) /\ IndexStep StepBlock i
-      | inListBounds i defs -> SyntaxBlock $ Block (List.modifyAt' i (toDefinition <<< modifyIndexAt ix' f <<< SyntaxDefinition) defs) a meta
-      | i == List.length defs -> SyntaxBlock $ Block defs (toTerm $ modifyIndexAt ix' f $ SyntaxTerm a) meta
+      | inListBounds i defs -> SyntaxBlock $ Block (ConsmodifyAt' i (toDefinition <<< modifyIndexAt ix' f <<< SyntaxDefinition) defs) a meta
+      | i == Conslength defs -> SyntaxBlock $ Block defs (toTerm $ modifyIndexAt ix' f $ SyntaxTerm a) meta
     SyntaxDefinition (TermDefinition termBinding alpha a meta) /\ IndexStep StepTermDefinition i
       | i == 0 -> SyntaxDefinition $ TermDefinition (toTermBinding $ modifyIndexAt ix' f $ SyntaxTermBinding termBinding) alpha a meta
       | i == 1 -> SyntaxDefinition $ TermDefinition termBinding (toType $ modifyIndexAt ix' f $ SyntaxType alpha) a meta
       | i == 2 -> SyntaxDefinition $ TermDefinition termBinding alpha (toTerm $ modifyIndexAt ix' f $ SyntaxTerm a) meta
     SyntaxDefinition (DataDefinition typeBinding constrs meta) /\ IndexStep StepDataDefinition i
       | i == 0 -> SyntaxDefinition (DataDefinition (toTypeBinding $ modifyIndexAt ix' f $ SyntaxTypeBinding typeBinding) constrs meta)
-      | inListBounds (i - 1) constrs -> SyntaxDefinition (DataDefinition typeBinding (List.modifyAt' (i - 1) (toConstructor <<< modifyIndexAt ix' f <<< SyntaxConstructor) constrs) meta)
+      | inListBounds (i - 1) constrs -> SyntaxDefinition (DataDefinition typeBinding (ConsmodifyAt' (i - 1) (toConstructor <<< modifyIndexAt ix' f <<< SyntaxConstructor) constrs) meta)
     SyntaxConstructor (Constructor termBinding prms meta) /\ IndexStep StepConstructor i
       | i == 0 -> SyntaxConstructor (Constructor (toTermBinding $ modifyIndexAt ix' f $ SyntaxTermBinding termBinding) prms meta)
-      | inListBounds (i - 1) prms -> SyntaxConstructor (Constructor termBinding (List.modifyAt' (i - 1) (toParameter <<< modifyIndexAt ix' f <<< SyntaxParameter) prms) meta)
+      | inListBounds (i - 1) prms -> SyntaxConstructor (Constructor termBinding (ConsmodifyAt' (i - 1) (toParameter <<< modifyIndexAt ix' f <<< SyntaxParameter) prms) meta)
     SyntaxTerm (LambdaTerm termId block meta) /\ IndexStep StepLambdaTerm i
       | i == 0 -> SyntaxTerm (LambdaTerm (toTermId $ modifyIndexAt ix' f $ SyntaxTermId termId) block meta)
       | i == 1 -> SyntaxTerm (LambdaTerm termId (toBlock $ modifyIndexAt ix' f $ SyntaxBlock block) meta)
     SyntaxTerm (MatchTerm typeId term cases meta) /\ IndexStep StepMatchTerm i
       | i == 0 -> SyntaxTerm (MatchTerm typeId (toTerm $ modifyIndexAt ix' f $ SyntaxTerm term) cases meta)
-      | inListBounds (i - 1) cases -> SyntaxTerm (MatchTerm typeId term (List.modifyAt' (i - 1) (toCase <<< modifyIndexAt ix' f <<< SyntaxCase) cases) meta)
+      | inListBounds (i - 1) cases -> SyntaxTerm (MatchTerm typeId term (ConsmodifyAt' (i - 1) (toCase <<< modifyIndexAt ix' f <<< SyntaxCase) cases) meta)
     SyntaxTerm (NeutralTerm termId args meta) /\ IndexStep StepNeutralTerm i
       | i == 0 -> SyntaxTerm (NeutralTerm (toTermId $ modifyIndexAt ix' f $ SyntaxTermId termId) args meta)
       | i == 1 -> SyntaxTerm (NeutralTerm termId (toArgs $ modifyIndexAt ix' f $ SyntaxArgs args) meta)
@@ -157,8 +259,8 @@ modifyIndexAt ix f syn = case unconsDownwardIndex ix of
       | i == 0 -> SyntaxArgs (ConsArgs (toTerm $ modifyIndexAt ix' f $ SyntaxTerm a) args meta)
       | i == 1 -> SyntaxArgs (ConsArgs a (toArgs $ modifyIndexAt ix' f $ SyntaxArgs args) meta)
     SyntaxCase (Case termIds term meta) /\ IndexStep StepCase i
-      | inListBounds i termIds -> SyntaxCase (Case (List.modifyAt' i (toTermId <<< modifyIndexAt ix' f <<< SyntaxTermId) termIds) term meta)
-      | i == List.length termIds -> SyntaxCase (Case termIds (toTerm $ modifyIndexAt ix' f $ SyntaxTerm term) meta)
+      | inListBounds i termIds -> SyntaxCase (Case (ConsmodifyAt' i (toTermId <<< modifyIndexAt ix' f <<< SyntaxTermId) termIds) term meta)
+      | i == Conslength termIds -> SyntaxCase (Case termIds (toTerm $ modifyIndexAt ix' f $ SyntaxTerm term) meta)
     SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
       | i == 0 -> SyntaxType (ArrowType (toParameter $ modifyIndexAt ix' f $ SyntaxParameter prm) beta meta)
       | i == 1 -> SyntaxType (ArrowType prm (toType $ modifyIndexAt ix' f $ SyntaxType beta) meta)
@@ -184,7 +286,7 @@ moveDownwardIndex dir mod ix =
         Just { ix' } -> toDownwardIndex ix'
       Down ->
         case lookupSyntaxAt ix (SyntaxModule mod) of
-          SyntaxModule (Module defs _) -> if List.length defs > 0 then toDownwardIndex $ ixUpward :> IndexStep StepModule 0 else ix
+          SyntaxModule (Module defs _) -> if Conslength defs > 0 then toDownwardIndex $ ixUpward :> IndexStep StepModule 0 else ix
           SyntaxBlock (Block defs _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepBlock 0
           SyntaxDefinition (TermDefinition _ _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepTermDefinition 0
           SyntaxDefinition (DataDefinition _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepDataDefinition 0
@@ -213,25 +315,25 @@ moveDownwardIndex dir mod ix =
             in
               case syn /\ step of
                 SyntaxModule (Module defs _) /\ IndexStep StepModule i
-                  | inBounds (i - 1) 0 (List.length defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i - 1)
+                  | inBounds (i - 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i - 1)
                   | otherwise -> ix
                 SyntaxBlock (Block defs _ _) /\ IndexStep StepBlock i
-                  | inBounds (i - 1) 0 (List.length defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i - 1)
+                  | inBounds (i - 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i - 1)
                   | otherwise -> ix
                 SyntaxDefinition (TermDefinition _ _ _ _) /\ IndexStep StepTermDefinition i
                   | inBounds (i - 1) 0 2 -> toDownwardIndex $ ix' :> IndexStep StepTermDefinition (i - 1)
                   | otherwise -> ix
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
-                  | inBounds (i - 1) 0 (List.length constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i - 1)
+                  | inBounds (i - 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i - 1)
                   | otherwise -> ix
                 SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i - 1) 0 (List.length prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i - 1)
+                  | inBounds (i - 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
                   | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepLambdaTerm (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (MatchTerm _ _ cases _) /\ IndexStep StepMatchTerm i
-                  | inBounds (i - 1) 0 (List.length cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i - 1)
+                  | inBounds (i - 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (NeutralTerm _ _ _) /\ IndexStep StepNeutralTerm i
                   | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepNeutralTerm (i - 1)
@@ -240,7 +342,7 @@ moveDownwardIndex dir mod ix =
                   | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepConsArgs (i - 1)
                   | otherwise -> ix
                 SyntaxCase (Case termIds _ _) /\ IndexStep StepCase i
-                  | inBounds (i - 1) 0 (List.length termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i - 1)
+                  | inBounds (i - 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i - 1)
                   | otherwise -> ix
                 SyntaxType (ArrowType _ _ _) /\ IndexStep StepArrowType i
                   | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepArrowType (i - 1)
@@ -257,25 +359,25 @@ moveDownwardIndex dir mod ix =
             in
               Debug.trace (syn /\ step) \_ -> case syn /\ step of
                 SyntaxModule (Module defs _) /\ IndexStep StepModule i
-                  | inBounds (i + 1) 0 (List.length defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i + 1)
+                  | inBounds (i + 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i + 1)
                   | otherwise -> ix
                 SyntaxBlock (Block defs _ _) /\ IndexStep StepBlock i
-                  | inBounds (i + 1) 0 (List.length defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i + 1)
+                  | inBounds (i + 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i + 1)
                   | otherwise -> ix
                 SyntaxDefinition (TermDefinition _ _ _ _) /\ IndexStep StepTermDefinition i
                   | inBounds (i + 1) 0 2 -> toDownwardIndex $ ix' :> IndexStep StepTermDefinition (i + 1)
                   | otherwise -> ix
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
-                  | inBounds (i + 1) 0 (List.length constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i + 1)
+                  | inBounds (i + 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i + 1)
                   | otherwise -> ix 
                 SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i + 1) 0 (List.length prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i + 1)
+                  | inBounds (i + 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
                   | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :> IndexStep StepLambdaTerm (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (MatchTerm _ _ cases _) /\ IndexStep StepMatchTerm i
-                  | inBounds (i + 1) 0 (List.length cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i + 1)
+                  | inBounds (i + 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (NeutralTerm _ _ _) /\ IndexStep StepNeutralTerm i
                   | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepNeutralTerm (i + 1)
@@ -284,7 +386,7 @@ moveDownwardIndex dir mod ix =
                   | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :> IndexStep StepConsArgs (i + 1)
                   | otherwise -> ix
                 SyntaxCase (Case termIds _ _) /\ IndexStep StepCase i
-                  | inBounds (i + 1) 0 (List.length termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i + 1)
+                  | inBounds (i + 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i + 1)
                   | otherwise -> ix
                 SyntaxType (ArrowType _ _ _) /\ IndexStep StepArrowType i
                   | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepArrowType (i + 1)
@@ -292,3 +394,4 @@ moveDownwardIndex dir mod ix =
                 SyntaxParameter (Parameter _ _) /\ IndexStep StepParameter i
                   | otherwise -> ix
                 _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
+-}

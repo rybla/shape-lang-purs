@@ -69,23 +69,23 @@ recBlock ::
   RecBlock a
 recBlock rec block gamma alpha = RecContext.recBlock rec block gamma alpha <<< incrementIndentation
 
-type RecDefinitions a
-  = RecContext.RecDefinitions (MetaContext -> a)
+type RecDefinitionItems a
+  = RecContext.RecDefinitionItems (MetaContext -> a)
 
-type RecDefinitions_Definitions a
-  = RecContext.RecDefinitions_Definitions (MetaContext -> a)
+type RecDefinitionItems_DefinitionItems a
+  = RecContext.RecDefinitionItems_DefinitionItems (MetaContext -> a)
 
-recDefinitions ::
+recDefinitionItems ::
   forall a.
-  { definitions :: RecDefinitions_Definitions a } ->
-  RecDefinitions a
-recDefinitions rec =
-  RecContext.recDefinitions
-    { definitions:
-        \defs gamma ->
-          rec.definitions defs gamma
+  { definitionItems :: RecDefinitionItems_DefinitionItems a } ->
+  RecDefinitionItems a
+recDefinitionItems rec =
+  RecContext.recDefinitionItems
+    { definitionItems:
+        \defItems gamma ->
+          rec.definitionItems defItems gamma
             <<< foldl (>>>) identity
-                [ registerDefinitions defs
+                [ registerDefinitions (fromItem <$> defItems)
                 , incrementIndentation
                 ]
     }
@@ -99,7 +99,7 @@ type RecDefinition_TermDefinition a
 type RecDefinition_DataDefinition a
   = RecContext.RecDefinition_DataDefinition (MetaContext -> a)
 
--- registration already handled by recDefinitions
+-- registration already handled by recDefinitionItems
 recDefinition ::
   forall a.
   { term :: RecDefinition_TermDefinition a
@@ -118,7 +118,7 @@ type RecConstructor a
 type RecConstructor_Constructor a
   = RecContext.RecConstructor_Constructor (MetaContext -> a)
 
--- registration already handled by recDefinitions
+-- registration already handled by recDefinitionItems
 recConstructor ::
   forall a.
   { constructor :: RecConstructor_Constructor a } ->
@@ -134,6 +134,7 @@ type RecDefinitionBindings_ArrowLambda a
 type RecDefinitionBindings_Wildcard a
   = RecContext.RecDefinitionBindings_Wildcard (MetaContext -> a)
 
+{-
 recDefinitionBindings ::
   forall a.
   { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
@@ -151,7 +152,7 @@ recDefinitionBindings rec =
                 ]
     , wildcard: rec.wildcard
     }
-
+-}
 type RecType a
   = RecContext.RecType (MetaContext -> a)
 
@@ -221,7 +222,7 @@ recTerm rec =
                 [ registerTermId termId name
                 , incrementIndentation
                 ]
-    , neutral: \termId args meta gamma alpha -> rec.neutral termId args meta gamma alpha <<< incrementIndentation
+    , neutral: \termId argItems meta gamma alpha -> rec.neutral termId argItems meta gamma alpha <<< incrementIndentation
     , hole: \meta gamma alpha -> rec.hole meta gamma alpha <<< incrementIndentation
     , match:
         \typeId a cases meta gamma alpha metaGamma ->
@@ -230,25 +231,25 @@ recTerm rec =
             (Map.lookup' typeId metaGamma.constructorTermIds)
     }
 
-type RecArgs a
-  = RecContext.RecArgs (MetaContext -> a)
+type RecArgItems a
+  = RecContext.RecArgItems (MetaContext -> a)
 
-type RecArgs_None (a :: Prim.Type)
-  = RecContext.RecArgs_None a
+type RecArgItems_Nil (a :: Prim.Type)
+  = RecContext.RecArgItems_Nil (MetaContext -> a)
 
-type RecArgs_Cons a
-  = RecContext.RecArgs_Cons (MetaContext -> a)
+type RecArgItems_Cons a
+  = RecContext.RecArgItems_Cons (MetaContext -> a)
 
-recArgs ::
+recArgItems ::
   forall a.
-  { none :: RecArgs_None a
-  , cons :: RecArgs_Cons a
+  { nil :: RecArgItems_Nil a
+  , cons :: RecArgItems_Cons a
   } ->
-  RecArgs a
-recArgs rec =
-  RecContext.recArgs
-    { none: \_ -> rec.none
-    , cons: \a args meta gamma prm alpha -> rec.cons a args meta gamma prm alpha <<< incrementIndentation
+  RecArgItems a
+recArgItems rec =
+  RecContext.recArgItems
+    { nil: undefined
+    , cons: \argItem argItems gamma prm alpha -> rec.cons argItem argItems gamma prm alpha <<< incrementIndentation
     }
 
 type RecCase a
@@ -264,13 +265,13 @@ recCase ::
 recCase rec =
   RecContext.recCase
     { case_:
-        \termIds a meta typeId constrId gamma alpha ->
+        \termIdItems a meta typeId constrId gamma alpha ->
           let
             prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
-            rec.case_ termIds a meta typeId constrId gamma alpha
+            rec.case_ termIdItems a meta typeId constrId gamma alpha
               <<< foldl (>>>) identity
-                  [ registerTermIds (List.zip termIds (map (\(Parameter _ { name }) -> name) prms))
+                  [ registerTermIds (List.zip (fromItem <$> termIdItems) (map (\(Parameter _ { name }) -> name) prms))
                   , incrementIndentation
                   ]
     }
@@ -373,7 +374,7 @@ registerDatatype x@(TypeBinding typeId _) constrBnds metaGamma =
 registerDefinition :: Definition -> MetaContext -> MetaContext
 registerDefinition = case _ of
   TermDefinition x alpha a meta -> registerTermBinding x
-  DataDefinition x constrs meta -> registerDatatype x (map (\(Constructor x _ _) -> x) constrs)
+  DataDefinition x constrItems meta -> registerDatatype x (map (\(Constructor x _ _) -> x) (fromItem <$> constrItems))
 
 registerDefinitions :: List Definition -> MetaContext -> MetaContext
-registerDefinitions defs = flip (foldl (flip registerDefinition)) defs
+registerDefinitions def = flip (foldl (flip registerDefinition)) def

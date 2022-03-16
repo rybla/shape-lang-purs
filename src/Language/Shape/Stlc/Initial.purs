@@ -46,13 +46,16 @@ module_ =
                       (TermBinding zero_id defaultTermBindingMetadata { name = zero_name })
                       Nil
                       defaultConstructorMetadata
+                      /\ defaultConstructorItemMetadata
                   , Constructor
                       (TermBinding suc_id defaultTermBindingMetadata { name = suc_name })
-                      (fromFoldable [ Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = n_name } ])
+                      (fromFoldable [ Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = n_name } /\ defaultParameterItemMetadata ])
                       defaultConstructorMetadata
+                      /\ defaultConstructorItemMetadata
                   ]
               )
               defaultDataDefinitionMetadata
+              /\ defaultDefinitionItemMetadata
           , TermDefinition
               (TermBinding identity_id defaultTermBindingMetadata { name = identity_name })
               ( ArrowType
@@ -63,13 +66,14 @@ module_ =
               ( LambdaTerm
                   a_id
                   ( Block Nil
-                      (NeutralTerm a_id NoneArgs defaultNeutralTermMetadata)
+                      (NeutralTerm a_id Nil defaultNeutralTermMetadata)
                       defaultBlockMetadata
                   )
                   defaultLambdaTermMetadata { indented = false }
               )
               defaultTermDefinitionMetadata
                 { indented = false }
+              /\ defaultDefinitionItemMetadata
           , TermDefinition
               (TermBinding const_id defaultTermBindingMetadata { name = const_name })
               ( ArrowType
@@ -86,16 +90,19 @@ module_ =
                   ( Block Nil
                       ( LambdaTerm x2_id
                           ( Block Nil
-                              (NeutralTerm x1_id NoneArgs defaultNeutralTermMetadata)
+                              ( NeutralTerm x1_id Nil
+                                  defaultNeutralTermMetadata
+                              )
                               defaultBlockMetadata
                           )
-                          defaultLambdaTermMetadata
+                          defaultLambdaTermMetadata { indented = true }
                       )
                       defaultBlockMetadata
                   )
                   defaultLambdaTermMetadata
               )
               defaultTermDefinitionMetadata
+              /\ defaultDefinitionItemMetadata
           ]
       )
       defaultModuleMetadata

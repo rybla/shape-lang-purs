@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Changes where
 
+{-
 import Prelude
 import Prim hiding (Type)
 
@@ -333,3 +334,4 @@ argsToTermList (ConsArgs arg args _) = arg : (argsToTermList args)
 -- when propagating changes upwards in wrap, this stuff all works.
 
 -- here
+-}

@@ -1,38 +1,51 @@
 module Language.Shape.Stlc.Syntax where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Prelude
-import Data.Tuple.Nested
 import Prim hiding (Type)
 
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
+import Data.Tuple (fst)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
 import Unsafe as Unsafe
 
 data Module
-  = Module (List (Definition /\ DefinitionItemMetadata)) ModuleMetadata
+  = Module (List DefinitionItem) ModuleMetadata
 
 data Block
-  = Block (List Definition) Term BlockMetadata
+  = Block (List DefinitionItem) Term BlockMetadata
+
+type DefinitionItem = Definition /\ DefinitionItemMetadata
 
 data Definition
   = TermDefinition TermBinding Type Term TermDefinitionMetadata
-  | DataDefinition TypeBinding (List (Constructor /\ ConstructorItemMetadata)) DataDefinitionMetadata
+  | DataDefinition TypeBinding (List ConstructorItem) DataDefinitionMetadata
+
+type ConstructorItem = Constructor /\ ConstructorItemMetadata
 
 data Constructor
-  = Constructor TermBinding (List (Parameter /\ ParameterItemMetadata)) ConstructorMetadata
+  = Constructor TermBinding (List ParameterItem) ConstructorMetadata
+
+type ParameterItem = Parameter /\ ParameterItemMetadata
 
 data Term
   = LambdaTerm TermId Block LambdaTermMetadata
   | HoleTerm HoleTermMetadata
-  | MatchTerm TypeId Term (List (Case /\ CaseItemMetadata)) MatchTermMetadata
-  | NeutralTerm TermId (List (Term /\ ArgItemMetadata)) NeutralTermMetadata
+  | MatchTerm TypeId Term (List CaseItem) MatchTermMetadata
+  | NeutralTerm TermId (List ArgItem) NeutralTermMetadata
 
-data Case = Case (List (TermId /\ TermIdItemMetadata)) Term CaseMetadata
+type CaseItem = Case /\ CaseItemMetadata
+
+type ArgItem = Term /\ ArgItemMetadata
+
+data Case = Case (List TermIdItem) Term CaseMetadata
+
+type TermIdItem = TermId /\ TermIdItemMetadata
 
 data Type
   = ArrowType Parameter Type ArrowTypeMetadata
@@ -57,6 +70,11 @@ data TypeId
 
 data HoleId
   = HoleId UUID
+
+-- Item
+
+fromItem :: forall a md. a /\ md -> a
+fromItem = fst
 
 -- Fresh
 freshTermId :: Unit -> TermId
@@ -130,6 +148,16 @@ data Syntax =
   | SyntaxTermBinding TermBinding
   | SyntaxTypeBinding TypeBinding
   | SyntaxTermId TermId
+  -- items
+  | SyntaxDefinitionItem DefinitionItem
+  | SyntaxConstructorItem ConstructorItem
+  | SyntaxParameterItem ParameterItem
+  | SyntaxCaseItem CaseItem
+  | SyntaxArgItem ArgItem 
+  | SyntaxTermIdItem TermIdItem
+  -- for lists
+  | SyntaxList (List Syntax)
+
 
 toModule :: Syntax -> Module
 toModule (SyntaxModule mod) = mod
@@ -174,3 +202,31 @@ toTypeBinding _ = Unsafe.error "impossible cast from Syntax"
 toTermId :: Syntax -> TermId
 toTermId (SyntaxTermId termId) = termId 
 toTermId _ = Unsafe.error "impossible cast from Syntax"
+
+toDefinitionItem :: Syntax -> DefinitionItem
+toDefinitionItem (SyntaxDefinitionItem defItem) = defItem
+toDefinitionItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toConstructorItem :: Syntax -> ConstructorItem
+toConstructorItem (SyntaxConstructorItem defItem) = defItem
+toConstructorItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toParameterItem :: Syntax -> ParameterItem
+toParameterItem (SyntaxParameterItem defItem) = defItem
+toParameterItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toCaseItem :: Syntax -> CaseItem
+toCaseItem (SyntaxCaseItem defItem) = defItem
+toCaseItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toArgItem :: Syntax -> ArgItem
+toArgItem (SyntaxArgItem defItem) = defItem
+toArgItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toTermIdItem :: Syntax -> TermIdItem
+toTermIdItem (SyntaxTermIdItem defItem) = defItem
+toTermIdItem _ = Unsafe.error "impossible to cast from Syntax"
+
+toSyntaxList :: Syntax -> List Syntax 
+toSyntaxList (SyntaxList syns) = syns
+toSyntaxList _ = Unsafe.error "impossible to cast from Syntax"

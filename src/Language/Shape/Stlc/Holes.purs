@@ -1,11 +1,11 @@
 module Language.Shape.Stlc.Holes where
 
 import Prelude
-import Prim
+import Prim hiding (Type)
 import Data.Map (Map, empty, lookup, singleton, union)
 import Data.Maybe (Maybe(..))
 import Data.Set (member)
-import Language.Shape.Stlc.Syntax (Args(..), Block(..), Case(..), Constructor(..), Definition(..), HoleId(..), Module(..), Parameter(..), Term(..), Type(..), TypeId(..), TypeWeakening)
+import Language.Shape.Stlc.Syntax
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -16,6 +16,7 @@ to Blocks, Terms, ...
 type HoleSub
   = Map HoleId Type
 
+{-
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType param b md2) = ArrowType (subParameter sub param) (subType sub b) md2
 subType sub (DataType i md) = DataType i md
@@ -64,3 +65,4 @@ subConstructor sub (Constructor bind args md) = Constructor bind (map (subParame
 
 subCase :: HoleSub -> Case -> Case
 subCase sub (Case binds t md) = Case binds (subTerm sub t) md
+-}
