@@ -51,8 +51,8 @@ emptyChanges = {
     dataTypeDeletions : empty
 }
 
-emptyDatatypeChange :: forall a. List a -> List ConstructorChange
-emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
+-- emptyDatatypeChange :: forall a. List a -> List ConstructorChange
+-- emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
 
 emptyParamsChange :: forall a. List a -> List ParamChange
 emptyParamsChange = mapWithIndex (\index _ -> ChangeParam index NoChange)
