@@ -15,7 +15,7 @@
 
 - Henry
   - [ ] syntax
-    - [ ] upgrade lists to have metadata for each item
+    - [x] upgrade lists to have metadata for each item
   - [ ] recursors
     - [x] base
     - [x] context + type
