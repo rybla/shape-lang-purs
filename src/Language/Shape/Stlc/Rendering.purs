@@ -1,14 +1,15 @@
 module Language.Shape.Stlc.Rendering where
 
+import Data.List.Unsafe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Data.Array as Array
-import Data.List.Unsafe
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Debug as Debug
@@ -16,15 +17,13 @@ import Effect (Effect)
 import Effect.Class.Console as Console
 import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
-import Language.Shape.Stlc.Metadata (TermName(..), TypeName(..), LambdaTermMetadata, defaultArrowTypeMetadata, defaultDataTypeMetadata, defaultModuleMetadata)
-import Language.Shape.Stlc.Recursion.Index (Cursor, checkCursorStep)
 import Language.Shape.Stlc.Recursion.Index as RecIndex
-import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, _indentation, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
 import Language.Shape.Stlc.Syntax as Syntax
 import React as React
 import React.DOM as DOM
 import React.DOM.Props as Props
+import React.SyntheticEvent (NativeEventTarget, stopPropagation, target)
 import Record as R
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -45,7 +44,7 @@ type ProgramState
 type Environment
   = { goal :: Maybe Type
     , gamma :: Context
-    , metaGamma :: MetaContext
+    , metaGamma :: RecMetaContext.MetaContext
     }
 
 type ProgramGiven
@@ -55,6 +54,8 @@ type ProgramGiven
     }
 
 foreign import code :: Event -> String
+
+foreign import setNativeEventTargetProp :: forall a. NativeEventTarget -> String -> a -> Effect Unit
 
 programClass :: React.ReactClass ProgramProps
 programClass = React.component "Program" programComponent
@@ -94,15 +95,15 @@ programComponent this =
     , environment:
         { goal: Nothing
         , gamma: Map.empty
-        , metaGamma: emptyMetaContext
+        , metaGamma: RecMetaContext.emptyMetaContext
         }
     }
 
   render :: ProgramState -> React.ReactElement
   render st =
     DOM.div [ Props.className "editor" ]
-      [ renderModule st.module_ Map.empty emptyMetaContext (UpwardIndex Nil) (Just st.ix_cursor)
-      , renderEnvironment st.environment
+      [ renderModule st.module_ Map.empty RecMetaContext.emptyMetaContext (UpwardIndex Nil) (Just st.ix_cursor)
+      -- , renderEnvironment st.environment
       ]
 
   renderEnvironment :: Environment -> React.ReactElement
@@ -146,43 +147,17 @@ programComponent this =
               ]
             Nothing -> []
 
-  setCursor :: UpwardIndex -> Maybe Type -> Context -> MetaContext -> Effect Unit
-  setCursor ix goal gamma metaGamma =
-    React.modifyState this \st ->
-      st
-        { ix_cursor = toDownwardIndex ix
-        , environment = { goal, gamma, metaGamma }
-        }
-
-  selectableProps :: String -> Boolean -> UpwardIndex -> Array Props.Props
-  selectableProps title isSelected ix =
-    [ Props.className $ title -- <> if isSelected then " selected" else ""
-    , Props.style { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else "" }
-    ]
-
-  selectableTriggerProps :: UpwardIndex -> Maybe Type -> Context -> MetaContext -> Array Props.Props
-  selectableTriggerProps ix type_ gamma metaGamma =
-    -- [ Props.onClick \event -> do
-    --     setCursor ix type_ gamma metaGamma
-    -- ]
-    [ Props.onMouseOver \event -> do
-        setCursor ix type_ gamma metaGamma
-    ]
-
-  inertProps :: String -> Array Props.Props
-  inertProps title = [ Props.className title ]
-
   renderModule :: RecIndex.RecModule React.ReactElement
   renderModule =
     RecIndex.recModule
       { module_:
-          \defItems meta gamma metaGamma ix isSelected ix_def_at cursor_def_at ->
+          \defItems meta gamma metaGamma ix isSelected ix_defItems cursor_defItems ->
             DOM.span
               (selectableProps "module" isSelected ix)
-              [ renderDefinitionItems defItems gamma metaGamma ix ix_def_at cursor_def_at
+              [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
               , punctuation.newline
               , punctuation.newline
-              , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
+              , renderInsertDefinitionButton (ix :- IndexStep StepCons 1)
               ]
       }
 
@@ -190,12 +165,12 @@ programComponent this =
   renderBlock =
     RecIndex.recBlock
       { block:
-          \defItems a meta gamma alpha metaGamma ix isSelected ix_def_at cursor_def_at ix_term cursor_term ->
+          \defItems a meta gamma alpha metaGamma ix isSelected ix_defItems cursor_defItems ix_term cursor_term ->
             DOM.span
               (selectableProps "block" isSelected ix)
-              [ renderDefinitionItems defItems gamma metaGamma ix ix_def_at cursor_def_at
+              [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
               , indent meta metaGamma
-              , DOM.button [ Props.className "pushDefinition" ] [ DOM.text "+" ]
+              , renderInsertDefinitionButton (ix :- IndexStep StepCons 1)
               , indent meta metaGamma
               , renderTerm a gamma alpha metaGamma ix_term cursor_term
               ]
@@ -205,13 +180,13 @@ programComponent this =
   renderDefinitionItems =
     RecIndex.recDefinitionItems
       { definitionItems:
-          \defItems gamma metaGamma ix_mod ix_def_at cursor_def_at ->
+          \defItems gamma metaGamma ix_parent ix isSelected ix_def_at cursor_def_at ->
             DOM.span
               (inertProps "definitionItems")
               [ intercalateHTML
                   [ punctuation.newline, punctuation.newline ]
                   $ toUnfoldable
-                  $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix_mod (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
+                  $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
               ]
       }
 
@@ -229,7 +204,7 @@ programComponent this =
               , indentOrSpace meta metaGamma
               , renderType alpha gamma metaGamma ix_alpha cursor_alpha
               , punctuation.newline
-              , indentation (R.modify _indentation (_ - 1) metaGamma)
+              , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
               , DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
                   [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
               , punctuation.space
@@ -373,16 +348,15 @@ programComponent this =
               (selectableProps "lambda term" isSelected ix)
               $ [ DOM.span (selectableTriggerProps ix (Just (ArrowType prm beta defaultArrowTypeMetadata)) gamma_prt metaGamma)
                     [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
-                , punctuation.space
                 ]
               <> case block of
                   Block Nil (LambdaTerm _ _ _) _ ->
-                    [ punctuation.space
-                    , renderBlock block gamma beta metaGamma ix_block cursor_block
+                    [ renderBlock block gamma beta metaGamma ix_block cursor_block
                     ]
                   _ ->
-                    [ punctuation.mapsto
-                    , indentOrSpace meta metaGamma
+                    [ punctuation.space
+                    , punctuation.mapsto
+                    , indent meta metaGamma
                     , renderBlock block gamma beta metaGamma ix_block cursor_block
                     ]
       , neutral:
@@ -542,10 +516,10 @@ programComponent this =
               [ printTermId termId metaGamma ]
       }
 
-  renderTermId' :: TermId -> MetaContext -> React.ReactElement
+  renderTermId' :: TermId -> RecMetaContext.MetaContext -> React.ReactElement
   renderTermId' termId metaGamma = DOM.span (inertProps "termId") [ printTermId termId metaGamma ]
 
-  printTypeId :: TypeId -> MetaContext -> React.ReactElement
+  printTypeId :: TypeId -> RecMetaContext.MetaContext -> React.ReactElement
   printTypeId typeId metaGamma = DOM.span [ Props.className "typeId" ] ([ DOM.text typeString ] <> shadow_suffix)
     where
     TypeName typeLabel = Map.lookup' typeId metaGamma.typeScope.names
@@ -554,9 +528,9 @@ programComponent this =
 
     shadow_i = Map.lookup' typeId metaGamma.typeScope.shadowIndices
 
-    shadow_suffix = if shadow_i == 0 then [] else [ DOM.sub' [ DOM.text (show shadow_i) ] ]
+    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
 
-  printTermId :: TermId -> MetaContext -> React.ReactElement
+  printTermId :: TermId -> RecMetaContext.MetaContext -> React.ReactElement
   printTermId termId metaGamma = DOM.span' ([ DOM.text termString ] <> shadow_suffix)
     where
     TermName termLabel = Map.lookup' termId metaGamma.termScope.names
@@ -565,13 +539,58 @@ programComponent this =
 
     shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
 
-    shadow_suffix = if shadow_i == 0 then [] else [ DOM.sub' [ DOM.text (show shadow_i) ] ]
+    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
 
-  printTermName :: TermName -> MetaContext -> React.ReactElement
+  printTermName :: TermName -> RecMetaContext.MetaContext -> React.ReactElement
   printTermName termName@(TermName termLabel) metaGamma = DOM.span [ Props.className "termName" ] ([ DOM.text termString ] <> shadow_suffix)
     where
     termString = maybe "_" identity termLabel
 
     shadow_i = Map.lookup' termName metaGamma.termScope.shadows
 
-    shadow_suffix = if shadow_i == 0 then [] else [ DOM.sub' [ DOM.text (show shadow_i) ] ]
+    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
+
+  printShadowSuffix :: String -> React.ReactElement
+  printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
+
+  renderInsertDefinitionButton :: UpwardIndex -> React.ReactElement
+  renderInsertDefinitionButton ix =
+    DOM.span
+      [ Props.className "insertDefinition" ]
+      []
+
+  selectableProps :: String -> Boolean -> UpwardIndex -> Array Props.Props
+  selectableProps title isSelected ix =
+    [ Props.className $ title -- <> if isSelected then " selected" else ""
+    , Props.style
+        { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else ""
+        , backgroundColor: if isSelected then "rgba(255, 255, 255, 0.2)" else ""
+        }
+    -- , Props.style { backgroundColor: if isSelected then "rgb(211, 115, 0)" else "" }
+    -- , Props.onMouseOver \event -> do
+    --     React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
+    , Props.onMouseDown \event -> do
+        -- Debug.traceM event
+        Debug.traceM "=================================================="
+        Debug.traceM "=================================================="
+        Debug.traceM "set ix_cursor"
+        Debug.traceM $ show $ toDownwardIndex ix
+        -- 
+        stopPropagation event
+        React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
+    -- , Props.onMouseOver \event -> do
+    --     tgt <- target event
+    --     setNativeEventTargetProp tgt "style" "box-shadow: 0 0 0 1px white"
+    --     Debug.traceM "------------------------------------"
+    --     Debug.traceM (toDownwardIndex ix)
+    --     Debug.traceM tgt
+    -- , Props.onMouseLeave \event -> do
+    --     tgt <- target event
+    --     setNativeEventTargetProp tgt "style" "box-shadow: none"
+    ]
+
+  selectableTriggerProps :: UpwardIndex -> Maybe Type -> Context -> RecMetaContext.MetaContext -> Array Props.Props
+  selectableTriggerProps ix type_ gamma metaGamma = []
+
+  inertProps :: String -> Array Props.Props
+  inertProps title = [ Props.className title ]

@@ -16,7 +16,6 @@ import Unsafe as Unsafe
 newtype UpwardIndex
   = UpwardIndex (List IndexStep)
 
-
 newtype DownwardIndex
   = DownwardIndex (List IndexStep)
 
@@ -29,12 +28,12 @@ instance Show DownwardIndex where show (DownwardIndex steps) = show steps
 pushDownwardIndex :: IndexStep -> DownwardIndex -> DownwardIndex
 pushDownwardIndex step (DownwardIndex steps) = DownwardIndex $ Cons step steps
 
-infixr 5 pushDownwardIndex as <:
+infixr 5 pushDownwardIndex as -:
 
 pushUpwardIndex :: UpwardIndex -> IndexStep -> UpwardIndex
 pushUpwardIndex (UpwardIndex steps) step = UpwardIndex $ Cons step steps
 
-infixr 5 pushUpwardIndex as :>
+infixr 5 pushUpwardIndex as :-
 
 toUpwardIndex :: DownwardIndex -> UpwardIndex
 toUpwardIndex (DownwardIndex steps) = UpwardIndex $ reverse steps
@@ -83,13 +82,20 @@ derive instance Generic IndexStep _
 instance Eq IndexStep where eq ix1 ix2 = genericEq ix1 ix2
 instance Show IndexStep where show (IndexStep l i) = show l <> "(" <> show i <> ")"
 
+-- fromListIndexToUpwardIndex :: Int -> UpwardIndex
+-- fromListIndexToUpwardIndex i =
+--   if i == 0 then 
+--     UpwardIndex $ singleton $ IndexStep StepCons 0
+--   else 
+--     fromListIndexToUpwardIndex (i - 1) :- IndexStep StepCons 1
+
 -- i^th element of Cons list
-fromListIndexToUpwardIndex :: Int -> UpwardIndex
-fromListIndexToUpwardIndex i =
+fromListIndexToDownwardIndex :: Int -> DownwardIndex 
+fromListIndexToDownwardIndex i = 
   if i == 0 then 
-    UpwardIndex $ singleton $ IndexStep StepCons 0
+    DownwardIndex $ singleton $ IndexStep StepCons 0 
   else 
-    fromListIndexToUpwardIndex (i - 1) :> IndexStep StepCons 1
+    IndexStep StepCons 1 -: fromListIndexToDownwardIndex (i - 1)
 
 childrenCount :: StepLabel -> Int
 childrenCount = case _ of 
@@ -288,23 +294,23 @@ moveDownwardIndex dir mod ix =
         Just { ix' } -> toDownwardIndex ix'
       Down ->
         case lookupSyntaxAt ix (SyntaxModule mod) of
-          SyntaxModule (Module defs _) -> if Conslength defs > 0 then toDownwardIndex $ ixUpward :> IndexStep StepModule 0 else ix
-          SyntaxBlock (Block defs _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepBlock 0
-          SyntaxDefinition (TermDefinition _ _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepTermDefinition 0
-          SyntaxDefinition (DataDefinition _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepDataDefinition 0
-          SyntaxConstructor (Constructor _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepConstructor 0
-          SyntaxTerm (LambdaTerm _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepLambdaTerm 0
+          SyntaxModule (Module defs _) -> if Conslength defs > 0 then toDownwardIndex $ ixUpward :- IndexStep StepModule 0 else ix
+          SyntaxBlock (Block defs _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepBlock 0
+          SyntaxDefinition (TermDefinition _ _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepTermDefinition 0
+          SyntaxDefinition (DataDefinition _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepDataDefinition 0
+          SyntaxConstructor (Constructor _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepConstructor 0
+          SyntaxTerm (LambdaTerm _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepLambdaTerm 0
           SyntaxTerm (HoleTerm _) -> ix
-          SyntaxTerm (MatchTerm _ _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepMatchTerm 0
-          SyntaxTerm (NeutralTerm _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepNeutralTerm 0
+          SyntaxTerm (MatchTerm _ _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepMatchTerm 0
+          SyntaxTerm (NeutralTerm _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepNeutralTerm 0
           SyntaxArgs NoneArgs -> ix
-          SyntaxArgs (ConsArgs _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepConsArgs 0
-          SyntaxCase (Case _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepCase 0
-          SyntaxType (ArrowType _ _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepArrowType 0
+          SyntaxArgs (ConsArgs _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepConsArgs 0
+          SyntaxCase (Case _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepCase 0
+          SyntaxType (ArrowType _ _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepArrowType 0
           SyntaxType (DataType _ _) -> ix 
           SyntaxType (HoleType _ _ _) -> ix 
           SyntaxType (ProxyHoleType _) -> ix 
-          SyntaxParameter (Parameter _ _) -> toDownwardIndex $ ixUpward :> IndexStep StepParameter 0
+          SyntaxParameter (Parameter _ _) -> toDownwardIndex $ ixUpward :- IndexStep StepParameter 0
           SyntaxTermBinding _ -> ix 
           SyntaxTypeBinding _ -> ix 
           SyntaxTermId _ -> ix 
@@ -317,37 +323,37 @@ moveDownwardIndex dir mod ix =
             in
               case syn /\ step of
                 SyntaxModule (Module defs _) /\ IndexStep StepModule i
-                  | inBounds (i - 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i - 1)
+                  | inBounds (i - 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :- IndexStep StepModule (i - 1)
                   | otherwise -> ix
                 SyntaxBlock (Block defs _ _) /\ IndexStep StepBlock i
-                  | inBounds (i - 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i - 1)
+                  | inBounds (i - 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :- IndexStep StepBlock (i - 1)
                   | otherwise -> ix
                 SyntaxDefinition (TermDefinition _ _ _ _) /\ IndexStep StepTermDefinition i
-                  | inBounds (i - 1) 0 2 -> toDownwardIndex $ ix' :> IndexStep StepTermDefinition (i - 1)
+                  | inBounds (i - 1) 0 2 -> toDownwardIndex $ ix' :- IndexStep StepTermDefinition (i - 1)
                   | otherwise -> ix
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
-                  | inBounds (i - 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i - 1)
+                  | inBounds (i - 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :- IndexStep StepDataDefinition (i - 1)
                   | otherwise -> ix
                 SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i - 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i - 1)
+                  | inBounds (i - 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
-                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepLambdaTerm (i - 1)
+                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepLambdaTerm (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (MatchTerm _ _ cases _) /\ IndexStep StepMatchTerm i
-                  | inBounds (i - 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i - 1)
+                  | inBounds (i - 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :- IndexStep StepMatchTerm (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (NeutralTerm _ _ _) /\ IndexStep StepNeutralTerm i
-                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepNeutralTerm (i - 1)
+                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepNeutralTerm (i - 1)
                   | otherwise -> ix
                 SyntaxArgs (ConsArgs _ _ _) /\ IndexStep StepConsArgs i
-                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepConsArgs (i - 1)
+                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepConsArgs (i - 1)
                   | otherwise -> ix
                 SyntaxCase (Case termIds _ _) /\ IndexStep StepCase i
-                  | inBounds (i - 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i - 1)
+                  | inBounds (i - 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :- IndexStep StepCase (i - 1)
                   | otherwise -> ix
                 SyntaxType (ArrowType _ _ _) /\ IndexStep StepArrowType i
-                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepArrowType (i - 1)
+                  | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepArrowType (i - 1)
                   | otherwise -> ix
                 SyntaxParameter (Parameter _ _) /\ IndexStep StepParameter i
                   | otherwise -> ix
@@ -361,37 +367,37 @@ moveDownwardIndex dir mod ix =
             in
               Debug.trace (syn /\ step) \_ -> case syn /\ step of
                 SyntaxModule (Module defs _) /\ IndexStep StepModule i
-                  | inBounds (i + 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :> IndexStep StepModule (i + 1)
+                  | inBounds (i + 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :- IndexStep StepModule (i + 1)
                   | otherwise -> ix
                 SyntaxBlock (Block defs _ _) /\ IndexStep StepBlock i
-                  | inBounds (i + 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :> IndexStep StepBlock (i + 1)
+                  | inBounds (i + 1) 0 (Conslength defs) -> toDownwardIndex $ ix' :- IndexStep StepBlock (i + 1)
                   | otherwise -> ix
                 SyntaxDefinition (TermDefinition _ _ _ _) /\ IndexStep StepTermDefinition i
-                  | inBounds (i + 1) 0 2 -> toDownwardIndex $ ix' :> IndexStep StepTermDefinition (i + 1)
+                  | inBounds (i + 1) 0 2 -> toDownwardIndex $ ix' :- IndexStep StepTermDefinition (i + 1)
                   | otherwise -> ix
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
-                  | inBounds (i + 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :> IndexStep StepDataDefinition (i + 1)
+                  | inBounds (i + 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :- IndexStep StepDataDefinition (i + 1)
                   | otherwise -> ix 
                 SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i + 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :> IndexStep StepConstructor (i + 1)
+                  | inBounds (i + 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
-                  | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :> IndexStep StepLambdaTerm (i + 1)
+                  | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :- IndexStep StepLambdaTerm (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (MatchTerm _ _ cases _) /\ IndexStep StepMatchTerm i
-                  | inBounds (i + 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :> IndexStep StepMatchTerm (i + 1)
+                  | inBounds (i + 1) 0 (Conslength cases) -> toDownwardIndex $ ix' :- IndexStep StepMatchTerm (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (NeutralTerm _ _ _) /\ IndexStep StepNeutralTerm i
-                  | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepNeutralTerm (i + 1)
+                  | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepNeutralTerm (i + 1)
                   | otherwise -> ix
                 SyntaxArgs (ConsArgs _ _ _) /\ IndexStep StepConsArgs i
-                  | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :> IndexStep StepConsArgs (i + 1)
+                  | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :- IndexStep StepConsArgs (i + 1)
                   | otherwise -> ix
                 SyntaxCase (Case termIds _ _) /\ IndexStep StepCase i
-                  | inBounds (i + 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :> IndexStep StepCase (i + 1)
+                  | inBounds (i + 1) 0 (Conslength termIds) -> toDownwardIndex $ ix' :- IndexStep StepCase (i + 1)
                   | otherwise -> ix
                 SyntaxType (ArrowType _ _ _) /\ IndexStep StepArrowType i
-                  | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :> IndexStep StepArrowType (i + 1)
+                  | inBounds (i + 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepArrowType (i + 1)
                   | otherwise -> ix
                 SyntaxParameter (Parameter _ _) /\ IndexStep StepParameter i
                   | otherwise -> ix

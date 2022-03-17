@@ -248,7 +248,7 @@ recArgItems ::
   RecArgItems a
 recArgItems rec =
   RecContext.recArgItems
-    { nil: undefined
+    { nil: rec.nil
     , cons: \argItem argItems gamma prm alpha -> rec.cons argItem argItems gamma prm alpha <<< incrementIndentation
     }
 

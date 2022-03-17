@@ -2,6 +2,7 @@ module Language.Shape.Stlc.ChangeAtIndex where
 
 import Prelude
 
+{-
 import Data.Tuple (Tuple(..))
 import Language.Shape.Stlc.Changes (TypeChange)
 import Language.Shape.Stlc.Syntax (Module(..), Syntax(..))
@@ -18,3 +19,4 @@ chAtIndex m i s tc
 
 chAtIndexImpl :: Syntax -> Index -> Syntax -> TypeChange -> Tuple Syntax Index
 chAtIndexImpl = undefined
+-}

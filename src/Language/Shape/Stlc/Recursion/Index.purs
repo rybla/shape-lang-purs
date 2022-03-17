@@ -1,7 +1,7 @@
 module Language.Shape.Stlc.Recursion.Index where
 
 import Data.Either
-import Data.Foldable (foldl)
+import Data.List.Unsafe
 import Data.Maybe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
@@ -11,9 +11,10 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.State (State, runState)
-import Data.List.Unsafe
+import Data.Foldable (foldl)
 import Data.Map (Map)
 import Data.Map as Map
+import Debug as Debug
 import Language.Shape.Stlc.Changes as Ch
 import Language.Shape.Stlc.Holes (HoleSub)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
@@ -34,12 +35,10 @@ checkCursorStep step' csr = do
   else
     Nothing
 
-checkCursorSteps :: UpwardIndex -> Cursor -> Cursor
-checkCursorSteps ixUpward csr =
-  let
-    ixDownward = toDownwardIndex ixUpward
-  in
-    undefined -- foldl ?f ?b ?ta
+checkCursorSteps :: DownwardIndex -> Cursor -> Cursor
+checkCursorSteps ix csr = case unconsDownwardIndex ix of
+  Just { step, ix' } -> checkCursorSteps ix' $ checkCursorStep step csr
+  Nothing -> csr
 
 checkCursorHere :: Cursor -> Boolean
 checkCursorHere = case _ of
@@ -54,8 +53,10 @@ type RecModule_Module a
   = RecMetaContext.RecModule_Module
       ( UpwardIndex -> -- module
         Boolean -> -- module
-        (Int -> UpwardIndex) -> -- definition
-        (Int -> Cursor) -> -- definition
+        -- (Int -> UpwardIndex) -> -- definition
+        -- (Int -> Cursor) -> -- definition
+        UpwardIndex -> -- definitionItems
+        Cursor -> -- definitionItems
         a
       )
 
@@ -72,8 +73,10 @@ recModule rec =
             ix
             (checkCursorHere csr)
             -- definitionItems
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepModule 0)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepModule 0)) <> fromListIndexToUpwardIndex i) csr)
+            -- (\i -> ix <> UpwardIndex (singleton (IndexStep StepModule 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            -- (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepModule 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+            (ix :- IndexStep StepModule 0)
+            (checkCursorStep (IndexStep StepModule 0) csr)
     }
 
 type RecBlock a
@@ -83,8 +86,10 @@ type RecBlock_Block a
   = RecMetaContext.RecBlock_Block
       ( UpwardIndex -> -- block
         Boolean -> -- block
-        (Int -> UpwardIndex) -> -- definition
-        (Int -> Cursor) -> -- definition
+        -- (Int -> UpwardIndex) -> -- definition
+        -- (Int -> Cursor) -> -- definition
+        UpwardIndex -> -- definitionItems
+        Cursor -> -- definitionItems
         UpwardIndex -> -- term
         Cursor -> -- term
         a
@@ -103,24 +108,26 @@ recBlock rec =
             ix
             (checkCursorHere csr)
             -- definitionItems
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepBlock 0)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepBlock 0)) <> fromListIndexToUpwardIndex i) csr)
+            -- (\i -> ix <> UpwardIndex (singleton (IndexStep StepBlock 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            -- (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepBlock 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+            (ix :- IndexStep StepBlock 0)
+            (checkCursorStep (IndexStep StepBlock 0) csr)
             -- term
-            (ix :> IndexStep StepBlock 1)
+            (ix :- IndexStep StepBlock 1)
             (checkCursorStep (IndexStep StepBlock 1) csr)
     }
 
 type RecDefinitionItems a
   = RecMetaContext.RecDefinitionItems
       ( UpwardIndex -> -- module/block
-        (Int -> UpwardIndex) -> -- definition
-        (Int -> Cursor) -> -- definition
-        a
+        UpwardIndex -> Cursor -> a
       )
 
 type RecDefinitionItems_DefinitionItems a
   = RecMetaContext.RecDefinitionItems_DefinitionItems
       ( UpwardIndex -> -- module/block
+        UpwardIndex -> -- definitionItems
+        Boolean -> -- definitionItems
         (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
         a
@@ -130,8 +137,22 @@ recDefinitionItems ::
   forall a.
   { definitionItems :: RecDefinitionItems_DefinitionItems a } ->
   RecDefinitionItems a
-recDefinitionItems = RecMetaContext.recDefinitionItems
+recDefinitionItems rec =
+  RecMetaContext.recDefinitionItems
+    { definitionItems:
+        \defItems gamma metaGamma ix_parent ix csr ->
+          rec.definitionItems defItems gamma metaGamma
+            -- module/block
+            ix_parent
+            -- definitionItems
+            ix
+            (checkCursorHere csr)
+            -- defItem
+            (\i -> toUpwardIndex (fromListIndexToDownwardIndex i) <> ix)
+            (\i -> checkCursorSteps (fromListIndexToDownwardIndex i) csr)
+    }
 
+--  RecMetaContext.recDefinitionItems
 type RecDefinition a
   = RecMetaContext.RecDefinition
       ( UpwardIndex -> -- module/block
@@ -177,37 +198,39 @@ recDefinition rec =
     { term:
         \termBinding alpha a meta gamma metaGamma ix_parent ix csr ->
           rec.term termBinding alpha a meta gamma metaGamma
+            -- module/block
             ix_parent
             -- definition
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> IndexStep StepTermDefinition 0)
+            (ix :- IndexStep StepTermDefinition 0)
             (checkCursorStep (IndexStep StepTermDefinition 0) csr)
             -- type
-            (ix :> IndexStep StepTermDefinition 1)
+            (ix :- IndexStep StepTermDefinition 1)
             (checkCursorStep (IndexStep StepTermDefinition 1) csr)
             -- term
-            (ix :> IndexStep StepTermDefinition 2)
+            (ix :- IndexStep StepTermDefinition 2)
             (checkCursorStep (IndexStep StepTermDefinition 2) csr)
     , data:
         \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
           rec.data typeBinding constrs meta gamma metaGamma
+            -- module/block
             ix_parent
             -- definition
             ix
             (checkCursorHere csr)
             -- typeBinding
-            (ix :> IndexStep StepDataDefinition 0)
+            (ix :- IndexStep StepDataDefinition 0)
             (checkCursorStep (IndexStep StepDataDefinition 0) csr)
             -- constructors
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> fromListIndexToUpwardIndex i) csr)
+            (\i -> ix <> UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
     }
 
 type RecConstructor a
   = RecMetaContext.RecConstructor
-      ( UpwardIndex -> -- module/block
+      ( UpwardIndex -> -- definitionItems
         UpwardIndex -> -- definition
         UpwardIndex -> -- constructor
         Cursor -> -- constructor
@@ -216,7 +239,7 @@ type RecConstructor a
 
 type RecConstructor_Constructor a
   = RecMetaContext.RecConstructor_Constructor
-      ( UpwardIndex -> -- module/block
+      ( UpwardIndex -> -- definitionItems
         UpwardIndex -> -- definition
         UpwardIndex -> -- constructor
         Boolean -> -- constructor
@@ -243,11 +266,11 @@ recConstructor rec =
             ix
             (checkCursorHere csr)
             -- termBinding
-            (ix :> IndexStep StepConstructor 0)
+            (ix :- IndexStep StepConstructor 0)
             (checkCursorStep (IndexStep StepConstructor 0) csr)
             -- parameters
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepConstructor 1)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepConstructor 1)) <> fromListIndexToUpwardIndex i) csr)
+            (\i -> ix <> UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
     }
 
 type RecDefinitionBindings a
@@ -309,16 +332,16 @@ recDefinitionBindings rec =
             ix_term
             csr_term
             -- prm
-            (ix_type :> ArrowType_Parameter)
+            (ix_type :- ArrowType_Parameter)
             (checkCursorStep ArrowType_Parameter ?csr_type)
             -- beta
-            (ix_type :> ArrowType_Type)
+            (ix_type :- ArrowType_Type)
             (checkCursorStep ArrowType_Type ?csr_type)
             -- termId
-            (ix_term :> LambdaTerm_TermId)
+            (ix_term :- LambdaTerm_TermId)
             (checkCursorStep LambdaTerm_TermId ?csr_term)
             -- block
-            (ix_term :> LambdaTerm_Block)
+            (ix_term :- LambdaTerm_Block)
             (checkCursorStep LambdaTerm_Block ?csr_term)
     , wildcard:
         \alpha a gamma metaGamma ix_def ix_alpha csr_alpha ix_a csr_a ->
@@ -385,10 +408,10 @@ recType rec =
             ix
             (checkCursorHere csr)
             -- prm
-            (ix :> IndexStep StepArrowType 0)
+            (ix :- IndexStep StepArrowType 0)
             (checkCursorStep (IndexStep StepArrowType 0) csr)
             -- beta
-            (ix :> IndexStep StepArrowType 1)
+            (ix :- IndexStep StepArrowType 1)
             (checkCursorStep (IndexStep StepArrowType 1) csr)
     , data: \typeId meta gamma metaGamma ix csr -> rec.data typeId meta gamma metaGamma ix (checkCursorHere csr)
     , hole: \holeID wkn meta gamma metaGamma ix csr -> rec.hole holeID wkn meta gamma metaGamma ix (checkCursorHere csr)
@@ -455,10 +478,10 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> IndexStep StepLambdaTerm 0)
+            (ix :- IndexStep StepLambdaTerm 0)
             (checkCursorStep (IndexStep StepLambdaTerm 0) csr)
             -- block
-            (ix :> IndexStep StepLambdaTerm 1)
+            (ix :- IndexStep StepLambdaTerm 1)
             (checkCursorStep (IndexStep StepLambdaTerm 1) csr)
     , neutral:
         \termId argItems meta gamma alpha metaGamma ix csr ->
@@ -467,10 +490,10 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- termId
-            (ix :> IndexStep StepNeutralTerm 0)
+            (ix :- IndexStep StepNeutralTerm 0)
             (checkCursorStep (IndexStep StepNeutralTerm 0) csr)
             -- argItems
-            (ix :> IndexStep StepNeutralTerm 1)
+            (ix :- IndexStep StepNeutralTerm 1)
             (checkCursorStep (IndexStep StepNeutralTerm 1) csr)
     , match:
         \typeId a cases meta gamma alpha metaGamma constrIDs ix csr ->
@@ -479,11 +502,11 @@ recTerm rec =
             ix
             (checkCursorHere csr)
             -- term (sub)
-            (ix :> IndexStep StepMatchTerm 0)
+            (ix :- IndexStep StepMatchTerm 0)
             (checkCursorStep (IndexStep StepMatchTerm 0) csr)
             -- cases
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> fromListIndexToUpwardIndex i) csr)
+            (\i -> ix <> UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
     , hole:
         \meta gamma alpha metaGamma ix csr ->
           rec.hole meta gamma alpha metaGamma ix (checkCursorHere csr)
@@ -522,10 +545,10 @@ recArgItems rec =
             ix
             (checkCursorHere csr)
             -- term
-            (ix :> IndexStep StepCons 0)
+            (ix :- IndexStep StepCons 0)
             (checkCursorStep (IndexStep StepCons 0) csr)
             -- argItems (sub)
-            (ix :> IndexStep StepCons 1)
+            (ix :- IndexStep StepCons 1)
             (checkCursorStep (IndexStep StepCons 1) csr)
     }
 
@@ -564,10 +587,10 @@ recCase rec =
             ix
             (checkCursorHere csr)
             -- termIdItems
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepCase 0)) <> fromListIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (UpwardIndex (singleton (IndexStep StepCase 0)) <> fromListIndexToUpwardIndex i) csr)
+            (\i -> ix <> UpwardIndex (singleton (IndexStep StepCase 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepCase 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
             -- term
-            (ix :> IndexStep StepCase 1)
+            (ix :- IndexStep StepCase 1)
             (checkCursorStep (IndexStep StepCase 1) csr)
     }
 
@@ -596,7 +619,7 @@ recParameter rec =
             ix
             (checkCursorHere csr)
             -- type
-            (ix :> IndexStep StepParameter 0)
+            (ix :- IndexStep StepParameter 0)
             (checkCursorStep (IndexStep StepParameter 0) csr)
     }
 
@@ -634,6 +657,3 @@ type RecTermId_TermId a
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
 recTermId rec termId gamma metaGamma ix csr = rec.termId termId gamma metaGamma ix (checkCursorHere csr)
-
-xxx :: RecTerm Int
-xxx = undefined

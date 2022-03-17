@@ -7,7 +7,7 @@ html {
 /* app */
 .app {
   font-family: monospace;
-  line-height: 18pt;
+  line-height: 14pt;
   font-size: 12pt;
 }
 /* TODO: disallow sub from making the line taller */
@@ -91,19 +91,19 @@ html {
 .term {
 }
 
-.termName {
-  /* color: darkgreen; */
-  color: rgb(200, 230, 122);
-}
-
+.termBinding,
+.termName,
 .termId {
-  /* color: darkgreen; */
   color: rgb(200, 230, 122);
+  /* background-color: rgba(255, 255, 255, 0.2); */
 }
 
 .typeId {
-  /* color: blue; */
   color: rgb(109, 212, 197);
+}
+
+.shadow-suffix {
+  font-size: 80%;
 }
 
 /* keyword */
@@ -128,4 +128,18 @@ html {
 
 .selected {
   box-shadow: 0 0 0 1px rgb(211, 115, 0);
+}
+
+/* actions */
+
+.insertDefinition {
+  display: inline-block;
+  width: 4px;
+  height: 12pt;
+  /* background-color: red; */
+  margin: 0 4px;
+}
+
+.insertDefinition:hover {
+  background-color: rgb(88, 218, 198);
 }
