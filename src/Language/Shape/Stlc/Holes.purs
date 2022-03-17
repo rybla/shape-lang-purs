@@ -8,6 +8,8 @@ import Data.Set (member)
 import Language.Shape.Stlc.Syntax
 import Undefined (undefined)
 import Unsafe (error)
+import Data.List (List(..))
+import Data.Tuple (Tuple(..))
 
 {-
 This file will deal with unification of types, and applying hole substitutions
@@ -16,7 +18,6 @@ to Blocks, Terms, ...
 type HoleSub
   = Map HoleId Type
 
-{-
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType param b md2) = ArrowType (subParameter sub param) (subType sub b) md2
 subType sub (DataType i md) = DataType i md
@@ -45,24 +46,27 @@ subModule = undefined
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
 subTerm sub (HoleTerm md) = HoleTerm md
-subTerm sub (MatchTerm id t cases md) = MatchTerm id (subTerm sub t) (map (subCase sub) cases) md
+subTerm sub (MatchTerm id t cases md)
+  = MatchTerm id (subTerm sub t) (map (\(Tuple cas md) -> Tuple (subCase sub cas) md) cases) md
 subTerm sub (NeutralTerm x args md) = NeutralTerm x (subArgs sub args) md
 
-subArgs :: HoleSub -> Args -> Args
-subArgs sub NoneArgs = NoneArgs
-subArgs sub (ConsArgs t args md) = ConsArgs (subTerm sub t) (subArgs sub args) md
+subArgs :: HoleSub -> List ArgItem -> List ArgItem
+subArgs sub Nil = Nil
+subArgs sub (Cons (Tuple t md) rst) = Cons (Tuple (subTerm sub t) md) (subArgs sub rst)
 
 subBlock :: HoleSub -> Block -> Block
-subBlock sub (Block defs t md) = Block (map (subDefinition sub) defs) (subTerm sub t) md
+subBlock sub (Block defs t md)
+  = Block (map (\(Tuple def md) -> Tuple (subDefinition sub def) md) defs) (subTerm sub t) md
 
 subDefinition :: HoleSub -> Definition -> Definition
 subDefinition sub (TermDefinition binds ty t md) = TermDefinition binds (subType sub ty) (subTerm sub t) md
 
-subDefinition sub (DataDefinition bind ctrs md) = DataDefinition bind (map (subConstructor sub) ctrs) md
+subDefinition sub (DataDefinition bind ctrs md)
+  = DataDefinition bind (map (\(Tuple ctr md) -> Tuple (subConstructor sub ctr) md) ctrs) md
 
 subConstructor :: HoleSub -> Constructor -> Constructor
-subConstructor sub (Constructor bind args md) = Constructor bind (map (subParameter sub) args) md
+subConstructor sub (Constructor bind paramItems md)
+  = Constructor bind (map (\(Tuple param md) -> Tuple (subParameter sub param) md) paramItems) md
 
 subCase :: HoleSub -> Case -> Case
 subCase sub (Case binds t md) = Case binds (subTerm sub t) md
--}
