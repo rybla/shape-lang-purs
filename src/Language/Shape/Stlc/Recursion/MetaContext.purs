@@ -8,10 +8,11 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-import Data.List (List)
+import Data.List (List, take)
 import Data.List as List
 import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
+import Data.Tuple (fst)
 import Debug as Debug
 import Language.Shape.Stlc.Recursion.Context as RecContext
 import Record as R
@@ -116,14 +117,20 @@ type RecConstructor a
   = RecContext.RecConstructor (MetaContext -> a)
 
 type RecConstructor_Constructor a
-  = RecContext.RecConstructor_Constructor (MetaContext -> a)
+  = RecContext.RecConstructor_Constructor (MetaContext -> (Int -> MetaContext) -> a)
 
 -- registration already handled by recDefinitionItems
 recConstructor ::
   forall a.
   { constructor :: RecConstructor_Constructor a } ->
   RecConstructor a
-recConstructor = RecContext.recConstructor
+recConstructor rec =
+  RecContext.recConstructor
+    { constructor:
+        \termBinding prms meta typeId gamma alpha metaGamma ->
+          rec.constructor termBinding prms meta typeId gamma alpha metaGamma
+            (\i -> foldl (\metaGamma' (Parameter _ { name }) -> registerParameterName name metaGamma') metaGamma (fst <$> take (i + 1) prms))
+    }
 
 type RecDefinitionBindings a
   = RecContext.RecDefinitionBindings (MetaContext -> a)

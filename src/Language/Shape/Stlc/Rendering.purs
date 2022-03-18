@@ -246,38 +246,54 @@ programComponent this =
   renderConstructor =
     RecIndex.recConstructor
       { constructor:
-          \termBinding prms meta typeId gamma alpha metaGamma ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
-            -- DOM.span
-            --   (selectableProps "constructor" isSelected ix)
-            --   $ [ DOM.span (selectableTriggerProps ix)
-            --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
-            --     , punctuation.space
-            --     , punctuation.colon
-            --     , punctuation.space
-            --     ]
-            --   <> ( if length prms == 0 then
-            --         []
-            --       else
-            --         [ DOM.span
-            --             (inertProps "constructor parameters")
-            --             [ intersperseRightHTML
-            --                 [ punctuation.space ]
-            --                 $ Array.fromFoldable
-            --                 $ mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
-            --             ]
-            --         , punctuation.space
-            --         ]
-            --     )
-            --   <> [ renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma ]
+          \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
             DOM.span
               (selectableProps "constructor" isSelected ix)
-              $ [ DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
-                    [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
+              $ [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
                 , punctuation.space
-                , punctuation.colon
-                , punctuation.space
-                , renderType' alpha gamma metaGamma
+                , DOM.span
+                    (inertProps "constructor parameters")
+                    [ intersperseRightHTML
+                        [ punctuation.space ]
+                        $ Array.fromFoldable
+                        $ mapWithIndex
+                            ( \i (prm /\ meta) ->
+                                renderParameter prm gamma (metaGamma_prm_at i) (ix_prm_at i) (cursor_prm_at i)
+                            )
+                            prms
+                    ]
                 ]
+      -- -- DOM.span
+      -- --   (selectableProps "constructor" isSelected ix)
+      -- --   $ [ DOM.span (selectableTriggerProps ix)
+      -- --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
+      -- --     , punctuation.space
+      -- --     , punctuation.colon
+      -- --     , punctuation.space
+      -- --     ]
+      -- --   <> ( if length prms == 0 then
+      -- --         []
+      -- --       else
+      -- --         [ DOM.span
+      -- --             (inertProps "constructor parameters")
+      -- --             [ intersperseRightHTML
+      -- --                 [ punctuation.space ]
+      -- --                 $ Array.fromFoldable
+      -- --                 $ mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
+      -- --             ]
+      -- --         , punctuation.space
+      -- --         ]
+      -- --     )
+      -- --   <> [ renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma ]
+      -- DOM.span
+      --   (selectableProps "constructor" isSelected ix)
+      --   $ [ DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
+      --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
+      --     , punctuation.space
+      --     , punctuation.colon
+      --     , punctuation.space
+      --     , renderType' alpha gamma metaGamma
+      --     ]
       }
 
   renderType :: RecIndex.RecType React.ReactElement
@@ -471,8 +487,7 @@ programComponent this =
               (selectableProps "parameter" isSelected ix)
               -- [ renderType alpha gamma metaGamma ix_alpha cursor_alpha ]
               [ punctuation.lparen
-              , DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
-                  [ printTermName meta.name metaGamma ]
+              , DOM.span (selectableTriggerProps ix Nothing gamma metaGamma) [ printTermName meta.name metaGamma ]
               , punctuation.space
               , punctuation.colon
               , punctuation.space

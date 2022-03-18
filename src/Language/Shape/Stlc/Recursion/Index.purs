@@ -258,8 +258,8 @@ recConstructor ::
 recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma alpha metaGamma ix_parent ix_def ix csr ->
-          rec.constructor termBinding prms meta typeId gamma alpha metaGamma
+        \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix csr ->
+          rec.constructor termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at
             ix_parent
             ix_def
             -- constructor
@@ -269,8 +269,8 @@ recConstructor rec =
             (ix :- IndexStep StepConstructor 0)
             (checkCursorStep (IndexStep StepConstructor 0) csr)
             -- parameters
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+            (\i -> ix <> UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex (i + 1)))
+            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex (i + 1))) csr)
     }
 
 type RecDefinitionBindings a
