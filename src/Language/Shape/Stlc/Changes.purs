@@ -18,7 +18,7 @@ import Data.Set (Set(..), difference, empty, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Language.Shape.Stlc.Holes (HoleSub, subType, unifyType)
-import Language.Shape.Stlc.Typing (Context)
+import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -179,12 +179,13 @@ chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
          chTerm ctx b (deleteVar chs i) NoChange t
 chTerm ctx ty chs ch (NeutralTerm id args md) =
     case lookup id chs.termChanges of
-        Just VariableDeletion -> ifChanged NoChange
+        Just VariableDeletion -> do displaceArgs (lookup' id ctx) args
+                                    pure $ HoleTerm defaultHoleTermMetadata
         Just (VariableTypeChange varTC) -> ifChanged varTC
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
-        (Tuple args' ch') <- chArgs ctx ty chs varTC args
+        (Tuple args' ch') <- chArgs ctx (lookup' id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         case maybeSub of
             Just holeSub -> do subHoles holeSub
@@ -267,6 +268,7 @@ chsToArrowCh (Cons ch chs) = ArrowCh ch (chsToArrowCh chs)
 -- morally, shouldn't have the (List Definition) in the state of chBlock, as it always outputs the empty list.
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> State HoleSub Block
 chBlock ctx ty chs ch (Block defs t md) = do
+    let ctx' = addDefinitionsToContext (map fst defs) ctx
     let termDefs = mapMaybe (case _ of TermDefinition id ty te md /\ _ -> Just (Tuple id ty)
                                        DataDefinition id ctrs md /\ _ -> Nothing) defs
     let defChanges :: List (Tuple TermId TypeChange)
@@ -298,8 +300,8 @@ chBlock ctx ty chs ch (Block defs t md) = do
             }
     -- now, at long last I have the set of things whose types have changed in this block, chs'.
     -- Finally, need to call chDefinition, chData, and chTerm and collect all displaced things.
-    defs' <- chDefList ctx chs defs
-    (t' /\ displaced) <- runStateT (split $ chTerm ctx ty chs ch t) Nil
+    defs' <- chDefList ctx' chs defs
+    (t' /\ displaced) <- runStateT (split $ chTerm ctx' ty chs ch t) Nil
     let defs'' = defs' <> map (\def -> def /\ defaultDefinitionItemMetadata) displaced
     pure $ Block defs'' t' md
 
@@ -348,3 +350,6 @@ displaceArgs (ArrowType (Parameter a _) b _) (Cons (arg /\ _) args) = do
         a arg defaultTermDefinitionMetadata
     displaceArgs b args
 displaceArgs _ _ = error "no"
+
+-- TODO: I've realized that "ctx" is wrong almost everywhere, I just autopilot filled it
+-- in without thinking about when it needs to change.
