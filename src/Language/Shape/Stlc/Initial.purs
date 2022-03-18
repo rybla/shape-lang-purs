@@ -20,6 +20,8 @@ module_ =
   let
     h1_id = freshHoleId unit
 
+    h2_id = freshHoleId unit
+
     nat_id /\ nat_name = makeTypeVar "Nat"
 
     zero_id /\ zero_name = makeTermVar "zero"
@@ -37,6 +39,10 @@ module_ =
     x1_id /\ x1_name = makeTermVar "x"
 
     x2_id /\ x2_name = makeTermVar "x"
+
+    tmp1_id /\ tmp1_name = makeTermVar "tmp1"
+
+    x3_id /\ x3_name = makeTermVar "x"
   in
     Module
       ( fromFoldable
@@ -103,6 +109,23 @@ module_ =
               )
               defaultTermDefinitionMetadata
               /\ defaultDefinitionItemMetadata
+          -- , TermDefinition
+          --     (TermBinding tmp1_id defaultTermBindingMetadata { name = tmp1_name })
+          --     (HoleType h2_id Set.empty defaultHoleTypeMetadata)
+          --     ( LambdaTerm
+          --         x3_id
+          --         ( Block
+          --             ( fromFoldable
+          --                 [ TermDefinition tmp2_id defaultTermBindingMetadata { name = tmp2_name }
+          --                 ]
+          --             )
+          --             (HoleTerm defaultHoleTermMetadata)
+          --             defaultBlockMetadata
+          --         )
+          --         defaultLambdaTermMetadata
+          --     )
+          --     defaultTermDefinitionMetadata
+          --     /\ defaultDefinitionItemMetadata
           ]
       )
       defaultModuleMetadata

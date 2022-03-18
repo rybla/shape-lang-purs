@@ -12,6 +12,7 @@ import Prim hiding (Type)
 import Data.Array as Array
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Traversable (traverse)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
@@ -22,16 +23,22 @@ import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
 import Language.Shape.Stlc.Syntax as Syntax
 import React as React
 import React.DOM as DOM
+import React.DOM.Props as Prop
 import React.DOM.Props as Props
-import React.SyntheticEvent (NativeEventTarget, stopPropagation, target)
+import React.SyntheticEvent (NativeEvent, NativeEventTarget, stopPropagation, target)
 import Record as R
 import Undefined (undefined)
 import Unsafe as Unsafe
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
-import Web.HTML (window)
+import Web.HTML (HTMLElement, window)
 import Web.HTML.Window (toEventTarget)
 
+-- import Web.DOM (Element)
+-- import Web.DOM.NonElementParentNode (getElementById)
+-- import Web.Event.EventTarget (addEventListener, eventListener)
+-- import Web.HTML.HTMLDocument (toNonElementParentNode)
+-- import Web.HTML.Window (document, toEventTarget)
 type ProgramProps
   = {}
 
@@ -39,6 +46,7 @@ type ProgramState
   = { module_ :: Module
     , ix_cursor :: DownwardIndex
     , environment :: Environment
+    , parents :: List HTMLElement
     }
 
 type Environment
@@ -55,7 +63,11 @@ type ProgramGiven
 
 foreign import code :: Event -> String
 
-foreign import setNativeEventTargetProp :: forall a. NativeEventTarget -> String -> a -> Effect Unit
+-- foreign import setNativeEventTargetProp :: forall a. NativeEventTarget -> String -> a -> Effect Unit
+-- foreign import getClassName :: NativeEventTarget -> String
+foreign import setHTMLElementField :: forall a. String -> a -> HTMLElement -> Effect Unit
+
+foreign import getElementById :: String -> Effect HTMLElement
 
 programClass :: React.ReactClass ProgramProps
 programClass = React.component "Program" programComponent
@@ -97,6 +109,7 @@ programComponent this =
         , gamma: Map.empty
         , metaGamma: RecMetaContext.emptyMetaContext
         }
+    , parents: Nil
     }
 
   render :: ProgramState -> React.ReactElement
@@ -561,36 +574,68 @@ programComponent this =
 
   selectableProps :: String -> Boolean -> UpwardIndex -> Array Props.Props
   selectableProps title isSelected ix =
-    [ Props.className $ title -- <> if isSelected then " selected" else ""
-    , Props.style
-        { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else ""
-        , backgroundColor: if isSelected then "rgba(255, 255, 255, 0.2)" else ""
-        }
-    -- , Props.style { backgroundColor: if isSelected then "rgb(211, 115, 0)" else "" }
-    -- , Props.onMouseOver \event -> do
-    --     React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
-    , Props.onMouseDown \event -> do
-        -- Debug.traceM event
-        Debug.traceM "=================================================="
-        Debug.traceM "=================================================="
-        Debug.traceM "set ix_cursor"
-        Debug.traceM $ show $ toDownwardIndex ix
-        -- 
-        stopPropagation event
-        React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
-    -- , Props.onMouseOver \event -> do
-    --     tgt <- target event
-    --     setNativeEventTargetProp tgt "style" "box-shadow: 0 0 0 1px white"
-    --     Debug.traceM "------------------------------------"
-    --     Debug.traceM (toDownwardIndex ix)
-    --     Debug.traceM tgt
-    -- , Props.onMouseLeave \event -> do
-    --     tgt <- target event
-    --     setNativeEventTargetProp tgt "style" "box-shadow: none"
-    ]
+    let
+      _id = upwardIndexToId ix
+    in
+      [ Props.className $ title
+      , Props._id _id
+      , Props.style
+          { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else ""
+          , backgroundColor: if isSelected then "rgba(255, 255, 255, 0.2)" else ""
+          }
+      , Props.onMouseDown \event -> do
+          stopPropagation event
+          React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
+      , Prop.onMouseOver \event -> do
+          stopPropagation event
+          st <- React.getState this
+          self <- getElementById _id
+          -- if parent on top of stack, then unhighlight it
+          -- highlight self
+          -- push self to stack
+          case st.parents of
+            Nil -> pure unit
+            Cons parent _ -> unhighlight parent
+          highlight self
+          React.modifyState this \st -> st { parents = Cons self st.parents }
+      , Prop.onMouseOut \event -> do
+          stopPropagation event
+          st <- React.getState this
+          self <- getElementById _id
+          -- unhighlight self
+          -- pop self from stack
+          -- if parent on top of stack, then highlight it
+          unhighlight self
+          case st.parents of
+            Nil -> Unsafe.error "tried to pop self, but parents were empty"
+            Cons _ Nil -> do
+              React.modifyState this \st -> st { parents = Nil }
+            Cons _ (Cons parent parents') -> do
+              highlight parent
+              React.modifyState this \st -> st { parents = Cons parent parents' }
+      ]
 
   selectableTriggerProps :: UpwardIndex -> Maybe Type -> Context -> RecMetaContext.MetaContext -> Array Props.Props
   selectableTriggerProps ix type_ gamma metaGamma = []
 
   inertProps :: String -> Array Props.Props
   inertProps title = [ Props.className title ]
+
+highlight :: HTMLElement -> Effect Unit
+highlight elem = do
+  -- Debug.traceM elem
+  setHTMLElementField "style" "box-shadow: 0 0 0 1px purple; background-color: rgba(255, 255, 255, 0.2)" elem
+
+unhighlight :: HTMLElement -> Effect Unit
+unhighlight elem = do
+  -- Debug.traceM elem
+  setHTMLElementField "style" "" elem
+
+-- highlight :: NativeEventTarget -> Effect Unit
+-- highlight t = setNativeEventTargetProp t "style" "box-shadow: 0 0 0 1px purple; background-color: rgba(255, 255, 255, 0.2)"
+-- unhighlight :: NativeEventTarget -> Effect Unit
+-- unhighlight t = setNativeEventTargetProp t "style" ""
+upwardIndexToId :: UpwardIndex -> String
+upwardIndexToId ix = case unconsUpwardIndex ix of
+  Nothing -> ""
+  Just { step: IndexStep label i, ix' } -> show label <> "-" <> show i <> "--" <> upwardIndexToId ix'

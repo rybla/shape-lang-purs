@@ -2,4 +2,10 @@
 
 exports.code = function(e) {return e.code}
 
-exports.setNativeEventTargetProp = (nativeEventTarget) => (key) => (value) => () => nativeEventTarget[key] = value
+// exports.setNativeEventTargetProp = (nativeEventTarget) => (key) => (value) => () => nativeEventTarget[key] = value
+
+// exports.getClassName = (nativeEventTarget) => nativeEventTarget["className"];
+
+exports.getElementById = (id) => () => document.getElementById(id)
+
+exports.setHTMLElementField = (key) => (value) => (elem) => () => elem[key] = value
