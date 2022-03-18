@@ -95,16 +95,32 @@ html {
   /* border-width: 2px;
   border-color: rgb(206, 192, 81);
   border-style: inset; */
-  border-bottom: 2px inset rgb(206, 192, 81);
+  border: 2px dashed rgb(206, 192, 81);
+  background-color: rgb(48, 48, 48);
   font-style: italic;
 
-  transition-property: font-size;
+  transition-property: all;
   transition-duration: 0.2s;
+
+  font-size: 100%;
+  display: inline-block;
+  transform: rotate(0deg);
+  padding: 0px;
+  width: auto;
+  margin-top: 0;
 }
 .term.hole:hover {
-  font-size: 200%;
-  transition-property: font-size;
-  transition-duration: 0.2s;
+  transition-property: all;
+  transition-duration: 1s;
+
+  font-size: 600%;
+  display: inline-block;
+  /* transform: rotate(200deg); */
+  transform: rotate(3deg);
+  padding: 40px;
+  border-width: 10px;
+  width: 50%;
+  margin-top: -70px;
 }
 
 .termBinding,
