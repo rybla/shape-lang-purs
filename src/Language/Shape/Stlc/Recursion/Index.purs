@@ -214,18 +214,21 @@ recDefinition rec =
             (checkCursorStep (IndexStep StepTermDefinition 2) csr)
     , data:
         \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
-          rec.data typeBinding constrs meta gamma metaGamma
-            -- module/block
-            ix_parent
-            -- definition
-            ix
-            (checkCursorHere csr)
-            -- typeBinding
-            (ix :- IndexStep StepDataDefinition 0)
-            (checkCursorStep (IndexStep StepDataDefinition 0) csr)
-            -- constructors
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepDataDefinition 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+          let
+            _ = if isJust csr then Debug.trace ("data" /\ ix /\ csr) identity else unit
+          in
+            rec.data typeBinding constrs meta gamma metaGamma
+              -- module/block
+              ix_parent
+              -- definition
+              ix
+              (checkCursorHere csr)
+              -- typeBinding
+              (ix :- IndexStep StepDataDefinition 0)
+              (checkCursorStep (IndexStep StepDataDefinition 0) csr)
+              -- constructors
+              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i)
+              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i) csr)
     }
 
 type RecConstructor a
@@ -259,18 +262,21 @@ recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
         \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix csr ->
-          rec.constructor termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at
-            ix_parent
-            ix_def
-            -- constructor
-            ix
-            (checkCursorHere csr)
-            -- termBinding
-            (ix :- IndexStep StepConstructor 0)
-            (checkCursorStep (IndexStep StepConstructor 0) csr)
-            -- parameters
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex (i + 1)))
-            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepConstructor 1)) <> toUpwardIndex (fromListIndexToDownwardIndex (i + 1))) csr)
+          let
+            _ = if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
+          in
+            rec.constructor termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at
+              ix_parent
+              ix_def
+              -- constructor
+              ix
+              (checkCursorHere csr)
+              -- termBinding
+              (ix :- IndexStep StepConstructor 0)
+              (checkCursorStep (IndexStep StepConstructor 0) csr)
+              -- parameters
+              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i)
+              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i) csr)
     }
 
 type RecDefinitionBindings a

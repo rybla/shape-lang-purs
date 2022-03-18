@@ -421,7 +421,7 @@ programComponent this =
           \meta gamma alpha metaGamma ix isSelected ->
             DOM.span
               (selectableProps "hole term" isSelected ix <> selectableTriggerProps ix (Just alpha) gamma_prt metaGamma)
-              [ DOM.text "?" ]
+              [ renderType' alpha gamma metaGamma ]
       }
       term_prt
       gamma_prt
@@ -592,14 +592,15 @@ programComponent this =
     let
       _id = upwardIndexToId ix
     in
-      [ Props.className $ title
+      [ Props.className $ title <> if isSelected then " selected" else ""
       , Props._id _id
-      , Props.style
-          { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else ""
-          , backgroundColor: if isSelected then "rgba(255, 255, 255, 0.2)" else ""
-          }
+      -- , Props.style
+      --     { boxShadow: if isSelected then "0 0 0 1px rgb(211, 115, 0)" else ""
+      --     , backgroundColor: if isSelected then "rgba(255, 255, 255, 0.2)" else ""
+      --     }
       , Props.onMouseDown \event -> do
           stopPropagation event
+          Debug.traceM $ show (toDownwardIndex ix)
           React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
       , Prop.onMouseOver \event -> do
           stopPropagation event
