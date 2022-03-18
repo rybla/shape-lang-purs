@@ -1,6 +1,7 @@
 # TODO
 
 - Jacob
+
   - [x] decide how cases work in match
   - [ ] recursion principle with wrap (uses TypeChanges context)
   - [ ] change\*
@@ -13,6 +14,7 @@
   - [x] hole stuff (i.e. unification)
 
 - Henry
+
   - [ ] syntax
     - [x] upgrade lists to have metadata for each item
   - [ ] recursors
@@ -36,7 +38,7 @@
       - [x] bug: paramter names in types not shadowing correctly, but lambdas
             do??
     - [ ] actions
-      - [ ] hovering over syntax will highlight the innermost syntax element
+      - [x] hovering over syntax will highlight the innermost syntax element
             (even if hovering over the whitespace between)
       - [ ] list manipulations
         - insertions: triggers is between list items
