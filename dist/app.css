@@ -159,14 +159,16 @@ html {
 .selected {
   box-shadow: 0 0 0 1px rgb(211, 115, 0);
   background-color: rgba(255, 255, 255, 0.2);
+  display : inline-block
 }
 
 .highlighted {
   box-shadow: 0 0 0 1px purple;
   background-color: rgba(255, 255, 255, 0.2);
+  display : inline-block
 }
 
-/* actions */
+ *//* actions */
 
 .insertDefinitionVertical {
   display: inline-block;
