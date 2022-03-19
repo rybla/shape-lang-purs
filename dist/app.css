@@ -97,9 +97,8 @@ html {
   border-style: inset; */
   border: 2px dashed rgb(206, 192, 81);
   background-color: rgb(48, 48, 48);
-  font-style: italic;
 
-  transition-property: all;
+  /* transition-property: all;
   transition-duration: 0.2s;
 
   font-size: 100%;
@@ -107,21 +106,20 @@ html {
   transform: rotate(0deg);
   padding: 0px;
   width: auto;
-  margin-top: 0;
+  margin-top: 0; */
 }
-.term.hole:hover {
+/* .term.hole:hover {
   transition-property: all;
   transition-duration: 1s;
 
   font-size: 600%;
   display: inline-block;
-  /* transform: rotate(200deg); */
   transform: rotate(3deg);
   padding: 40px;
   border-width: 10px;
   width: 50%;
   margin-top: -70px;
-}
+} */
 
 .termBinding,
 .termName,

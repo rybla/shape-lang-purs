@@ -91,23 +91,23 @@ module_ =
                   )
                   defaultArrowTypeMetadata
               )
-              (HoleTerm defaultHoleTermMetadata)
-              -- ( LambdaTerm
-              --     x1_id
-              --     ( Block Nil
-              --         ( LambdaTerm x2_id
-              --             ( Block Nil
-              --                 ( NeutralTerm x1_id Nil
-              --                     defaultNeutralTermMetadata
-              --                 )
-              --                 defaultBlockMetadata
-              --             )
-              --             defaultLambdaTermMetadata { indented = true }
-              --         )
-              --         defaultBlockMetadata
-              --     )
-              --     defaultLambdaTermMetadata
-              -- )
+              ( LambdaTerm
+                  x1_id
+                  ( Block Nil
+                      -- ( LambdaTerm x2_id
+                      --     ( Block Nil
+                      --         ( NeutralTerm x1_id Nil
+                      --             defaultNeutralTermMetadata
+                      --         )
+                      --         defaultBlockMetadata
+                      --     )
+                      --     defaultLambdaTermMetadata { indented = true }
+                      -- )
+                      (HoleTerm defaultHoleTermMetadata)
+                      defaultBlockMetadata
+                  )
+                  defaultLambdaTermMetadata
+              )
               defaultTermDefinitionMetadata
               /\ defaultDefinitionItemMetadata
           -- , TermDefinition

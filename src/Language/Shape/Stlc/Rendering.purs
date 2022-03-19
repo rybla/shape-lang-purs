@@ -235,7 +235,7 @@ programComponent this =
               , punctuation.typedef
               , DOM.span'
                   [ intersperseLeftHTML
-                      [ indentOrSpace { indented: true } metaGamma, punctuation.alt, punctuation.space ]
+                      [ indentOrSpace { indented: true } metaGamma ]
                       $ Array.fromFoldable
                       $ mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) (fromItem <$> constrItems)
                   ]
@@ -249,7 +249,9 @@ programComponent this =
           \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
             DOM.span
               (selectableProps "constructor" isSelected ix)
-              $ [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+              $ [ punctuation.alt
+                , punctuation.space
+                , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
                 , punctuation.space
                 , DOM.span
                     (inertProps "constructor parameters")
