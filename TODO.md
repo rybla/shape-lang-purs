@@ -45,7 +45,7 @@
         - deletions: trigger is at list item
         - move: delete; insert
       - [ ] term holes
-        - show type in hole
+        - [x] show type in hole
         - drag a term into hole
         - drag a var from lambda into hoel
         - paste into hole
@@ -54,6 +54,7 @@
             - checks all partial applications, and selects first viable
           - match (given term to match on)
           - lambda
+        - perform type change on type in hole
       - [ ] lambda term
         - remove lambda around via RemoveArg typechange
       - [ ] term
