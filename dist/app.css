@@ -168,7 +168,7 @@ html {
 
 /* actions */
 
-.insertDefinition {
+.insertDefinitionVertical {
   display: inline-block;
   width: 4px;
   height: 12pt;
@@ -176,6 +176,17 @@ html {
   margin: 0 4px;
 }
 
-.insertDefinition:hover {
+.insertDefinitionVertical:hover {
+  background-color: rgb(88, 218, 198);
+}
+
+.insertDefinitionHorizontal {
+  display: inline-block;
+  width: 100%;
+  height: 4px;
+  margin-bottom: 4px;
+}
+
+.insertDefinitionHorizontal:hover {
   background-color: rgb(88, 218, 198);
 }

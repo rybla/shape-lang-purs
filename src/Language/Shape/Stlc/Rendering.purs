@@ -29,12 +29,12 @@ import React.SyntheticEvent (NativeEvent, NativeEventTarget, stopPropagation, ta
 import Record as R
 import Undefined (undefined)
 import Unsafe as Unsafe
+import Web.DOM.DOMTokenList as DOMTokenList
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
 import Web.HTML.Window (toEventTarget)
-import Web.DOM.DOMTokenList as DOMTokenList
 
 -- import Web.DOM (Element)
 -- import Web.DOM.NonElementParentNode (getElementById)
@@ -176,9 +176,6 @@ programComponent this =
                     <> selectableProps ix
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
-                , punctuation.newline
-                , punctuation.newline
-                , renderInsertDefinitionButton (ix :- IndexStep StepCons 1)
                 ]
       }
 
@@ -197,8 +194,6 @@ programComponent this =
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
                 , indent meta metaGamma
-                , renderInsertDefinitionButton (ix :- IndexStep StepCons 1)
-                , indent meta metaGamma
                 , renderTerm a gamma alpha metaGamma ix_term cursor_term
                 ]
       }
@@ -210,8 +205,8 @@ programComponent this =
           \defItems gamma metaGamma ix_parent ix isSelected ix_def_at cursor_def_at ->
             DOM.span
               (inertProps "definitionItems")
-              [ intercalateHTML
-                  [ punctuation.newline, punctuation.newline ]
+              [ intersperseRightHTML
+                  [ punctuation.newline, renderInsertDefinitionButtonHorizontal ix, punctuation.newline ]
                   $ toUnfoldable
                   $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
               ]
@@ -689,10 +684,16 @@ programComponent this =
   printShadowSuffix :: String -> React.ReactElement
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
 
-  renderInsertDefinitionButton :: UpwardIndex -> React.ReactElement
-  renderInsertDefinitionButton ix =
+  renderInsertDefinitionButtonVertical :: UpwardIndex -> React.ReactElement
+  renderInsertDefinitionButtonVertical ix =
     DOM.span
-      [ Props.className "insertDefinition" ]
+      [ Props.className "insertDefinitionVertical" ]
+      []
+
+  renderInsertDefinitionButtonHorizontal :: UpwardIndex -> React.ReactElement
+  renderInsertDefinitionButtonHorizontal ix =
+    DOM.span
+      [ Props.className "insertDefinitionHorizontal" ]
       []
 
   outlineableProps :: String -> Array Props.Props
