@@ -751,7 +751,6 @@ programComponent this =
 
   outlineableProps :: String -> Array Props.Props
   outlineableProps eid =
-    {-
     [ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
@@ -780,8 +779,6 @@ programComponent this =
             pure outlineParents'
         React.modifyState this \st -> st { outlineParents = outlineParents' }
     ]
-    -}
-    []
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =
