@@ -48,11 +48,11 @@ chAtTerm = Rec.recTerm {
     , neutral : \termId argItems meta gamma alpha tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) Nil)) ->
             let args' /\ holeSub /\ displaced = runState (chArgs gamma alpha emptyChanges sbjto argItems) (emptyDisplaced /\ emptyHoleSub) 
-            in NeutralTerm termId args' meta /\ emptyDownwardIndex /\ ?h
-        (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) rest)) -> ?h
+            in NeutralTerm termId undefined meta /\ emptyDownwardIndex /\ undefined
+        (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) rest)) -> undefined
         _ -> error "no"
     , hole : \meta gamma alpha -> error "no" -- holes have no children, so StepHoleTerm is never used.
-    , match : \dataID a cases meta gamma alpha -> ?h
+    , match : \dataID a cases meta gamma alpha -> undefined
 }
 
 chAtBlock :: Rec.RecBlock (Syntax -> TypeChange -> DownwardIndex -> Block /\ DownwardIndex /\ TypeChange)
