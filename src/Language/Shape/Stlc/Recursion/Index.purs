@@ -149,8 +149,8 @@ recDefinitionItems rec =
             (\i -> ix <> toUpwardIndex (fromListIndexToDownwardIndex i))
             (\i -> checkCursorSteps (fromListIndexToDownwardIndex i) csr)
             -- defSep
-            (\i -> ix <> toUpwardIndex (fromListSeparatorIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (fromListSeparatorIndexToDownwardIndex i) csr)
+            (\i -> ix <> toUpwardIndex (fromSublistIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr)
     }
 
 type RecDefinitionSeparator a
@@ -159,7 +159,7 @@ type RecDefinitionSeparator a
     Cursor -> -- definitionSeparator
     a
 
-type RecDefinitionSeparator_DefinitionSeparator a
+type RecDefinitionSeparator_Separator a
   = UpwardIndex -> -- module/block
     UpwardIndex -> -- definitionSeparator
     Boolean -> -- definitionSeparator
@@ -167,10 +167,10 @@ type RecDefinitionSeparator_DefinitionSeparator a
 
 recDefinitionSeparator ::
   forall a.
-  { definitionSeparator :: RecDefinitionSeparator_DefinitionSeparator a } ->
+  { separator :: RecDefinitionSeparator_Separator a } ->
   RecDefinitionSeparator a
 recDefinitionSeparator rec ix_parent ix csr =
-  rec.definitionSeparator
+  rec.separator
     ix_parent
     ix
     (checkCursorHere csr)
@@ -204,8 +204,10 @@ type RecDefinition_DataDefinition a
         Boolean -> -- definition
         UpwardIndex -> -- typeBinding
         Cursor -> -- typeBinding
-        (Int -> UpwardIndex) -> -- constructors
-        (Int -> Cursor) -> -- constructors
+        (Int -> UpwardIndex) -> -- constructorItems
+        (Int -> Cursor) -> -- constructorItems
+        (Int -> UpwardIndex) -> -- constructorSeps
+        (Int -> Cursor) -> -- constructorSeps
         a
       )
 
@@ -248,10 +250,38 @@ recDefinition rec =
               -- typeBinding
               (ix :- IndexStep StepDataDefinition 0)
               (checkCursorStep (IndexStep StepDataDefinition 0) csr)
-              -- constructors
+              -- constructorItems
               (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i)
               (\i -> checkCursorSteps (IndexStep StepDataDefinition 1 -: fromListIndexToDownwardIndex i) csr)
+              -- constructorSeps
+              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i)
+              (\i -> checkCursorSteps (IndexStep StepDataDefinition 1 -: fromSublistIndexToDownwardIndex i) csr)
     }
+
+type RecConstructorSeparator a
+  = UpwardIndex -> -- definitionItems
+    UpwardIndex -> -- definition
+    UpwardIndex -> -- constructorSeparator
+    Cursor -> -- constructorSeparator
+    a
+
+type RecConstructorSeparator_Separator a
+  = UpwardIndex -> -- definitionItems
+    UpwardIndex -> -- definition
+    UpwardIndex -> -- constructorSeparator
+    Boolean -> -- constructorSeparator
+    a
+
+recConstructorSeparator ::
+  forall a.
+  { separator :: RecConstructorSeparator_Separator a } ->
+  RecConstructorSeparator a
+recConstructorSeparator rec ix_defItems ix_def ix csr =
+  rec.separator
+    ix_defItems
+    ix_def
+    ix
+    (checkCursorHere csr)
 
 type RecConstructor a
   = RecMetaContext.RecConstructor
@@ -270,8 +300,10 @@ type RecConstructor_Constructor a
         Boolean -> -- constructor
         UpwardIndex -> -- termBinding
         Cursor -> -- termBinding
-        (Int -> UpwardIndex) -> -- parameters
+        (Int -> UpwardIndex) -> -- parameterItems
         (Int -> Cursor) -> -- parameters
+        (Int -> UpwardIndex) -> -- parameterSeps
+        (Int -> Cursor) -> -- parameterSeps
         a
       )
 
@@ -296,11 +328,44 @@ recConstructor rec =
               -- termBinding
               (ix :- IndexStep StepConstructor 0)
               (checkCursorStep (IndexStep StepConstructor 0) csr)
-              -- parameters
+              -- parameterItems
               (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i)
               (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i) csr)
+              -- parameterSeps
+              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i)
+              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
     }
 
+type RecParameterSeparator a
+  = UpwardIndex -> -- definitionItems
+    UpwardIndex -> -- definition
+    UpwardIndex -> -- constructor
+    UpwardIndex -> -- parameterSep
+    Cursor -> -- parameterSep
+    a
+
+type RecParameterSeparator_Separator a
+  = UpwardIndex -> -- definitionItems
+    UpwardIndex -> -- definition
+    UpwardIndex -> -- constructor
+    UpwardIndex -> -- parameterSep
+    Boolean -> -- parameterSep
+    a
+
+recParameterSeparator ::
+  forall a.
+  { separator :: RecParameterSeparator_Separator a } ->
+  RecParameterSeparator a
+recParameterSeparator rec ix_defItems ix_def ix_constr ix csr =
+  rec.separator
+    ix_defItems
+    ix_def
+    ix_constr
+    ix
+    (checkCursorHere csr)
+
+-- TODO: if necessary
+{-
 type RecDefinitionBindings a
   = RecMetaContext.RecDefinitionBindings
       ( UpwardIndex -> -- definition
@@ -338,8 +403,6 @@ type RecDefinitionBindings_Wildcard a
         Boolean -> a
       )
 
--- TODO: if necessary
-{-
 recDefinitionBindings ::
   forall a.
   { arrow_lambda :: RecDefinitionBindings_ArrowLambda a
@@ -477,8 +540,8 @@ type RecTerm_Match a
         Boolean -> -- term
         UpwardIndex -> -- term (sub)
         Cursor -> -- term (sub)
-        (Int -> UpwardIndex) -> -- cases
-        (Int -> Cursor) -> -- cases
+        (Int -> UpwardIndex) -> -- caseItems
+        (Int -> Cursor) -> -- caseItems
         a
       )
 
@@ -532,7 +595,7 @@ recTerm rec =
             -- term (sub)
             (ix :- IndexStep StepMatchTerm 0)
             (checkCursorStep (IndexStep StepMatchTerm 0) csr)
-            -- cases
+            -- caseItems
             (\i -> toUpwardIndex $ toDownwardIndex ix <> IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i)
             (\i -> checkCursorSteps (IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i) csr)
     , hole:
@@ -548,12 +611,10 @@ type RecArgItems_Nil (a :: Prim.Type)
 
 type RecArgItems_Cons a
   = RecMetaContext.RecArgItems_Cons
-      ( UpwardIndex -> -- argItems
-        Boolean -> -- argItems
-        UpwardIndex -> -- term
+      ( UpwardIndex -> -- term
         Cursor -> -- term
-        UpwardIndex -> -- argItems (sub)
-        Cursor -> -- argItems (sub)
+        UpwardIndex -> -- argItems
+        Cursor -> -- argItems
         a
       )
 
@@ -565,13 +626,12 @@ recArgItems ::
   RecArgItems a
 recArgItems rec =
   RecMetaContext.recArgItems
-    { nil: \gamma alpha metaGamma ix csr -> rec.nil gamma alpha metaGamma
+    { nil:
+        \gamma alpha metaGamma ix csr ->
+          rec.nil gamma alpha metaGamma
     , cons:
         \argItem argItems gamma prm beta metaGamma ix csr ->
           rec.cons argItem argItems gamma prm beta metaGamma
-            -- argItems
-            ix
-            (checkCursorHere csr)
             -- term
             (ix :- IndexStep StepCons 0)
             (checkCursorStep (IndexStep StepCons 0) csr)
@@ -593,8 +653,8 @@ type RecCase_Case a
       ( UpwardIndex -> -- match
         UpwardIndex -> -- case
         Boolean -> -- case
-        (Int -> UpwardIndex) -> -- termId
-        (Int -> Cursor) -> -- termId
+        (Int -> UpwardIndex) -> -- termIdItem
+        (Int -> Cursor) -> -- termIdItem
         UpwardIndex -> -- term
         Cursor -> -- term 
         a

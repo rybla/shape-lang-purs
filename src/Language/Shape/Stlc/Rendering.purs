@@ -9,11 +9,11 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-
 import Data.Array as Array
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Traversable (traverse)
+import Data.Tuple (fst, snd)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
@@ -212,44 +212,56 @@ programComponent this =
               --     $ toUnfoldable
               --     $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
               -- ]
-              [ intercalateHTML 
-                  [ punctuation.newline ]
+              [ DOM.span'
                   $ toUnfoldable
                   $ mapWithIndex
                       ( \i def ->
                           DOM.span'
-                            [ indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                            [ indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinitionSeparator
-                                { orientation: Horizontal }
+                                { indented: true }
                                 ix
                                 (ix_defSep_at i)
                                 (cursor_defSep_at i)
-                            , punctuation.newline
-                            , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                            , indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinition def gamma metaGamma ix (ix_def_at i)
                                 (cursor_def_at i)
                             ]
                       )
                       (fromItem <$> defItems)
-              , if length defItems == 0 
-                  then
-                    renderDefinitionSeparator
-                      { orientation: Vertical }
-                      ix
-                      (ix_defSep_at (length defItems))
-                      (cursor_defSep_at (length defItems))
-                  else
-                    DOM.span'
-                      [ punctuation.newline
-                      , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
-                      , renderDefinitionSeparator
-                          { orientation: Horizontal }
-                          ix
-                          (ix_defSep_at (length defItems))
-                          (cursor_defSep_at (length defItems))
-                      ]
-                    
+              , if length defItems == 0 then
+                  renderDefinitionSeparator
+                    { indented: false }
+                    ix
+                    (ix_defSep_at (length defItems))
+                    (cursor_defSep_at (length defItems))
+                else
+                  DOM.span'
+                    [ indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                    , renderDefinitionSeparator
+                        { indented: true }
+                        ix
+                        (ix_defSep_at (length defItems))
+                        (cursor_defSep_at (length defItems))
+                    ]
               ]
+      }
+
+  renderDefinitionSeparator :: { indented :: Boolean } -> RecIndex.RecDefinitionSeparator React.ReactElement
+  renderDefinitionSeparator args =
+    RecIndex.recDefinitionSeparator
+      { separator:
+          \ix_parent ix isSelected ->
+            let
+              eid = upwardIndexToEid ix
+            in
+              DOM.span
+                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
+                    <> selectableProps ix
+                    <> outlineableProps eid
+                )
+                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ]
+                [ DOM.span' [ DOM.text "+" ] ]
       }
 
   renderDefinition :: RecIndex.RecDefinition React.ReactElement
@@ -279,7 +291,7 @@ programComponent this =
                 , renderTerm a gamma alpha metaGamma ix_a cursor_a
                 ]
       , data:
-          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constr_at cursor_constr_at ->
+          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constrItem_at cursor_constrItem_at ix_constrSep_at cursor_constrSep_at ->
             let
               eid = upwardIndexToEid ix
             in
@@ -292,19 +304,44 @@ programComponent this =
                 , punctuation.space
                 , punctuation.typedef
                 , DOM.span'
-                    [ intersperseLeftHTML
-                        [ indentOrSpace { indented: true } metaGamma ]
-                        $ Array.fromFoldable
-                        $ mapWithIndex (\i constr -> renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constr_at i) (cursor_constr_at i)) (fromItem <$> constrItems)
-                    ]
+                    $ Array.fromFoldable
+                    $ mapWithIndex
+                        ( \i constr ->
+                            DOM.span'
+                              [ indent { indented: true } metaGamma
+                              , renderConstructorSeparator { indented: true } ix ix_parent (ix_constrSep_at i) (cursor_constrSep_at i)
+                              , indent { indented: true } metaGamma
+                              , renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constrItem_at i) (cursor_constrItem_at i)
+                              ]
+                        )
+                        (fromItem <$> constrItems)
+                , indent { indented: true } metaGamma
+                , renderConstructorSeparator { indented: true } ix ix_parent (ix_constrSep_at (length constrItems)) (cursor_constrSep_at (length constrItems))
                 ]
+      }
+
+  renderConstructorSeparator :: { indented :: Boolean } -> RecIndex.RecConstructorSeparator React.ReactElement
+  renderConstructorSeparator args =
+    RecIndex.recConstructorSeparator
+      { separator:
+          \ix_defItems ix_def ix isSelected ->
+            let
+              eid = upwardIndexToEid ix
+            in
+              DOM.span
+                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
+                    <> selectableProps ix
+                    <> outlineableProps eid
+                )
+                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
+                [ DOM.span' [ DOM.text "+" ] ]
       }
 
   renderConstructor :: RecIndex.RecConstructor React.ReactElement
   renderConstructor =
     RecIndex.recConstructor
       { constructor:
-          \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix isSelected ix_termBinding cursor_termBinding ix_prm_at cursor_prm_at ->
+          \termBinding prmItems meta typeId gamma alpha metaGamma metaGamma_prmItem_at ix_defItems ix_def ix isSelected ix_termBinding cursor_termBinding ix_prmItem_at cursor_prmItem_at ix_prmSep_at cursor_prmSep_at ->
             let
               eid = upwardIndexToEid ix
             in
@@ -319,47 +356,37 @@ programComponent this =
                   , punctuation.space
                   , DOM.span
                       (inertProps "constructor parameters")
-                      [ intersperseRightHTML
+                      [ intercalateHTML
                           [ punctuation.space ]
                           $ Array.fromFoldable
                           $ mapWithIndex
                               ( \i (prm /\ meta) ->
-                                  renderParameter prm gamma (metaGamma_prm_at i) (ix_prm_at i) (cursor_prm_at i)
+                                  DOM.span'
+                                    [ renderParameterSeparator meta ix_defItems ix_def ix (ix_prmSep_at i) (cursor_prmSep_at i)
+                                    , renderParameter prm gamma (metaGamma_prmItem_at i) (ix_prmItem_at i) (cursor_prmItem_at i)
+                                    ]
                               )
-                              prms
+                              prmItems
                       ]
+                  , renderParameterSeparator { indented: any (snd >>> _.indented) prmItems } ix_defItems ix_def ix (ix_prmSep_at (length prmItems)) (cursor_prmSep_at (length prmItems))
                   ]
-      -- -- DOM.span
-      -- --   (selectableProps "constructor" isSelected ix)
-      -- --   $ [ DOM.span (selectableTriggerProps ix)
-      -- --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
-      -- --     , punctuation.space
-      -- --     , punctuation.colon
-      -- --     , punctuation.space
-      -- --     ]
-      -- --   <> ( if length prms == 0 then
-      -- --         []
-      -- --       else
-      -- --         [ DOM.span
-      -- --             (inertProps "constructor parameters")
-      -- --             [ intersperseRightHTML
-      -- --                 [ punctuation.space ]
-      -- --                 $ Array.fromFoldable
-      -- --                 $ mapWithIndex (\i prm -> renderParameter prm gamma metaGamma (ix_prm_at i) (cursor_prm_at i)) prms
-      -- --             ]
-      -- --         , punctuation.space
-      -- --         ]
-      -- --     )
-      -- --   <> [ renderType' (DataType typeId defaultDataTypeMetadata) gamma metaGamma ]
-      -- DOM.span
-      --   (selectableProps "constructor" isSelected ix)
-      --   $ [ DOM.span (selectableTriggerProps ix Nothing gamma metaGamma)
-      --         [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding ]
-      --     , punctuation.space
-      --     , punctuation.colon
-      --     , punctuation.space
-      --     , renderType' alpha gamma metaGamma
-      --     ]
+      }
+
+  renderParameterSeparator :: forall r. { indented :: Boolean | r } -> RecIndex.RecParameterSeparator React.ReactElement
+  renderParameterSeparator args =
+    RecIndex.recParameterSeparator
+      { separator:
+          \ix_defItems ix_def ix_constr ix isSelected ->
+            let
+              eid = upwardIndexToEid ix
+            in
+              DOM.div
+                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
+                    <> selectableProps ix
+                    <> outlineableProps eid
+                )
+                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
+                [ DOM.span' [ DOM.text "+" ] ]
       }
 
   renderType :: RecIndex.RecType React.ReactElement
@@ -378,15 +405,10 @@ programComponent this =
                 $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
                   , punctuation.space
                   ]
-                <> case beta of
-                    ArrowType _ _ _ ->
-                      [ renderType beta gamma metaGamma ix_beta cursor_beta
-                      ]
-                    _ ->
-                      [ punctuation.arrow
-                      , punctuation.space
-                      , renderType beta gamma metaGamma ix_beta cursor_beta
-                      ]
+                <> [ punctuation.arrow
+                  , punctuation.space
+                  , renderType beta gamma metaGamma ix_beta cursor_beta
+                  ]
       , data:
           \typeId meta gamma metaGamma ix isSelected ->
             let
@@ -432,15 +454,10 @@ programComponent this =
               $ [ renderParameter' prm gamma metaGamma
                 , punctuation.space
                 ]
-              <> case beta of
-                  ArrowType _ _ _ ->
-                    [ renderType' beta gamma metaGamma
-                    ]
-                  _ ->
-                    [ punctuation.arrow
-                    , punctuation.space
-                    , renderType' beta gamma metaGamma
-                    ]
+              <> [ punctuation.arrow
+                , punctuation.space
+                , renderType' beta gamma metaGamma
+                ]
       , data:
           \typeId meta gamma metaGamma ->
             DOM.span
@@ -472,16 +489,11 @@ programComponent this =
                     <> outlineableProps eid
                 )
                 $ [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
-                <> case block of
-                    Block Nil (LambdaTerm _ _ _) _ ->
-                      [ renderBlock block gamma beta metaGamma ix_block cursor_block
-                      ]
-                    _ ->
-                      [ punctuation.space
-                      , punctuation.mapsto
-                      , indent meta metaGamma -- indentOrSpace meta metaGamma
-                      , renderBlock block gamma beta metaGamma ix_block cursor_block
-                      ]
+                <> [ punctuation.space
+                  , punctuation.mapsto
+                  , indent meta metaGamma -- indentOrSpace meta metaGamma
+                  , renderBlock block gamma beta metaGamma ix_block cursor_block
+                  ]
       , neutral:
           \termId argItems meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_argItems cursor_argItems ->
             let
@@ -541,27 +553,19 @@ programComponent this =
   renderArgItems :: RecIndex.RecArgItems React.ReactElement
   renderArgItems =
     RecIndex.recArgItems
+      -- TODO: render separator
       { nil: \gamma alpha metaGamma -> DOM.span' []
       , cons:
-          \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ix isSelected ix_a cursor_a ix_argItems cursor_argItems ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "argItems" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                $ [ punctuation.space ]
-                <> case a of
-                    LambdaTerm _ _ _ -> [ punctuation.lparen, renderTerm a gamma alpha metaGamma ix_a cursor_a, punctuation.lparen ]
-                    _ -> [ renderTerm a gamma alpha metaGamma ix_a cursor_a ]
-                <> if argItems == Nil then
-                    []
-                  else
-                    [ punctuation.space
-                    , renderArgItems argItems gamma beta metaGamma ix_argItems cursor_argItems
-                    ]
+          \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ix_a cursor_a ix_argItems cursor_argItems ->
+            DOM.span'
+              $ [ punctuation.space ]
+              <> [ renderTerm a gamma alpha metaGamma ix_a cursor_a ]
+              <> if argItems == Nil then
+                  []
+                else
+                  [ punctuation.space
+                  , renderArgItems argItems gamma beta metaGamma ix_argItems cursor_argItems
+                  ]
       }
 
   renderCase :: RecIndex.RecCase React.ReactElement
@@ -724,36 +728,6 @@ programComponent this =
   printShadowSuffix :: String -> React.ReactElement
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
 
-  -- renderInsertDefinitionButtonVertical :: UpwardIndex -> React.ReactElement
-  -- renderInsertDefinitionButtonVertical ix =
-  --   DOM.span
-  --     [ Props.className "insertDefinitionVertical" ]
-  --     []
-  -- renderInsertDefinitionButtonHorizontal :: UpwardIndex -> React.ReactElement
-  -- renderInsertDefinitionButtonHorizontal ix =
-  --   DOM.span
-  --     [ Props.className "insertDefinitionHorizontal" ]
-  --     []
-  renderDefinitionSeparator :: { orientation :: Orientation } -> RecIndex.RecDefinitionSeparator React.ReactElement
-  renderDefinitionSeparator args =
-    RecIndex.recDefinitionSeparator
-      { definitionSeparator:
-          \ix_parent ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName ("definitionSeparator " <> show args.orientation) isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ DOM.span'
-                $ case args.orientation of 
-                    Vertical -> [ DOM.text "|" ]
-                    Horizontal -> []
-                ]
-      }
-
   outlineableProps :: String -> Array Props.Props
   outlineableProps eid =
     [ Prop.onMouseOver \event -> do
@@ -822,11 +796,5 @@ upwardIndexToEid ix = case unconsUpwardIndex ix of
   Nothing -> ""
   Just { step: IndexStep label i, ix' } -> show label <> "-" <> show i <> "--" <> upwardIndexToEid ix'
 
-data Orientation
-  = Horizontal
-  | Vertical
-
-instance Show Orientation where 
-  show = case _ of 
-    Horizontal -> "horizontal"
-    Vertical -> "vertical"
+indentedToClassName :: forall r. { indented :: Boolean | r } -> String
+indentedToClassName { indented } = if indented then "indented" else "nonindented"

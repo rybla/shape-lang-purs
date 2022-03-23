@@ -170,28 +170,83 @@ html {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* definitionSeparator */
+.module.selected {
+  box-shadow: none;
+  background-color: inherit;
+}
 
-.definitionSeparator.vertical {
+.module.highlighted {
+  box-shadow: none;
+  background-color: inherit;
+}
+
+/* separators */
+
+.separator {
+  display: inline-block;
+  color: rgb(51, 84, 29);
+  /* color: rgb(0, 18, 35); */
+}
+
+.separator.nonindented {
+  margin: 0 4px;
+}
+
+.separator.selected {
+  color: white;
+}
+
+.separator.highlighted {
+  color: white;
+}
+
+/* .definitionSeparator {
+  display: inline-block;
+  color: rgb(51, 84, 29);
+}
+
+.definitionSeparator.nonindented {
+  margin: 0 4px;
+} */
+
+/* .definitionSeparator.nonindented {
   display: inline-block;
   margin: 0 4px;
 }
 
-.definitionSeparator.vertical > span {
+.definitionSeparator.nonindented > span {
   display: inline-block;
   color: rgb(94, 94, 94);
-}
+} */
 
-.definitionSeparator.horizontal {
+/* .definitionSeparator.indented {
   display: inline-block;
-  width: 100%;
+  width: 100px;
   margin: 10px 0;
 }
 
-.definitionSeparator.horizontal > span {
-  display: block;
-  width: 100%;
+.definitionSeparator.indented > span {
+  display: inline-block;
+  width: 100px;
   height: 1px;
   margin: 4px 0;
   background-color: rgb(94, 94, 94);
+} */
+
+/* .constructorSeparator {
+  display: inline-block;
+  color: rgb(51, 84, 29);
+} */
+
+/* .constructorSeparator.indented {
+  display: inline-block;
+  width: 100px;
 }
+
+.constructorSeparator.indented > span {
+  display: inline-block;
+  width: 100px;
+  height: 1px;
+  margin: 4px 0;
+  background-color: rgb(94, 94, 94);
+} */

@@ -91,8 +91,8 @@ fromListIndexToDownwardIndex i =
   DownwardIndex (replicate i (IndexStep StepCons 1) `snoc` IndexStep StepCons 0)
 
 -- i^th sublist of a cons-list
-fromListSeparatorIndexToDownwardIndex :: Int -> DownwardIndex 
-fromListSeparatorIndexToDownwardIndex i = 
+fromSublistIndexToDownwardIndex :: Int -> DownwardIndex 
+fromSublistIndexToDownwardIndex i = 
   DownwardIndex (replicate i (IndexStep StepCons 1))
 
 childrenCount :: StepLabel -> Int
