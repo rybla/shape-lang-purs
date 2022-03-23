@@ -9,6 +9,7 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
+
 import Data.Array as Array
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -478,7 +479,7 @@ programComponent this =
                     _ ->
                       [ punctuation.space
                       , punctuation.mapsto
-                      , indentOrSpace meta metaGamma
+                      , indent meta metaGamma -- indentOrSpace meta metaGamma
                       , renderBlock block gamma beta metaGamma ix_block cursor_block
                       ]
       , neutral:
@@ -746,7 +747,11 @@ programComponent this =
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                []
+                [ DOM.span'
+                $ case args.orientation of 
+                    Vertical -> [ DOM.text "|" ]
+                    Horizontal -> []
+                ]
       }
 
   outlineableProps :: String -> Array Props.Props
