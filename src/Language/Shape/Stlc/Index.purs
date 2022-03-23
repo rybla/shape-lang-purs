@@ -9,6 +9,7 @@ import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.Unfoldable (replicate)
 import Debug as Debug
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -19,7 +20,9 @@ newtype UpwardIndex
 newtype DownwardIndex
   = DownwardIndex (List IndexStep)
 
-derive newtype instance Semigroup UpwardIndex
+instance Semigroup UpwardIndex where 
+  append (UpwardIndex steps1) (UpwardIndex steps2) = UpwardIndex (steps2 <> steps1)
+
 derive newtype instance Semigroup DownwardIndex
 
 instance Show UpwardIndex where show (UpwardIndex steps) = show steps
@@ -28,12 +31,12 @@ instance Show DownwardIndex where show (DownwardIndex steps) = show steps
 pushDownwardIndex :: IndexStep -> DownwardIndex -> DownwardIndex
 pushDownwardIndex step (DownwardIndex steps) = DownwardIndex $ Cons step steps
 
-infixr 5 pushDownwardIndex as -:
+infixr 6 pushDownwardIndex as -:
 
 pushUpwardIndex :: UpwardIndex -> IndexStep -> UpwardIndex
 pushUpwardIndex (UpwardIndex steps) step = UpwardIndex $ Cons step steps
 
-infixr 5 pushUpwardIndex as :-
+infixr 6 pushUpwardIndex as :-
 
 toUpwardIndex :: DownwardIndex -> UpwardIndex
 toUpwardIndex (DownwardIndex steps) = UpwardIndex $ reverse steps
@@ -85,20 +88,15 @@ derive instance Generic IndexStep _
 instance Eq IndexStep where eq ix1 ix2 = genericEq ix1 ix2
 instance Show IndexStep where show (IndexStep l i) = show l <> "(" <> show i <> ")"
 
--- fromListIndexToUpwardIndex :: Int -> UpwardIndex
--- fromListIndexToUpwardIndex i =
---   if i == 0 then 
---     UpwardIndex $ singleton $ IndexStep StepCons 0
---   else 
---     fromListIndexToUpwardIndex (i - 1) :- IndexStep StepCons 1
-
--- i^th element of Cons list
+-- i^th element of a cons-list
 fromListIndexToDownwardIndex :: Int -> DownwardIndex 
 fromListIndexToDownwardIndex i = 
-  if i == 0 then 
-    DownwardIndex $ singleton $ IndexStep StepCons 0 
-  else 
-    IndexStep StepCons 1 -: fromListIndexToDownwardIndex (i - 1)
+  DownwardIndex (replicate i (IndexStep StepCons 1) `snoc` IndexStep StepCons 0)
+
+-- i^th sublist of a cons-list
+fromSublistIndexToDownwardIndex :: Int -> DownwardIndex 
+fromSublistIndexToDownwardIndex i = 
+  DownwardIndex (replicate i (IndexStep StepCons 1))
 
 childrenCount :: StepLabel -> Int
 childrenCount = case _ of 

@@ -19,6 +19,7 @@
   , "transformers"
   , "tuples"
   , "undefined"
+  , "unfoldable"
   , "unsafe-coerce"
   , "uuid"
   , "variant"

@@ -2,19 +2,30 @@ html {
   user-select: none;
   background-color: rgb(0, 18, 35);
   color: rgb(218, 227, 238);
+  margin: 0;
+  padding: 0;
 }
 
-/* app */
+.main {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
 .app {
   font-family: monospace;
   line-height: 14pt;
   font-size: 12pt;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 /* TODO: disallow sub from making the line taller */
 
 /* editor */
 
 .editor {
+  height: 100vh;
 }
 
 /* console */
@@ -59,6 +70,7 @@ html {
 .module {
   padding: 1em;
   display: block;
+  height: 100%;
 }
 
 .definition {
@@ -95,8 +107,12 @@ html {
   /* border-width: 2px;
   border-color: rgb(206, 192, 81);
   border-style: inset; */
-  border: 2px dashed rgb(206, 192, 81);
-  background-color: rgb(48, 48, 48);
+  /* border: 1px inset rgb(206, 192, 81); */
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 10px;
+  /* background-color: rgb(48, 48, 48); */
+  background-color: rgb(82, 0, 0);
 
   /* transition-property: all;
   transition-duration: 0.2s;
@@ -157,36 +173,92 @@ html {
 /* mousing */
 
 .selected {
-  box-shadow: 0 0 0 1px rgb(211, 115, 0);
+  box-shadow: 0 0 0 2px rgb(211, 115, 0);
   background-color: rgba(255, 255, 255, 0.2);
 }
 
 .highlighted {
-  box-shadow: 0 0 0 1px purple;
+  box-shadow: 0 0 0 2px purple;
   background-color: rgba(255, 255, 255, 0.2);
 }
 
- *//* actions */
+.module.selected {
+  box-shadow: none;
+  background-color: inherit;
+}
 
-.insertDefinitionVertical {
+.module.highlighted {
+  box-shadow: none;
+  background-color: inherit;
+}
+
+/* separators */
+
+.separator {
   display: inline-block;
-  width: 4px;
-  height: 12pt;
-  /* background-color: red; */
+  color: rgb(51, 84, 29);
+  /* color: rgb(0, 18, 35); */
+}
+
+.separator.nonindented {
   margin: 0 4px;
 }
 
-.insertDefinitionVertical:hover {
-  background-color: rgb(88, 218, 198);
+.separator.selected {
+  color: white;
 }
 
-.insertDefinitionHorizontal {
+.separator.highlighted {
+  color: white;
+}
+
+/* .definitionSeparator {
   display: inline-block;
-  width: 100%;
-  height: 4px;
-  margin-bottom: 4px;
+  color: rgb(51, 84, 29);
 }
 
-.insertDefinitionHorizontal:hover {
-  background-color: rgb(88, 218, 198);
+.definitionSeparator.nonindented {
+  margin: 0 4px;
+} */
+
+/* .definitionSeparator.nonindented {
+  display: inline-block;
+  margin: 0 4px;
 }
+
+.definitionSeparator.nonindented > span {
+  display: inline-block;
+  color: rgb(94, 94, 94);
+} */
+
+/* .definitionSeparator.indented {
+  display: inline-block;
+  width: 100px;
+  margin: 10px 0;
+}
+
+.definitionSeparator.indented > span {
+  display: inline-block;
+  width: 100px;
+  height: 1px;
+  margin: 4px 0;
+  background-color: rgb(94, 94, 94);
+} */
+
+/* .constructorSeparator {
+  display: inline-block;
+  color: rgb(51, 84, 29);
+} */
+
+/* .constructorSeparator.indented {
+  display: inline-block;
+  width: 100px;
+}
+
+.constructorSeparator.indented > span {
+  display: inline-block;
+  width: 100px;
+  height: 1px;
+  margin: 4px 0;
+  background-color: rgb(94, 94, 94);
+} */
