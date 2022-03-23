@@ -73,8 +73,6 @@ recModule rec =
             ix
             (checkCursorHere csr)
             -- definitionItems
-            -- (\i -> ix <> UpwardIndex (singleton (IndexStep StepModule 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            -- (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepModule 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
             (ix :- IndexStep StepModule 0)
             (checkCursorStep (IndexStep StepModule 0) csr)
     }
@@ -108,8 +106,6 @@ recBlock rec =
             ix
             (checkCursorHere csr)
             -- definitionItems
-            -- (\i -> ix <> UpwardIndex (singleton (IndexStep StepBlock 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            -- (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepBlock 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
             (ix :- IndexStep StepBlock 0)
             (checkCursorStep (IndexStep StepBlock 0) csr)
             -- term
@@ -130,6 +126,8 @@ type RecDefinitionItems_DefinitionItems a
         Boolean -> -- definitionItems
         (Int -> UpwardIndex) -> -- definition
         (Int -> Cursor) -> -- definition
+        (Int -> UpwardIndex) -> -- definitionSeparator
+        (Int -> Cursor) -> -- definitionSeparator
         a
       )
 
@@ -148,11 +146,35 @@ recDefinitionItems rec =
             ix
             (checkCursorHere csr)
             -- defItem
-            (\i -> toUpwardIndex (fromListIndexToDownwardIndex i) <> ix)
+            (\i -> ix <> toUpwardIndex (fromListIndexToDownwardIndex i))
             (\i -> checkCursorSteps (fromListIndexToDownwardIndex i) csr)
+            -- defSep
+            (\i -> ix <> toUpwardIndex (fromListSeparatorIndexToDownwardIndex i))
+            (\i -> checkCursorSteps (fromListSeparatorIndexToDownwardIndex i) csr)
     }
 
---  RecMetaContext.recDefinitionItems
+type RecDefinitionSeparator a
+  = UpwardIndex -> -- module/block
+    UpwardIndex -> -- definitionSeparator
+    Cursor -> -- definitionSeparator
+    a
+
+type RecDefinitionSeparator_DefinitionSeparator a
+  = UpwardIndex -> -- module/block
+    UpwardIndex -> -- definitionSeparator
+    Boolean -> -- definitionSeparator
+    a
+
+recDefinitionSeparator ::
+  forall a.
+  { definitionSeparator :: RecDefinitionSeparator_DefinitionSeparator a } ->
+  RecDefinitionSeparator a
+recDefinitionSeparator rec ix_parent ix csr =
+  rec.definitionSeparator
+    ix_parent
+    ix
+    (checkCursorHere csr)
+
 type RecDefinition a
   = RecMetaContext.RecDefinition
       ( UpwardIndex -> -- module/block
@@ -215,7 +237,7 @@ recDefinition rec =
     , data:
         \typeBinding constrs meta gamma metaGamma ix_parent ix csr ->
           let
-            _ = if isJust csr then Debug.trace ("data" /\ ix /\ csr) identity else unit
+            _ = unit -- if isJust csr then Debug.trace ("data" /\ ix /\ csr) identity else unit
           in
             rec.data typeBinding constrs meta gamma metaGamma
               -- module/block
@@ -228,7 +250,7 @@ recDefinition rec =
               (checkCursorStep (IndexStep StepDataDefinition 0) csr)
               -- constructors
               (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i)
-              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i) csr)
+              (\i -> checkCursorSteps (IndexStep StepDataDefinition 1 -: fromListIndexToDownwardIndex i) csr)
     }
 
 type RecConstructor a
@@ -263,7 +285,7 @@ recConstructor rec =
     { constructor:
         \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix csr ->
           let
-            _ = if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
+            _ = unit -- if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
           in
             rec.constructor termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at
               ix_parent
@@ -511,8 +533,8 @@ recTerm rec =
             (ix :- IndexStep StepMatchTerm 0)
             (checkCursorStep (IndexStep StepMatchTerm 0) csr)
             -- cases
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepMatchTerm 1)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+            (\i -> toUpwardIndex $ toDownwardIndex ix <> IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i)
+            (\i -> checkCursorSteps (IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i) csr)
     , hole:
         \meta gamma alpha metaGamma ix csr ->
           rec.hole meta gamma alpha metaGamma ix (checkCursorHere csr)
@@ -593,8 +615,8 @@ recCase rec =
             ix
             (checkCursorHere csr)
             -- termIdItems
-            (\i -> ix <> UpwardIndex (singleton (IndexStep StepCase 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (toDownwardIndex $ UpwardIndex (singleton (IndexStep StepCase 0)) <> toUpwardIndex (fromListIndexToDownwardIndex i)) csr)
+            (\i -> toUpwardIndex $ toDownwardIndex ix <> IndexStep StepCase 0 -: fromListIndexToDownwardIndex i)
+            (\i -> checkCursorSteps (IndexStep StepCase 0 -: fromListIndexToDownwardIndex i) csr)
             -- term
             (ix :- IndexStep StepCase 1)
             (checkCursorStep (IndexStep StepCase 1) csr)

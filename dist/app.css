@@ -95,7 +95,7 @@ html {
   /* border-width: 2px;
   border-color: rgb(206, 192, 81);
   border-style: inset; */
-  border: 2px dashed rgb(206, 192, 81);
+  /* border: 1px inset rgb(206, 192, 81); */
   background-color: rgb(48, 48, 48);
 
   /* transition-property: all;
@@ -157,22 +157,21 @@ html {
 /* mousing */
 
 .selected {
-  box-shadow: 0 0 0 1px rgb(211, 115, 0);
+  box-shadow: 0 0 0 2px rgb(211, 115, 0);
   background-color: rgba(255, 255, 255, 0.2);
 }
 
 .highlighted {
-  box-shadow: 0 0 0 1px purple;
+  box-shadow: 0 0 0 2px purple;
   background-color: rgba(255, 255, 255, 0.2);
 }
 
- *//* actions */
+/* actions */
 
-.insertDefinitionVertical {
+/* .insertDefinitionVertical {
   display: inline-block;
   width: 4px;
   height: 12pt;
-  /* background-color: red; */
   margin: 0 4px;
 }
 
@@ -189,4 +188,20 @@ html {
 
 .insertDefinitionHorizontal:hover {
   background-color: rgb(88, 218, 198);
+} */
+
+.definitionSeparator.vertical {
+  display: inline-block;
+  width: 4px;
+  height: 12pt;
+  margin-right: 4px;
+  /* background-color: red; */
+}
+.definitionSeparator.horizontal {
+  display: inline-block;
+  width: 100%;
+  height: 4px;
+  margin: 10px 0;
+  /* margin: 10px 0; */
+  /* background-color: red; */
 }

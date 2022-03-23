@@ -100,7 +100,8 @@ programComponent this =
     --   _ -> pure unit
     -- st' <- React.getState this
     -- Debug.traceM $ show st'.ix_cursor
-    Debug.traceM event
+    -- Debug.traceM event
+    pure unit
 
   state :: ProgramState
   state =
@@ -202,13 +203,51 @@ programComponent this =
   renderDefinitionItems =
     RecIndex.recDefinitionItems
       { definitionItems:
-          \defItems gamma metaGamma ix_parent ix isSelected ix_def_at cursor_def_at ->
+          \defItems gamma metaGamma ix_parent ix isSelected ix_def_at cursor_def_at ix_defSep_at cursor_defSep_at ->
             DOM.span
               (inertProps "definitionItems")
-              [ intersperseRightHTML
-                  [ punctuation.newline, renderInsertDefinitionButtonHorizontal ix, punctuation.newline ]
+              -- [ intersperseRightHTML
+              --     [ punctuation.newline, undefined, punctuation.newline ]
+              --     $ toUnfoldable
+              --     $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
+              -- ]
+              [ intercalateHTML 
+                  [ punctuation.newline ]
                   $ toUnfoldable
-                  $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
+                  $ mapWithIndex
+                      ( \i def ->
+                          DOM.span'
+                            [ indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                            , renderDefinitionSeparator
+                                { orientation: Horizontal }
+                                ix
+                                (ix_defSep_at i)
+                                (cursor_defSep_at i)
+                            , punctuation.newline
+                            , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                            , renderDefinition def gamma metaGamma ix (ix_def_at i)
+                                (cursor_def_at i)
+                            ]
+                      )
+                      (fromItem <$> defItems)
+              , if length defItems == 0 
+                  then
+                    renderDefinitionSeparator
+                      { orientation: Vertical }
+                      ix
+                      (ix_defSep_at (length defItems))
+                      (cursor_defSep_at (length defItems))
+                  else
+                    DOM.span'
+                      [ punctuation.newline
+                      , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
+                      , renderDefinitionSeparator
+                          { orientation: Horizontal }
+                          ix
+                          (ix_defSep_at (length defItems))
+                          (cursor_defSep_at (length defItems))
+                      ]
+                    
               ]
       }
 
@@ -439,7 +478,7 @@ programComponent this =
                     _ ->
                       [ punctuation.space
                       , punctuation.mapsto
-                      , indent meta metaGamma
+                      , indentOrSpace meta metaGamma
                       , renderBlock block gamma beta metaGamma ix_block cursor_block
                       ]
       , neutral:
@@ -684,20 +723,35 @@ programComponent this =
   printShadowSuffix :: String -> React.ReactElement
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
 
-  renderInsertDefinitionButtonVertical :: UpwardIndex -> React.ReactElement
-  renderInsertDefinitionButtonVertical ix =
-    DOM.span
-      [ Props.className "insertDefinitionVertical" ]
-      []
-
-  renderInsertDefinitionButtonHorizontal :: UpwardIndex -> React.ReactElement
-  renderInsertDefinitionButtonHorizontal ix =
-    DOM.span
-      [ Props.className "insertDefinitionHorizontal" ]
-      []
+  -- renderInsertDefinitionButtonVertical :: UpwardIndex -> React.ReactElement
+  -- renderInsertDefinitionButtonVertical ix =
+  --   DOM.span
+  --     [ Props.className "insertDefinitionVertical" ]
+  --     []
+  -- renderInsertDefinitionButtonHorizontal :: UpwardIndex -> React.ReactElement
+  -- renderInsertDefinitionButtonHorizontal ix =
+  --   DOM.span
+  --     [ Props.className "insertDefinitionHorizontal" ]
+  --     []
+  renderDefinitionSeparator :: { orientation :: Orientation } -> RecIndex.RecDefinitionSeparator React.ReactElement
+  renderDefinitionSeparator args =
+    RecIndex.recDefinitionSeparator
+      { definitionSeparator:
+          \ix_parent ix isSelected ->
+            let
+              eid = upwardIndexToEid ix
+            in
+              DOM.span
+                ( [ selectableClassName ("definitionSeparator " <> show args.orientation) isSelected, Props._id eid ]
+                    <> selectableProps ix
+                    <> outlineableProps eid
+                )
+                []
+      }
 
   outlineableProps :: String -> Array Props.Props
   outlineableProps eid =
+    {-
     [ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
@@ -726,6 +780,8 @@ programComponent this =
             pure outlineParents'
         React.modifyState this \st -> st { outlineParents = outlineParents' }
     ]
+    -}
+    []
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =
@@ -763,3 +819,12 @@ upwardIndexToEid :: UpwardIndex -> String
 upwardIndexToEid ix = case unconsUpwardIndex ix of
   Nothing -> ""
   Just { step: IndexStep label i, ix' } -> show label <> "-" <> show i <> "--" <> upwardIndexToEid ix'
+
+data Orientation
+  = Horizontal
+  | Vertical
+
+instance Show Orientation where 
+  show = case _ of 
+    Horizontal -> "horizontal"
+    Vertical -> "vertical"
