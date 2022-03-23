@@ -41,6 +41,9 @@ toUpwardIndex (DownwardIndex steps) = UpwardIndex $ reverse steps
 toDownwardIndex :: UpwardIndex -> DownwardIndex
 toDownwardIndex (UpwardIndex steps) = DownwardIndex $ reverse steps
 
+emptyDownwardIndex :: DownwardIndex
+emptyDownwardIndex = DownwardIndex Nil
+
 unconsDownwardIndex :: DownwardIndex -> Maybe { step :: IndexStep, ix' :: DownwardIndex }
 unconsDownwardIndex (DownwardIndex steps) = do
   { head: step, tail: steps' } <- uncons steps

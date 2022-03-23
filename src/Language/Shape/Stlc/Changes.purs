@@ -52,6 +52,9 @@ emptyChanges = {
     dataTypeDeletions : empty
 }
 
+emptyDisplaced :: List Definition
+emptyDisplaced = Nil
+
 -- emptyDatatypeChange :: forall a. List a -> List ConstructorChange
 -- emptyDatatypeChange = mapWithIndex (\index _ -> ChangeConstructor undefined index)
 
@@ -204,7 +207,7 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
                                                                           pure $ cas' /\ (snd (index' cases n))) changes)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
--- TODO: does this last case ever actually happen?
+-- TODO: does this last case ever actually happen? I don't think it should.
 chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
     = let (Tuple ty' change) = chType chs.dataTypeDeletions ty in
     do
