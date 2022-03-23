@@ -166,43 +166,15 @@ html {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* actions */
-
-/* .insertDefinitionVertical {
-  display: inline-block;
-  width: 4px;
-  height: 12pt;
-  margin: 0 4px;
-}
-
-.insertDefinitionVertical:hover {
-  background-color: rgb(88, 218, 198);
-}
-
-.insertDefinitionHorizontal {
-  display: inline-block;
-  width: 100%;
-  height: 4px;
-  margin-bottom: 4px;
-}
-
-.insertDefinitionHorizontal:hover {
-  background-color: rgb(88, 218, 198);
-} */
+/* definitionSeparator */
 
 .definitionSeparator.vertical {
   display: inline-block;
-  /* width: 4px; */
-  /* height: 12pt; */
   margin: 0 4px;
-  /* background-color: red; */
 }
 
 .definitionSeparator.vertical > span {
   display: inline-block;
-  /* width: 10px; */
-  /* height: 12pt; */
-  /* background-color: red; */
   color: rgb(94, 94, 94);
 }
 
