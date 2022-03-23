@@ -96,7 +96,11 @@ html {
   border-color: rgb(206, 192, 81);
   border-style: inset; */
   /* border: 1px inset rgb(206, 192, 81); */
-  background-color: rgb(48, 48, 48);
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 10px;
+  /* background-color: rgb(48, 48, 48); */
+  background-color: rgb(82, 0, 0);
 
   /* transition-property: all;
   transition-duration: 0.2s;
