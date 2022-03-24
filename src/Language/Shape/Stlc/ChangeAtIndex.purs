@@ -18,6 +18,7 @@ import Unsafe (error)
 data Change
     = ChangeTypeChange TypeChange
     | ChangeConstructorChange ConstructorChange
+    | ChangeNone
 
 castChangeTC :: Change -> TypeChange
 castChangeTC = case _ of
