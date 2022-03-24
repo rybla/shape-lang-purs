@@ -18,6 +18,9 @@ to Blocks, Terms, ...
 type HoleSub
   = Map HoleId Type
 
+emptyHoleSub :: HoleSub
+emptyHoleSub = empty
+
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType param b md2) = ArrowType (subParameter sub param) (subType sub b) md2
 subType sub (DataType i md) = DataType i md
