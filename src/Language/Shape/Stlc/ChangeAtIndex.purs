@@ -11,7 +11,7 @@ import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, c
 import Language.Shape.Stlc.Holes (emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
 import Language.Shape.Stlc.Recursion.Context as Rec
-import Language.Shape.Stlc.Syntax (ArgItem, Block(..), Constructor(..), Module(..), Syntax(..), Term(..))
+import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition, DefinitionItem, Module(..), Parameter(..), Syntax(..), Term(..), ArgItem)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -25,56 +25,83 @@ castChangeTC = case _ of
     (ChangeTypeChange tc) -> tc
     _ -> error "no"
 
-chAtIndex :: Module -> DownwardIndex -> Syntax -> Change -> Module /\ DownwardIndex
-chAtIndex m i s tc
-    = case chAtIndexImpl (SyntaxModule m) i s tc of
-           ((SyntaxModule m) /\ i' /\ Just NoChange) -> Tuple m i'
-           _ -> error "no"
+-- do these two need to exist?
+-- chAtIndex :: Module -> DownwardIndex -> Syntax -> Change -> Module /\ DownwardIndex
+-- chAtIndex m i s tc
+--     = case chAtIndexImpl (SyntaxModule m) i s tc of
+--            ((SyntaxModule m) /\ i' /\ Just NoChange) -> Tuple m i'
+--            _ -> error "no"
 
-chAtIndexImpl :: Syntax -> DownwardIndex -> Syntax -> Change -> Syntax /\ DownwardIndex /\ Maybe TypeChange
-chAtIndexImpl = undefined
+-- chAtIndexImpl :: Syntax -> DownwardIndex -> Syntax -> Change -> Syntax /\ DownwardIndex /\ Maybe TypeChange
+-- chAtIndexImpl = undefined
 
 -- chAtTerm = undefined
 
-chAtTerm :: Rec.RecTerm (Syntax -> Change -> DownwardIndex -> Term /\ DownwardIndex /\ TypeChange)
+chAtModule :: Rec.RecModule (Syntax -> Change -> DownwardIndex -> Maybe (Module /\ DownwardIndex))
+chAtModule = undefined
+
+chAtDefinitionItems :: Rec.RecDefinitionItems (Syntax -> Change -> DownwardIndex
+    -> Maybe (List DefinitionItem /\ DownwardIndex))
+chAtDefinitionItems = undefined
+
+chAtDefinition :: Rec.RecDefinition (Syntax -> Change -> DownwardIndex -> Maybe (Definition /\ DownwardIndex))
+chAtDefinition = undefined
+
+chAtTerm :: Rec.RecTerm (Syntax -> Change -> DownwardIndex -> Maybe (Term /\ DownwardIndex /\ TypeChange))
 chAtTerm = Rec.recTerm {
-    -- lambda : \termId block meta gamma param beta tRep sbjto idx -> case unconsDownwardIndex idx of
-    --     (Just {step : IndexStep StepLambdaTerm 2, ix' : rest}) -> 
-    --         let (block' /\ idx' /\ tc) = chAtBlock block gamma beta tRep sbjto rest
-    --         in LambdaTerm termId block' meta /\ idx' /\ ArrowCh NoChange tc
-    --     Nothing -> let block' /\ holeSub = runState (chBlock gamma beta emptyChanges sbjto block) emptyHoleSub
-    --                in LambdaTerm termId block' meta /\ emptyDownwardIndex /\ ArrowCh NoChange sbjto
-    --     _ -> error "no"
-    --     -- I think this is wrong. I think we need to match on rest to find out if child should be changed?
     lambda : \termId block meta gamma param beta tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) Nil)) ->
             let block' /\ holeSub = runState (chBlock gamma beta emptyChanges (castChangeTC sbjto) block) emptyHoleSub
-            in LambdaTerm termId block' meta /\ emptyDownwardIndex /\ ArrowCh NoChange (castChangeTC sbjto)
+            in pure $ LambdaTerm termId block' meta /\ emptyDownwardIndex /\ ArrowCh NoChange (castChangeTC sbjto)
         (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) rest)) -> 
             let (block' /\ (DownwardIndex idx') /\ tc) = chAtBlock block gamma beta tRep sbjto (DownwardIndex rest)
-            in LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) idx')) /\ ArrowCh NoChange tc
+            in pure $ LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) idx')) /\ ArrowCh NoChange tc
         _ -> error "no"
-    -- I don't think that there is a Nil case here.
     , neutral : \termId argItems meta gamma alpha tRep sbjto -> case _ of
-        -- (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) Nil)) ->
-        --     let args' /\ holeSub /\ displaced = runState (chArgs gamma alpha emptyChanges sbjto argItems) (emptyDisplaced /\ emptyHoleSub) 
-        --     in NeutralTerm termId undefined meta /\ emptyDownwardIndex /\ undefined
         (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) rest)) ->
-            let (argItems' /\ (DownwardIndex idx')) = chAtArgs argItems gamma alpha tRep sbjto (DownwardIndex rest)
-            in (NeutralTerm termId argItems' meta /\ (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) idx')) /\ NoChange)
+            do (argItems' /\ (DownwardIndex idx')) <- chAtArgs argItems gamma alpha tRep sbjto (DownwardIndex rest)
+               pure $ (NeutralTerm termId argItems' meta /\ (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) idx')) /\ NoChange)
         _ -> error "no"
     , hole : \meta gamma alpha -> error "no" -- holes have no children, so StepHoleTerm is never used.
-    , match : \dataID a cases meta gamma alpha -> undefined
+    , match : \dataID a cases meta gamma alpha tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepMatchTerm 1) rest)) ->
+            -- do (cases' /\ (DownwardIndex idx')) <- chAtCase cases gamma alpha tRep sbjto rest
+               undefined
+        _ -> error "no"
 }
 
 chAtBlock :: Rec.RecBlock (Syntax -> Change -> DownwardIndex -> Block /\ DownwardIndex /\ TypeChange)
 chAtBlock = undefined
 
-chAtArgs :: Rec.RecArgItems (Syntax -> Change -> DownwardIndex -> List ArgItem /\ DownwardIndex)
-chAtArgs = undefined
+chAtArgs :: Rec.RecArgItems (Syntax -> Change -> DownwardIndex -> Maybe (List ArgItem /\ DownwardIndex))
+chAtArgs = Rec.recArgItems {
+    nil : \ty tRep sbjto idx -> error "can't change the end of an args list using chAtIndex"
+    , cons : \(t /\ md) argItems gamma (Parameter ty tymd) alpha tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepArgItem 0) rest)) ->
+            do (t' /\ (DownwardIndex idx') /\ ch) <- chAtTerm t gamma ty tRep sbjto (DownwardIndex rest)
+               case ch of
+                  NoChange -> Just (Cons (t' /\ md) argItems /\ (DownwardIndex (Cons (IndexStep StepArgItem 0) idx')))
+                  _ -> Nothing -- can't change type of something on right of an application.
+        (DownwardIndex (Cons (IndexStep StepArgItem 1) rest)) -> 
+            do (argItems' /\ DownwardIndex idx') <- chAtArgs argItems gamma alpha tRep sbjto (DownwardIndex rest)
+               pure $ (Cons (t /\ md) argItems') /\ DownwardIndex (Cons (IndexStep StepArgItem 1) idx')
+        _ -> error "no"
 
-chAtConstructor :: Rec.RecConstructor (Syntax -> Change -> DownwardIndex -> (Constructor /\ DownwardIndex /\ ConstructorChange))
+}
+
+chAtConstructor :: Rec.RecConstructor (Syntax -> Change -> DownwardIndex -> Maybe (Constructor /\ DownwardIndex /\ ConstructorChange))
 chAtConstructor = undefined
+
+chAtType :: Rec.RecType (Syntax -> Change -> DownwardIndex -> Maybe (Type /\ DownwardIndex /\ TypeChange))
+chAtType = undefined
+
+-- doesn't return a TypeChange for the same reason that chAtArgs doesn't
+chAtCase :: Rec.RecCase (Syntax -> Change -> DownwardIndex -> Maybe (Case /\ DownwardIndex))
+chAtCase = undefined
+
+-- does this need to return a TypeChange? Consider once I know where it is called.
+chAtParameter :: Rec.RecParameter (Syntax -> Change -> DownwardIndex -> Maybe (Parameter /\ DownwardIndex /\ TypeChange))
+chAtParameter = undefined
 
 
 {-
