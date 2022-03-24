@@ -40,14 +40,20 @@
     - [ ] actions
       - [x] hovering over syntax will highlight the innermost syntax element
             (even if hovering over the whitespace between)
-      - [ ] list manipulations
+      - [x] list manipulations
         - insertions: triggers is between list items
         - deletions: trigger is at list item
         - move: delete; insert
+        - instances
+          - [x] definitionItems
+          - [x] constructorItems (in data definition)
+          - [x] parameterItems (in constructor)
+          - [ ] argItems (in neutral)
+          - [ ] termIds (in case)
       - [ ] term holes
         - [x] show type in hole
         - drag a term into hole
-        - drag a var from lambda into hoel
+        - drag a var from lambda into hole
         - paste into hole
         - basic fills:
           - neutral form (given a var in context)
