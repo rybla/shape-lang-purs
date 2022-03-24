@@ -107,6 +107,11 @@ programComponent this =
                         >>= case _ of
                             Just str -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = readTermName str }
                             Nothing -> pure $ SyntaxTermBinding termBinding
+                    SyntaxParameter prm@(Parameter alpha meta) ->
+                      promptDefault "Enter new name" (show meta.name) win
+                        >>= case _ of
+                            Just str -> pure $ SyntaxParameter $ Parameter alpha meta { name = readTermName str }
+                            Nothing -> pure $ SyntaxParameter prm
                     SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) ->
                       promptDefault "Enter new name" (show meta.name) win
                         >>= case _ of

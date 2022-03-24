@@ -53,8 +53,6 @@ type RecModule_Module a
   = RecMetaContext.RecModule_Module
       ( UpwardIndex -> -- module
         Boolean -> -- module
-        -- (Int -> UpwardIndex) -> -- definition
-        -- (Int -> Cursor) -> -- definition
         UpwardIndex -> -- definitionItems
         Cursor -> -- definitionItems
         a
@@ -146,10 +144,10 @@ recDefinitionItems rec =
             ix
             (checkCursorHere csr)
             -- defItem
-            (\i -> ix <> toUpwardIndex (fromListIndexToDownwardIndex i))
-            (\i -> checkCursorSteps (fromListIndexToDownwardIndex i) csr)
+            (\i -> ix <> (fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepDefinitionItem 0)))
+            (\i -> checkCursorSteps (fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepDefinitionItem 0)) csr)
             -- defSep
-            (\i -> ix <> toUpwardIndex (fromSublistIndexToDownwardIndex i))
+            (\i -> ix <> fromSublistIndexToUpwardIndex i)
             (\i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr)
     }
 
@@ -251,11 +249,11 @@ recDefinition rec =
               (ix :- IndexStep StepDataDefinition 0)
               (checkCursorStep (IndexStep StepDataDefinition 0) csr)
               -- constructorItems
-              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i)
-              (\i -> checkCursorSteps (IndexStep StepDataDefinition 1 -: fromListIndexToDownwardIndex i) csr)
+              (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepConstructorItem 0))
+              (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepConstructorItem 0)) csr)
               -- constructorSeps
-              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i)
-              (\i -> checkCursorSteps (IndexStep StepDataDefinition 1 -: fromSublistIndexToDownwardIndex i) csr)
+              (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToUpwardIndex i)
+              (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i) csr)
     }
 
 type RecConstructorSeparator a
@@ -329,11 +327,11 @@ recConstructor rec =
               (ix :- IndexStep StepConstructor 0)
               (checkCursorStep (IndexStep StepConstructor 0) csr)
               -- parameterItems
-              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i)
-              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i) csr)
+              (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepParameterItem 0))
+              (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepParameterItem 0)) csr)
               -- parameterSeps
-              (\i -> toUpwardIndex $ toDownwardIndex ix <> (DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i)
-              (\i -> checkCursorSteps ((DownwardIndex $ singleton $ IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
+              (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToUpwardIndex i)
+              (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
     }
 
 type RecParameterSeparator a
@@ -596,8 +594,8 @@ recTerm rec =
             (ix :- IndexStep StepMatchTerm 0)
             (checkCursorStep (IndexStep StepMatchTerm 0) csr)
             -- caseItems
-            (\i -> toUpwardIndex $ toDownwardIndex ix <> IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i)
-            (\i -> checkCursorSteps (IndexStep StepMatchTerm 1 -: fromListIndexToDownwardIndex i) csr)
+            (\i -> ix <> singletonUpwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepCaseItem 0))
+            (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepCaseItem 0)) csr)
     , hole:
         \meta gamma alpha metaGamma ix csr ->
           rec.hole meta gamma alpha metaGamma ix (checkCursorHere csr)
@@ -675,8 +673,8 @@ recCase rec =
             ix
             (checkCursorHere csr)
             -- termIdItems
-            (\i -> toUpwardIndex $ toDownwardIndex ix <> IndexStep StepCase 0 -: fromListIndexToDownwardIndex i)
-            (\i -> checkCursorSteps (IndexStep StepCase 0 -: fromListIndexToDownwardIndex i) csr)
+            (\i -> ix <> singletonUpwardIndex (IndexStep StepCase 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepTermIdItem 0))
+            (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepCase 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepTermIdItem 0)) csr)
             -- term
             (ix :- IndexStep StepCase 1)
             (checkCursorStep (IndexStep StepCase 1) csr)
