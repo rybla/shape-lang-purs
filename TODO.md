@@ -66,8 +66,9 @@
       - [ ] term
         - dig
         - copy to clipboard
-      - [ ] renaming
+      - [x] renaming
         - things that can be renamed: parameters, termBindings, typeBindings
-        - pops up a dialogue box, _or_ edits in place via `<input>` or changing
-          moves and handling keyboard input
+        - [x] pops up a dialogue box
+        - [ ] edits in place via `<input>` or changing moves and handling
+              keyboard input
     - [ ] cursor (worry about this after mouse actions work)

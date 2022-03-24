@@ -73,7 +73,14 @@ data StepLabel
   | StepMatchTerm
   | StepCase
   | StepParameter
-  -- in SyntaxList
+  -- item
+  | StepDefinitionItem
+  | StepConstructorItem
+  | StepParameterItem
+  | StepCaseItem
+  | StepArgItem
+  | StepTermIdItem
+  -- list
   | StepCons
   | StepNil
 
@@ -92,12 +99,28 @@ instance Show IndexStep where show (IndexStep l i) = show l <> "(" <> show i <> 
 -- i^th element of a cons-list
 fromListIndexToDownwardIndex :: Int -> DownwardIndex 
 fromListIndexToDownwardIndex i = 
-  DownwardIndex (replicate i (IndexStep StepCons 1) `snoc` IndexStep StepCons 0)
+  DownwardIndex $ replicate i (IndexStep StepCons 1) `snoc` IndexStep StepCons 0
+
+-- i^th element of a cons-list
+fromListIndexToUpwardIndex :: Int -> UpwardIndex
+fromListIndexToUpwardIndex i = 
+  UpwardIndex (replicate i (IndexStep StepCons 1)) :- IndexStep StepCons 0
 
 -- i^th sublist of a cons-list
 fromSublistIndexToDownwardIndex :: Int -> DownwardIndex 
 fromSublistIndexToDownwardIndex i = 
-  DownwardIndex (replicate i (IndexStep StepCons 1))
+  DownwardIndex $ replicate i (IndexStep StepCons 1)
+
+-- i^th sublist of a cons-list
+fromSublistIndexToUpwardIndex :: Int -> UpwardIndex 
+fromSublistIndexToUpwardIndex i = 
+  UpwardIndex $ replicate i (IndexStep StepCons 1)
+
+singletonDownwardIndex :: IndexStep -> DownwardIndex 
+singletonDownwardIndex = DownwardIndex <<< singleton
+
+singletonUpwardIndex :: IndexStep -> UpwardIndex 
+singletonUpwardIndex = UpwardIndex <<< singleton
 
 childrenCount :: StepLabel -> Int
 childrenCount = case _ of 
@@ -114,6 +137,14 @@ childrenCount = case _ of
   StepMatchTerm -> 2
   StepCase -> 2
   StepParameter -> 1
+  -- item
+  StepDefinitionItem -> 1
+  StepConstructorItem -> 1
+  StepParameterItem -> 1
+  StepCaseItem -> 1
+  StepArgItem -> 1
+  StepTermIdItem -> 1
+  -- list 
   StepCons -> 2
   StepNil -> 0
 
@@ -141,11 +172,11 @@ stepSyntax step syn = case syn /\ step of
   SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1 -> SyntaxBlock block
   SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 -> SyntaxType alpha 
   -- items
-  SyntaxDefinitionItem (def /\ meta) /\ step -> stepSyntax step (SyntaxDefinition def)
-  SyntaxConstructorItem (constr /\ meta) /\ step -> stepSyntax step (SyntaxConstructor constr)
-  SyntaxCaseItem (case_ /\ meta) /\ step -> stepSyntax step (SyntaxCase case_)
-  SyntaxParameterItem (prm /\ meta) /\ step -> stepSyntax step (SyntaxParameter prm)
-  SyntaxTermIdItem (termId /\ meta) /\ step -> stepSyntax step (SyntaxTermId termId)
+  SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 -> SyntaxDefinition def
+  SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructor constr
+  SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 -> SyntaxCase case_
+  SyntaxParameterItem (prm /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameter prm
+  SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermId termId
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> h
   SyntaxList (Cons h t) /\ IndexStep StepCons 1 -> SyntaxList t
@@ -175,11 +206,11 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
   SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1  /\ SyntaxBlock block' -> SyntaxCase (Case xItems block' meta)
   SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 /\ SyntaxType alpha' -> SyntaxParameter (Parameter alpha' meta)
   -- items
-  SyntaxDefinitionItem (def /\ meta) /\ step /\ synSub -> SyntaxDefinitionItem $ toDefinition (wrapStepSyntax step (SyntaxDefinition def) synSub) /\ meta
-  SyntaxConstructorItem (constr /\ meta) /\ step /\ synSub -> SyntaxConstructorItem $ toConstructor (wrapStepSyntax step (SyntaxConstructor constr) synSub) /\ meta
-  SyntaxCaseItem (case_ /\ meta) /\ step /\ synSub -> SyntaxCaseItem $ toCase (wrapStepSyntax step (SyntaxCase case_) synSub) /\ meta
-  SyntaxParameterItem (prm /\ meta) /\ step /\ synSub -> SyntaxParameterItem $ toParameter (wrapStepSyntax step (SyntaxParameter prm) synSub) /\ meta
-  SyntaxTermIdItem (termId /\ meta) /\ step /\ synSub -> SyntaxTermIdItem $ toTermId (wrapStepSyntax step (SyntaxTermId termId) synSub) /\ meta
+  SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 /\ SyntaxDefinition def' -> SyntaxDefinitionItem (def' /\ meta )
+  SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 /\ SyntaxConstructor constr' -> SyntaxConstructorItem (constr' /\ meta )
+  SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 /\ SyntaxCase case'  -> SyntaxCaseItem (case' /\ meta )
+  SyntaxParameterItem (prm /\ meta) /\ IndexStep StepParameterItem 0 /\ SyntaxParameter prm' -> SyntaxParameterItem (prm' /\ meta)
+  SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 /\ SyntaxTermId termId' -> SyntaxTermIdItem (termId' /\ meta)
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 /\ h' -> SyntaxList (Cons h' t)
   SyntaxList (Cons h t) /\ IndexStep StepCons 1 /\ SyntaxList t' -> SyntaxList (Cons h t')

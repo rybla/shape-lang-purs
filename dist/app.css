@@ -140,8 +140,9 @@ html {
 .termBinding,
 .termName,
 .termId {
+  display: inline-block;
   color: rgb(200, 230, 122);
-  /* background-color: rgba(255, 255, 255, 0.2); */
+  box-shadow: 0 -1px 0 0 rgba(200, 230, 122, 0.2) inset;
 }
 
 .termBinding > input {
@@ -156,7 +157,11 @@ html {
 }
 
 .typeId {
+  display: inline-block;
   color: rgb(109, 212, 197);
+  box-shadow: 0 -1px 0 0 rgba(109, 212, 197, 0.2) inset;
+  /* border-bottom: 1px dashed rgba(109, 212, 197, 0.2); */
+  /* border-bottom-style: dashed, inset; */
 }
 
 .shadow-suffix {
@@ -167,7 +172,7 @@ html {
 
 .keyword {
   font-weight: bold;
-  color: rgb(123, 0, 176);
+  color: rgb(154, 148, 168);
 }
 
 /* punctuation */
@@ -209,8 +214,10 @@ html {
 
 .separator {
   display: inline-block;
-  color: rgb(51, 84, 29);
+  /* color: rgb(51, 84, 29); */
   /* color: rgba(0, 0, 0, 0); */
+  /* color: rgba(115, 59, 67, 0.8); */
+  color: rgba(145, 189, 207, 0.2);
 }
 
 .separator.nonindented {
@@ -231,7 +238,7 @@ html {
   color: white;
 }
 
-.insertor {
+/* .insertor {
   display: inline-block;
   margin: 0 4px;
 
@@ -243,7 +250,7 @@ html {
   margin: 0 4px;
 
   color: rgb(150, 0, 0);
-}
+} */
 
 /* cursor */
 
