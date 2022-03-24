@@ -14,7 +14,7 @@ html {
 
 .app {
   font-family: monospace;
-  line-height: 14pt;
+  line-height: 16pt;
   font-size: 12pt;
   height: 100vh;
   margin: 0;
@@ -156,7 +156,7 @@ html {
 
 .keyword {
   font-weight: bold;
-  color: purple;
+  color: rgb(146, 78, 255);
 }
 
 /* punctuation */
@@ -197,11 +197,15 @@ html {
 .separator {
   display: inline-block;
   color: rgb(51, 84, 29);
-  /* color: rgb(0, 18, 35); */
+  /* color: rgba(0, 0, 0, 0); */
 }
 
 .separator.nonindented {
   margin: 0 4px;
+}
+
+.separator.indented {
+  width: 400px;
 }
 
 .separator.selected {
@@ -212,53 +216,12 @@ html {
   color: white;
 }
 
-/* .definitionSeparator {
-  display: inline-block;
-  color: rgb(51, 84, 29);
+/* mouse */
+
+span {
+  cursor: pointer;
 }
-
-.definitionSeparator.nonindented {
-  margin: 0 4px;
-} */
-
-/* .definitionSeparator.nonindented {
-  display: inline-block;
-  margin: 0 4px;
+span.termId,
+span.termBinding {
+  cursor: text;
 }
-
-.definitionSeparator.nonindented > span {
-  display: inline-block;
-  color: rgb(94, 94, 94);
-} */
-
-/* .definitionSeparator.indented {
-  display: inline-block;
-  width: 100px;
-  margin: 10px 0;
-}
-
-.definitionSeparator.indented > span {
-  display: inline-block;
-  width: 100px;
-  height: 1px;
-  margin: 4px 0;
-  background-color: rgb(94, 94, 94);
-} */
-
-/* .constructorSeparator {
-  display: inline-block;
-  color: rgb(51, 84, 29);
-} */
-
-/* .constructorSeparator.indented {
-  display: inline-block;
-  width: 100px;
-}
-
-.constructorSeparator.indented > span {
-  display: inline-block;
-  width: 100px;
-  height: 1px;
-  margin: 4px 0;
-  background-color: rgb(94, 94, 94);
-} */

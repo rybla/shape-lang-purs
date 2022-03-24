@@ -178,7 +178,7 @@ type RecCase a
   = Case -> TypeId -> TermId -> a
 
 type RecCase_Case a
-  = List TermIdItem -> Term -> CaseMetadata -> TypeId -> TermId -> a
+  = List TermIdItem -> Block -> CaseMetadata -> TypeId -> TermId -> a
 
 recCase ::
   forall a.

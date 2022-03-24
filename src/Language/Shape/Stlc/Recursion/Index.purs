@@ -667,8 +667,8 @@ recCase ::
 recCase rec =
   RecMetaContext.recCase
     { case_:
-        \termIds a meta typeId constrId gamma alpha metaGamma ix_match ix csr ->
-          rec.case_ termIds a meta typeId constrId gamma alpha metaGamma
+        \termIds block meta typeId constrId gamma alpha metaGamma ix_match ix csr ->
+          rec.case_ termIds block meta typeId constrId gamma alpha metaGamma
             -- match
             ix_match
             -- case 

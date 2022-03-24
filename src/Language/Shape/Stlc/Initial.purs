@@ -110,23 +110,45 @@ module_ =
               )
               defaultTermDefinitionMetadata
               /\ defaultDefinitionItemMetadata
-          -- , TermDefinition
-          --     (TermBinding tmp1_id defaultTermBindingMetadata { name = tmp1_name })
-          --     (HoleType h2_id Set.empty defaultHoleTypeMetadata)
-          --     ( LambdaTerm
-          --         x3_id
-          --         ( Block
-          --             ( fromFoldable
-          --                 [ TermDefinition tmp2_id defaultTermBindingMetadata { name = tmp2_name }
-          --                 ]
-          --             )
-          --             (HoleTerm defaultHoleTermMetadata)
-          --             defaultBlockMetadata
-          --         )
-          --         defaultLambdaTermMetadata
-          --     )
-          --     defaultTermDefinitionMetadata
-          --     /\ defaultDefinitionItemMetadata
+          , let
+              identity'_id /\ identity'_name = makeTermVar "identity'"
+
+              x_id /\ x_name = makeTermVar "x"
+
+              x'_id /\ x'_name = makeTermVar "x'"
+            in
+              TermDefinition
+                (TermBinding identity'_id defaultTermBindingMetadata { name = identity'_name })
+                ( ArrowType
+                    (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = x_name })
+                    (DataType nat_id defaultDataTypeMetadata)
+                    defaultArrowTypeMetadata
+                )
+                ( LambdaTerm
+                    x_id
+                    ( Block Nil
+                        ( MatchTerm nat_id (NeutralTerm x_id Nil defaultNeutralTermMetadata)
+                            ( fromFoldable
+                                [ Case -- zero
+                                    Nil
+                                    (Block Nil (NeutralTerm zero_id Nil defaultNeutralTermMetadata) defaultBlockMetadata)
+                                    defaultCaseMetadata
+                                    /\ defaultCaseItemMetadata { indented = true }
+                                , Case -- suc
+                                    ((x'_id /\ defaultTermIdItemMetadata) : Nil)
+                                    (Block Nil (NeutralTerm suc_id ((NeutralTerm x'_id Nil defaultNeutralTermMetadata /\ defaultArgItemMetadata) : Nil) defaultNeutralTermMetadata) defaultBlockMetadata)
+                                    defaultCaseMetadata
+                                    /\ defaultCaseItemMetadata { indented = true }
+                                ]
+                            )
+                            defaultMatchTermMetadata
+                        )
+                        defaultBlockMetadata { indented = true }
+                    )
+                    defaultLambdaTermMetadata
+                )
+                defaultTermDefinitionMetadata
+                /\ defaultDefinitionItemMetadata
           ]
       )
       defaultModuleMetadata

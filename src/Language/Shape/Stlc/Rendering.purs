@@ -195,7 +195,7 @@ programComponent this =
                     <> outlineableProps eid
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
-                , indent meta metaGamma
+                , indentOrNothing meta metaGamma
                 , renderTerm a gamma alpha metaGamma ix_term cursor_term
                 ]
       }
@@ -223,9 +223,11 @@ programComponent this =
                                 ix
                                 (ix_defSep_at i)
                                 (cursor_defSep_at i)
+                            -- , punctuation.newline
                             , indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinition def gamma metaGamma ix (ix_def_at i)
                                 (cursor_def_at i)
+                            -- , punctuation.newline
                             ]
                       )
                       (fromItem <$> defItems)
@@ -353,7 +355,6 @@ programComponent this =
                 $ [ punctuation.alt
                   , punctuation.space
                   , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
-                  , punctuation.space
                   , DOM.span
                       (inertProps "constructor parameters")
                       [ intercalateHTML
@@ -491,7 +492,7 @@ programComponent this =
                 $ [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
                 <> [ punctuation.space
                   , punctuation.mapsto
-                  , indent meta metaGamma -- indentOrSpace meta metaGamma
+                  , indentOrNothing meta metaGamma
                   , renderBlock block gamma beta metaGamma ix_block cursor_block
                   ]
       , neutral:
@@ -524,12 +525,24 @@ programComponent this =
                 , keyword.with
                 , DOM.span
                     (inertProps "match caseItems")
-                    [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
-                        $ Array.fromFoldable
+                    ( Array.fromFoldable
                         $ mapWithIndex
-                            (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
-                            (fromItem <$> caseItems)
-                    ]
+                            ( \i (case_ /\ meta) ->
+                                DOM.span'
+                                  [ indentOrSpace meta metaGamma
+                                  , renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i)
+                                  ]
+                            )
+                            caseItems
+                    )
+                -- , DOM.span
+                --     (inertProps "match caseItems")
+                --     [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
+                --         $ Array.fromFoldable
+                --         $ mapWithIndex
+                --             (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
+                --             (fromItem <$> caseItems)
+                --     ]
                 ]
       , hole:
           \meta gamma alpha metaGamma ix isSelected ->
@@ -572,7 +585,7 @@ programComponent this =
   renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ix_prt cursor_prt =
     RecIndex.recCase
       { case_:
-          \termIdItems term meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
+          \termIdItems block meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
             let
               eid = upwardIndexToEid ix
             in
@@ -581,15 +594,26 @@ programComponent this =
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                [ renderTermId' constrId metaGamma
+                [ punctuation.alt
+                , punctuation.space
+                , renderTermId' constrId metaGamma
                 , DOM.span
                     (inertProps "case termIdItems")
-                    [ intersperseLeftHTML [ punctuation.space ]
+                    [ DOM.span'
                         $ Array.fromFoldable
-                        $ mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) (fromItem <$> termIdItems)
+                        $ mapWithIndex
+                            ( \i termId ->
+                                DOM.span'
+                                  [ punctuation.space
+                                  , renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)
+                                  ]
+                            )
+                            (fromItem <$> termIdItems)
                     ]
                 , punctuation.space
-                , renderTerm term gamma alpha metaGamma ix_term cursor_term
+                , punctuation.mapsto
+                , indentOrNothing meta metaGamma
+                , renderBlock block gamma alpha metaGamma ix_term cursor_term
                 ]
       }
       case_prt

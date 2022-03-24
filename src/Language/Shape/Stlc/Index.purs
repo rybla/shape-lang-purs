@@ -146,9 +146,9 @@ stepSyntax step syn = case syn /\ step of
     | i == 0 -> SyntaxTerm a 
     | i == 1 -> SyntaxList $ SyntaxCaseItem <$> caseItems 
   -- SyntaxTerm (HoleTerm meta) /\ IndexStep StepHoleTerm i
-  SyntaxCase (Case xItems a meta) /\ IndexStep StepCase i
+  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase i
     | i == 0 -> SyntaxList $ SyntaxTermIdItem <$> xItems
-    | i == 1 -> SyntaxTerm a 
+    | i == 1 -> SyntaxBlock block
   SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter i
     | i == 0 -> SyntaxType alpha 
   SyntaxList (Cons h t) /\ IndexStep StepCons i

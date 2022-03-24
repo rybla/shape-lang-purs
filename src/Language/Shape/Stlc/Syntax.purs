@@ -43,7 +43,7 @@ type CaseItem = Case /\ CaseItemMetadata
 
 type ArgItem = Term /\ ArgItemMetadata
 
-data Case = Case (List TermIdItem) Term CaseMetadata
+data Case = Case (List TermIdItem) Block CaseMetadata
 
 type TermIdItem = TermId /\ TermIdItemMetadata
 

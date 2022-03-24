@@ -67,8 +67,8 @@ defaultTermIdItemMetadata = {indented:false} :: TermIdItemMetadata
 type HoleTermMetadata = {}
 defaultHoleTermMetadata = {} :: HoleTermMetadata
 
-type CaseMetadata = {}
-defaultCaseMetadata = {} :: CaseMetadata
+type CaseMetadata = {indented::Boolean}
+defaultCaseMetadata = {indented:false} :: CaseMetadata
 
 type ParameterMetadata = { name :: TermName }
 defaultParameterMetadata = {name: TermName Nothing} :: ParameterMetadata
