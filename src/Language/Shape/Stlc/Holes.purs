@@ -72,4 +72,4 @@ subConstructor sub (Constructor bind paramItems md)
   = Constructor bind (map (\(Tuple param md) -> Tuple (subParameter sub param) md) paramItems) md
 
 subCase :: HoleSub -> Case -> Case
-subCase sub (Case binds t md) = Case binds (subTerm sub t) md
+subCase sub (Case binds t md) = Case binds (subBlock sub t) md
