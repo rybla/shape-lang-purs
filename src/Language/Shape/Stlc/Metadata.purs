@@ -1,11 +1,12 @@
 module Language.Shape.Stlc.Metadata where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.String (codePointFromChar)
+import Data.String as String
 
 type ModuleMetadata = { hidden :: Boolean }
 defaultModuleMetadata = { hidden: false } :: ModuleMetadata
@@ -91,6 +92,22 @@ instance Show TypeName where
   show (TypeName (Just label)) = label
   show (TypeName Nothing) = "_"
 
+readTermName :: String -> TermName 
+readTermName str = 
+  let str' = String.trim str in 
+  if str' == "_" then 
+    TermName Nothing 
+  else 
+    TermName (Just str')
+
+readTypeName :: String -> TypeName
+readTypeName str = 
+  let str' = String.trim str in 
+  if str' == "_" then 
+    TypeName Nothing 
+  else 
+    TypeName (Just str')
+
 -- instances for TermName
 derive instance Generic TermName _
 derive instance Eq TermName
@@ -99,5 +116,4 @@ derive instance Ord TermName
 instance Show TermName where
   show (TermName (Just label)) = label
   show (TermName Nothing) = "_"
-
 

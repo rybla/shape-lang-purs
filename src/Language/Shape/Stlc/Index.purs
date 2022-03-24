@@ -14,6 +14,8 @@ import Debug as Debug
 import Undefined (undefined)
 import Unsafe as Unsafe
 
+-- with this new index that has a constant number of children for each StepLabel, going up is same, left/right is much easier now, and going down still requires a case-by-case check to see if the current node supports going downward (always to the 0 child) i.e. it is not a terminal node of the AST
+
 newtype UpwardIndex
   = UpwardIndex (List IndexStep)
 
@@ -69,7 +71,6 @@ data StepLabel
   | StepLambdaTerm
   | StepNeutralTerm
   | StepMatchTerm
-  | StepHoleTerm
   | StepCase
   | StepParameter
   -- in SyntaxList
@@ -111,7 +112,6 @@ childrenCount = case _ of
   StepLambdaTerm -> 2
   StepNeutralTerm -> 2
   StepMatchTerm -> 2
-  StepHoleTerm -> 0
   StepCase -> 2
   StepParameter -> 1
   StepCons -> 2
@@ -119,46 +119,71 @@ childrenCount = case _ of
 
 stepSyntax :: IndexStep -> Syntax -> Syntax
 stepSyntax step syn = case syn /\ step of 
-  SyntaxModule (Module defItems meta) /\ IndexStep StepModule i
-    | i == 0 -> SyntaxList $ SyntaxDefinitionItem <$> defItems
-  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock i
-    | i == 0 -> SyntaxList $ SyntaxDefinitionItem <$> defItems
-    | i == 1 -> SyntaxTerm a
-  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition i
-    | i == 0 -> SyntaxTermBinding x 
-    | i == 1 -> SyntaxType alpha 
-    | i == 2 -> SyntaxTerm a 
-  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition i
-    | i == 0 -> SyntaxTypeBinding t
-    | i == 1 -> SyntaxList $ SyntaxConstructorItem <$> constrItems 
-  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor i
-    | i == 0 -> SyntaxTermBinding x 
-    | i == 1 -> SyntaxList $ SyntaxParameterItem <$> prmItems 
-  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
-    | i == 0 -> SyntaxParameter prm 
-    | i == 1 -> SyntaxType beta 
-  -- SyntaxType (DataType typeId meta) /\ IndexStep StepDataType i
-  -- SyntaxType (HoleType holeId wkn meta) /\ IndexStep StepHoleType i
-  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm i
-    | i == 0 -> SyntaxTermId x 
-    | i == 1 -> SyntaxBlock block 
-  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm i
-    | i == 0 -> SyntaxTermId x 
-    | i == 1 -> SyntaxList $ SyntaxArgItem <$> argItems 
-  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm i
-    | i == 0 -> SyntaxTerm a 
-    | i == 1 -> SyntaxList $ SyntaxCaseItem <$> caseItems 
-  -- SyntaxTerm (HoleTerm meta) /\ IndexStep StepHoleTerm i
-  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase i
-    | i == 0 -> SyntaxList $ SyntaxTermIdItem <$> xItems
-    | i == 1 -> SyntaxBlock block
-  SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter i
-    | i == 0 -> SyntaxType alpha 
-  SyntaxList (Cons h t) /\ IndexStep StepCons i
-    | i == 0 -> h
-    | i == 1 -> SyntaxList t
-  -- SyntaxList Nil /\ IndexStep StepNil i
-  _ -> Unsafe.error "stepSyntax: impossible"
+  SyntaxModule (Module defItems meta) /\ IndexStep StepModule 0 ->  SyntaxList $ SyntaxDefinitionItem <$> defItems
+  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 0 -> SyntaxList $ SyntaxDefinitionItem <$> defItems
+  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 1 -> SyntaxTerm a
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 0 -> SyntaxTermBinding x 
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 1 -> SyntaxType alpha 
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 2 -> SyntaxTerm a 
+  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 0 -> SyntaxTypeBinding t
+  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 -> SyntaxList $ SyntaxConstructorItem <$> constrItems
+  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 0 -> SyntaxTermBinding x 
+  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 1 -> SyntaxList $ SyntaxParameterItem <$> prmItems 
+  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 0 -> SyntaxParameter prm 
+  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType beta 
+  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 -> SyntaxTermId x 
+  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 -> SyntaxBlock block 
+  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 -> SyntaxTermId x 
+  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 1 -> SyntaxList $ SyntaxArgItem <$> argItems 
+  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 0 -> SyntaxTerm a 
+  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 1 -> SyntaxList $ SyntaxCaseItem <$> caseItems 
+  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 0 -> SyntaxList $ SyntaxTermIdItem <$> xItems
+  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1 -> SyntaxBlock block
+  SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 -> SyntaxType alpha 
+  -- items
+  SyntaxDefinitionItem (def /\ meta) /\ step -> stepSyntax step (SyntaxDefinition def)
+  SyntaxConstructorItem (constr /\ meta) /\ step -> stepSyntax step (SyntaxConstructor constr)
+  SyntaxCaseItem (case_ /\ meta) /\ step -> stepSyntax step (SyntaxCase case_)
+  SyntaxParameterItem (prm /\ meta) /\ step -> stepSyntax step (SyntaxParameter prm)
+  SyntaxTermIdItem (termId /\ meta) /\ step -> stepSyntax step (SyntaxTermId termId)
+  -- list
+  SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> h
+  SyntaxList (Cons h t) /\ IndexStep StepCons 1 -> SyntaxList t
+  _ -> Unsafe.error $ "stepSyntax: impossible: " <> show (step /\ syn)
+
+wrapStepSyntax :: IndexStep -> Syntax -> (Syntax -> Syntax)
+wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of 
+  SyntaxModule (Module defItems meta) /\ IndexStep StepModule 0 /\ SyntaxList defs' -> SyntaxModule (Module (toDefinitionItem <$> defs') meta)
+  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 0 /\ SyntaxList defs' -> SyntaxBlock (Block (toDefinitionItem <$> defs') a meta)
+  SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 1 /\ SyntaxTerm a' -> SyntaxBlock (Block defItems a' meta)
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 0 /\ SyntaxTermBinding x' -> SyntaxDefinition (TermDefinition x' alpha a meta)
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 1 /\ SyntaxType alpha'  -> SyntaxDefinition (TermDefinition x alpha' a meta)
+  SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 2 /\ SyntaxTerm a' -> SyntaxDefinition (TermDefinition x alpha a' meta)
+  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 0 /\ SyntaxTypeBinding t' -> SyntaxDefinition (DataDefinition t' constrItems meta)
+  SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 /\ SyntaxList constrs' -> SyntaxDefinition (DataDefinition t (toConstructorItem <$> constrs') meta)
+  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 0 /\ SyntaxTermBinding x' -> SyntaxConstructor (Constructor x' prmItems meta)
+  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 1 /\ SyntaxList prms' -> SyntaxConstructor (Constructor x (toParameterItem <$> prms') meta)
+  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 0 /\ SyntaxParameter prm' -> SyntaxType (ArrowType prm' beta meta)
+  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 1 /\SyntaxType beta' -> SyntaxType (ArrowType prm beta' meta)
+  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 /\ SyntaxTermId x' -> SyntaxTerm (LambdaTerm x' block meta)
+  SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 /\ SyntaxBlock block'-> SyntaxTerm (LambdaTerm x block' meta)
+  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 /\ SyntaxTermId x' -> SyntaxTerm (NeutralTerm x' argItems meta)
+  SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 1 /\ SyntaxList args' -> SyntaxTerm (NeutralTerm x (toArgItem <$> args') meta)
+  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 0 /\ SyntaxTerm a' -> SyntaxTerm (MatchTerm typeId a' caseItems meta)
+  SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 1 /\ SyntaxList cases' -> SyntaxTerm (MatchTerm typeId a (toCaseItem <$> cases') meta)
+  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 0 /\ SyntaxList xs -> SyntaxCase (Case (toTermIdItem <$> xs) block meta)
+  SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1  /\ SyntaxBlock block' -> SyntaxCase (Case xItems block' meta)
+  SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 /\ SyntaxType alpha' -> SyntaxParameter (Parameter alpha' meta)
+  -- items
+  SyntaxDefinitionItem (def /\ meta) /\ step /\ synSub -> SyntaxDefinitionItem $ toDefinition (wrapStepSyntax step (SyntaxDefinition def) synSub) /\ meta
+  SyntaxConstructorItem (constr /\ meta) /\ step /\ synSub -> SyntaxConstructorItem $ toConstructor (wrapStepSyntax step (SyntaxConstructor constr) synSub) /\ meta
+  SyntaxCaseItem (case_ /\ meta) /\ step /\ synSub -> SyntaxCaseItem $ toCase (wrapStepSyntax step (SyntaxCase case_) synSub) /\ meta
+  SyntaxParameterItem (prm /\ meta) /\ step /\ synSub -> SyntaxParameterItem $ toParameter (wrapStepSyntax step (SyntaxParameter prm) synSub) /\ meta
+  SyntaxTermIdItem (termId /\ meta) /\ step /\ synSub -> SyntaxTermIdItem $ toTermId (wrapStepSyntax step (SyntaxTermId termId) synSub) /\ meta
+  -- list
+  SyntaxList (Cons h t) /\ IndexStep StepCons 0 /\ h' -> SyntaxList (Cons h' t)
+  SyntaxList (Cons h t) /\ IndexStep StepCons 1 /\ SyntaxList t' -> SyntaxList (Cons h t')
+  _ -> Unsafe.error $ "wrapStepSyntax: impossible: " <> show (step /\ syn /\ synSub)
 
 lookupSyntaxAt :: DownwardIndex -> Syntax -> Syntax
 lookupSyntaxAt ix syn = 
@@ -166,7 +191,17 @@ lookupSyntaxAt ix syn =
     Nothing -> syn
     Just {step, ix'} -> lookupSyntaxAt ix' (stepSyntax step syn)
 
--- with this new index that has a constant number of children for each StepLabel, going up is same, left/right is much easier now, and going down still requires a case-by-case check to see if the current node supports going downward (always to the 0 child) i.e. it is not a terminal node of the AST
+modifySyntaxAt :: DownwardIndex -> (Syntax -> Syntax) -> Syntax -> Syntax
+modifySyntaxAt ix f syn = 
+  case unconsDownwardIndex ix of 
+    Nothing -> f syn
+    Just {step, ix'} -> wrapStepSyntax step syn $ modifySyntaxAt ix' f (stepSyntax step syn)
+
+modifySyntaxAtM :: forall m. Monad m => DownwardIndex -> (Syntax -> m Syntax) -> Syntax -> m Syntax
+modifySyntaxAtM ix f syn = 
+  case unconsDownwardIndex ix of 
+    Nothing -> f syn
+    Just {step, ix'} -> wrapStepSyntax step syn <$> modifySyntaxAtM ix' f (stepSyntax step syn)
 
 -- data Direction
 --   = Up

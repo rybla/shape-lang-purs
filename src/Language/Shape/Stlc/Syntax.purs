@@ -158,6 +158,8 @@ data Syntax =
   -- for lists
   | SyntaxList (List Syntax)
 
+derive instance Generic Syntax _ 
+instance Show Syntax where show x = genericShow x 
 
 toModule :: Syntax -> Module
 toModule (SyntaxModule mod) = mod

@@ -35,7 +35,7 @@ import Web.Event.Event (Event, EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
-import Web.HTML.Window (toEventTarget)
+import Web.HTML.Window (prompt, promptDefault, toEventTarget)
 
 -- import Web.DOM (Element)
 -- import Web.DOM.NonElementParentNode (getElementById)
@@ -90,18 +90,34 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    -- st <- React.getState this
-    -- Debug.traceM $ "--------------------------------------------------------------------------------"
-    -- Debug.traceM $ show st.ix_cursor
-    -- case code event of
-    --   "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-    --   "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-    --   "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-    --   "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-    --   _ -> pure unit
-    -- st' <- React.getState this
-    -- Debug.traceM $ show st'.ix_cursor
-    -- Debug.traceM event
+    case code event of
+      -- "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
+      -- "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
+      -- "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
+      -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
+      "KeyE" -> do
+        st <- React.getState this
+        win <- window
+        module_ <-
+          toModule
+            <$> modifySyntaxAtM st.ix_cursor
+                ( case _ of
+                    SyntaxTermBinding termBinding@(TermBinding termId meta) ->
+                      promptDefault "Enter new name" (show meta.name) win
+                        >>= case _ of
+                            Just str -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = readTermName str }
+                            Nothing -> pure $ SyntaxTermBinding termBinding
+                    SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) ->
+                      promptDefault "Enter new name" (show meta.name) win
+                        >>= case _ of
+                            Just str -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = readTypeName str }
+                            Nothing -> pure $ SyntaxTypeBinding typeBinding
+                    x -> pure x
+                )
+                (SyntaxModule st.module_)
+        React.modifyState this \st -> st { module_ = module_ }
+      _ -> pure unit
+    Debug.traceM event
     pure unit
 
   state :: ProgramState
@@ -405,8 +421,7 @@ programComponent this =
   renderType :: RecIndex.RecType React.ReactElement
   renderType type_ gamma metaGamma ix crs =
     DOM.span'
-      [ renderParameterInsertor ix
-      , RecIndex.recType
+      [ {-renderParameterInsertor ix ,-} RecIndex.recType
           { arrow:
               \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
                 let
@@ -418,7 +433,7 @@ programComponent this =
                         <> outlineableProps eid
                     )
                     $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
-                      , renderParameterDeletor ix
+                      {-, renderParameterDeletor ix-}
                       , punctuation.space
                       ]
                     <> [ punctuation.arrow
@@ -761,6 +776,17 @@ programComponent this =
 
     shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
 
+  showTermId :: TermId -> RecMetaContext.MetaContext -> String
+  showTermId termId metaGamma = termString <> shadow_suffix
+    where
+    TermName termLabel = Map.lookup' termId metaGamma.termScope.names
+
+    termString = maybe "_" identity termLabel
+
+    shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
+
+    shadow_suffix = if shadow_i == 0 then "" else show shadow_i
+
   printTermName :: TermName -> RecMetaContext.MetaContext -> React.ReactElement
   printTermName termName@(TermName termLabel) metaGamma = DOM.span [ Props.className "termName" ] ([ DOM.text termString ] <> shadow_suffix)
     where
@@ -774,8 +800,7 @@ programComponent this =
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
 
   outlineableProps :: String -> Array Props.Props
-  outlineableProps eid =
-    [ Prop.onMouseOver \event -> do
+  outlineableProps eid =  {-[ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
         self <- getElementById eid
@@ -802,7 +827,7 @@ programComponent this =
             highlight parent
             pure outlineParents'
         React.modifyState this \st -> st { outlineParents = outlineParents' }
-    ]
+    ]-} []
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =
