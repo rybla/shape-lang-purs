@@ -156,7 +156,7 @@ html {
 
 .keyword {
   font-weight: bold;
-  color: rgb(146, 78, 255);
+  color: rgb(123, 0, 176);
 }
 
 /* punctuation */
@@ -177,7 +177,9 @@ html {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-.highlighted {
+.highlighted,
+.insertor:hover,
+.deletor:hover {
   box-shadow: 0 0 0 2px purple;
   background-color: rgba(255, 255, 255, 0.2);
 }
@@ -192,7 +194,7 @@ html {
   background-color: inherit;
 }
 
-/* separators */
+/* separator, insertor, deletor */
 
 .separator {
   display: inline-block;
@@ -212,11 +214,27 @@ html {
   color: white;
 }
 
-.separator.highlighted {
+.separator.highlighted,
+.insertor:hover,
+.deletor:hover {
   color: white;
 }
 
-/* mouse */
+.insertor {
+  display: inline-block;
+  margin: 0 4px;
+
+  color: rgb(51, 84, 29);
+}
+
+.deletor {
+  display: inline-block;
+  margin: 0 4px;
+
+  color: rgb(150, 0, 0);
+}
+
+/* cursor */
 
 span {
   cursor: pointer;

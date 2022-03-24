@@ -390,60 +390,81 @@ programComponent this =
                 [ DOM.span' [ DOM.text "+" ] ]
       }
 
+  renderParameterInsertor :: UpwardIndex -> React.ReactElement
+  renderParameterInsertor ix =
+    DOM.span
+      [ Props.className "parameterInsertor insertor" ]
+      [ DOM.text "+" ]
+
+  renderParameterDeletor :: UpwardIndex -> React.ReactElement
+  renderParameterDeletor ix =
+    DOM.span
+      [ Props.className "parameterDeletor deletor" ]
+      [ DOM.text "-" ]
+
   renderType :: RecIndex.RecType React.ReactElement
-  renderType =
-    RecIndex.recType
-      { arrow:
-          \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "arrow type" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
-                  , punctuation.space
-                  ]
-                <> [ punctuation.arrow
-                  , punctuation.space
-                  , renderType beta gamma metaGamma ix_beta cursor_beta
-                  ]
-      , data:
-          \typeId meta gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "data type typeId" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ printTypeId typeId metaGamma ]
-      , hole:
-          \holeId wkn meta gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "hole type" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ DOM.text "?" ]
-      , proxyHole:
-          \holeId gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "proxy hole type" isSelected ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ DOM.text "?" ]
-      }
+  renderType type_ gamma metaGamma ix crs =
+    DOM.span'
+      [ renderParameterInsertor ix
+      , RecIndex.recType
+          { arrow:
+              \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "arrow type" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
+                      , renderParameterDeletor ix
+                      , punctuation.space
+                      ]
+                    <> [ punctuation.arrow
+                      , punctuation.space
+                      , renderType beta gamma metaGamma ix_beta cursor_beta
+                      ]
+          , data:
+              \typeId meta gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "data type typeId" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ printTypeId typeId metaGamma ]
+          , hole:
+              \holeId wkn meta gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "hole type" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ DOM.text "?" ]
+          , proxyHole:
+              \holeId gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "proxy hole type" isSelected ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ DOM.text "?" ]
+          }
+          type_
+          gamma
+          metaGamma
+          ix
+          crs
+      ]
 
   renderType' :: RecMetaContext.RecType React.ReactElement
   renderType' =
