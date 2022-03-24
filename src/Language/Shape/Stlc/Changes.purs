@@ -218,7 +218,7 @@ chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a ho
 freshCase :: forall a . List a -> CaseItem
 freshCase params = Tuple (Case
     (map (\_ -> Tuple (freshTermId unit) defaultTermIdItemMetadata) params)
-    (HoleTerm defaultHoleTermMetadata)
+    (Block Nil (HoleTerm defaultHoleTermMetadata) defaultBlockMetadata)
     defaultCaseMetadata) defaultCaseItemMetadata
 
 displaceDefs :: (List Definition) -> State (Tuple (List Definition) HoleSub) Unit
@@ -253,7 +253,7 @@ chCase ctx ty chs paramChanges innerTC (Case bindings t md) = do
     let varsToDelete :: List TermId
         varsToDelete = map (\i -> fst (index' bindings i)) toDelete
     let chs'' = foldl (\chsAcc i -> chsAcc{termChanges = insert i VariableDeletion chsAcc.termChanges}) chs' varsToDelete
-    t' <- chTerm ctx ty chs'' innerTC t
+    t' <- liiift $ chBlock ctx ty chs'' innerTC t
     pure $ Case bindings' t' md
 
 
