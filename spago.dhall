@@ -16,6 +16,7 @@
   , "react"
   , "react-dom"
   , "record"
+  , "strings"
   , "transformers"
   , "tuples"
   , "undefined"

@@ -80,11 +80,18 @@ indent { indented } metaGamma =
     DOM.span' []
 
 indentOrSpace :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
-indentOrSpace { indented } metaGamma =
+indentOrSpace arg@{ indented } metaGamma =
   if indented then
-    DOM.span' [ punctuation.newline, indentation metaGamma ]
+    DOM.span' [ indent arg metaGamma ]
   else
     DOM.span' [ punctuation.space ]
+
+indentOrNothing :: forall r. { indented :: Boolean | r } -> MetaContext -> React.ReactElement
+indentOrNothing arg@{ indented } metaGamma =
+  if indented then
+    DOM.span' [ indent arg metaGamma ]
+  else
+    DOM.span' []
 
 -- without newline
 indentation :: MetaContext -> React.ReactElement

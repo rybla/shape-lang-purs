@@ -14,7 +14,7 @@ html {
 
 .app {
   font-family: monospace;
-  line-height: 14pt;
+  line-height: 16pt;
   font-size: 12pt;
   height: 100vh;
   margin: 0;
@@ -144,6 +144,17 @@ html {
   /* background-color: rgba(255, 255, 255, 0.2); */
 }
 
+.termBinding > input {
+  outline: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background-color: inherit;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+}
+
 .typeId {
   color: rgb(109, 212, 197);
 }
@@ -156,7 +167,7 @@ html {
 
 .keyword {
   font-weight: bold;
-  color: purple;
+  color: rgb(123, 0, 176);
 }
 
 /* punctuation */
@@ -177,7 +188,9 @@ html {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-.highlighted {
+.highlighted,
+.insertor:hover,
+.deletor:hover {
   box-shadow: 0 0 0 2px purple;
   background-color: rgba(255, 255, 255, 0.2);
 }
@@ -192,73 +205,52 @@ html {
   background-color: inherit;
 }
 
-/* separators */
+/* separator, insertor, deletor */
 
 .separator {
   display: inline-block;
   color: rgb(51, 84, 29);
-  /* color: rgb(0, 18, 35); */
+  /* color: rgba(0, 0, 0, 0); */
 }
 
 .separator.nonindented {
   margin: 0 4px;
 }
 
+.separator.indented {
+  width: 400px;
+}
+
 .separator.selected {
   color: white;
 }
 
-.separator.highlighted {
+.separator.highlighted,
+.insertor:hover,
+.deletor:hover {
   color: white;
 }
 
-/* .definitionSeparator {
+.insertor {
   display: inline-block;
+  margin: 0 4px;
+
   color: rgb(51, 84, 29);
 }
 
-.definitionSeparator.nonindented {
-  margin: 0 4px;
-} */
-
-/* .definitionSeparator.nonindented {
+.deletor {
   display: inline-block;
   margin: 0 4px;
+
+  color: rgb(150, 0, 0);
 }
 
-.definitionSeparator.nonindented > span {
-  display: inline-block;
-  color: rgb(94, 94, 94);
-} */
+/* cursor */
 
-/* .definitionSeparator.indented {
-  display: inline-block;
-  width: 100px;
-  margin: 10px 0;
+span {
+  cursor: pointer;
 }
-
-.definitionSeparator.indented > span {
-  display: inline-block;
-  width: 100px;
-  height: 1px;
-  margin: 4px 0;
-  background-color: rgb(94, 94, 94);
-} */
-
-/* .constructorSeparator {
-  display: inline-block;
-  color: rgb(51, 84, 29);
-} */
-
-/* .constructorSeparator.indented {
-  display: inline-block;
-  width: 100px;
+span.termId,
+span.termBinding {
+  cursor: text;
 }
-
-.constructorSeparator.indented > span {
-  display: inline-block;
-  width: 100px;
-  height: 1px;
-  margin: 4px 0;
-  background-color: rgb(94, 94, 94);
-} */

@@ -43,7 +43,7 @@ type CaseItem = Case /\ CaseItemMetadata
 
 type ArgItem = Term /\ ArgItemMetadata
 
-data Case = Case (List TermIdItem) Term CaseMetadata
+data Case = Case (List TermIdItem) Block CaseMetadata
 
 type TermIdItem = TermId /\ TermIdItemMetadata
 
@@ -158,6 +158,8 @@ data Syntax =
   -- for lists
   | SyntaxList (List Syntax)
 
+derive instance Generic Syntax _ 
+instance Show Syntax where show x = genericShow x 
 
 toModule :: Syntax -> Module
 toModule (SyntaxModule mod) = mod

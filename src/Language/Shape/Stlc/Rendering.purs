@@ -35,7 +35,7 @@ import Web.Event.Event (Event, EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
-import Web.HTML.Window (toEventTarget)
+import Web.HTML.Window (prompt, promptDefault, toEventTarget)
 
 -- import Web.DOM (Element)
 -- import Web.DOM.NonElementParentNode (getElementById)
@@ -90,18 +90,34 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    -- st <- React.getState this
-    -- Debug.traceM $ "--------------------------------------------------------------------------------"
-    -- Debug.traceM $ show st.ix_cursor
-    -- case code event of
-    --   "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-    --   "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-    --   "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-    --   "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-    --   _ -> pure unit
-    -- st' <- React.getState this
-    -- Debug.traceM $ show st'.ix_cursor
-    -- Debug.traceM event
+    case code event of
+      -- "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
+      -- "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
+      -- "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
+      -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
+      "KeyE" -> do
+        st <- React.getState this
+        win <- window
+        module_ <-
+          toModule
+            <$> modifySyntaxAtM st.ix_cursor
+                ( case _ of
+                    SyntaxTermBinding termBinding@(TermBinding termId meta) ->
+                      promptDefault "Enter new name" (show meta.name) win
+                        >>= case _ of
+                            Just str -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = readTermName str }
+                            Nothing -> pure $ SyntaxTermBinding termBinding
+                    SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) ->
+                      promptDefault "Enter new name" (show meta.name) win
+                        >>= case _ of
+                            Just str -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = readTypeName str }
+                            Nothing -> pure $ SyntaxTypeBinding typeBinding
+                    x -> pure x
+                )
+                (SyntaxModule st.module_)
+        React.modifyState this \st -> st { module_ = module_ }
+      _ -> pure unit
+    Debug.traceM event
     pure unit
 
   state :: ProgramState
@@ -195,7 +211,7 @@ programComponent this =
                     <> outlineableProps eid
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
-                , indent meta metaGamma
+                , indentOrNothing meta metaGamma
                 , renderTerm a gamma alpha metaGamma ix_term cursor_term
                 ]
       }
@@ -223,9 +239,11 @@ programComponent this =
                                 ix
                                 (ix_defSep_at i)
                                 (cursor_defSep_at i)
+                            -- , punctuation.newline
                             , indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinition def gamma metaGamma ix (ix_def_at i)
                                 (cursor_def_at i)
+                            -- , punctuation.newline
                             ]
                       )
                       (fromItem <$> defItems)
@@ -353,7 +371,6 @@ programComponent this =
                 $ [ punctuation.alt
                   , punctuation.space
                   , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
-                  , punctuation.space
                   , DOM.span
                       (inertProps "constructor parameters")
                       [ intercalateHTML
@@ -389,60 +406,80 @@ programComponent this =
                 [ DOM.span' [ DOM.text "+" ] ]
       }
 
+  renderParameterInsertor :: UpwardIndex -> React.ReactElement
+  renderParameterInsertor ix =
+    DOM.span
+      [ Props.className "parameterInsertor insertor" ]
+      [ DOM.text "+" ]
+
+  renderParameterDeletor :: UpwardIndex -> React.ReactElement
+  renderParameterDeletor ix =
+    DOM.span
+      [ Props.className "parameterDeletor deletor" ]
+      [ DOM.text "-" ]
+
   renderType :: RecIndex.RecType React.ReactElement
-  renderType =
-    RecIndex.recType
-      { arrow:
-          \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "arrow type" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
-                  , punctuation.space
-                  ]
-                <> [ punctuation.arrow
-                  , punctuation.space
-                  , renderType beta gamma metaGamma ix_beta cursor_beta
-                  ]
-      , data:
-          \typeId meta gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "data type typeId" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ printTypeId typeId metaGamma ]
-      , hole:
-          \holeId wkn meta gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "hole type" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ DOM.text "?" ]
-      , proxyHole:
-          \holeId gamma metaGamma ix isSelected ->
-            let
-              eid = upwardIndexToEid ix
-            in
-              DOM.span
-                ( [ selectableClassName "proxy hole type" isSelected ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
-                )
-                [ DOM.text "?" ]
-      }
+  renderType type_ gamma metaGamma ix crs =
+    DOM.span'
+      [ {-renderParameterInsertor ix ,-} RecIndex.recType
+          { arrow:
+              \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "arrow type" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
+                      {-, renderParameterDeletor ix-}
+                      , punctuation.space
+                      ]
+                    <> [ punctuation.arrow
+                      , punctuation.space
+                      , renderType beta gamma metaGamma ix_beta cursor_beta
+                      ]
+          , data:
+              \typeId meta gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "data type typeId" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ printTypeId typeId metaGamma ]
+          , hole:
+              \holeId wkn meta gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "hole type" isSelected, Props._id eid ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ DOM.text "?" ]
+          , proxyHole:
+              \holeId gamma metaGamma ix isSelected ->
+                let
+                  eid = upwardIndexToEid ix
+                in
+                  DOM.span
+                    ( [ selectableClassName "proxy hole type" isSelected ]
+                        <> selectableProps ix
+                        <> outlineableProps eid
+                    )
+                    [ DOM.text "?" ]
+          }
+          type_
+          gamma
+          metaGamma
+          ix
+          crs
+      ]
 
   renderType' :: RecMetaContext.RecType React.ReactElement
   renderType' =
@@ -491,7 +528,7 @@ programComponent this =
                 $ [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
                 <> [ punctuation.space
                   , punctuation.mapsto
-                  , indent meta metaGamma -- indentOrSpace meta metaGamma
+                  , indentOrNothing meta metaGamma
                   , renderBlock block gamma beta metaGamma ix_block cursor_block
                   ]
       , neutral:
@@ -524,12 +561,24 @@ programComponent this =
                 , keyword.with
                 , DOM.span
                     (inertProps "match caseItems")
-                    [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
-                        $ Array.fromFoldable
+                    ( Array.fromFoldable
                         $ mapWithIndex
-                            (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
-                            (fromItem <$> caseItems)
-                    ]
+                            ( \i (case_ /\ meta) ->
+                                DOM.span'
+                                  [ indentOrSpace meta metaGamma
+                                  , renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i)
+                                  ]
+                            )
+                            caseItems
+                    )
+                -- , DOM.span
+                --     (inertProps "match caseItems")
+                --     [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
+                --         $ Array.fromFoldable
+                --         $ mapWithIndex
+                --             (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
+                --             (fromItem <$> caseItems)
+                --     ]
                 ]
       , hole:
           \meta gamma alpha metaGamma ix isSelected ->
@@ -572,7 +621,7 @@ programComponent this =
   renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ix_prt cursor_prt =
     RecIndex.recCase
       { case_:
-          \termIdItems term meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
+          \termIdItems block meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
             let
               eid = upwardIndexToEid ix
             in
@@ -581,15 +630,26 @@ programComponent this =
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                [ renderTermId' constrId metaGamma
+                [ punctuation.alt
+                , punctuation.space
+                , renderTermId' constrId metaGamma
                 , DOM.span
                     (inertProps "case termIdItems")
-                    [ intersperseLeftHTML [ punctuation.space ]
+                    [ DOM.span'
                         $ Array.fromFoldable
-                        $ mapWithIndex (\i termId -> renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)) (fromItem <$> termIdItems)
+                        $ mapWithIndex
+                            ( \i termId ->
+                                DOM.span'
+                                  [ punctuation.space
+                                  , renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)
+                                  ]
+                            )
+                            (fromItem <$> termIdItems)
                     ]
                 , punctuation.space
-                , renderTerm term gamma alpha metaGamma ix_term cursor_term
+                , punctuation.mapsto
+                , indentOrNothing meta metaGamma
+                , renderBlock block gamma alpha metaGamma ix_term cursor_term
                 ]
       }
       case_prt
@@ -716,6 +776,17 @@ programComponent this =
 
     shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
 
+  showTermId :: TermId -> RecMetaContext.MetaContext -> String
+  showTermId termId metaGamma = termString <> shadow_suffix
+    where
+    TermName termLabel = Map.lookup' termId metaGamma.termScope.names
+
+    termString = maybe "_" identity termLabel
+
+    shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
+
+    shadow_suffix = if shadow_i == 0 then "" else show shadow_i
+
   printTermName :: TermName -> RecMetaContext.MetaContext -> React.ReactElement
   printTermName termName@(TermName termLabel) metaGamma = DOM.span [ Props.className "termName" ] ([ DOM.text termString ] <> shadow_suffix)
     where
@@ -729,8 +800,7 @@ programComponent this =
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
 
   outlineableProps :: String -> Array Props.Props
-  outlineableProps eid =
-    [ Prop.onMouseOver \event -> do
+  outlineableProps eid =  {-[ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
         self <- getElementById eid
@@ -757,7 +827,7 @@ programComponent this =
             highlight parent
             pure outlineParents'
         React.modifyState this \st -> st { outlineParents = outlineParents' }
-    ]
+    ]-} []
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =

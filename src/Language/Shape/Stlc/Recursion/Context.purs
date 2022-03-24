@@ -219,11 +219,11 @@ recCase ::
 recCase rec =
   RecBase.recCase
     { case_:
-        \termIds a meta typeId constrId gamma alpha ->
+        \termIds block meta typeId constrId gamma alpha ->
           let
             prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
-            rec.case_ termIds a meta typeId constrId
+            rec.case_ termIds block meta typeId constrId
               ( foldl
                   (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
                   gamma
