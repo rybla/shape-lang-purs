@@ -48,8 +48,10 @@
           - [x] definitionItems
           - [x] constructorItems (in data definition)
           - [x] parameterItems (in constructor)
-          - [ ] argItems (in neutral)
-          - [ ] termIds (in case)
+          - argItems (in neutral), actually can't directly manipulated because
+            must correspond to expected type
+          - termIds (in case), can't be directly manipulated since must
+            correspond to parameterItems of constructor
       - [ ] term holes
         - [x] show type in hole
         - drag a term into hole
