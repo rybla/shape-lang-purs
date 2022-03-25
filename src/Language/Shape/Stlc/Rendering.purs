@@ -314,7 +314,8 @@ programComponent this =
                 , renderType alpha gamma metaGamma ix_alpha cursor_alpha
                 , punctuation.newline
                 , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
-                , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                -- , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                , renderTermBinding' termBinding metaGamma
                 , punctuation.space
                 , punctuation.termdef
                 , indentOrSpace meta metaGamma
@@ -767,6 +768,16 @@ programComponent this =
                 [ printTermName termName shadow_i ]
       }
 
+  renderTermBinding' :: TermBinding -> RecMetaContext.MetaContext -> React.ReactElement
+  renderTermBinding' (TermBinding termId meta) metaGamma =
+    let
+      termName = Map.lookup' termId metaGamma.termScope.names
+
+      shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
+    in
+      DOM.span (inertProps "termBinding")
+        [ printTermName termName shadow_i ]
+
   renderTermId :: RecIndex.RecTermId React.ReactElement
   renderTermId =
     RecIndex.recTermId
@@ -808,7 +819,8 @@ programComponent this =
     | otherwise = DOM.span [ Props.className "shadow-index" ] [ DOM.text (show i) ]
 
   outlineableProps :: String -> Array Props.Props
-  outlineableProps eid =  {-[ Prop.onMouseOver \event -> do
+  outlineableProps eid =
+    [ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
         self <- getElementById eid
@@ -835,7 +847,7 @@ programComponent this =
             highlight parent
             pure outlineParents'
         React.modifyState this \st -> st { outlineParents = outlineParents' }
-    ]-} []
+    ]
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =
