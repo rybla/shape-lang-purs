@@ -10,10 +10,15 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Data.Array as Array
+import Data.Char as Char
+import Data.Enum as Enum
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Set as Set
+import Data.String as String
 import Data.Traversable (traverse)
 import Data.Tuple (fst, snd)
+import Data.Unfoldable (class Unfoldable, class Unfoldable1)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
@@ -66,6 +71,8 @@ type ProgramGiven
 
 foreign import code :: Event -> String
 
+foreign import key :: Event -> String
+
 -- foreign import setNativeEventTargetProp :: forall a. NativeEventTarget -> String -> a -> Effect Unit
 -- foreign import getClassName :: NativeEventTarget -> String
 foreign import setHTMLElementField :: forall a. String -> a -> HTMLElement -> Effect Unit
@@ -90,38 +97,40 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    case code event of
-      -- "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-      -- "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-      -- "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-      -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-      "KeyE" -> do
-        st <- React.getState this
-        win <- window
-        module_ <-
-          toModule
-            <$> modifySyntaxAtM st.ix_cursor
-                ( case _ of
-                    SyntaxTermBinding termBinding@(TermBinding termId meta) ->
-                      promptDefault "Enter new name" (show meta.name) win
-                        >>= case _ of
-                            Just str -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = readTermName str }
-                            Nothing -> pure $ SyntaxTermBinding termBinding
-                    SyntaxParameter prm@(Parameter alpha meta) ->
-                      promptDefault "Enter new name" (show meta.name) win
-                        >>= case _ of
-                            Just str -> pure $ SyntaxParameter $ Parameter alpha meta { name = readTermName str }
-                            Nothing -> pure $ SyntaxParameter prm
-                    SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) ->
-                      promptDefault "Enter new name" (show meta.name) win
-                        >>= case _ of
-                            Just str -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = readTypeName str }
-                            Nothing -> pure $ SyntaxTypeBinding typeBinding
-                    x -> pure x
-                )
-                (SyntaxModule st.module_)
-        React.modifyState this \st -> st { module_ = module_ }
-      _ -> pure unit
+    let
+      k = key event
+    if k `Set.member` nameKeys || k == "Backspace" || k == " " then do
+      let
+        modifyName name =
+          if k `Set.member` nameKeys then
+            maybe (Just k) (Just <<< (_ <> k)) name
+          else if k == "Backspace" then
+            maybe Nothing (\str -> if String.length str == 1 then Nothing else Just (String.take (String.length str - 1) str)) name
+          else if k == " " then
+            maybe Nothing (Just <<< (_ <> " ")) name
+          else
+            name
+      st <- React.getState this
+      module_ <-
+        toModule
+          <$> modifySyntaxAtM st.ix_cursor
+              ( case _ of
+                  SyntaxTermBinding termBinding@(TermBinding termId meta) -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = TermName $ modifyName case meta.name of TermName name -> name }
+                  SyntaxParameter prm@(Parameter alpha meta) -> pure $ SyntaxParameter $ Parameter alpha meta { name = TermName $ modifyName case meta.name of TermName name -> name }
+                  SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = TypeName $ modifyName case meta.name of TypeName name -> name }
+                  x -> pure x
+              )
+              (SyntaxModule st.module_)
+      React.modifyState this \st -> st { module_ = module_ }
+    else
+      pure unit
+    -- case key event of
+    -- "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
+    -- "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
+    -- "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
+    -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
+    -- "e" -> do
+    -- _ -> pure unit
     Debug.traceM event
     pure unit
 
@@ -873,3 +882,6 @@ upwardIndexToEid ix = case unconsUpwardIndex ix of
 
 indentedToClassName :: forall r. { indented :: Boolean | r } -> String
 indentedToClassName { indented } = if indented then "indented" else "nonindented"
+
+nameKeys :: Set.Set String
+nameKeys = Set.map (String.singleton <<< String.codePointFromChar) $ Set.fromFoldable $ (Enum.enumFromTo 'a' 'z' <> Enum.enumFromTo 'A' 'Z' :: List Char)

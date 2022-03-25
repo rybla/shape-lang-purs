@@ -6,6 +6,7 @@
   , "debug"
   , "effect"
   , "either"
+  , "enums"
   , "foldable-traversable"
   , "homogeneous"
   , "lists"
