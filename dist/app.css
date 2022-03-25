@@ -5,6 +5,14 @@ html {
   padding: 0;
 }
 
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 .main {
   height: 100vh;
   margin: 0;
@@ -142,6 +150,7 @@ html {
   display: inline-block;
   margin: 0;
   padding: 0;
+  cursor: pointer;
 }
 
 .termName {

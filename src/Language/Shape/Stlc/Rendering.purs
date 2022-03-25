@@ -31,7 +31,7 @@ import React as React
 import React.DOM as DOM
 import React.DOM.Props as Prop
 import React.DOM.Props as Props
-import React.SyntheticEvent (NativeEvent, NativeEventTarget, stopPropagation, target)
+import React.SyntheticEvent (NativeEvent, NativeEventTarget, SyntheticMouseEvent, stopPropagation, target)
 import Record as R
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -53,6 +53,7 @@ type ProgramProps
 type ProgramState
   = { module_ :: Module
     , ix_cursor :: DownwardIndex
+    , syntax_dragging :: Maybe Syntax
     , environment :: Environment
     , outlineParents :: List HTMLElement
     }
@@ -136,6 +137,7 @@ programComponent this =
   state =
     { module_: Initial.module_
     , ix_cursor: DownwardIndex Nil
+    , syntax_dragging: Nothing
     , environment:
         { goal: Nothing
         , gamma: Map.empty
@@ -146,7 +148,13 @@ programComponent this =
 
   render :: ProgramState -> React.ReactElement
   render st =
-    DOM.div [ Props.className "editor" ]
+    DOM.div
+      [ Props.className "editor"
+      , Props.onMouseUp \event -> do
+          stopPropagation event
+          Debug.traceM $ "drag cancel"
+          React.modifyState this \st -> st { syntax_dragging = Nothing }
+      ]
       [ renderModule st.module_ Map.empty RecMetaContext.emptyMetaContext (UpwardIndex Nil) (Just st.ix_cursor)
       -- , renderEnvironment st.environment
       ]
@@ -202,8 +210,7 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.div
-                ( [ selectableClassName "module" isSelected, Props._id eid ]
-                    <> selectableProps ix
+                ( [ selectableClassName "module" isSelected, Props._id eid ] <> selectableProps ix
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
                 ]
@@ -218,9 +225,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "block" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "block" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
                 , indentOrNothing meta metaGamma
@@ -286,9 +292,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ]
                 [ DOM.span' [ DOM.text "+" ] ]
@@ -303,9 +308,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "term definition" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "term definition" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
                 , punctuation.space
@@ -327,9 +331,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "data definition" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "data definition" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding
                 , punctuation.space
@@ -360,9 +363,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "+" ] ]
@@ -377,9 +379,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "constructor" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "constructor" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 $ [ punctuation.alt
                   , punctuation.space
@@ -411,9 +412,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.div
-                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "+" ] ]
@@ -441,9 +441,8 @@ programComponent this =
                   eid = upwardIndexToEid ix
                 in
                   DOM.span
-                    ( [ selectableClassName "arrow type" isSelected, Props._id eid ]
-                        <> selectableProps ix
-                        <> outlineableProps eid
+                    ( [ selectableClassName "arrow type" isSelected, Props._id eid ] <> selectableProps ix
+                        <> highlightableProps eid
                     )
                     $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
                       {-, renderParameterDeletor ix-}
@@ -459,9 +458,8 @@ programComponent this =
                   eid = upwardIndexToEid ix
                 in
                   DOM.span
-                    ( [ selectableClassName "data type typeId" isSelected, Props._id eid ]
-                        <> selectableProps ix
-                        <> outlineableProps eid
+                    ( [ selectableClassName "data type typeId" isSelected, Props._id eid ] <> selectableProps ix
+                        <> highlightableProps eid
                     )
                     [ renderTypeId typeId metaGamma ]
           , hole:
@@ -470,9 +468,8 @@ programComponent this =
                   eid = upwardIndexToEid ix
                 in
                   DOM.span
-                    ( [ selectableClassName "hole type" isSelected, Props._id eid ]
-                        <> selectableProps ix
-                        <> outlineableProps eid
+                    ( [ selectableClassName "hole type" isSelected, Props._id eid ] <> selectableProps ix
+                        <> highlightableProps eid
                     )
                     [ DOM.text "?" ]
           , proxyHole:
@@ -481,9 +478,8 @@ programComponent this =
                   eid = upwardIndexToEid ix
                 in
                   DOM.span
-                    ( [ selectableClassName "proxy hole type" isSelected ]
-                        <> selectableProps ix
-                        <> outlineableProps eid
+                    ( [ selectableClassName "proxy hole type" isSelected ] <> selectableProps ix
+                        <> highlightableProps eid
                     )
                     [ DOM.text "?" ]
           }
@@ -534,11 +530,15 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "lambda term" isSelected, Props._id eid ]
+                ( [ selectableClassName "lambda term" isSelected
+                  , Props._id eid
+                  ]
                     <> selectableProps ix
-                    <> outlineableProps eid
+                    <> highlightableProps eid
                 )
-                $ [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
+                $ [ DOM.span (draggableProps (SyntaxTermId termId) ix_termId)
+                      [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
+                  ]
                 <> [ punctuation.space
                   , punctuation.mapsto
                   , indentOrNothing meta metaGamma
@@ -550,9 +550,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "neutral term" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "neutral term" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ renderTermId termId gamma metaGamma ix_termId cursor_termId
                 , renderArgItems argItems gamma alpha metaGamma ix_argItems cursor_argItems
@@ -563,9 +562,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "match term" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "match term" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ keyword.match
                 , punctuation.space
@@ -599,9 +597,12 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "hole term" isSelected, Props._id eid ]
+                ( [ selectableClassName "hole term" isSelected
+                  , Props._id eid
+                  ]
                     <> selectableProps ix
-                    <> outlineableProps eid
+                    <> droppableProps gamma alpha ix
+                    <> highlightableProps eid
                 )
                 [ renderType' alpha gamma metaGamma ]
       }
@@ -639,9 +640,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "case" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "case" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ punctuation.alt
                 , punctuation.space
@@ -654,7 +654,9 @@ programComponent this =
                             ( \i termId ->
                                 DOM.span'
                                   [ punctuation.space
-                                  , renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i)
+                                  , DOM.span
+                                      (draggableProps (SyntaxTermId termId) (ix_termId_at i))
+                                      [ renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i) ]
                                   ]
                             )
                             (fromItem <$> termIdItems)
@@ -685,9 +687,8 @@ programComponent this =
               shadow_i = Map.lookup' meta.name metaGamma.termScope.shadows
             in
               DOM.span
-                ( [ selectableClassName "parameter" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "parameter" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 -- [ renderType alpha gamma metaGamma ix_alpha cursor_alpha ]
                 [ punctuation.lparen
@@ -729,9 +730,8 @@ programComponent this =
               eid = upwardIndexToEid ix
             in
               DOM.span
-                ( [ selectableClassName "typeBinding" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "typeBinding" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ renderTypeId typeId metaGamma ]
       }
@@ -762,8 +762,9 @@ programComponent this =
             in
               DOM.span
                 ( [ selectableClassName "termBinding" isSelected, Props._id eid ]
+                    <> draggableProps (SyntaxTermId termId) ix
                     <> selectableProps ix
-                    <> outlineableProps eid
+                    <> highlightableProps eid
                 )
                 [ printTermName termName shadow_i ]
       }
@@ -791,9 +792,8 @@ programComponent this =
               shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
             in
               DOM.span
-                ( [ selectableClassName "termId" isSelected, Props._id eid ]
-                    <> selectableProps ix
-                    <> outlineableProps eid
+                ( [ selectableClassName "termId" isSelected, Props._id eid ] <> selectableProps ix
+                    <> highlightableProps eid
                 )
                 [ printTermName termName shadow_i ]
       }
@@ -818,8 +818,8 @@ programComponent this =
     | i == 0 = DOM.span [ Props.className "shadow-index" ] []
     | otherwise = DOM.span [ Props.className "shadow-index" ] [ DOM.text (show i) ]
 
-  outlineableProps :: String -> Array Props.Props
-  outlineableProps eid =
+  highlightableProps :: String -> Array Props.Props
+  highlightableProps eid =
     [ Prop.onMouseOver \event -> do
         stopPropagation event
         st <- React.getState this
@@ -851,10 +851,34 @@ programComponent this =
 
   selectableProps :: UpwardIndex -> Array Props.Props
   selectableProps ix =
-    [ Props.onMouseDown \event -> do
+    [ Props.onClick \event -> do
         stopPropagation event
         Debug.traceM $ show (toDownwardIndex ix)
         React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix }
+    ]
+
+  draggableProps :: Syntax -> UpwardIndex -> Array Props.Props
+  draggableProps syn ix =
+    [ Props.onMouseDown \event -> do
+        stopPropagation event
+        Debug.traceM $ "drag: " <> show syn
+        React.modifyState this \st -> st { syntax_dragging = Just syn }
+    ]
+
+  droppableProps :: Context -> Type -> UpwardIndex -> Array Props.Props
+  droppableProps gamma alpha ix =
+    [ Props.onMouseUp \event -> do
+        stopPropagation event
+        React.modifyState this \st -> case st.syntax_dragging of
+          Just syn -> case syn of
+            SyntaxTermId termId ->
+              Debug.trace ("drop: " <> show syn) \_ ->
+                st
+                  { module_ = toModule $ modifySyntaxAt (toDownwardIndex ix) (const $ SyntaxTerm $ NeutralTerm termId Nil defaultNeutralTermMetadata) (SyntaxModule st.module_)
+                  , syntax_dragging = Nothing
+                  }
+            _ -> st -- TODO: other cases
+          Nothing -> st
     ]
 
   selectableClassName :: String -> Boolean -> Props.Props

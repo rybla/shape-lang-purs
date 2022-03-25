@@ -54,8 +54,9 @@
             correspond to parameterItems of constructor
       - [ ] term holes
         - [x] show type in hole
-        - drag a term into hole
-        - drag a var from lambda into hole
+        - [x] drag a var from lambda/case/termBinding into hole (bug with
+              highlighting)
+        - [ ] drag a term into hole (bug with highlighting)
         - paste into hole
         - basic fills:
           - neutral form (given a var in context)
