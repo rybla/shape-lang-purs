@@ -99,15 +99,13 @@ programComponent this =
   keyboardEventHandler event = do
     let
       k = key event
-    if k `Set.member` nameKeys || k == "Backspace" || k == " " then do
+    if k `Set.member` nameKeys || k == "Backspace" then do
       let
         modifyName name =
           if k `Set.member` nameKeys then
             maybe (Just k) (Just <<< (_ <> k)) name
           else if k == "Backspace" then
             maybe Nothing (\str -> if String.length str == 1 then Nothing else Just (String.take (String.length str - 1) str)) name
-          else if k == " " then
-            maybe Nothing (Just <<< (_ <> " ")) name
           else
             name
       st <- React.getState this
@@ -464,7 +462,7 @@ programComponent this =
                         <> selectableProps ix
                         <> outlineableProps eid
                     )
-                    [ printTypeId typeId metaGamma ]
+                    [ renderTypeId typeId metaGamma ]
           , hole:
               \holeId wkn meta gamma metaGamma ix isSelected ->
                 let
@@ -513,7 +511,7 @@ programComponent this =
           \typeId meta gamma metaGamma ->
             DOM.span
               (inertProps "data type")
-              [ printTypeId typeId metaGamma ]
+              [ renderTypeId typeId metaGamma ]
       , hole:
           \holeId wkn meta gamma metaGamma ->
             DOM.span
@@ -682,6 +680,8 @@ programComponent this =
           \alpha meta gamma metaGamma ix isSelected ix_alpha cursor_alpha ->
             let
               eid = upwardIndexToEid ix
+
+              shadow_i = Map.lookup' meta.name metaGamma.termScope.shadows
             in
               DOM.span
                 ( [ selectableClassName "parameter" isSelected, Props._id eid ]
@@ -690,7 +690,7 @@ programComponent this =
                 )
                 -- [ renderType alpha gamma metaGamma ix_alpha cursor_alpha ]
                 [ punctuation.lparen
-                , printTermName meta.name metaGamma
+                , printTermName meta.name shadow_i
                 , punctuation.space
                 , punctuation.colon
                 , punctuation.space
@@ -704,17 +704,19 @@ programComponent this =
     RecMetaContext.recParameter
       { parameter:
           \alpha meta gamma metaGamma ->
-            DOM.span
-              (inertProps "parameter")
-              -- [ renderType' alpha gamma metaGamma ]
-              [ punctuation.lparen
-              , printTermName meta.name metaGamma
-              , punctuation.space
-              , punctuation.colon
-              , punctuation.space
-              , renderType' alpha gamma metaGamma
-              , punctuation.rparen
-              ]
+            let
+              shadow_i = Map.lookup' meta.name metaGamma.termScope.shadows
+            in
+              DOM.span
+                (inertProps "parameter")
+                [ punctuation.lparen
+                , printTermName meta.name shadow_i
+                , punctuation.space
+                , punctuation.colon
+                , punctuation.space
+                , renderType' alpha gamma metaGamma
+                , punctuation.rparen
+                ]
       }
 
   renderTypeBinding :: RecIndex.RecTypeBinding React.ReactElement
@@ -730,8 +732,20 @@ programComponent this =
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                [ printTypeId typeId metaGamma ]
+                [ renderTypeId typeId metaGamma ]
       }
+
+  renderTypeId :: TypeId -> RecMetaContext.MetaContext -> React.ReactElement
+  renderTypeId typeId metaGamma = DOM.span (inertProps "typeId") [ printTypeName typeName shadow_i ]
+    where
+    typeName = Map.lookup' typeId metaGamma.typeScope.names
+
+    shadow_i = Map.lookup' typeId metaGamma.typeScope.shadowIndices
+
+  printTypeName :: TypeName -> Int -> React.ReactElement
+  printTypeName (TypeName name) shadow_i = DOM.pre [ Props.className "typeName" ] [ DOM.text label, printShadowIndex shadow_i ]
+    where
+    label = maybe "_" identity name
 
   renderTermBinding :: RecIndex.RecTermBinding React.ReactElement
   renderTermBinding =
@@ -740,13 +754,17 @@ programComponent this =
           \termId meta gamma metaGamma ix isSelected ->
             let
               eid = upwardIndexToEid ix
+
+              termName = Map.lookup' termId metaGamma.termScope.names
+
+              shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
             in
               DOM.span
                 ( [ selectableClassName "termBinding" isSelected, Props._id eid ]
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                [ printTermId termId metaGamma ]
+                [ printTermName termName shadow_i ]
       }
 
   renderTermId :: RecIndex.RecTermId React.ReactElement
@@ -756,62 +774,38 @@ programComponent this =
           \termId gamma metaGamma ix isSelected ->
             let
               eid = upwardIndexToEid ix
+
+              termName = Map.lookup' termId metaGamma.termScope.names
+
+              shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
             in
               DOM.span
                 ( [ selectableClassName "termId" isSelected, Props._id eid ]
                     <> selectableProps ix
                     <> outlineableProps eid
                 )
-                [ printTermId termId metaGamma ]
+                [ printTermName termName shadow_i ]
       }
 
   renderTermId' :: TermId -> RecMetaContext.MetaContext -> React.ReactElement
-  renderTermId' termId metaGamma = DOM.span (inertProps "termId") [ printTermId termId metaGamma ]
-
-  printTypeId :: TypeId -> RecMetaContext.MetaContext -> React.ReactElement
-  printTypeId typeId metaGamma = DOM.span [ Props.className "typeId" ] ([ DOM.text typeString ] <> shadow_suffix)
+  renderTermId' termId metaGamma = DOM.span (inertProps "termId") [ printTermName termName shadow_i ]
     where
-    TypeName typeLabel = Map.lookup' typeId metaGamma.typeScope.names
-
-    typeString = maybe "_" identity typeLabel
-
-    shadow_i = Map.lookup' typeId metaGamma.typeScope.shadowIndices
-
-    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
-
-  printTermId :: TermId -> RecMetaContext.MetaContext -> React.ReactElement
-  printTermId termId metaGamma = DOM.span' ([ DOM.text termString ] <> shadow_suffix)
-    where
-    TermName termLabel = Map.lookup' termId metaGamma.termScope.names
-
-    termString = maybe "_" identity termLabel
+    termName = Map.lookup' termId metaGamma.termScope.names
 
     shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
 
-    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
-
-  showTermId :: TermId -> RecMetaContext.MetaContext -> String
-  showTermId termId metaGamma = termString <> shadow_suffix
+  printTermName :: TermName -> Int -> React.ReactElement
+  printTermName (TermName name) shadow_i = DOM.pre [ Props.className "termName" ] [ DOM.text label, printShadowIndex shadow_i ]
     where
-    TermName termLabel = Map.lookup' termId metaGamma.termScope.names
-
-    termString = maybe "_" identity termLabel
-
-    shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
-
-    shadow_suffix = if shadow_i == 0 then "" else show shadow_i
-
-  printTermName :: TermName -> RecMetaContext.MetaContext -> React.ReactElement
-  printTermName termName@(TermName termLabel) metaGamma = DOM.span [ Props.className "termName" ] ([ DOM.text termString ] <> shadow_suffix)
-    where
-    termString = maybe "_" identity termLabel
-
-    shadow_i = Map.lookup' termName metaGamma.termScope.shadows
-
-    shadow_suffix = if shadow_i == 0 then [] else [ printShadowSuffix $ show shadow_i ]
+    label = maybe "_" identity name
 
   printShadowSuffix :: String -> React.ReactElement
   printShadowSuffix str = DOM.span [ Props.className "shadow-suffix" ] [ DOM.text str ]
+
+  printShadowIndex :: Int -> React.ReactElement
+  printShadowIndex i
+    | i == 0 = DOM.span [ Props.className "shadow-index" ] []
+    | otherwise = DOM.span [ Props.className "shadow-index" ] [ DOM.text (show i) ]
 
   outlineableProps :: String -> Array Props.Props
   outlineableProps eid =  {-[ Prop.onMouseOver \event -> do
@@ -884,4 +878,11 @@ indentedToClassName :: forall r. { indented :: Boolean | r } -> String
 indentedToClassName { indented } = if indented then "indented" else "nonindented"
 
 nameKeys :: Set.Set String
-nameKeys = Set.map (String.singleton <<< String.codePointFromChar) $ Set.fromFoldable $ (Enum.enumFromTo 'a' 'z' <> Enum.enumFromTo 'A' 'Z' :: List Char)
+nameKeys =
+  Set.map (String.singleton <<< String.codePointFromChar) $ Set.fromFoldable
+    $ ( Enum.enumFromTo 'a' 'z'
+          <> Enum.enumFromTo 'A' 'Z'
+          <> Enum.enumFromTo '0' '9'
+          <> fromFoldable [ ' ', '!', '@', '#', '$', '%', '^', '&', '*', '-', '+', '_', '=', '|', '\\', ':', '\"', ';', '\'', '<', '>', ',', '.', '?', '/' ] ::
+          List Char
+      )

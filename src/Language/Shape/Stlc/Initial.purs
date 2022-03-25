@@ -24,9 +24,9 @@ module_ =
 
     nat_id /\ nat_name = makeTypeVar "Nat"
 
-    zero_id /\ zero_name = makeTermVar "zero"
+    zero_id /\ zero_name = makeTermVar "0"
 
-    suc_id /\ suc_name = makeTermVar "suc"
+    suc_id /\ suc_name = makeTermVar "1 +"
 
     identity_id /\ identity_name = makeTermVar "identity"
 
@@ -111,14 +111,14 @@ module_ =
               defaultTermDefinitionMetadata
               /\ defaultDefinitionItemMetadata
           , let
-              identity'_id /\ identity'_name = makeTermVar "identity'"
+              identity_id /\ identity_name = makeTermVar "identity"
 
               x_id /\ x_name = makeTermVar "x"
 
               x'_id /\ x'_name = makeTermVar "x'"
             in
               TermDefinition
-                (TermBinding identity'_id defaultTermBindingMetadata { name = identity'_name })
+                (TermBinding identity_id defaultTermBindingMetadata { name = identity_name })
                 ( ArrowType
                     (Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = x_name })
                     (DataType nat_id defaultDataTypeMetadata)
