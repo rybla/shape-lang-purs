@@ -56,7 +56,7 @@
         - [x] show type in hole
         - [x] drag a var from lambda/case/termBinding into hole (bug with
               highlighting)
-        - [ ] drag a term into hole (bug with highlighting)
+        - [ ] drag a term into hole
         - paste into hole
         - basic fills:
           - neutral form (given a var in context)
