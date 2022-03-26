@@ -26,7 +26,7 @@ module_ =
 
     zero_id /\ zero_name = makeTermVar "0"
 
-    suc_id /\ suc_name = makeTermVar "suc"
+    suc_id /\ suc_name = makeTermVar "+N 1"
 
     identity_id /\ identity_name = makeTermVar "identity"
 
@@ -48,11 +48,11 @@ module_ =
 
     positive_id /\ positive_name = makeTermVar "+"
 
-    negative_id /\ negative_name = makeTermVar "-1 -"
+    negative_id /\ negative_name = makeTermVar "-I -1"
 
-    addInt_id /\ addInt_name = makeTermVar "add"
+    addNat_id /\ addNat_name = makeTermVar "+N"
 
-    addNat_id /\ addNat_name = makeTermVar "add"
+    addInt_id /\ addInt_name = makeTermVar "+I"
   in
     Module
       ( fromFoldable
