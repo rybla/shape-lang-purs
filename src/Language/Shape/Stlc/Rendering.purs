@@ -36,7 +36,7 @@ import Record as R
 import Undefined (undefined)
 import Unsafe as Unsafe
 import Web.DOM.DOMTokenList as DOMTokenList
-import Web.Event.Event (Event, EventType(..))
+import Web.Event.Event (Event, EventType(..), preventDefault)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
@@ -98,6 +98,7 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
+    preventDefault event
     let
       k = key event
     if k `Set.member` nameKeys || k == "Backspace" then do
