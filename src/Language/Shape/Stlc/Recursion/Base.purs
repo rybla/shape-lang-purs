@@ -74,7 +74,7 @@ type RecConstructor_Constructor a
 
 recConstructor :: forall a. { constructor :: RecConstructor_Constructor a } -> RecConstructor a
 recConstructor rec constr typeId = case constr of
-  Constructor termBinding prms meta -> rec.constructor termBinding prms meta typeId
+  Constructor termBinding params meta -> rec.constructor termBinding params meta typeId
 
 type RecDefinitionBindings a
   = Type -> Term -> a
@@ -93,7 +93,7 @@ recDefinitionBindings ::
   } ->
   RecDefinitionBindings a
 recDefinitionBindings rec alpha a = case alpha /\ a of
-  ArrowType prm beta _ /\ LambdaTerm termId block meta -> rec.arrow_lambda prm beta termId block meta
+  ArrowType param beta _ /\ LambdaTerm termId block meta -> rec.arrow_lambda param beta termId block meta
   _ /\ _ -> rec.wildcard alpha a
 -}
 type RecType a
@@ -120,7 +120,7 @@ recType ::
   } ->
   RecType a
 recType rec = case _ of
-  ArrowType prm alpha meta -> rec.arrow prm alpha meta
+  ArrowType param alpha meta -> rec.arrow param alpha meta
   DataType typeId meta -> rec.data typeId meta
   HoleType holeId wkn meta -> rec.hole holeId wkn meta
   ProxyHoleType holeId -> rec.proxyHole holeId

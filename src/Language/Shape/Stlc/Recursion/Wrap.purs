@@ -99,10 +99,10 @@ recConstructor ::
 recConstructor rec =
   Rec.recConstructor
     { constructor:
-        \termBnd prms meta gamma typeBnd metaGamma wrap_constr ->
-          rec.constructor termBnd prms meta gamma typeBnd metaGamma
+        \termBnd params meta gamma typeBnd metaGamma wrap_constr ->
+          rec.constructor termBnd params meta gamma typeBnd metaGamma
             wrap_constr
-            (\i -> wrap_constr <<< \prm' -> Constructor termBnd (List.updateAt' i prm' prms) meta)
+            (\i -> wrap_constr <<< \param' -> Constructor termBnd (List.updateAt' i param' params) meta)
     }
 
 recType ::
@@ -116,11 +116,11 @@ recType ::
 recType rec =
   Rec.recType
     { arrow:
-        \prm beta meta gamma metaGamma wrap_type ->
-          rec.arrow prm beta meta gamma metaGamma
+        \param beta meta gamma metaGamma wrap_type ->
+          rec.arrow param beta meta gamma metaGamma
             wrap_type
-            (wrap_type <<< \prm' -> ArrowType prm' beta meta)
-            (wrap_type <<< \beta' -> ArrowType prm beta' meta)
+            (wrap_type <<< \param' -> ArrowType param' beta meta)
+            (wrap_type <<< \beta' -> ArrowType param beta' meta)
     , data: \typeId meta gamma metaGamma wrap_type -> rec.data typeId meta gamma metaGamma wrap_type
     , hole: \holeID wkn meta gamma metaGamma wrap_type -> rec.hole holeID wkn meta gamma metaGamma wrap_type
     , proxyHole: \holeID gamma metaGamma wrap_type -> rec.proxyHole holeID gamma metaGamma wrap_type
@@ -137,8 +137,8 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termId block meta gamma prm beta metaGamma wrap_term ->
-          rec.lambda termId block meta gamma prm beta metaGamma
+        \termId block meta gamma param beta metaGamma wrap_term ->
+          rec.lambda termId block meta gamma param beta metaGamma
             wrap_term
             (\block' tc -> wrap_term (LambdaTerm termId block' meta) (Ch.ArrowCh Ch.NoChange tc))
     , neutral:
@@ -167,8 +167,8 @@ recArgs rec =
   Rec.recArgs
     { none: \_ -> rec.none
     , cons:
-        \a args meta gamma prm beta metaGamma wrap_args ->
-          rec.cons a args meta gamma prm beta metaGamma
+        \a args meta gamma param beta metaGamma wrap_args ->
+          rec.cons a args meta gamma param beta metaGamma
             wrap_args
             (wrap_args <<< \a' -> ConsArgs a' args meta)
             (wrap_args <<< \args' -> ConsArgs a args' meta)
@@ -194,9 +194,9 @@ recParameter ::
 recParameter rec =
   Rec.recParameter
     { parameter:
-        \alpha meta gamma metaGamma wrap_prm ->
+        \alpha meta gamma metaGamma wrap_param ->
           rec.parameter alpha meta gamma metaGamma
-            wrap_prm
-            (wrap_prm <<< \alpha' -> Parameter alpha' meta)
+            wrap_param
+            (wrap_param <<< \alpha' -> Parameter alpha' meta)
     }
 -}

@@ -115,7 +115,7 @@ programComponent this =
           <$> modifySyntaxAtM st.ix_cursor
               ( case _ of
                   SyntaxTermBinding termBinding@(TermBinding termId meta) -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = TermName $ modifyName case meta.name of TermName name -> name }
-                  SyntaxParameter prm@(Parameter alpha meta) -> pure $ SyntaxParameter $ Parameter alpha meta { name = TermName $ modifyName case meta.name of TermName name -> name }
+                  SyntaxParameter param@(Parameter alpha meta) -> pure $ SyntaxParameter $ Parameter alpha meta { name = TermName $ modifyName case meta.name of TermName name -> name }
                   SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = TypeName $ modifyName case meta.name of TypeName name -> name }
                   x -> pure x
               )
@@ -228,10 +228,10 @@ programComponent this =
                 ( [ selectableClassName "block" isSelected, Props._id eid ] <> selectableProps ix
                     <> highlightableProps eid
                 )
-                [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
-                , indentOrNothing meta metaGamma
-                , renderTerm a gamma alpha metaGamma ix_term cursor_term
-                ]
+                $ [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
+                  , indentOrNothing meta metaGamma
+                  , renderTerm a gamma alpha metaGamma ix_term cursor_term
+                  ]
       }
 
   renderDefinitionItems :: RecIndex.RecDefinitionItems React.ReactElement
@@ -296,7 +296,7 @@ programComponent this =
                     <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ]
-                [ DOM.span' [ DOM.text "+" ] ]
+                [ DOM.span' [ DOM.text "•" ] ]
       }
 
   renderDefinition :: RecIndex.RecDefinition React.ReactElement
@@ -367,14 +367,14 @@ programComponent this =
                     <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
-                [ DOM.span' [ DOM.text "+" ] ]
+                [ DOM.span' [ DOM.text "•" ] ]
       }
 
   renderConstructor :: RecIndex.RecConstructor React.ReactElement
   renderConstructor =
     RecIndex.recConstructor
       { constructor:
-          \termBinding prmItems meta typeId gamma alpha metaGamma metaGamma_prmItem_at ix_defItems ix_def ix isSelected ix_termBinding cursor_termBinding ix_prmItem_at cursor_prmItem_at ix_prmSep_at cursor_prmSep_at ->
+          \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_paramItem_at ix_defItems ix_def ix isSelected ix_termBinding cursor_termBinding ix_paramItem_at cursor_paramItem_at ix_paramSep_at cursor_paramSep_at ->
             let
               eid = upwardIndexToEid ix
             in
@@ -391,15 +391,15 @@ programComponent this =
                           [ punctuation.space ]
                           $ Array.fromFoldable
                           $ mapWithIndex
-                              ( \i (prm /\ meta) ->
+                              ( \i (param /\ meta) ->
                                   DOM.span'
-                                    [ renderParameterSeparator meta ix_defItems ix_def ix (ix_prmSep_at i) (cursor_prmSep_at i)
-                                    , renderParameter prm gamma (metaGamma_prmItem_at i) (ix_prmItem_at i) (cursor_prmItem_at i)
+                                    [ renderParameterSeparator meta ix_defItems ix_def ix (ix_paramSep_at i) (cursor_paramSep_at i)
+                                    , renderParameter param gamma (metaGamma_paramItem_at i) (ix_paramItem_at i) (cursor_paramItem_at i)
                                     ]
                               )
-                              prmItems
+                              paramItems
                       ]
-                  , renderParameterSeparator { indented: any (snd >>> _.indented) prmItems } ix_defItems ix_def ix (ix_prmSep_at (length prmItems)) (cursor_prmSep_at (length prmItems))
+                  , renderParameterSeparator { indented: any (snd >>> _.indented) paramItems } ix_defItems ix_def ix (ix_paramSep_at (length paramItems)) (cursor_paramSep_at (length paramItems))
                   ]
       }
 
@@ -416,27 +416,29 @@ programComponent this =
                     <> highlightableProps eid
                 )
                 -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
-                [ DOM.span' [ DOM.text "+" ] ]
+                [ DOM.span' [ DOM.text "•" ] ]
       }
 
+  {-
   renderParameterInsertor :: UpwardIndex -> React.ReactElement
   renderParameterInsertor ix =
     DOM.span
       [ Props.className "parameterInsertor insertor" ]
       [ DOM.text "+" ]
-
+  -}
+  {-
   renderParameterDeletor :: UpwardIndex -> React.ReactElement
   renderParameterDeletor ix =
     DOM.span
       [ Props.className "parameterDeletor deletor" ]
       [ DOM.text "-" ]
-
+  -}
   renderType :: RecIndex.RecType React.ReactElement
   renderType type_ gamma metaGamma ix crs =
     DOM.span'
       [ {-renderParameterInsertor ix ,-} RecIndex.recType
           { arrow:
-              \prm beta meta gamma metaGamma ix isSelected ix_prm cursor_prm ix_beta cursor_beta ->
+              \param beta meta gamma metaGamma ix isSelected ix_param cursor_param ix_beta cursor_beta ->
                 let
                   eid = upwardIndexToEid ix
                 in
@@ -444,7 +446,7 @@ programComponent this =
                     ( [ selectableClassName "arrow type" isSelected, Props._id eid ] <> selectableProps ix
                         <> highlightableProps eid
                     )
-                    $ [ renderParameter prm gamma metaGamma ix_prm cursor_prm
+                    $ [ renderParameter param gamma metaGamma ix_param cursor_param
                       {-, renderParameterDeletor ix-}
                       , punctuation.space
                       ]
@@ -494,10 +496,10 @@ programComponent this =
   renderType' =
     RecMetaContext.recType
       { arrow:
-          \prm beta meta gamma metaGamma ->
+          \param beta meta gamma metaGamma ->
             DOM.span
               (inertProps "arrow type")
-              $ [ renderParameter' prm gamma metaGamma
+              $ [ renderParameter' param gamma metaGamma
                 , punctuation.space
                 ]
               <> [ punctuation.arrow
@@ -525,7 +527,7 @@ programComponent this =
   renderTerm term_prt gamma_prt type_prt metaGamma_prt ix_prt crs_prt =
     RecIndex.recTerm
       { lambda:
-          \termId block meta gamma prm beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
+          \termId block meta gamma param beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
             let
               eid = upwardIndexToEid ix
             in
@@ -622,7 +624,17 @@ programComponent this =
           \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ix_a cursor_a ix_argItems cursor_argItems ->
             DOM.span'
               $ [ punctuation.space ]
-              <> [ renderTerm a gamma alpha metaGamma ix_a cursor_a ]
+              <> [ let
+                    unparenthesized = renderTerm a gamma alpha metaGamma ix_a cursor_a
+
+                    parenthesized = DOM.span' [ punctuation.lparen, renderTerm a gamma alpha metaGamma ix_a cursor_a, punctuation.rparen ]
+                  in
+                    case a of
+                      LambdaTerm _ _ _ -> parenthesized
+                      HoleTerm _ -> parenthesized
+                      MatchTerm _ _ _ _ -> parenthesized
+                      NeutralTerm _ argItems' _ -> if null argItems' then unparenthesized else parenthesized
+                ]
               <> if argItems == Nil then
                   []
                 else

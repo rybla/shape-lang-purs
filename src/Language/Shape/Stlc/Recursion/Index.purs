@@ -313,11 +313,11 @@ recConstructor ::
 recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at ix_parent ix_def ix csr ->
+        \termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at ix_parent ix_def ix csr ->
           let
             _ = unit -- if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
           in
-            rec.constructor termBinding prms meta typeId gamma alpha metaGamma metaGamma_prm_at
+            rec.constructor termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at
               ix_parent
               ix_def
               -- constructor
@@ -410,8 +410,8 @@ recDefinitionBindings ::
 recDefinitionBindings rec =
   RecMetaContext.recDefinitionBindings
     { arrow_lambda:
-        \prm beta termId block meta gamma metaGamma ix_def ix_type csr_type ix_term csr_term ->
-          rec.arrow_lambda prm beta termId block meta gamma metaGamma
+        \param beta termId block meta gamma metaGamma ix_def ix_type csr_type ix_term csr_term ->
+          rec.arrow_lambda param beta termId block meta gamma metaGamma
             -- def
             ix_def
             -- type
@@ -420,7 +420,7 @@ recDefinitionBindings rec =
             -- term
             ix_term
             csr_term
-            -- prm
+            -- param
             (ix_type :- ArrowType_Parameter)
             (checkCursorStep ArrowType_Parameter ?csr_type)
             -- beta
@@ -491,12 +491,12 @@ recType ::
 recType rec =
   RecMetaContext.recType
     { arrow:
-        \prm beta meta gamma metaGamma ix csr ->
-          rec.arrow prm beta meta gamma metaGamma
+        \param beta meta gamma metaGamma ix csr ->
+          rec.arrow param beta meta gamma metaGamma
             -- type
             ix
             (checkCursorHere csr)
-            -- prm
+            -- param
             (ix :- IndexStep StepArrowType 0)
             (checkCursorStep (IndexStep StepArrowType 0) csr)
             -- beta
@@ -561,8 +561,8 @@ recTerm ::
 recTerm rec =
   RecMetaContext.recTerm
     { lambda:
-        \termId block meta gamma prm beta metaGamma ix csr ->
-          rec.lambda termId block meta gamma prm beta metaGamma
+        \termId block meta gamma param beta metaGamma ix csr ->
+          rec.lambda termId block meta gamma param beta metaGamma
             -- term
             ix
             (checkCursorHere csr)
@@ -628,8 +628,8 @@ recArgItems rec =
         \gamma alpha metaGamma ix csr ->
           rec.nil gamma alpha metaGamma
     , cons:
-        \argItem argItems gamma prm beta metaGamma ix csr ->
-          rec.cons argItem argItems gamma prm beta metaGamma
+        \argItem argItems gamma param beta metaGamma ix csr ->
+          rec.cons argItem argItems gamma param beta metaGamma
             -- term
             (ix :- IndexStep StepCons 0)
             (checkCursorStep (IndexStep StepCons 0) csr)

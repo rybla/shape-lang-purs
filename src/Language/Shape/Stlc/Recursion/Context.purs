@@ -90,9 +90,9 @@ recConstructor ::
 recConstructor rec =
   RecBase.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma ->
-          rec.constructor termBinding prms meta typeId gamma
-            (typeOfConstructor (fromItem <$> prms) typeId)
+        \termBinding params meta typeId gamma ->
+          rec.constructor termBinding params meta typeId gamma
+            (typeOfConstructor (fromItem <$> params) typeId)
     }
 
 type RecType_ProxyHole a
@@ -116,7 +116,7 @@ recDefinitionBindings ::
   RecDefinitionBindings a
 recDefinitionBindings rec =
   RecBase.recDefinitionBindings
-    { arrow_lambda: \prm@(Parameter alpha _) beta termId block meta gamma -> rec.arrow_lambda prm beta termId block meta (Map.insert termId alpha gamma)
+    { arrow_lambda: \param@(Parameter alpha _) beta termId block meta gamma -> rec.arrow_lambda param beta termId block meta (Map.insert termId alpha gamma)
     , wildcard: rec.wildcard
     }
 -}
@@ -169,7 +169,7 @@ recTerm rec =
   RecBase.recTerm
     { lambda:
         \termId block meta gamma alpha -> case alpha of
-          ArrowType prm@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) prm beta
+          ArrowType param@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) param beta
           _ -> Unsafe.error $ "[Context.recTerm.lambda] impossible: the term " <> show (LambdaTerm termId block meta) <> " has type " <> show alpha
     , neutral:
         \termId argItems meta gamma alpha ->
@@ -202,7 +202,7 @@ recArgItems rec =
     { nil: rec.nil
     , cons:
         \argItem argItems gamma alpha -> case alpha of
-          ArrowType prm beta _ -> rec.cons argItem argItems gamma prm beta
+          ArrowType param beta _ -> rec.cons argItem argItems gamma param beta
           _ -> Unsafe.error "Context.recArgItems: impossible"
     }
 
@@ -221,13 +221,13 @@ recCase rec =
     { case_:
         \termIds block meta typeId constrId gamma alpha ->
           let
-            prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+            params /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
             rec.case_ termIds block meta typeId constrId
               ( foldl
                   (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
                   gamma
-                  (zip (fromItem <$> termIds) prms)
+                  (zip (fromItem <$> termIds) params)
               )
               alpha
     }

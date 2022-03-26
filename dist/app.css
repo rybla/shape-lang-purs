@@ -24,7 +24,6 @@ html {
   line-height: 16pt;
   font-size: 12pt;
   height: 100vh;
-  margin: 0;
   padding: 0;
 }
 /* TODO: disallow sub from making the line taller */
@@ -75,9 +74,12 @@ html {
 /* module */
 
 .module {
-  padding: 1em;
+  padding-top: 0em;
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 2em;
   display: block;
-  height: 100%;
+  /* height: calc(100% - 2em); */
   color: rgb(154, 148, 168);
 }
 

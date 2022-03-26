@@ -9,7 +9,7 @@ import Data.String (codePointFromChar)
 import Data.String as String
 
 type ModuleMetadata = { hidden :: Boolean }
-defaultModuleMetadata = { hidden: false } :: ModuleMetadata
+defaultModuleMetadata = { hidden: true } :: ModuleMetadata
 
 type BlockMetadata = { indented::Boolean , hidden :: Boolean }
 defaultBlockMetadata = { indented:false, hidden: false } :: BlockMetadata
@@ -60,7 +60,7 @@ type MatchTermMetadata = { indented :: Boolean }
 defaultMatchTermMetadata = { indented: false } :: MatchTermMetadata
 
 type CaseItemMetadata = {indented::Boolean}
-defaultCaseItemMetadata = {indented:false} :: CaseItemMetadata
+defaultCaseItemMetadata = {indented:true} :: CaseItemMetadata
 
 type TermIdItemMetadata = {indented::Boolean}
 defaultTermIdItemMetadata = {indented:false} :: TermIdItemMetadata

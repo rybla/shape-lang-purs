@@ -158,10 +158,10 @@ stepSyntax step syn = case syn /\ step of
   SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 2 -> SyntaxTerm a 
   SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 0 -> SyntaxTypeBinding t
   SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 -> SyntaxList $ SyntaxConstructorItem <$> constrItems
-  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 0 -> SyntaxTermBinding x 
-  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 1 -> SyntaxList $ SyntaxParameterItem <$> prmItems 
-  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 0 -> SyntaxParameter prm 
-  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType beta 
+  SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 0 -> SyntaxTermBinding x 
+  SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 1 -> SyntaxList $ SyntaxParameterItem <$> paramItems 
+  SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 0 -> SyntaxParameter param 
+  SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType beta 
   SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 -> SyntaxTermId x 
   SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 -> SyntaxBlock block 
   SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 -> SyntaxTermId x 
@@ -175,7 +175,7 @@ stepSyntax step syn = case syn /\ step of
   SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 -> SyntaxDefinition def
   SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructor constr
   SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 -> SyntaxCase case_
-  SyntaxParameterItem (prm /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameter prm
+  SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameter param
   SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermId termId
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> h
@@ -192,10 +192,10 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
   SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 2 /\ SyntaxTerm a' -> SyntaxDefinition (TermDefinition x alpha a' meta)
   SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 0 /\ SyntaxTypeBinding t' -> SyntaxDefinition (DataDefinition t' constrItems meta)
   SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 /\ SyntaxList constrs' -> SyntaxDefinition (DataDefinition t (toConstructorItem <$> constrs') meta)
-  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 0 /\ SyntaxTermBinding x' -> SyntaxConstructor (Constructor x' prmItems meta)
-  SyntaxConstructor (Constructor x prmItems meta) /\ IndexStep StepConstructor 1 /\ SyntaxList prms' -> SyntaxConstructor (Constructor x (toParameterItem <$> prms') meta)
-  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 0 /\ SyntaxParameter prm' -> SyntaxType (ArrowType prm' beta meta)
-  SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType 1 /\SyntaxType beta' -> SyntaxType (ArrowType prm beta' meta)
+  SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 0 /\ SyntaxTermBinding x' -> SyntaxConstructor (Constructor x' paramItems meta)
+  SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 1 /\ SyntaxList params' -> SyntaxConstructor (Constructor x (toParameterItem <$> params') meta)
+  SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 0 /\ SyntaxParameter param' -> SyntaxType (ArrowType param' beta meta)
+  SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 1 /\SyntaxType beta' -> SyntaxType (ArrowType param beta' meta)
   SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 /\ SyntaxTermId x' -> SyntaxTerm (LambdaTerm x' block meta)
   SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 /\ SyntaxBlock block'-> SyntaxTerm (LambdaTerm x block' meta)
   SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 /\ SyntaxTermId x' -> SyntaxTerm (NeutralTerm x' argItems meta)
@@ -209,7 +209,7 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
   SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 /\ SyntaxDefinition def' -> SyntaxDefinitionItem (def' /\ meta )
   SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 /\ SyntaxConstructor constr' -> SyntaxConstructorItem (constr' /\ meta )
   SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 /\ SyntaxCase case'  -> SyntaxCaseItem (case' /\ meta )
-  SyntaxParameterItem (prm /\ meta) /\ IndexStep StepParameterItem 0 /\ SyntaxParameter prm' -> SyntaxParameterItem (prm' /\ meta)
+  SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 /\ SyntaxParameter param' -> SyntaxParameterItem (param' /\ meta)
   SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 /\ SyntaxTermId termId' -> SyntaxTermIdItem (termId' /\ meta)
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 /\ h' -> SyntaxList (Cons h' t)
@@ -277,9 +277,9 @@ lookupSyntaxAt ix syn =
       SyntaxDefinition (DataDefinition typeBinding constrs meta) /\ IndexStep StepDataDefinition i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTypeBinding typeBinding
         | inListBounds (i - 1) constrs -> lookupSyntaxAt ix' $ SyntaxConstructor $ Consindex' constrs (i - 1)
-      SyntaxConstructor (Constructor termBinding prms meta) /\ IndexStep StepConstructor i
+      SyntaxConstructor (Constructor termBinding params meta) /\ IndexStep StepConstructor i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermBinding termBinding
-        | inListBounds (i - 1) prms -> lookupSyntaxAt ix' $ SyntaxParameter $ Consindex' prms i
+        | inListBounds (i - 1) params -> lookupSyntaxAt ix' $ SyntaxParameter $ Consindex' params i
       SyntaxTerm (LambdaTerm termId block meta) /\ IndexStep StepLambdaTerm i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxTermId termId
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxBlock block
@@ -295,8 +295,8 @@ lookupSyntaxAt ix syn =
       SyntaxCase (Case termIds term meta) /\ IndexStep StepCase i
         | inListBounds i termIds -> lookupSyntaxAt ix' $ SyntaxTermId (Consindex' termIds i)
         | i == Conslength termIds -> lookupSyntaxAt ix' $ SyntaxTerm term
-      SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
-        | i == 0 -> lookupSyntaxAt ix' $ SyntaxParameter prm
+      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType i
+        | i == 0 -> lookupSyntaxAt ix' $ SyntaxParameter param
         | i == 1 -> lookupSyntaxAt ix' $ SyntaxType beta
       SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter i
         | i == 0 -> lookupSyntaxAt ix' $ SyntaxType alpha
@@ -318,9 +318,9 @@ modifyIndexAt ix f syn = case unconsDownwardIndex ix of
     SyntaxDefinition (DataDefinition typeBinding constrs meta) /\ IndexStep StepDataDefinition i
       | i == 0 -> SyntaxDefinition (DataDefinition (toTypeBinding $ modifyIndexAt ix' f $ SyntaxTypeBinding typeBinding) constrs meta)
       | inListBounds (i - 1) constrs -> SyntaxDefinition (DataDefinition typeBinding (ConsmodifyAt' (i - 1) (toConstructor <<< modifyIndexAt ix' f <<< SyntaxConstructor) constrs) meta)
-    SyntaxConstructor (Constructor termBinding prms meta) /\ IndexStep StepConstructor i
-      | i == 0 -> SyntaxConstructor (Constructor (toTermBinding $ modifyIndexAt ix' f $ SyntaxTermBinding termBinding) prms meta)
-      | inListBounds (i - 1) prms -> SyntaxConstructor (Constructor termBinding (ConsmodifyAt' (i - 1) (toParameter <<< modifyIndexAt ix' f <<< SyntaxParameter) prms) meta)
+    SyntaxConstructor (Constructor termBinding params meta) /\ IndexStep StepConstructor i
+      | i == 0 -> SyntaxConstructor (Constructor (toTermBinding $ modifyIndexAt ix' f $ SyntaxTermBinding termBinding) params meta)
+      | inListBounds (i - 1) params -> SyntaxConstructor (Constructor termBinding (ConsmodifyAt' (i - 1) (toParameter <<< modifyIndexAt ix' f <<< SyntaxParameter) params) meta)
     SyntaxTerm (LambdaTerm termId block meta) /\ IndexStep StepLambdaTerm i
       | i == 0 -> SyntaxTerm (LambdaTerm (toTermId $ modifyIndexAt ix' f $ SyntaxTermId termId) block meta)
       | i == 1 -> SyntaxTerm (LambdaTerm termId (toBlock $ modifyIndexAt ix' f $ SyntaxBlock block) meta)
@@ -336,9 +336,9 @@ modifyIndexAt ix f syn = case unconsDownwardIndex ix of
     SyntaxCase (Case termIds term meta) /\ IndexStep StepCase i
       | inListBounds i termIds -> SyntaxCase (Case (ConsmodifyAt' i (toTermId <<< modifyIndexAt ix' f <<< SyntaxTermId) termIds) term meta)
       | i == Conslength termIds -> SyntaxCase (Case termIds (toTerm $ modifyIndexAt ix' f $ SyntaxTerm term) meta)
-    SyntaxType (ArrowType prm beta meta) /\ IndexStep StepArrowType i
-      | i == 0 -> SyntaxType (ArrowType (toParameter $ modifyIndexAt ix' f $ SyntaxParameter prm) beta meta)
-      | i == 1 -> SyntaxType (ArrowType prm (toType $ modifyIndexAt ix' f $ SyntaxType beta) meta)
+    SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType i
+      | i == 0 -> SyntaxType (ArrowType (toParameter $ modifyIndexAt ix' f $ SyntaxParameter param) beta meta)
+      | i == 1 -> SyntaxType (ArrowType param (toType $ modifyIndexAt ix' f $ SyntaxType beta) meta)
     SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter i
       | i == 0 -> SyntaxParameter (Parameter (toType $ modifyIndexAt ix' f $ SyntaxType alpha) meta)
     _ -> Unsafe.error "modifyIndexAt: impossible"
@@ -401,8 +401,8 @@ moveDownwardIndex dir mod ix =
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
                   | inBounds (i - 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :- IndexStep StepDataDefinition (i - 1)
                   | otherwise -> ix
-                SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i - 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i - 1)
+                SyntaxConstructor (Constructor _ params _) /\ IndexStep StepConstructor i
+                  | inBounds (i - 1) 0 (Conslength params) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i - 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
                   | inBounds (i - 1) 0 1 -> toDownwardIndex $ ix' :- IndexStep StepLambdaTerm (i - 1)
@@ -445,8 +445,8 @@ moveDownwardIndex dir mod ix =
                 SyntaxDefinition (DataDefinition _ constrs _) /\ IndexStep StepDataDefinition i
                   | inBounds (i + 1) 0 (Conslength constrs) -> toDownwardIndex $ ix' :- IndexStep StepDataDefinition (i + 1)
                   | otherwise -> ix 
-                SyntaxConstructor (Constructor _ prms _) /\ IndexStep StepConstructor i
-                  | inBounds (i + 1) 0 (Conslength prms) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i + 1)
+                SyntaxConstructor (Constructor _ params _) /\ IndexStep StepConstructor i
+                  | inBounds (i + 1) 0 (Conslength params) -> toDownwardIndex $ ix' :- IndexStep StepConstructor (i + 1)
                   | otherwise -> ix
                 SyntaxTerm (LambdaTerm _ _ _) /\ IndexStep StepLambdaTerm i
                   | inBounds (i + 1) 0 1  -> toDownwardIndex $ ix' :- IndexStep StepLambdaTerm (i + 1)

@@ -71,6 +71,54 @@ data TypeId
 data HoleId
   = HoleId UUID
 
+-- mk
+
+mkModule defItems = Module defItems defaultModuleMetadata 
+
+mkBlock defItems a = Block defItems a defaultBlockMetadata
+mkBlockInd defItems a = Block defItems a defaultBlockMetadata {indented=true}
+
+mkDefItem def = def /\ defaultDefinitionItemMetadata
+
+mkTermDef termBind alpha a = TermDefinition termBind alpha a defaultTermDefinitionMetadata
+
+mkDataDef typeBind constrItems = DataDefinition typeBind constrItems defaultDataDefinitionMetadata
+
+mkConstrItem constr = constr /\ defaultConstructorItemMetadata
+
+mkConstr termBind paramItems = Constructor termBind paramItems defaultConstructorMetadata
+
+mkParamItem param = param /\ defaultParameterItemMetadata
+
+mkLambda termId block = LambdaTerm termId block defaultLambdaTermMetadata
+mkLambdaInd termId block = LambdaTerm termId block defaultLambdaTermMetadata {indented=true}
+mkHoleTerm = HoleTerm defaultHoleTermMetadata
+mkMatch typeId a caseItems = MatchTerm typeId a caseItems defaultMatchTermMetadata
+mkNeutral termId argItems = NeutralTerm termId argItems defaultNeutralTermMetadata
+
+mkCaseItem case_ = case_ /\ defaultCaseItemMetadata
+
+mkArgItem a = a /\ defaultArgItemMetadata
+
+mkCase termIdItems block = Case termIdItems block defaultCaseMetadata
+mkCaseInd termIdItems block = Case termIdItems block defaultCaseMetadata {indented=true}
+
+mkTermIdItem termId = termId /\ defaultTermIdItemMetadata
+
+mkArrow param alpha = ArrowType param alpha defaultArrowTypeMetadata
+mkData typeId = DataType typeId defaultDataTypeMetadata
+mkHoleType holeId wkn = HoleType holeId wkn defaultHoleTypeMetadata
+mkProxyHoleType holeId = ProxyHoleType holeId 
+
+mkParam name alpha = Parameter alpha defaultParameterMetadata {name = name}
+
+mkTermBind termId name = TermBinding termId defaultTermBindingMetadata {name = name }
+
+mkTypeBind typeId name  = TypeBinding typeId defaultTypeBindingMetadata {name = name}
+
+
+
+
 -- Item
 
 fromItem :: forall a md. a /\ md -> a
@@ -190,7 +238,7 @@ toType (SyntaxType alpha) = alpha
 toType _ = Unsafe.error "impossible cast from Syntax"
 
 toParameter :: Syntax -> Parameter
-toParameter (SyntaxParameter prm) = prm 
+toParameter (SyntaxParameter param) = param 
 toParameter _ = Unsafe.error "impossible cast from Syntax"
 
 toTermBinding :: Syntax -> TermBinding

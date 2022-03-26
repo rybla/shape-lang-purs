@@ -127,9 +127,9 @@ recConstructor ::
 recConstructor rec =
   RecContext.recConstructor
     { constructor:
-        \termBinding prms meta typeId gamma alpha metaGamma ->
-          rec.constructor termBinding prms meta typeId gamma alpha metaGamma
-            (\i -> foldl (\metaGamma' (Parameter _ { name }) -> registerParameterName name metaGamma') metaGamma (fst <$> take (i + 1) prms))
+        \termBinding params meta typeId gamma alpha metaGamma ->
+          rec.constructor termBinding params meta typeId gamma alpha metaGamma
+            (\i -> foldl (\metaGamma' (Parameter _ { name }) -> registerParameterName name metaGamma') metaGamma (fst <$> take (i + 1) params))
     }
 
 type RecDefinitionBindings a
@@ -151,8 +151,8 @@ recDefinitionBindings ::
 recDefinitionBindings rec =
   RecContext.recDefinitionBindings
     { arrow_lambda:
-        \prm@(Parameter _ { name }) beta termId block meta gamma ->
-          rec.arrow_lambda prm beta termId block meta gamma
+        \param@(Parameter _ { name }) beta termId block meta gamma ->
+          rec.arrow_lambda param beta termId block meta gamma
             <<< foldl (>>>) identity
                 [ registerTermId termId name
                 , incrementIndentation
@@ -186,8 +186,8 @@ recType ::
 recType rec =
   RecContext.recType
     { arrow:
-        \prm@(Parameter _ { name }) beta meta gamma ->
-          rec.arrow prm beta meta gamma
+        \param@(Parameter _ { name }) beta meta gamma ->
+          rec.arrow param beta meta gamma
             <<< foldl (>>>) identity
                 [ registerParameterName name
                 , incrementIndentation
@@ -223,8 +223,8 @@ recTerm ::
 recTerm rec =
   RecContext.recTerm
     { lambda:
-        \termId block meta gamma prm@(Parameter _ { name }) beta ->
-          rec.lambda termId block meta gamma prm beta
+        \termId block meta gamma param@(Parameter _ { name }) beta ->
+          rec.lambda termId block meta gamma param beta
             <<< foldl (>>>) identity
                 [ registerTermId termId name
                 , incrementIndentation
@@ -256,7 +256,7 @@ recArgItems ::
 recArgItems rec =
   RecContext.recArgItems
     { nil: rec.nil
-    , cons: \argItem argItems gamma prm alpha -> rec.cons argItem argItems gamma prm alpha <<< incrementIndentation
+    , cons: \argItem argItems gamma param alpha -> rec.cons argItem argItems gamma param alpha <<< incrementIndentation
     }
 
 type RecCase a
@@ -274,11 +274,11 @@ recCase rec =
     { case_:
         \termIdItems block meta typeId constrId gamma alpha ->
           let
-            prms /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+            params /\ _ = flattenArrowType $ Map.lookup' constrId gamma
           in
             rec.case_ termIdItems block meta typeId constrId gamma alpha
               <<< foldl (>>>) identity
-                  [ registerTermIds (List.zip (fromItem <$> termIdItems) (map (\(Parameter _ { name }) -> name) prms))
+                  [ registerTermIds (List.zip (fromItem <$> termIdItems) (map (\(Parameter _ { name }) -> name) params))
                   , incrementIndentation
                   ]
     }

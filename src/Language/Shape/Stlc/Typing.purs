@@ -34,22 +34,22 @@ addDefinitionToContext = case _ of
   DataDefinition (TypeBinding typeId _) constrItems meta -> flip (foldl (flip f)) (fromItem <$> constrItems)
     where
     f :: Constructor -> Map TermId Type -> Map TermId Type
-    f (Constructor (TermBinding id _) prms _) = Map.insert id (typeOfConstructor prms' typeId)
+    f (Constructor (TermBinding id _) params _) = Map.insert id (typeOfConstructor params' typeId)
       where
-      prms' = map (\(Parameter a md) -> (Parameter (replaceHolesWithProxy a) md)) (fromItem <$> prms)
+      params' = map (\(Parameter a md) -> (Parameter (replaceHolesWithProxy a) md)) (fromItem <$> params)
 
 addDefinitionsToContext :: List Definition -> Context -> Context
 addDefinitionsToContext = flip $ foldl (flip addDefinitionToContext)
 
 typeOfConstructor :: List Parameter -> TypeId -> Type
-typeOfConstructor prms typeId =
+typeOfConstructor params typeId =
   -- TODO: this folds the right way, right?? do a test or two
   foldr
-    (\prm beta -> ArrowType prm beta defaultArrowTypeMetadata)
+    (\param beta -> ArrowType param beta defaultArrowTypeMetadata)
     (DataType typeId defaultDataTypeMetadata)
-    prms
+    params
 
 flattenArrowType :: Type -> List Parameter /\ Type
-flattenArrowType (ArrowType prm beta _) = let prms /\ delta = flattenArrowType beta in List.Cons prm prms /\ delta
+flattenArrowType (ArrowType param beta _) = let params /\ delta = flattenArrowType beta in List.Cons param params /\ delta
 
 flattenArrowType type_ = List.Nil /\ type_
