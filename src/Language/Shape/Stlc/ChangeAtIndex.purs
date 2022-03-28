@@ -2,6 +2,7 @@ module Language.Shape.Stlc.ChangeAtIndex where
 
 import Data.Tuple.Nested
 import Prelude
+import Prim hiding (Type)
 
 import Control.Monad.State (runState)
 import Data.List (List(..))
@@ -11,7 +12,7 @@ import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, c
 import Language.Shape.Stlc.Holes (emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
 import Language.Shape.Stlc.Recursion.Context as Rec
-import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition, DefinitionItem, Module(..), Parameter(..), Syntax(..), Term(..), ArgItem)
+import Language.Shape.Stlc.Syntax (Block(..), Case(..), Constructor(..), Definition, DefinitionItem, Module(..), Parameter(..), Syntax(..), Term(..), ArgItem, Type(..))
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -38,25 +39,37 @@ castChangeTC = case _ of
 -- chAtTerm = undefined
 
 chAtModule :: Rec.RecModule (Syntax -> Change -> DownwardIndex -> Maybe (Module /\ DownwardIndex))
-chAtModule = undefined
+chAtModule = Rec.recModule {
+    module_ : \defs meta gamma tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepModule 0) rest)) -> undefined
+        _ -> error "no"
+}
 
 chAtDefinitionItems :: Rec.RecDefinitionItems (Syntax -> Change -> DownwardIndex
     -> Maybe (List DefinitionItem /\ DownwardIndex))
-chAtDefinitionItems = undefined
+chAtDefinitionItems = Rec.recDefinitionItems {
+    definitionItems : \defs gamma tRep sbjto -> undefined -- case _ of
+        -- TODO: what Step* goes in the undefined here?
+        -- (Downwardindex (Cons (IndexStep undefined 1) rest)) -> undefined
+}
 
+-- TODO: should be able to change either a data definition or constructor list to add/remove/change constructors
 chAtDefinition :: Rec.RecDefinition (Syntax -> Change -> DownwardIndex -> Maybe (Definition /\ DownwardIndex))
-chAtDefinition = undefined
+chAtDefinition = Rec.recDefinition {
+    data : \binding constructors meta gamma tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepDataDefinition 1) rest)) -> undefined -- I think this is the list of constructors
+        _ -> error "no"
+    , term : \binding ty t meta gamma tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepTermDefinition 1) rest)) -> undefined -- type
+        (DownwardIndex (Cons (IndexStep StepTermDefinition 2) rest)) -> undefined -- term
+        _ -> error "no"
+}
 
-chAtTerm' :: Rec.RecTerm (Syntax -> Change -> DownwardIndex -> Maybe (Term /\ DownwardIndex /\ TypeChange))
-chAtTerm' t gamma ty (SyntaxTerm newTerm) (ChangeTypeChange tc) (DownwardIndex Nil)
+chAtTerm :: Rec.RecTerm (Syntax -> Change -> DownwardIndex -> Maybe (Term /\ DownwardIndex /\ TypeChange))
+chAtTerm t gamma ty (SyntaxTerm newTerm) (ChangeTypeChange tc) (DownwardIndex Nil)
     = Just (newTerm /\ DownwardIndex Nil /\ tc)
-chAtTerm' t gamma ty tRep sbjto idx = Rec.recTerm {
+chAtTerm t gamma ty tRep sbjto idx = Rec.recTerm {
     lambda : \termId block meta gamma param beta tRep sbjto -> case _ of
-        -- NOTE: HERE
-        (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) Nil)) ->
-            -- TODO: this is wrong. I should use tRep!!! Thats why it exists!
-            let block' /\ holeSub = runState (chBlock gamma beta emptyChanges (castChangeTC sbjto) block) emptyHoleSub
-            in pure $ LambdaTerm termId block' meta /\ emptyDownwardIndex /\ ArrowCh NoChange (castChangeTC sbjto)
         (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) rest)) -> 
             do (block' /\ (DownwardIndex idx') /\ tc) <- chAtBlock block gamma beta tRep sbjto (DownwardIndex rest)
                pure $ LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) idx')) /\ ArrowCh NoChange tc
@@ -77,46 +90,11 @@ chAtTerm' t gamma ty tRep sbjto idx = Rec.recTerm {
 } t gamma ty tRep sbjto idx
 
 
-chAtTerm :: Rec.RecTerm (Syntax -> Change -> DownwardIndex -> Maybe (Term /\ DownwardIndex /\ TypeChange))
-chAtTerm = Rec.recTerm {
-    lambda : \termId block meta gamma param beta tRep sbjto -> case _ of
-        -- NOTE: HERE
-        (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) Nil)) ->
-            -- TODO: this is wrong. I should use tRep!!! Thats why it exists!
-            let block' /\ holeSub = runState (chBlock gamma beta emptyChanges (castChangeTC sbjto) block) emptyHoleSub
-            in pure $ LambdaTerm termId block' meta /\ emptyDownwardIndex /\ ArrowCh NoChange (castChangeTC sbjto)
-        (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) rest)) -> 
-            do (block' /\ (DownwardIndex idx') /\ tc) <- chAtBlock block gamma beta tRep sbjto (DownwardIndex rest)
-               pure $ LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) idx')) /\ ArrowCh NoChange tc
-        _ -> error "no"
-    , neutral : \termId argItems meta gamma alpha tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepNeutralTerm 1) rest)) ->
-            do (argItems' /\ (DownwardIndex idx')) <- chAtArgs argItems gamma alpha tRep sbjto (DownwardIndex rest)
-               pure $ (NeutralTerm termId argItems' meta /\ (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) idx')) /\ NoChange)
-        _ -> error "no"
-    , hole : \meta gamma alpha -> error "no" -- holes have no children, so StepHoleTerm is never used.
-    , match : \dataID a cases meta gamma alpha tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepMatchTerm 1) rest)) ->
-            -- do (cases' /\ (DownwardIndex idx')) <- chAtCase cases gamma alpha tRep sbjto rest
-            -- Here, need to ask Henry about how to deal with cases and index.
-            -- Morally there should be a Rec.CaseItemList recursor, but that seems annoying.
-               undefined
-        _ -> error "no"
-}
-
 chAtBlock :: Rec.RecBlock (Syntax -> Change -> DownwardIndex -> Maybe (Block /\ DownwardIndex /\ TypeChange))
-chAtBlock = Rec.recBlock {
-    block : \ defs t meta gamma ty tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepBlock 0) rest)) -> undefined -- definitions
-        -- NOTE: HERE
-        (DownwardIndex (Cons (IndexStep StepBlock 1) Nil)) -> undefined -- index points to term at end of block
-        (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> undefined -- into term at end of block
-        _ -> error "no"
-}
-chAtBlock' :: Rec.RecBlock (Syntax -> Change -> DownwardIndex -> Maybe (Block /\ DownwardIndex /\ TypeChange))
-chAtBlock' block gamma ty (SyntaxBlock newBlock) (ChangeTypeChange tc) (DownwardIndex Nil) =
+-- TODO: unsure if I need this Nil case, see note at end of file.
+chAtBlock block gamma ty (SyntaxBlock newBlock) (ChangeTypeChange tc) (DownwardIndex Nil) =
     Just (newBlock /\ (DownwardIndex Nil) /\ tc)
-chAtBlock' block gamma ty tRep sbjto idx = Rec.recBlock {
+chAtBlock block gamma ty tRep sbjto idx = Rec.recBlock {
     block : \ defs t meta gamma ty tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepBlock 0) rest)) -> undefined -- definitions
         (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> undefined -- into term at end of block
@@ -148,7 +126,9 @@ chAtConstructor = Rec.recConstructor {
 }
 
 chAtType :: Rec.RecType (Syntax -> Change -> DownwardIndex -> Maybe (Type /\ DownwardIndex /\ TypeChange))
-chAtType = Rec.recType {
+chAtType ty gamma (SyntaxType newTy) (ChangeTypeChange tc) (DownwardIndex Nil)
+    = Just (newTy /\ DownwardIndex Nil /\ tc)
+chAtType ty gamma tRep sbjto idx = Rec.recType {
     arrow : \param out meta gamma tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepArrowType 0) rest)) -> undefined -- input param
         (DownwardIndex (Cons (IndexStep StepArrowType 1) rest)) -> undefined -- output type
@@ -156,7 +136,7 @@ chAtType = Rec.recType {
     , data : \typeId meta gamma tRep sbjto idx -> error "no" -- shouldn't get here, data type has no children (also, StepDataType doesn't need to exists in Index.purs)
     , hole : \holeId weakenedBy meta gamma tRep sbjto -> error "no"-- shouldn't get here, hole types have no children (also, StepHoleType doesn't need to exists in Index.purs)
     , proxyHole : \holeId gamma tRep sbjto -> error "no"-- shouldn't get here, proxy hole types have no children
-}
+} ty gamma tRep sbjto idx
 
 -- doesn't return a TypeChange for the same reason that chAtArgs doesn't
 chAtCase :: Rec.RecCase (Syntax -> Change -> DownwardIndex -> Maybe (Case /\ DownwardIndex))
@@ -169,18 +149,22 @@ chAtCase = Rec.recCase {
 
 -- does this need to return a TypeChange? Consider once I know where it is called.
 chAtParameter :: Rec.RecParameter (Syntax -> Change -> DownwardIndex -> Maybe (Parameter /\ DownwardIndex /\ TypeChange))
-chAtParameter = undefined
+chAtParameter = Rec.recParameter {
+    parameter : \ty meta gamma tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) -> undefined -- the type in the parameter
+        _ -> error "no"
+}
 
 
 {-
 Issue : when a change is done at a hole (and other situations?) a HoleSub needs to be outputted as well.
 Do I need all of these functions to also output a HoleSub in the Maybe?
 
-Another Issue: look at the two places that I wrote NOTE: HERE.
-Should I really deal with a change in a term or block at the parent of each place that has
-a term or block? That seems redundant.
-Instead, chAtTerm and chAtBlock could have a case where they see that the idx is Nil, and then
-just call chTerm (or chBlock) on themselves right there.
-But, this seems to conflict with the stucture that I get from using a recursor.
-I need to check this BEFORE I match on whether its a lambda,match,hole, ...
+A question: in our interface, do we ever need to call chAtIndex where the index is pointing to
+anything other than a Term or a Type? Aren't these the only thing which can be
+copy/cut/pasted?
+If so, then only chAtType and chAtTerm need to have the special case where they don't just
+use the recursor.
+
+Another TODO: shouldn't Parameter have two children, the first of which is the name of the variable?
 -}
