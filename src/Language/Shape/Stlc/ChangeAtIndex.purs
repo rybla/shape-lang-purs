@@ -29,17 +29,7 @@ castChangeTC = case _ of
     (ChangeTypeChange tc) -> tc
     _ -> error "no"
 
--- do these two need to exist?
--- chAtIndex :: Module -> DownwardIndex -> Syntax -> Change -> Module /\ DownwardIndex
--- chAtIndex m i s tc
---     = case chAtIndexImpl (SyntaxModule m) i s tc of
---            ((SyntaxModule m) /\ i' /\ Just NoChange) -> Tuple m i'
---            _ -> error "no"
-
--- chAtIndexImpl :: Syntax -> DownwardIndex -> Syntax -> Change -> Syntax /\ DownwardIndex /\ Maybe TypeChange
--- chAtIndexImpl = undefined
-
--- chAtTerm = undefined
+-- chAtModule module index (? -> T) (ChangeTypeChange (InsertArg ?))
 
 chAtModule :: Rec.RecModule (Syntax -> Change -> DownwardIndex -> Maybe (Module /\ DownwardIndex /\ HoleSub))
 chAtModule = Rec.recModule {
