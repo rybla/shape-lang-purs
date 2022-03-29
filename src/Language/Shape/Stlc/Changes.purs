@@ -17,6 +17,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
+import Debug as Debug
 import Language.Shape.Stlc.Holes (HoleSub, subType, unifyType)
 import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext)
 import Undefined (undefined)
@@ -163,10 +164,10 @@ chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm bindi
          pure $ LambdaTerm binding block' md
 chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
     = do let (Tuple a' change) = chType chs.dataTypeDeletions a
-         block' <- liiift $ chBlock (insert index a' ctx) b (varChange chs index change) NoChange block
+         block' <- liiift $ chBlock (insert index a ctx) b (varChange chs index change) NoChange block
          pure $ LambdaTerm index block' md
 chTerm ctx ty chs (InsertArg a) t =
-    do t' <- (chTerm (insert newBinding a ctx) (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
+    do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
        pure $ LambdaTerm newBinding (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
     where newBinding = (freshTermId unit)
 chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
@@ -188,6 +189,8 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
+        Debug.traceM $ "---------------------------------------------------------------"
+        Debug.traceM $ id
         (Tuple args' ch') <- chArgs ctx (lookup' id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         case maybeSub of
@@ -253,6 +256,8 @@ chCase ctx ty chs paramChanges innerTC (Case bindings t md) = do
     let varsToDelete :: List TermId
         varsToDelete = map (\i -> fst (index' bindings i)) toDelete
     let chs'' = foldl (\chsAcc i -> chsAcc{termChanges = insert i VariableDeletion chsAcc.termChanges}) chs' varsToDelete
+    -- TODO: need to add things to ctx
+
     t' <- liiift $ chBlock ctx ty chs'' innerTC t
     pure $ Case bindings' t' md
 
