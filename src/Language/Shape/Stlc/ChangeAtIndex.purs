@@ -5,11 +5,12 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.State (State, runState)
-import Data.List (List(..), foldl, mapWithIndex, singleton)
+import Data.FoldableWithIndex (foldlWithIndex)
+import Data.List (List(..), foldl, length, mapWithIndex, singleton, take)
 import Data.List.Unsafe (index')
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, emptyChanges, emptyDisplaced, varChange)
+import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
 import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
 import Language.Shape.Stlc.Metadata (DefinitionItemMetadata, defaultDefinitionItemMetadata)
@@ -34,7 +35,9 @@ castChangeTC = case _ of
 chAtModule :: Rec.RecModule (Syntax -> Change -> DownwardIndex -> Maybe (Module /\ DownwardIndex /\ HoleSub))
 chAtModule = Rec.recModule {
     module_ : \defs meta gamma tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepModule 0) rest)) -> undefined
+        (DownwardIndex (Cons (IndexStep StepModule 0) rest)) -> do
+            (defs /\ (DownwardIndex idx) /\ holeSub) <- chAtDefinitionItems defs gamma tRep sbjto (DownwardIndex rest)
+            pure $ (Module defs meta /\ DownwardIndex (Cons (IndexStep StepModule 0) idx) /\ holeSub)
         _ -> error "no"
 }
 
@@ -44,6 +47,11 @@ convertIndexAtList (DownwardIndex (Cons (IndexStep StepCons 1) idx))
     = let (n /\ idx') = convertIndexAtList (DownwardIndex idx)
       in (n + 1) /\ (DownwardIndex idx)
 convertIndexAtList _ = error "no"
+
+buildIndexAtList :: Int -> DownwardIndex -> DownwardIndex
+buildIndexAtList n idx = if n == 0 then idx
+    else let (DownwardIndex idx') = (buildIndexAtList (n - 1) idx)
+         in DownwardIndex (Cons (IndexStep StepCons 1) idx')
 
 mapExceptAt :: forall a b. Int -> b -> (a -> b) -> List a -> List b
 mapExceptAt n atN f xs = mapWithIndex (\m x -> if m == n then atN else f x) xs
@@ -64,12 +72,15 @@ chAtDefinitionItems = Rec.recDefinitionItems {
                     intermediateComputation1 = mapExceptAt n (pure def' /\ md)
                         (\(d /\ md) -> chDefinition gamma changes d /\ md)
                         defs
-                let defs' /\ holeSub = foldl (
-                        \ (defItemsAcc /\ holeSubAcc) (state /\ md) ->
+                -- NOTE: the cursor offset from displaced definitions is calculuated here. If the way that definitions are displaced is ever changed, then this needs to change with it.
+                -- Clearly this is bad code because two things would have to be changed at once. I don't know how to solve this issue. Index has to mirror the AST
+                let defs' /\ holeSub /\ cursorOffset = foldlWithIndex (
+                        \ index (defItemsAcc /\ holeSubAcc /\ offsetAcc) (state /\ md) ->
                             let def /\ displaced /\ holeSub = runState state (Nil /\ holeSubAcc)
-                            in (defItemsAcc <> (map (_ /\ defaultDefinitionItemMetadata) displaced) <> singleton (def /\ md)) /\ holeSub
-                    ) (Nil /\ emptyHoleSub) intermediateComputation1
-                Just (defs' /\ (DownwardIndex (Cons (IndexStep StepDefinitionItem 0) idx'')) /\ holeSub)
+                            in (defItemsAcc <> (map (_ /\ defaultDefinitionItemMetadata) displaced) <> singleton (def /\ md))
+                                /\ holeSub /\ if index < n then offsetAcc + (length displaced) else offsetAcc
+                    ) (Nil /\ emptyHoleSub /\ 0) intermediateComputation1
+                Just (defs' /\ buildIndexAtList cursorOffset ((DownwardIndex (Cons (IndexStep StepDefinitionItem 0) idx''))) /\ holeSub)
             (DataDefinition _ _ _) -> error "not implemented yet whoops"
 }
 -- chAtDefinitionItems = Rec.recDefinitionItems {
@@ -89,8 +100,15 @@ chAtDefinition = Rec.recDefinition {
     data : \binding constructors meta gamma tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepDataDefinition 1) rest)) -> undefined -- I think this is the list of constructors
         _ -> error "no"
-    , term : \binding ty t meta gamma tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepTermDefinition 1) rest)) -> undefined -- type
+    , term : \binding@(TermBinding x _) ty t meta gamma tRep sbjto -> case _ of
+        (DownwardIndex (Cons (IndexStep StepTermDefinition 1) rest)) -> do -- type
+            (ty' /\ (DownwardIndex idx') /\ tc /\ holeSub) <- chAtType ty gamma tRep sbjto (DownwardIndex rest)
+            let changes = varChange emptyChanges x tc
+            let (t' /\ displaced /\ holeSub2) = runState (chTerm gamma ty changes tc t) (Nil /\ emptyHoleSub)
+            -- TODO: I'm not sure when this displaced will be used. If it ever should be, then I can return it from chAtDefinition,
+            -- and deal with it in chAtDefinitionItems
+            pure (TermDefinition binding ty' t' meta /\ (DownwardIndex (Cons (IndexStep StepTermDefinition 1) idx'))
+                    /\ tc /\ combineSubs holeSub holeSub2)
         (DownwardIndex (Cons (IndexStep StepTermDefinition 2) rest)) -> undefined -- term
         _ -> error "no"
 }
@@ -160,8 +178,12 @@ chAtType ty gamma (SyntaxType newTy) (ChangeTypeChange tc) (DownwardIndex Nil)
     = Just (newTy /\ DownwardIndex Nil /\ tc /\ emptyHoleSub)
 chAtType ty gamma tRep sbjto idx = Rec.recType {
     arrow : \param out meta gamma tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepArrowType 0) rest)) -> undefined -- input param
-        (DownwardIndex (Cons (IndexStep StepArrowType 1) rest)) -> undefined -- output type
+        (DownwardIndex (Cons (IndexStep StepArrowType 0) rest)) -> do -- input param
+            (param' /\ (DownwardIndex idx) /\ tcIn /\ holeSub) <- chAtParameter param gamma tRep sbjto (DownwardIndex rest)
+            pure $ (ArrowType param' out meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 0) idx)) /\ (ArrowCh tcIn NoChange) /\ holeSub)
+        (DownwardIndex (Cons (IndexStep StepArrowType 1) rest)) -> do -- output type
+            (out' /\ (DownwardIndex idx) /\ tcOut /\ holeSub1) <- chAtType out gamma tRep sbjto (DownwardIndex rest)
+            pure $ (ArrowType param out' meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 1) idx)) /\ (ArrowCh NoChange tcOut) /\ holeSub1)
         _ -> error "no"
     , data : \typeId meta gamma tRep sbjto idx -> error "no" -- shouldn't get here, data type has no children (also, StepDataType doesn't need to exists in Index.purs)
     , hole : \holeId weakenedBy meta gamma tRep sbjto -> error "no"-- shouldn't get here, hole types have no children (also, StepHoleType doesn't need to exists in Index.purs)
@@ -181,7 +203,9 @@ chAtCase = Rec.recCase {
 chAtParameter :: Rec.RecParameter (Syntax -> Change -> DownwardIndex -> Maybe (Parameter /\ DownwardIndex /\ TypeChange /\ HoleSub))
 chAtParameter = Rec.recParameter {
     parameter : \ty meta gamma tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) -> undefined -- the type in the parameter
+        (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) -> do -- the type in the parameter
+            (ty' /\ (DownwardIndex idx) /\ tc /\ holeSub) <- chAtType ty gamma tRep sbjto (DownwardIndex rest)
+            pure $ (Parameter ty meta) /\ (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) /\ tc /\ holeSub
         _ -> error "no"
 }
 
