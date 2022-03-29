@@ -7,9 +7,10 @@ import Prim hiding (Type)
 import Control.Monad.State (State, runState)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.List (List(..), foldl, length, mapWithIndex, singleton, take)
-import Data.List.Unsafe (index')
+import Data.List.Unsafe (index', (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
+import Debug as Debug
 import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
 import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
@@ -61,7 +62,7 @@ chAtDefinitionItems :: Rec.RecDefinitionItems (Syntax -> Change -> DownwardIndex
     -> Maybe (List DefinitionItem /\ DownwardIndex /\ HoleSub))
 chAtDefinitionItems = Rec.recDefinitionItems {
     definitionItems : unsafePartial \defs gamma tRep sbjto idx -> do
-        let (n /\ (DownwardIndex (Cons (IndexStep StepDefinitionItem 0) idx'))) = convertIndexAtList idx
+        let (n /\ (DownwardIndex (IndexStep StepCons 0 : IndexStep StepDefinitionItem 0 : idx'))) = convertIndexAtList idx
         let (def /\ md) = index' defs n
         (def' /\ (DownwardIndex idx'') /\ tc /\ holeSub)
             <- chAtDefinition def gamma tRep sbjto (DownwardIndex idx')
@@ -80,7 +81,7 @@ chAtDefinitionItems = Rec.recDefinitionItems {
                             in (defItemsAcc <> (map (_ /\ defaultDefinitionItemMetadata) displaced) <> singleton (def /\ md))
                                 /\ holeSub /\ if index < n then offsetAcc + (length displaced) else offsetAcc
                     ) (Nil /\ emptyHoleSub /\ 0) intermediateComputation1
-                Just (defs' /\ buildIndexAtList cursorOffset ((DownwardIndex (Cons (IndexStep StepDefinitionItem 0) idx''))) /\ holeSub)
+                Just (defs' /\ buildIndexAtList cursorOffset (DownwardIndex (IndexStep StepCons 0 : IndexStep StepDefinitionItem 0 : idx'')) /\ holeSub)
             (DataDefinition _ _ _) -> error "not implemented yet whoops"
 }
 -- chAtDefinitionItems = Rec.recDefinitionItems {

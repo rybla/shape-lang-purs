@@ -19,7 +19,7 @@ import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug as Debug
 import Language.Shape.Stlc.Holes (HoleSub, subType, unifyType)
-import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext)
+import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, insertTyping, lookupTyping)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -101,7 +101,7 @@ indexOf (TermBinding i _) = i
 
 -- (Map.insert id beta gamma)
 cons :: TermBinding -> Type -> Context -> Context
-cons (TermBinding i _) t ctx = insert i t ctx
+cons (TermBinding i _) t ctx = insertTyping i t ctx
 
 -- subContradict :: HoleSub -> HoleSub -> Boolean
 -- subContradict sub1 sub2 = mapMaybeWithKey
@@ -160,11 +160,11 @@ chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List
 chTerm ctx ty chs (Dig _) t = pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
     = do let (Tuple _ change) = chType chs.dataTypeDeletions a
-         block' <- liiift $ chBlock (insert binding a ctx) b (varChange chs binding change) c2 block
+         block' <- liiift $ chBlock (insertTyping binding a ctx) b (varChange chs binding change) c2 block
          pure $ LambdaTerm binding block' md
 chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
     = do let (Tuple a' change) = chType chs.dataTypeDeletions a
-         block' <- liiift $ chBlock (insert index a ctx) b (varChange chs index change) NoChange block
+         block' <- liiift $ chBlock (insertTyping index a ctx) b (varChange chs index change) NoChange block
          pure $ LambdaTerm index block' md
 chTerm ctx ty chs (InsertArg a) t =
     do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
@@ -173,7 +173,7 @@ chTerm ctx ty chs (InsertArg a) t =
 chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
     do let (Tuple a' change1) = (chType chs.dataTypeDeletions a)
        let (Tuple b' change2) = (chType chs.dataTypeDeletions b)
-       let ctx' = (insert i2 b' (insert i1 a' ctx))
+       let ctx' = (insertTyping i2 b' (insertTyping i1 a' ctx))
        let chs' = varChange (varChange chs i1 change1) i2 change2
        block <- liiift $ chBlock ctx' c chs' NoChange (Block (defs <> defs2) t md4)
        pure $ LambdaTerm i2 (Block Nil (LambdaTerm i1 block md3) md2) md1
@@ -183,7 +183,7 @@ chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
          chTerm ctx b (deleteVar chs i) NoChange t
 chTerm ctx ty chs ch (NeutralTerm id args md) =
     case lookup id chs.termChanges of
-        Just VariableDeletion -> do displaceArgs (lookup' id ctx) args
+        Just VariableDeletion -> do displaceArgs (lookupTyping id ctx) args
                                     pure $ HoleTerm defaultHoleTermMetadata
         Just (VariableTypeChange varTC) -> ifChanged varTC
         Nothing -> ifChanged NoChange
@@ -191,7 +191,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
     ifChanged varTC = do
         Debug.traceM $ "---------------------------------------------------------------"
         Debug.traceM $ id
-        (Tuple args' ch') <- chArgs ctx (lookup' id ctx) chs varTC args
+        (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         case maybeSub of
             Just holeSub -> do subHoles holeSub
