@@ -12,7 +12,6 @@ index' ls i = fromJust $ index ls i
 updateAt' :: forall a. Int -> a -> List a -> List a
 updateAt' i a ls = fromJust $ updateAt i a ls
 
--- let --   _ = Debug.trace "updateAt'" identity /\ Debug.trace i identity /\ Debug.trace ls identity -- in
 insertAt' :: ∀ a. Int → a → List a → List a
 insertAt' i a l = fromJust $ insertAt i a l
 
