@@ -81,7 +81,7 @@ type RecModule a
   = Rec.RecModule (a)
 
 type RecModule_Module a
-  = Rec.RecModule_Module (a)
+  = Rec.RecModule_Module ({} -> a)
 
 recModule ::
   forall a.
@@ -96,7 +96,7 @@ type RecBlock a
   = Rec.RecBlock (a)
 
 type RecBlock_Block a
-  = Rec.RecBlock_Block (a)
+  = Rec.RecBlock_Block ({} -> a)
 
 recBlock ::
   forall a.
@@ -112,7 +112,7 @@ type RecDefinitionItems a
   = Rec.RecDefinitionItems (a)
 
 type RecDefinitionItems_DefinitionItems a
-  = Rec.RecDefinitionItems_DefinitionItems (a)
+  = Rec.RecDefinitionItems_DefinitionItems ({} -> a)
 
 recDefinitionItems ::
   forall a.
@@ -128,7 +128,7 @@ type RecDefinitionSeparator a
   = Rec.RecDefinitionSeparator a
 
 type RecDefinitionSeparator_Separator a
-  = Rec.RecDefinitionSeparator_Separator a
+  = Rec.RecDefinitionSeparator_Separator ({} -> a)
 
 recDefinitionSeparator ::
   forall a.
@@ -144,10 +144,10 @@ type RecDefinition a
   = Rec.RecDefinition (a)
 
 type RecDefinition_TermDefinition a
-  = Rec.RecDefinition_TermDefinition (a)
+  = Rec.RecDefinition_TermDefinition ({} -> a)
 
 type RecDefinition_DataDefinition a
-  = Rec.RecDefinition_DataDefinition (a)
+  = Rec.RecDefinition_DataDefinition ({} -> a)
 
 recDefinition ::
   forall a.
@@ -167,7 +167,7 @@ type RecConstructorSeparator a
   = Rec.RecConstructorSeparator a
 
 type RecConstructorSeparator_Separator a
-  = Rec.RecConstructorSeparator_Separator a
+  = Rec.RecConstructorSeparator_Separator ({} -> a)
 
 recConstructorSeparator ::
   forall a.
@@ -181,7 +181,7 @@ type RecConstructor a
   = Rec.RecConstructor (a)
 
 type RecConstructor_Constructor a
-  = Rec.RecConstructor_Constructor (a)
+  = Rec.RecConstructor_Constructor ({} -> a)
 
 -- registration already handled by recDefinitionItems
 recConstructor ::
@@ -198,7 +198,7 @@ type RecParameterSeparator a
   = Rec.RecParameterSeparator a
 
 type RecParameterSeparator_Separator a
-  = Rec.RecParameterSeparator_Separator a
+  = Rec.RecParameterSeparator_Separator ({} -> a)
 
 recParameterSeparator ::
   forall a.
@@ -298,16 +298,16 @@ type RecTerm a
   = Rec.RecTerm (a)
 
 type RecTerm_Lambda a
-  = Rec.RecTerm_Lambda (a)
+  = Rec.RecTerm_Lambda ({} -> a)
 
 type RecTerm_Neutral a
-  = Rec.RecTerm_Neutral (a)
+  = Rec.RecTerm_Neutral ({} -> a)
 
 type RecTerm_Match a
-  = Rec.RecTerm_Match (a)
+  = Rec.RecTerm_Match ({} -> a)
 
 type RecTerm_Hole a
-  = Rec.RecTerm_Hole (a)
+  = Rec.RecTerm_Hole ({} -> a)
 
 recTerm ::
   forall a.
@@ -332,11 +332,11 @@ recTerm rec =
 type RecArgItems a
   = Rec.RecArgItems (a)
 
-type RecArgItems_Nil (a :: Prim.Type)
-  = Rec.RecArgItems_Nil a
+type RecArgItems_Nil a
+  = Rec.RecArgItems_Nil ({} -> a)
 
 type RecArgItems_Cons a
-  = Rec.RecArgItems_Cons (a)
+  = Rec.RecArgItems_Cons ({} -> a)
 
 recArgItems ::
   forall a.
@@ -354,7 +354,7 @@ type RecCase a
   = Rec.RecCase (a)
 
 type RecCase_Case a
-  = Rec.RecCase_Case (a)
+  = Rec.RecCase_Case ({} -> a)
 
 recCase ::
   forall a.
@@ -370,7 +370,7 @@ type RecParameter a
   = Rec.RecParameter (a)
 
 type RecParameter_Parameter a
-  = Rec.RecParameter_Parameter (a)
+  = Rec.RecParameter_Parameter ({} -> a)
 
 recParameter ::
   forall a.
@@ -386,7 +386,7 @@ type RecTypeBinding a
   = Rec.RecTypeBinding a
 
 type RecTypeBinding_TypeBinding a
-  = Rec.RecTypeBinding_TypeBinding a
+  = Rec.RecTypeBinding_TypeBinding ({} -> a)
 
 recTypeBinding ::
   forall a.
@@ -401,7 +401,7 @@ type RecTermBinding a
   = Rec.RecTermBinding a
 
 type RecTermBinding_TermBinding a
-  = Rec.RecTermBinding_TermBinding a
+  = Rec.RecTermBinding_TermBinding ({} -> a)
 
 recTermBinding ::
   forall a.
@@ -416,7 +416,7 @@ type RecTermId a
   = Rec.RecTermId a
 
 type RecTermId_TermId a
-  = Rec.RecTermId_TermId a
+  = Rec.RecTermId_TermId ({} -> a)
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
 recTermId rec = Rec.recTermId { termId: undefined }

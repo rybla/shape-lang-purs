@@ -1,11 +1,11 @@
 module Language.Shape.Stlc.Recursion.Prerender where
 
 import Data.Either
-import Data.List.Unsafe
 import Data.Maybe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Metadata
+import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
@@ -13,15 +13,32 @@ import Prelude
 import Prim hiding (Type)
 import Control.Monad.State (State, runState)
 import Data.Foldable (foldl)
+import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
 import Debug as Debug
 import Language.Shape.Stlc.Changes as Ch
 import Language.Shape.Stlc.Holes (HoleSub)
-import Language.Shape.Stlc.Recursion.Transformation as Rec
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
+import Language.Shape.Stlc.Recursion.Transformation (Transformation)
+import Language.Shape.Stlc.Recursion.Transformation as Rec
+import React (ReactElement)
 import Undefined (undefined)
 import Unsafe as Unsafe
+
+type Prerender a
+  = a -> Words
+
+type Words
+  = Array Word
+
+data Word
+  -- = WordKeyword { key :: Symbol }
+  -- | WordPunctuation { key :: Symbol }
+  = WordReactElement ReactElement
+  | WordTermName String
+  | WordTypeName String
+  | WordNewline Int
 
 -- | Recursion principles for prerendering. "prerendering" is the conversion of
 -- the syntax into the following form: a list of lines where each line is a list of words,
@@ -31,8 +48,7 @@ type RecModule a
 
 type RecModule_Module a
   = Rec.RecModule_Module
-      ( a
-      )
+      (a)
 
 recModule ::
   forall a.
@@ -48,8 +64,7 @@ type RecBlock a
 
 type RecBlock_Block a
   = Rec.RecBlock_Block
-      ( a
-      )
+      (a)
 
 recBlock ::
   forall a.
@@ -218,27 +233,23 @@ recType rec =
     }
 
 type RecTerm a
-  = Rec.RecTerm (a)
+  = Rec.RecTerm (Prerender Words -> a)
 
 type RecTerm_Lambda a
   = Rec.RecTerm_Lambda
-      ( a
-      )
+      (Prerender { termId :: Words, block :: Words } -> a)
 
 type RecTerm_Neutral a
   = Rec.RecTerm_Neutral
-      ( a
-      )
+      (Words -> a)
 
 type RecTerm_Match a
   = Rec.RecTerm_Match
-      ( a
-      )
+      (Words -> a)
 
 type RecTerm_Hole a
   = Rec.RecTerm_Hole
-      ( a
-      )
+      (Words -> a)
 
 recTerm ::
   forall a.
@@ -251,7 +262,14 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        undefined
+        \termId block meta gamma prm beta metaGamma ix isSelected ix_termId csr_termId ix_block csr_block trans pr ->
+          rec.lambda termId block meta gamma prm beta metaGamma ix isSelected ix_termId csr_termId ix_block csr_block trans
+            ( \{ termId, block } ->
+                pr
+                  [ WordReactElement punctuation.lparen
+                  -- TODO
+                  ]
+            )
     , neutral:
         undefined
     , match:

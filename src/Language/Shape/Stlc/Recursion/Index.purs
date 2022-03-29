@@ -47,14 +47,15 @@ checkCursorHere = case _ of
 
 -- Recursion principles for handling indexing
 type RecModule a
-  = RecMetaContext.RecModule (UpwardIndex -> Cursor -> a)
+  = RecMetaContext.RecModule ({ ix :: UpwardIndex, csr :: Cursor } -> a)
 
 type RecModule_Module a
   = RecMetaContext.RecModule_Module
-      ( UpwardIndex -> -- module
-        Boolean -> -- module
-        UpwardIndex -> -- definitionItems
-        Cursor -> -- definitionItems
+      ( { ix :: UpwardIndex -- module
+        , isSelected :: Boolean -- module
+        , ix_defItems :: UpwardIndex -- definitionItems
+        , csr_defItems :: Cursor -- definitionItems
+        } ->
         a
       )
 
@@ -65,29 +66,27 @@ recModule ::
 recModule rec =
   RecMetaContext.recModule
     { module_:
-        \defs meta gamma metaGamma ix csr ->
+        \defs meta gamma metaGamma { ix, csr } ->
           rec.module_ defs meta gamma metaGamma
-            -- module
-            ix
-            (checkCursorHere csr)
-            -- definitionItems
-            (ix :- IndexStep StepModule 0)
-            (checkCursorStep (IndexStep StepModule 0) csr)
+            { ix
+            , isSelected: checkCursorHere csr
+            , ix_defItems: ix :- IndexStep StepModule 0
+            , csr_defItems: checkCursorStep (IndexStep StepModule 0) csr
+            }
     }
 
 type RecBlock a
-  = RecMetaContext.RecBlock (UpwardIndex -> Cursor -> a)
+  = RecMetaContext.RecBlock ({ ix :: UpwardIndex, csr :: Cursor } -> a)
 
 type RecBlock_Block a
   = RecMetaContext.RecBlock_Block
-      ( UpwardIndex -> -- block
-        Boolean -> -- block
-        -- (Int -> UpwardIndex) -> -- definition
-        -- (Int -> Cursor) -> -- definition
-        UpwardIndex -> -- definitionItems
-        Cursor -> -- definitionItems
-        UpwardIndex -> -- term
-        Cursor -> -- term
+      ( { ix :: UpwardIndex
+        , isSelected :: Boolean
+        , ix_defItems :: UpwardIndex
+        , csr_defItems :: Cursor
+        , ix_term :: UpwardIndex
+        , csr_term :: Cursor
+        } ->
         a
       )
 
@@ -98,34 +97,36 @@ recBlock ::
 recBlock rec =
   RecMetaContext.recBlock
     { block:
-        \defs a meta gamma alpha metaGamma ix csr ->
+        \defs a meta gamma alpha metaGamma { ix, csr } ->
           rec.block defs a meta gamma alpha metaGamma
-            -- block
-            ix
-            (checkCursorHere csr)
-            -- definitionItems
-            (ix :- IndexStep StepBlock 0)
-            (checkCursorStep (IndexStep StepBlock 0) csr)
-            -- term
-            (ix :- IndexStep StepBlock 1)
-            (checkCursorStep (IndexStep StepBlock 1) csr)
+            { ix
+            , isSelected: checkCursorHere csr
+            , ix_defItems: ix :- IndexStep StepBlock 0
+            , csr_defItems: checkCursorStep (IndexStep StepBlock 0) csr
+            , ix_term: ix :- IndexStep StepBlock 1
+            , csr_term: checkCursorStep (IndexStep StepBlock 1) csr
+            }
     }
 
 type RecDefinitionItems a
   = RecMetaContext.RecDefinitionItems
-      ( UpwardIndex -> -- module/block
-        UpwardIndex -> Cursor -> a
+      ( { ix_parentBlock :: UpwardIndex
+        , ix :: UpwardIndex
+        , csr :: Cursor
+        } ->
+        a
       )
 
 type RecDefinitionItems_DefinitionItems a
   = RecMetaContext.RecDefinitionItems_DefinitionItems
-      ( UpwardIndex -> -- module/block
-        UpwardIndex -> -- definitionItems
-        Boolean -> -- definitionItems
-        (Int -> UpwardIndex) -> -- definition
-        (Int -> Cursor) -> -- definition
-        (Int -> UpwardIndex) -> -- definitionSeparator
-        (Int -> Cursor) -> -- definitionSeparator
+      ( { ix_parentBlock :: UpwardIndex
+        , ix :: UpwardIndex
+        , isSelected :: Boolean
+        , ixs_defs :: List UpwardIndex
+        , csrs_defs :: List Cursor
+        , ixs_defSeps :: List UpwardIndex
+        , csrs_defSeps :: List Cursor
+        } ->
         a
       )
 
@@ -136,19 +137,16 @@ recDefinitionItems ::
 recDefinitionItems rec =
   RecMetaContext.recDefinitionItems
     { definitionItems:
-        \defItems gamma metaGamma ix_parent ix csr ->
+        \defItems gamma metaGamma { ix_parentBlock, ix, csr } ->
           rec.definitionItems defItems gamma metaGamma
-            -- module/block
-            ix_parent
-            -- definitionItems
-            ix
-            (checkCursorHere csr)
-            -- defItem
-            (\i -> ix <> (fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepDefinitionItem 0)))
-            (\i -> checkCursorSteps (fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepDefinitionItem 0)) csr)
-            -- defSep
-            (\i -> ix <> fromSublistIndexToUpwardIndex i)
-            (\i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr)
+            { ix_parentBlock
+            , ix
+            , isSelected: checkCursorHere csr
+            , ixs_defs: mapWithIndex (\i _ -> ix <> (fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepDefinitionItem 0))) defItems
+            , csrs_defs: mapWithIndex (\i _ -> checkCursorSteps (fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepDefinitionItem 0)) csr) defItems
+            , ixs_defSeps: mapWithIndex (\i -> ix <> fromSublistIndexToUpwardIndex i) defItems
+            , csrs_defSeps: undefined -- (\i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr)
+            }
     }
 
 type RecDefinitionSeparator a
