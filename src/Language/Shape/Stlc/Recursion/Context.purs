@@ -169,11 +169,11 @@ recTerm rec =
   RecBase.recTerm
     { lambda:
         \termId block meta gamma alpha -> case alpha of
-          ArrowType param@(Parameter alpha _) beta _ -> rec.lambda termId block meta (Map.insert termId alpha gamma) param beta
+          ArrowType param@(Parameter alpha _) beta _ -> rec.lambda termId block meta (insertTyping termId alpha gamma) param beta
           _ -> Unsafe.error $ "[Context.recTerm.lambda] impossible: the term " <> show (LambdaTerm termId block meta) <> " has type " <> show alpha
     , neutral:
         \termId argItems meta gamma alpha ->
-          rec.neutral termId argItems meta gamma (Map.lookup' termId gamma)
+          rec.neutral termId argItems meta gamma (lookupTyping termId gamma)
     , hole:
         \meta gamma alpha ->
           rec.hole meta gamma alpha
@@ -221,11 +221,11 @@ recCase rec =
     { case_:
         \termIds block meta typeId constrId gamma alpha ->
           let
-            params /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+            params /\ _ = flattenArrowType $ lookupTyping constrId gamma
           in
             rec.case_ termIds block meta typeId constrId
               ( foldl
-                  (\gamma' (termId /\ (Parameter alpha _)) -> Map.insert termId alpha gamma')
+                  (\gamma' (termId /\ (Parameter alpha _)) -> insertTyping termId alpha gamma')
                   gamma
                   (zip (fromItem <$> termIds) params)
               )

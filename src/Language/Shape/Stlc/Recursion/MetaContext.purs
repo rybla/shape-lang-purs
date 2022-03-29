@@ -24,7 +24,6 @@ import Unsafe as Unsafe
 type MetaContext
   = { typeScope :: Scope TypeId TypeName
     , termScope :: Scope TermId TermName
-    , constructorTermIds :: Map TypeId (List TermId)
     , indentation :: Int
     }
 
@@ -32,7 +31,6 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
-  , constructorTermIds: Map.empty
   , indentation: 0
   }
 
@@ -235,7 +233,7 @@ recTerm rec =
         \typeId a cases meta gamma alpha metaGamma ->
           rec.match typeId a cases meta gamma alpha
             (incrementIndentation metaGamma)
-            (Map.lookup' typeId metaGamma.constructorTermIds)
+            (lookupConstructorIds typeId gamma)
     }
 
 type RecArgItems a
@@ -274,7 +272,7 @@ recCase rec =
     { case_:
         \termIdItems block meta typeId constrId gamma alpha ->
           let
-            params /\ _ = flattenArrowType $ Map.lookup' constrId gamma
+            params /\ _ = flattenArrowType $ lookupTyping constrId gamma
           in
             rec.case_ termIdItems block meta typeId constrId gamma alpha
               <<< foldl (>>>) identity
@@ -334,18 +332,16 @@ incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 -- set id's shadow index
 registerId :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
-  let
-    _ = Debug.trace "registerId"
-
-    _ = Debug.trace id
-
-    _ = Debug.trace name
-  in
-    foldl (>>>) identity
-      [ R.modify _names (Map.insert id name)
-      , incrementShadow name
-      , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
-      ]
+  -- let
+  --   _ = Debug.trace "registerId"
+  --   _ = Debug.trace id
+  --   _ = Debug.trace name
+  -- in
+  foldl (>>>) identity
+    [ R.modify _names (Map.insert id name)
+    , incrementShadow name
+    , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
+    ]
 
 incrementIndentation :: MetaContext -> MetaContext
 incrementIndentation = R.modify _indentation (_ + 1)
@@ -373,7 +369,7 @@ registerDatatype x@(TypeBinding typeId _) constrBnds metaGamma =
   ( foldl (>>>) identity
       [ registerTypeBinding x
       , registerTermBindings constrBnds
-      , R.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
+      -- , R.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
       ]
       metaGamma
   )
