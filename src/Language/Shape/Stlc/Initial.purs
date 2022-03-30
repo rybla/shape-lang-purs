@@ -26,7 +26,7 @@ module_ =
 
     zero_id /\ zero_name = makeTermVar "0"
 
-    suc_id /\ suc_name = makeTermVar "+N 1"
+    suc_id /\ suc_name = makeTermVar "suc"
 
     identity_id /\ identity_name = makeTermVar "identity"
 
@@ -50,7 +50,7 @@ module_ =
 
     negative_id /\ negative_name = makeTermVar "-I -1"
 
-    addNat_id /\ addNat_name = makeTermVar "+N"
+    addNat_id /\ addNat_name = makeTermVar "+"
 
     addInt_id /\ addInt_name = makeTermVar "+I"
   in
@@ -84,9 +84,6 @@ module_ =
                     (mkTermBind addNat_id addNat_name)
                     (mkArrow (mkParam m_name $ mkData nat_id) $ mkArrow (mkParam n_name $ mkData nat_id) $ mkData nat_id)
                     ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlockInd Nil
-                        -- mkHoleTerm
-                        
-                        {-
                         $ mkMatch nat_id (mkNeutral m_id Nil)
                         $ fromFoldable
                             [ mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkNeutral n_id Nil
@@ -97,10 +94,8 @@ module_ =
                                 $ mkNeutral addNat_id
                                 $ fromFoldable [ mkArgItem $ mkNeutral m'_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                             ]
-                      -}
-                        
-                        $ mkNeutral addNat_id
-                        $ fromFoldable [ mkArgItem $ mkNeutral m_id Nil, mkArgItem $ mkNeutral n_id Nil ]
+                    -- $ mkNeutral addNat_id
+                    -- $ fromFoldable [ mkArgItem $ mkNeutral m_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                     )
           {-
           , TermDefinition
