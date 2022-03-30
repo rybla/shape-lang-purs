@@ -59,7 +59,7 @@ addDefinitionToContext = case _ of
       params' = map (\(Parameter a md) -> (Parameter (replaceHolesWithProxy a) md)) (fromItem <$> params)
 
     constrIds :: List TermId
-    constrIds = (fromItem >>> (\(Constructor (TermBinding id _) _ _) -> id) <$> constrItems)
+    constrIds = fromItem >>> (\(Constructor (TermBinding id _) _ _) -> id) <$> constrItems
 
 addDefinitionsToContext :: List Definition -> Context -> Context
 addDefinitionsToContext = flip $ foldl (flip addDefinitionToContext)
