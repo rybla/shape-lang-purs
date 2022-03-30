@@ -7,21 +7,24 @@ import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+import Record
 import Data.List (List(..))
 import Data.List as List
-import Data.Map.Unsafe (Map)
+import Data.Map.Unsafe (Map, member)
 import Data.Map.Unsafe as Map
 import Data.UUID as UUID
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 import Unsafe (error)
 import Unsafe as Unsafe
-import Record
 
 type Context
   = { types :: Map TermId Type
     , constructors :: Map TypeId (List TermId)
     }
+
+emptyContext :: Context
+emptyContext = { types: Map.empty, constructors: Map.empty }
 
 _types = Proxy :: Proxy "types"
 
