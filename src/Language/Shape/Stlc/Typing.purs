@@ -79,3 +79,8 @@ flattenArrowType :: Type -> List Parameter /\ Type
 flattenArrowType (ArrowType param beta _) = let params /\ delta = flattenArrowType beta in List.Cons param params /\ delta
 
 flattenArrowType type_ = List.Nil /\ type_
+
+unflattenArrowType :: (List Parameter /\ Type) -> Type
+unflattenArrowType (Nil /\ beta) = beta
+
+unflattenArrowType ((Cons prm alphas) /\ beta) = mkArrow prm (unflattenArrowType (alphas /\ beta))
