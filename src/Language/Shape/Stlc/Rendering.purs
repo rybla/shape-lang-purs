@@ -22,6 +22,9 @@ import Data.Unfoldable (class Unfoldable, class Unfoldable1)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
+import Language.Shape.Stlc.ChangeAtIndex (Change(..), chAtModule)
+import Language.Shape.Stlc.Changes (TypeChange(..))
+import Language.Shape.Stlc.Holes (subModule)
 import Language.Shape.Stlc.Index as Index
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.Index as RecIndex
@@ -464,7 +467,34 @@ programComponent this =
                     ( [ selectableClassName "data type typeId" isSelected, Props._id eid ] <> selectableProps ix
                         <> highlightableProps eid
                     )
-                    [ renderTypeId typeId metaGamma ]
+                    [ DOM.span
+                        [ Props.onClick \_ -> do
+                            st <- React.getState this
+                            let
+                              holeId = freshHoleId unit
+
+                              holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
+                            case chAtModule st.module_ Map.empty
+                                ( SyntaxType
+                                    $ ArrowType (Parameter holeType defaultParameterMetadata)
+                                        (DataType typeId meta)
+                                        defaultArrowTypeMetadata
+                                )
+                                (ChangeTypeChange (InsertArg holeType))
+                                (toDownwardIndex ix) of
+                              Just (module' /\ ix' /\ holeSub) -> do
+                                let
+                                  module'' = subModule holeSub module'
+                                React.setState this
+                                  st
+                                    { module_ = module''
+                                    , ix_cursor = ix'
+                                    }
+                              Nothing -> undefined
+                        ]
+                        [ DOM.text "enArrow" ]
+                    , renderTypeId typeId metaGamma
+                    ]
           , hole:
               \holeId wkn meta gamma metaGamma ix isSelected ->
                 let
