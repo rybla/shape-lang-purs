@@ -37,6 +37,10 @@
     - [x] shadowing
       - [x] bug: paramter names in types not shadowing correctly, but lambdas
             do??
+    - [ ] environment
+      - context
+      - goal type (if at a term)
+      - available actions
     - [ ] actions
       - [x] hovering over syntax will highlight the innermost syntax element
             (even if hovering over the whitespace between)
@@ -45,9 +49,9 @@
         - deletions: trigger is at list item
         - move: delete; insert
         - instances
-          - [x] definitionItems
-          - [x] constructorItems (in data definition)
-          - [x] parameterItems (in constructor)
+          - [ ] definitionItems
+          - [ ] constructorItems (in data definition)
+          - [ ] parameterItems (in constructor)
           - argItems (in neutral), actually can't directly manipulated because
             must correspond to expected type
           - termIds (in case), can't be directly manipulated since must
@@ -75,3 +79,6 @@
         - [ ] edits in place via `<input>` or changing moves and handling
               keyboard input
     - [ ] cursor (worry about this after mouse actions work)
+    - [ ] edit name of variable by lambda/case
+      - problem: in the index recursor, how do I keep track of which type's
+        parameters map to which Ids??
