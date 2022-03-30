@@ -18,8 +18,9 @@ import Data.Set (Set(..), difference, empty, member)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug as Debug
-import Language.Shape.Stlc.Holes (HoleSub, subType, unifyType)
-import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, insertTyping, lookupTyping)
+import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub, subType, unifyType)
+import Language.Shape.Stlc.Recursion.Context as Rec
+import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, insertTyping, lookupConstructorIds, lookupTyping)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -109,16 +110,17 @@ cons (TermBinding i _) t ctx = insertTyping i t ctx
 -- If subs conflict, give error. Else, combine them.
 -- This function is terrible
 combineSubs :: HoleSub -> HoleSub -> HoleSub
-combineSubs original new =
-    foldrWithIndex combineSub original new
-    where combineSub :: HoleId -> Type -> HoleSub -> HoleSub
-          combineSub id ty acc
-            = let ty' = subType acc ty in
-              case lookup id acc of
-                Nothing -> insert id ty' acc
-                Just tyAcc -> case unifyType ty' tyAcc of
-                    Nothing -> error "this breaks my assumption that unifications in chTerm should never result in ambiguous situations"
-                    Just secondarySubs -> combineSubs (insert id (subType secondarySubs ty') acc) secondarySubs
+-- combineSubs original new =
+--     foldrWithIndex combineSub original new
+--     where combineSub :: HoleId -> Type -> HoleSub -> HoleSub
+--           combineSub id ty acc
+--             = let ty' = subType acc ty in
+--               case lookup id acc of
+--                 Nothing -> insert id ty' acc
+--                 Just tyAcc -> case unifyType ty' tyAcc of
+--                     Nothing -> error "this breaks my assumption that unifications in chTerm should never result in ambiguous situations"
+--                     Just secondarySubs -> combineSubs (insert id (subType secondarySubs ty') acc) secondarySubs
+combineSubs _ _ = emptyHoleSub
 
 chConstructor :: Context -> Changes -> Constructor -> State (Tuple (List Definition) HoleSub) Constructor
 chConstructor ctx chs (Constructor binding params md) = do
@@ -189,10 +191,11 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
-        Debug.traceM $ "---------------------------------------------------------------"
-        Debug.traceM $ id
+        -- Debug.traceM $ "---------------------------------------------------------------"
+        -- Debug.traceM $ id
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
+        -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that
         case maybeSub of
             Just holeSub -> do subHoles holeSub
                                pure $ NeutralTerm id args' md
@@ -202,12 +205,14 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
 chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
 chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
     cases' <- case lookup i chs.matchChanges of
-        Nothing -> sequence $ (map (\(cas@(Case ids _ _) /\ md) -> do cas' <- chCase ctx ty chs (emptyParamsChange ids) ch cas
-                                                                      pure $ cas' /\ md) cases)
-        Just changes -> sequence $ (map (\ctrCh -> case ctrCh of
-                                            InsertConstructor params -> pure $ freshCase params
-                                            ChangeConstructor pch n -> do cas' <- chCase ctx ty chs pch ch (fst (index' cases n))
-                                                                          pure $ cas' /\ (snd (index' cases n))) changes)
+        Nothing -> sequence $ (mapWithIndex (\index (cas@(Case ids _ _) /\ md)
+            -> do cas' <- chCase2 cas i (index' (lookupConstructorIds i ctx) index) ctx ty chs (emptyParamsChange ids) ch --chCase ctx ty chs (emptyParamsChange ids) ch cas
+                  pure $ cas' /\ md) cases)
+        Just changes -> sequence $ (mapWithIndex (\index ctrCh
+            -> case ctrCh of
+               InsertConstructor params -> pure $ freshCase params
+               ChangeConstructor pch n -> do cas' <- chCase2 (fst (index' cases n)) i (index' (lookupConstructorIds i ctx) index) ctx ty chs pch ch -- chCase ctx ty chs pch ch (fst (index' cases n))
+                                             pure $ cas' /\ (snd (index' cases n))) changes)
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen? I don't think it should.
@@ -234,6 +239,31 @@ subHoles sub = do
     Tuple currDisplaced holeSub <- get
     put $ Tuple currDisplaced (combineSubs holeSub sub)
 
+
+chCase2 :: Rec.RecCase (Changes -> (List ParamChange) -> TypeChange -> State (Tuple (List Definition) HoleSub) Case)
+chCase2 = Rec.recCase {
+    case_ : \bindings block meta dataTyId ctrId ctx ty chs paramChanges innerTC -> do
+        let chs' :: Changes
+            chs' = foldlWithIndex (\index chsAcc paramCh
+            -> case paramCh of
+                InsertParam t -> chsAcc
+                ChangeParam i ch -> chsAcc{termChanges = insert (fst (index' bindings i)) (VariableTypeChange ch) chsAcc.termChanges})
+                chs paramChanges
+        let bindings' :: List TermIdItem
+            bindings' = map (case _ of InsertParam _ -> freshTermId unit /\ defaultTermIdItemMetadata
+                                       ChangeParam i _ -> index' bindings i) paramChanges
+        let keptIndices = mapMaybe (case _ of InsertParam _ -> Nothing
+                                              ChangeParam i _ -> Just i) paramChanges
+        let toDelete :: List Int
+            toDelete = filter (\i -> not (elem i keptIndices)) (mapWithIndex (\i _ -> i) bindings)
+        let varsToDelete :: List TermId
+            varsToDelete = map (\i -> fst (index' bindings i)) toDelete
+        let chs'' = foldl (\chsAcc i -> chsAcc{termChanges = insert i VariableDeletion chsAcc.termChanges}) chs' varsToDelete
+        -- TODO: need to add things to ctx
+
+        block' <- liiift $ chBlock ctx ty chs'' innerTC block
+        pure $ Case bindings' block' meta
+}
 
 -- data ParamsChange = DeleteParam Int | InsertParam Int Parameter | ChangeParam Int TypeChange | ParamsNoChange
 -- The Type is type of term in the case excluding bindings

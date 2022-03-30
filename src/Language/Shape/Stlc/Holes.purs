@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Holes where
 
+import Data.Tuple.Nested
 import Prelude
 import Prim hiding (Type)
 import Data.Map (Map, empty, lookup, singleton, union)
@@ -44,7 +45,7 @@ unifyType (DataType i1 md1) (DataType i2 md2) = if i1 == i2 then Just empty else
 unifyType _ _ = Nothing
 
 subModule :: HoleSub -> Module -> Module
-subModule = undefined
+subModule sub (Module defItems md) = Module (map (\(def /\ md) -> subDefinition sub def /\ md) defItems) md
 
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
