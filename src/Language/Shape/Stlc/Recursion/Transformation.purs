@@ -62,20 +62,20 @@ type TypeTransformation
     }
 
 makeModuleTransformation :: ModuleTransformation -> Transformation
-makeModuleTransformation args st = do
-  (module_ /\ ix' /\ holeSub) <- chAtModule st.module_ args.gamma args.syntax args.change args.ix
+makeModuleTransformation transArgs st = do
+  (module_ /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   let
     module' = subModule holeSub module_
   pure st { module_ = module', ix_cursor = ix' }
 
 makeTypeTransformation :: TypeTransformation -> Transformation
-makeTypeTransformation args =
+makeTypeTransformation transArgs =
   makeModuleTransformation
     $ union
-        { syntax: SyntaxType args.type_
-        , change: ChangeTypeChange args.typeChange
+        { syntax: SyntaxType transArgs.type_
+        , change: ChangeTypeChange transArgs.typeChange
         }
-        (delete _type_ $ delete _typeChange args)
+        (delete _type_ $ delete _typeChange transArgs)
 
 type RecModule a
   = Rec.RecModule (a)
@@ -224,7 +224,7 @@ type CommonTypeTransformations r
 
 -- WARNING: don't overlap labels in `CommonTypeTransformations` and `r`.
 makeCommonTypeTransformations :: forall r. CommonTypeTransformationsArgs -> Record r -> CommonTypeTransformations r
-makeCommonTypeTransformations args r =
+makeCommonTypeTransformations transArgs r =
   unsafeUnion r
     { enArrow:
         let
@@ -232,10 +232,10 @@ makeCommonTypeTransformations args r =
         in
           makeTypeTransformation
             $ union
-                { type_: mkArrow (mkParam (TermName Nothing) hole) args.type_
+                { type_: mkArrow (mkParam (TermName Nothing) hole) transArgs.type_
                 , typeChange: InsertArg hole
                 }
-                (delete _type_ args)
+                (delete _type_ transArgs)
     , dig:
         let
           holeId = freshHoleId unit
@@ -247,7 +247,7 @@ makeCommonTypeTransformations args r =
                 { type_: hole
                 , typeChange: Dig holeId
                 }
-                (delete _type_ args)
+                (delete _type_ transArgs)
     }
 
 type RecType a
@@ -276,21 +276,21 @@ recType ::
 recType rec =
   Rec.recType
     { arrow:
-        \prm beta meta gamma metaGamma ixUp isSelected ix_prm csr_prm ix_beta csr_beta ->
+        \prm beta meta gamma metaGamma ixArgs ->
           let
-            ix = toDownwardIndex ixUp
+            ix = toDownwardIndex ixArgs.ix
           in
-            rec.arrow prm beta meta gamma metaGamma ixUp isSelected ix_prm csr_prm ix_beta csr_beta
+            rec.arrow prm beta meta gamma metaGamma ixArgs
               $ makeCommonTypeTransformations { gamma, ix, type_: ArrowType prm beta meta }
                   { delete: makeTypeTransformation { gamma, ix, type_: beta, typeChange: RemoveArg } }
     , data:
-        \typeId meta gamma metaGamma ix isSelected ->
-          rec.data typeId meta gamma metaGamma ix isSelected
-            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ix, type_: DataType typeId meta } {}
+        \typeId meta gamma metaGamma ixArgs ->
+          rec.data typeId meta gamma metaGamma ixArgs
+            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ixArgs.ix, type_: DataType typeId meta } {}
     , hole:
-        \holeId wkn meta gamma metaGamma ix isSelected ->
-          rec.hole holeId wkn meta gamma metaGamma ix isSelected
-            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ix, type_: HoleType holeId wkn meta } {}
+        \holeId wkn meta gamma metaGamma ixArgs ->
+          rec.hole holeId wkn meta gamma metaGamma ixArgs
+            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ixArgs.ix, type_: HoleType holeId wkn meta } {}
     , proxyHole: rec.proxyHole
     }
 

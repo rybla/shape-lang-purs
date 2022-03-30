@@ -144,7 +144,7 @@ programComponent this =
     , syntax_dragging: Nothing
     , environment:
         { goal: Nothing
-        , gamma: Map.empty
+        , gamma: emptyContext
         , metaGamma: RecMetaContext.emptyMetaContext
         }
     , outlineParents: Nil
@@ -159,7 +159,7 @@ programComponent this =
           Debug.traceM $ "drag cancel"
           React.modifyState this \st -> st { syntax_dragging = Nothing }
       ]
-      [ renderModule st.module_ Map.empty RecMetaContext.emptyMetaContext (UpwardIndex Nil) (Just st.ix_cursor)
+      [ renderModule st.module_ emptyContext RecMetaContext.emptyMetaContext { ix: (UpwardIndex Nil), csr: (Just st.ix_cursor) }
       -- , renderEnvironment st.environment
       ]
 
@@ -209,14 +209,14 @@ programComponent this =
   renderModule =
     RecIndex.recModule
       { module_:
-          \defItems meta gamma metaGamma ix isSelected ix_defItems cursor_defItems ->
+          \defItems meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.div
-                ( [ selectableClassName "module" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "module" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                 )
-                [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
+                [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
                 ]
       }
 
@@ -224,17 +224,17 @@ programComponent this =
   renderBlock =
     RecIndex.recBlock
       { block:
-          \defItems a meta gamma alpha metaGamma ix isSelected ix_defItems cursor_defItems ix_term cursor_term ->
+          \defItems a meta gamma alpha metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "block" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "block" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                $ [ renderDefinitionItems defItems gamma metaGamma ix ix_defItems cursor_defItems
+                $ [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
                   , indentOrNothing meta metaGamma
-                  , renderTerm a gamma alpha metaGamma ix_term cursor_term
+                  , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                   ]
       }
 
@@ -242,13 +242,13 @@ programComponent this =
   renderDefinitionItems =
     RecIndex.recDefinitionItems
       { definitionItems:
-          \defItems gamma metaGamma ix_parent ix isSelected ix_def_at cursor_def_at ix_defSep_at cursor_defSep_at ->
+          \defItems gamma metaGamma ixArgs ->
             DOM.span
               (inertProps "definitionItems")
               -- [ intersperseRightHTML
               --     [ punctuation.newline, undefined, punctuation.newline ]
               --     $ toUnfoldable
-              --     $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (cursor_def_at i)) (fromItem <$> defItems)
+              --     $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (csr_def_at i)) (fromItem <$> defItems)
               -- ]
               [ DOM.span'
                   $ toUnfoldable
@@ -258,13 +258,11 @@ programComponent this =
                             [ indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinitionSeparator
                                 { indented: true }
-                                ix
-                                (ix_defSep_at i)
-                                (cursor_defSep_at i)
+                                { ix_parentBlock: ixArgs.ix_parentBlock, ix: (ixArgs.ix_defSep_at i), csr: (ixArgs.csr_defSep_at i) }
                             -- , punctuation.newline
                             , indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
-                            , renderDefinition def gamma metaGamma ix (ix_def_at i)
-                                (cursor_def_at i)
+                            , renderDefinition def gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix: (ixArgs.ix_def_at i), csr: (ixArgs.csr_def_at i) }
+                            --  { ixArgs.ix (ixArgs.ix_def_at i) (ixArgs.csr_def_at i)}
                             -- , punctuation.newline
                             ]
                       )
@@ -272,34 +270,30 @@ programComponent this =
               , if length defItems == 0 then
                   renderDefinitionSeparator
                     { indented: false }
-                    ix
-                    (ix_defSep_at (length defItems))
-                    (cursor_defSep_at (length defItems))
+                    { ix_parentBlock: ixArgs.ix, ix: (ixArgs.ix_defSep_at (length defItems)), csr: (ixArgs.csr_defSep_at (length defItems)) }
                 else
                   DOM.span'
                     [ indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                     , renderDefinitionSeparator
                         { indented: true }
-                        ix
-                        (ix_defSep_at (length defItems))
-                        (cursor_defSep_at (length defItems))
+                        { ix_parentBlock: ixArgs.ix, ix: (ixArgs.ix_defSep_at (length defItems)), csr: (ixArgs.csr_defSep_at (length defItems)) }
                     ]
               ]
       }
 
   renderDefinitionSeparator :: { indented :: Boolean } -> RecIndex.RecDefinitionSeparator React.ReactElement
-  renderDefinitionSeparator args =
+  renderDefinitionSeparator renderArgs =
     RecIndex.recDefinitionSeparator
       { separator:
-          \ix_parent ix isSelected ->
+          \ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ]
+                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -307,38 +301,39 @@ programComponent this =
   renderDefinition =
     RecIndex.recDefinition
       { term:
-          \termBinding alpha a meta gamma metaGamma ix_parent ix isSelected ix_termBinding cursor_termBinding ix_alpha cursor_alpha ix_a cursor_a ->
+          \termBinding alpha a meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "term definition" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "term definition" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                [ renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                [ renderTermBinding termBinding gamma metaGamma { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
                 , punctuation.space
                 , punctuation.colon
                 , indentOrSpace meta metaGamma
-                , renderType alpha gamma metaGamma ix_alpha cursor_alpha
+                , renderType alpha gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
                 , punctuation.newline
                 , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
-                -- , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                -- , renderTermBinding termBinding gamma metaGamma ix_termBinding csr_termBinding
                 , renderTermBinding' termBinding metaGamma
                 , punctuation.space
                 , punctuation.termdef
                 , indentOrSpace meta metaGamma
-                , renderTerm a gamma alpha metaGamma ix_a cursor_a
+                , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                 ]
       , data:
-          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ix_parent ix isSelected ix_typeBinding cursor_typeBinding ix_constrItem_at cursor_constrItem_at ix_constrSep_at cursor_constrSep_at ->
+          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "data definition" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "data definition" ixArgs.isSelected, Props._id eid ]
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                [ renderTypeBinding typeBinding gamma metaGamma ix_typeBinding cursor_typeBinding
+                [ renderTypeBinding typeBinding gamma metaGamma { ix: ixArgs.ix_typeBinding, csr: ixArgs.csr_typeBinding }
                 , punctuation.space
                 , punctuation.typedef
                 , DOM.span'
@@ -347,30 +342,31 @@ programComponent this =
                         ( \i constr ->
                             DOM.span'
                               [ indent { indented: true } metaGamma
-                              , renderConstructorSeparator { indented: true } ix ix_parent (ix_constrSep_at i) (cursor_constrSep_at i)
+                              , renderConstructorSeparator { indented: true } { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: (ixArgs.ix_constrSep_at i), csr: (ixArgs.csr_constrSep_at i) }
                               , indent { indented: true } metaGamma
-                              , renderConstructor constr typeId gamma metaGamma ix ix_parent (ix_constrItem_at i) (cursor_constrItem_at i)
+                              , renderConstructor constr typeId gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: (ixArgs.ix_constr_at i), csr: (ixArgs.csr_constr_at i) }
                               ]
                         )
                         (fromItem <$> constrItems)
                 , indent { indented: true } metaGamma
-                , renderConstructorSeparator { indented: true } ix ix_parent (ix_constrSep_at (length constrItems)) (cursor_constrSep_at (length constrItems))
+                , renderConstructorSeparator { indented: true } { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: (ixArgs.ix_constrSep_at (length constrItems)), csr: (ixArgs.csr_constrSep_at (length constrItems)) }
                 ]
       }
 
   renderConstructorSeparator :: { indented :: Boolean } -> RecIndex.RecConstructorSeparator React.ReactElement
-  renderConstructorSeparator args =
+  renderConstructorSeparator renderArgs =
     RecIndex.recConstructorSeparator
       { separator:
-          \ix_defItems ix_def ix isSelected ->
+          \ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ]
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
+                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -378,17 +374,18 @@ programComponent this =
   renderConstructor =
     RecIndex.recConstructor
       { constructor:
-          \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_paramItem_at ix_defItems ix_def ix isSelected ix_termBinding cursor_termBinding ix_paramItem_at cursor_paramItem_at ix_paramSep_at cursor_paramSep_at ->
+          \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_paramItem_at ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "constructor" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "constructor" ixArgs.isSelected, Props._id eid ]
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 $ [ punctuation.alt
                   , punctuation.space
-                  , renderTermBinding termBinding gamma metaGamma ix_termBinding cursor_termBinding
+                  , renderTermBinding termBinding gamma metaGamma { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
                   , DOM.span
                       (inertProps "constructor parameters")
                       [ intercalateHTML
@@ -397,29 +394,30 @@ programComponent this =
                           $ mapWithIndex
                               ( \i (param /\ meta) ->
                                   DOM.span'
-                                    [ renderParameterSeparator meta ix_defItems ix_def ix (ix_paramSep_at i) (cursor_paramSep_at i)
-                                    , renderParameter param gamma (metaGamma_paramItem_at i) (ix_paramItem_at i) (cursor_paramItem_at i)
+                                    [ renderParameterSeparator meta { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix_parentDef, ix_parentConstr: ixArgs.ix, ix: ixArgs.ix_paramSep_at i, csr: ixArgs.csr_paramSep_at i }
+                                    , renderParameter param gamma (metaGamma_paramItem_at i) { ix: ixArgs.ix_param_at i, csr: ixArgs.csr_param_at i }
                                     ]
                               )
                               paramItems
                       ]
-                  , renderParameterSeparator { indented: any (snd >>> _.indented) paramItems } ix_defItems ix_def ix (ix_paramSep_at (length paramItems)) (cursor_paramSep_at (length paramItems))
+                  , renderParameterSeparator { indented: any (snd >>> _.indented) paramItems } { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix_parentDef, ix_parentConstr: ixArgs.ix, ix: ixArgs.ix_paramSep_at (length paramItems), csr: ixArgs.csr_paramSep_at (length paramItems) }
                   ]
       }
 
   renderParameterSeparator :: forall r. { indented :: Boolean | r } -> RecIndex.RecParameterSeparator React.ReactElement
-  renderParameterSeparator args =
+  renderParameterSeparator renderArgs =
     RecIndex.recParameterSeparator
       { separator:
-          \ix_defItems ix_def ix_constr ix isSelected ->
+          \ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.div
-                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName args) isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ]
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if args.indented then [] else [ DOM.text "|" ] ]
+                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -438,90 +436,83 @@ programComponent this =
       [ DOM.text "-" ]
   -}
   renderType :: RecIndex.RecType React.ReactElement
-  renderType type_ gamma metaGamma ix crs =
-    DOM.span'
-      [ {-renderParameterInsertor ix ,-} RecIndex.recType
-          { arrow:
-              \param beta meta gamma metaGamma ix isSelected ix_param cursor_param ix_beta cursor_beta ->
-                let
-                  eid = upwardIndexToEid ix
-                in
-                  DOM.span
-                    ( [ selectableClassName "arrow type" isSelected, Props._id eid ] <> selectableProps ix
-                        <> highlightableProps eid
-                    )
-                    $ [ renderParameter param gamma metaGamma ix_param cursor_param
-                      {-, renderParameterDeletor ix-}
-                      , punctuation.space
-                      ]
-                    <> [ punctuation.arrow
-                      , punctuation.space
-                      , renderType beta gamma metaGamma ix_beta cursor_beta
-                      ]
-          , data:
-              \typeId meta gamma metaGamma ix isSelected ->
-                let
-                  eid = upwardIndexToEid ix
-                in
-                  DOM.span
-                    ( [ selectableClassName "data type typeId" isSelected, Props._id eid ] <> selectableProps ix
-                        <> highlightableProps eid
-                    )
-                    [ DOM.span
-                        [ Props.onClick \_ -> do
-                            st <- React.getState this
-                            let
-                              holeId = freshHoleId unit
+  renderType =
+    RecIndex.recType
+      { arrow:
+          \param beta meta gamma metaGamma ixArgs ->
+            let
+              eid = upwardIndexToEid ixArgs.ix
+            in
+              DOM.span
+                ( [ selectableClassName "arrow type" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
+                    <> highlightableProps eid
+                )
+                $ [ renderParameter param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }
+                  {-, renderParameterDeletor ix-}
+                  , punctuation.space
+                  ]
+                <> [ punctuation.arrow
+                  , punctuation.space
+                  , renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+                  ]
+      , data:
+          \typeId meta gamma metaGamma ixArgs ->
+            let
+              eid = upwardIndexToEid ixArgs.ix
+            in
+              DOM.span
+                ( [ selectableClassName "data type typeId" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
+                    <> highlightableProps eid
+                )
+                [ DOM.span
+                    [ Props.onClick \_ -> do
+                        st <- React.getState this
+                        let
+                          holeId = freshHoleId unit
 
-                              holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
-                            case chAtModule st.module_ Map.empty
-                                ( SyntaxType
-                                    $ ArrowType (Parameter holeType defaultParameterMetadata)
-                                        (DataType typeId meta)
-                                        defaultArrowTypeMetadata
-                                )
-                                (ChangeTypeChange (InsertArg holeType))
-                                (toDownwardIndex ix) of
-                              Just (module' /\ ix' /\ holeSub) -> do
-                                let
-                                  module'' = subModule holeSub module'
-                                React.setState this
-                                  st
-                                    { module_ = module''
-                                    , ix_cursor = ix'
-                                    }
-                              Nothing -> undefined
-                        ]
-                        [ DOM.text "enArrow" ]
-                    , renderTypeId typeId metaGamma
+                          holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
+                        case chAtModule st.module_ emptyContext
+                            ( SyntaxType
+                                $ ArrowType (Parameter holeType defaultParameterMetadata)
+                                    (DataType typeId meta)
+                                    defaultArrowTypeMetadata
+                            )
+                            (ChangeTypeChange (InsertArg holeType))
+                            (toDownwardIndex ixArgs.ix) of
+                          Just (module' /\ ix' /\ holeSub) -> do
+                            let
+                              module'' = subModule holeSub module'
+                            React.setState this
+                              st
+                                { module_ = module''
+                                , ix_cursor = ix'
+                                }
+                          Nothing -> undefined
                     ]
-          , hole:
-              \holeId wkn meta gamma metaGamma ix isSelected ->
-                let
-                  eid = upwardIndexToEid ix
-                in
-                  DOM.span
-                    ( [ selectableClassName "hole type" isSelected, Props._id eid ] <> selectableProps ix
-                        <> highlightableProps eid
-                    )
-                    [ DOM.text "?" ]
-          , proxyHole:
-              \holeId gamma metaGamma ix isSelected ->
-                let
-                  eid = upwardIndexToEid ix
-                in
-                  DOM.span
-                    ( [ selectableClassName "proxy hole type" isSelected ] <> selectableProps ix
-                        <> highlightableProps eid
-                    )
-                    [ DOM.text "?" ]
-          }
-          type_
-          gamma
-          metaGamma
-          ix
-          crs
-      ]
+                    [ DOM.text "enArrow" ]
+                , renderTypeId typeId metaGamma
+                ]
+      , hole:
+          \holeId wkn meta gamma metaGamma ixArgs ->
+            let
+              eid = upwardIndexToEid ixArgs.ix
+            in
+              DOM.span
+                ( [ selectableClassName "hole type" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
+                    <> highlightableProps eid
+                )
+                [ DOM.text "?" ]
+      , proxyHole:
+          \holeId gamma metaGamma ixArgs ->
+            let
+              eid = upwardIndexToEid ixArgs.ix
+            in
+              DOM.span
+                ( [ selectableClassName "proxy hole type" ixArgs.isSelected ] <> selectableProps ixArgs.ix
+                    <> highlightableProps eid
+                )
+                [ DOM.text "?" ]
+      }
 
   renderType' :: RecMetaContext.RecType React.ReactElement
   renderType' =
@@ -555,52 +546,52 @@ programComponent this =
       }
 
   renderTerm :: RecIndex.RecTerm React.ReactElement
-  renderTerm term_prt gamma_prt type_prt metaGamma_prt ix_prt crs_prt =
+  renderTerm term_prt gamma_prt type_prt metaGamma_prt ixArgs_prt =
     RecIndex.recTerm
       { lambda:
-          \termId block meta gamma param beta metaGamma ix isSelected ix_termId cursor_termId ix_block cursor_block ->
+          \termId block meta gamma param beta metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "lambda term" isSelected
+                ( [ selectableClassName "lambda term" ixArgs.isSelected
                   , Props._id eid
                   ]
-                    <> selectableProps ix
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                $ [ DOM.span (draggableProps (SyntaxTermId termId) ix_termId)
-                      [ renderTermId termId gamma metaGamma ix_termId cursor_termId ]
+                $ [ DOM.span (draggableProps (SyntaxTermId termId) ixArgs.ix_termId)
+                      [ renderTermId termId gamma metaGamma { ix: ixArgs.ix_termId, csr: ixArgs.csr_termId } ]
                   ]
                 <> [ punctuation.space
                   , punctuation.mapsto
                   , indentOrNothing meta metaGamma
-                  , renderBlock block gamma beta metaGamma ix_block cursor_block
+                  , renderBlock block gamma beta metaGamma { ix: ixArgs.ix_block, csr: ixArgs.csr_block }
                   ]
       , neutral:
-          \termId argItems meta gamma alpha metaGamma ix isSelected ix_termId cursor_termId ix_argItems cursor_argItems ->
+          \termId argItems meta gamma alpha metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "neutral term" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "neutral term" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                [ renderTermId termId gamma metaGamma ix_termId cursor_termId
-                , renderArgItems argItems gamma alpha metaGamma ix_argItems cursor_argItems
+                [ renderTermId termId gamma metaGamma { ix: ixArgs.ix_termId, csr: ixArgs.csr_termId }
+                , renderArgItems argItems gamma alpha metaGamma { ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                 ]
       , match:
-          \typeId a caseItems meta gamma alpha metaGamma constrIds ix isSelected ix_term cursor_term ix_case_at cursor_case_at ->
+          \typeId a caseItems meta gamma alpha metaGamma constrIds ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "match term" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "match term" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ keyword.match
                 , punctuation.space
-                , renderTerm a gamma (DataType typeId defaultDataTypeMetadata) metaGamma ix_term cursor_term
+                , renderTerm a gamma (DataType typeId defaultDataTypeMetadata) metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                 , punctuation.space
                 , keyword.with
                 , DOM.span
@@ -610,7 +601,7 @@ programComponent this =
                             ( \i (case_ /\ meta) ->
                                 DOM.span'
                                   [ indentOrSpace meta metaGamma
-                                  , renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i)
+                                  , renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma { ix_parentMatch: ixArgs.ix, ix: ixArgs.ix_case_at i, csr: ixArgs.csr_case_at i }
                                   ]
                             )
                             caseItems
@@ -620,21 +611,21 @@ programComponent this =
                 --     [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
                 --         $ Array.fromFoldable
                 --         $ mapWithIndex
-                --             (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (cursor_case_at i))
+                --             (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (csr_case_at i))
                 --             (fromItem <$> caseItems)
                 --     ]
                 ]
       , hole:
-          \meta gamma alpha metaGamma ix isSelected ->
+          \meta gamma alpha metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "hole term" isSelected
+                ( [ selectableClassName "hole term" ixArgs.isSelected
                   , Props._id eid
                   ]
-                    <> selectableProps ix
-                    <> droppableProps gamma alpha ix
+                    <> selectableProps ixArgs.ix
+                    <> droppableProps gamma alpha ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ renderType' alpha gamma metaGamma ]
@@ -643,8 +634,7 @@ programComponent this =
       gamma_prt
       type_prt
       metaGamma_prt
-      ix_prt
-      crs_prt
+      ixArgs_prt
 
   renderArgItems :: RecIndex.RecArgItems React.ReactElement
   renderArgItems =
@@ -652,13 +642,13 @@ programComponent this =
       -- TODO: render separator
       { nil: \gamma alpha metaGamma -> DOM.span' []
       , cons:
-          \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ix_a cursor_a ix_argItems cursor_argItems ->
+          \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ixArgs ->
             DOM.span'
               $ [ punctuation.space ]
               <> [ let
-                    unparenthesized = renderTerm a gamma alpha metaGamma ix_a cursor_a
+                    unparenthesized = renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
 
-                    parenthesized = DOM.span' [ punctuation.lparen, renderTerm a gamma alpha metaGamma ix_a cursor_a, punctuation.rparen ]
+                    parenthesized = DOM.span' [ punctuation.lparen, renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }, punctuation.rparen ]
                   in
                     case a of
                       LambdaTerm _ _ _ -> parenthesized
@@ -670,20 +660,20 @@ programComponent this =
                   []
                 else
                   [ punctuation.space
-                  , renderArgItems argItems gamma beta metaGamma ix_argItems cursor_argItems
+                  , renderArgItems argItems gamma beta metaGamma { ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                   ]
       }
 
   renderCase :: RecIndex.RecCase React.ReactElement
-  renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ix_prt cursor_prt =
+  renderCase case_prt typeId_prt termId_prt gamma_prt alpha_prt metaGamma_prt ixArgs_prt =
     RecIndex.recCase
       { case_:
-          \termIdItems block meta typeId constrId gamma alpha metaGamma ix_match ix isSelected ix_termId_at cursor_termId_at ix_term cursor_term ->
+          \termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "case" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "case" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ punctuation.alt
@@ -698,8 +688,8 @@ programComponent this =
                                 DOM.span'
                                   [ punctuation.space
                                   , DOM.span
-                                      (draggableProps (SyntaxTermId termId) (ix_termId_at i))
-                                      [ renderTermId termId gamma metaGamma (ix_termId_at i) (cursor_termId_at i) ]
+                                      (draggableProps (SyntaxTermId termId) (ixArgs.ix_termId_at i))
+                                      [ renderTermId termId gamma metaGamma { ix: (ixArgs.ix_termId_at i), csr: (ixArgs.csr_termId_at i) } ]
                                   ]
                             )
                             (fromItem <$> termIdItems)
@@ -707,7 +697,7 @@ programComponent this =
                 , punctuation.space
                 , punctuation.mapsto
                 , indentOrNothing meta metaGamma
-                , renderBlock block gamma alpha metaGamma ix_term cursor_term
+                , renderBlock block gamma alpha metaGamma { ix: ixArgs.ix_block, csr: ixArgs.csr_block }
                 ]
       }
       case_prt
@@ -716,30 +706,29 @@ programComponent this =
       gamma_prt
       alpha_prt
       metaGamma_prt
-      ix_prt
-      cursor_prt
+      ixArgs_prt
 
   renderParameter :: RecIndex.RecParameter React.ReactElement
   renderParameter =
     RecIndex.recParameter
       { parameter:
-          \alpha meta gamma metaGamma ix isSelected ix_alpha cursor_alpha ->
+          \alpha meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
 
               shadow_i = Map.lookup' meta.name metaGamma.termScope.shadows
             in
               DOM.span
-                ( [ selectableClassName "parameter" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "parameter" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
-                -- [ renderType alpha gamma metaGamma ix_alpha cursor_alpha ]
+                -- [ renderType alpha gamma metaGamma ix_type csr_type ]
                 [ punctuation.lparen
                 , printTermName meta.name shadow_i
                 , punctuation.space
                 , punctuation.colon
                 , punctuation.space
-                , renderType alpha gamma metaGamma ix_alpha cursor_alpha
+                , renderType alpha gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
                 , punctuation.rparen
                 ]
       }
@@ -768,12 +757,12 @@ programComponent this =
   renderTypeBinding =
     RecIndex.recTypeBinding
       { typeBinding:
-          \typeId meta gamma metaGamma ix isSelected ->
+          \typeId meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName "typeBinding" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "typeBinding" ixArgs.isSelected, Props._id eid ] <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ renderTypeId typeId metaGamma ]
@@ -795,18 +784,18 @@ programComponent this =
   renderTermBinding =
     RecIndex.recTermBinding
       { termBinding:
-          \termId meta gamma metaGamma ix isSelected ->
+          \termId meta gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
 
               termName = Map.lookup' termId metaGamma.termScope.names
 
               shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
             in
               DOM.span
-                ( [ selectableClassName "termBinding" isSelected, Props._id eid ]
-                    <> draggableProps (SyntaxTermId termId) ix
-                    <> selectableProps ix
+                ( [ selectableClassName "termBinding" ixArgs.isSelected, Props._id eid ]
+                    <> draggableProps (SyntaxTermId termId) ixArgs.ix
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ printTermName termName shadow_i ]
@@ -826,16 +815,17 @@ programComponent this =
   renderTermId =
     RecIndex.recTermId
       { termId:
-          \termId gamma metaGamma ix isSelected ->
+          \termId gamma metaGamma ixArgs ->
             let
-              eid = upwardIndexToEid ix
+              eid = upwardIndexToEid ixArgs.ix
 
               termName = Map.lookup' termId metaGamma.termScope.names
 
               shadow_i = Map.lookup' termId metaGamma.termScope.shadowIndices
             in
               DOM.span
-                ( [ selectableClassName "termId" isSelected, Props._id eid ] <> selectableProps ix
+                ( [ selectableClassName "termId" ixArgs.isSelected, Props._id eid ]
+                    <> selectableProps ixArgs.ix
                     <> highlightableProps eid
                 )
                 [ printTermName termName shadow_i ]

@@ -262,8 +262,8 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        \termId block meta gamma prm beta metaGamma ix isSelected ix_termId csr_termId ix_block csr_block trans pr ->
-          rec.lambda termId block meta gamma prm beta metaGamma ix isSelected ix_termId csr_termId ix_block csr_block trans
+        \termId block meta gamma prm beta metaGamma ixArgs transArgs pr ->
+          rec.lambda termId block meta gamma prm beta metaGamma ixArgs transArgs
             ( \{ termId, block } ->
                 pr
                   [ WordReactElement punctuation.lparen

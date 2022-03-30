@@ -122,10 +122,10 @@ type RecDefinitionItems_DefinitionItems a
       ( { ix_parentBlock :: UpwardIndex
         , ix :: UpwardIndex
         , isSelected :: Boolean
-        , ixs_defs :: Int -> UpwardIndex
-        , csrs_defs :: Int -> Cursor
-        , ixs_defSeps :: Int -> UpwardIndex
-        , csrs_defSeps :: Int -> Cursor
+        , ix_def_at :: Int -> UpwardIndex
+        , csr_def_at :: Int -> Cursor
+        , ix_defSep_at :: Int -> UpwardIndex
+        , csr_defSep_at :: Int -> Cursor
         } ->
         a
       )
@@ -142,10 +142,10 @@ recDefinitionItems rec =
             { ix_parentBlock
             , ix
             , isSelected: checkCursorHere csr
-            , ixs_defs: \i -> ix <> (fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepDefinitionItem 0))
-            , csrs_defs: \i -> checkCursorSteps (fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepDefinitionItem 0)) csr
-            , ixs_defSeps: \i -> ix <> fromSublistIndexToUpwardIndex i
-            , csrs_defSeps: \i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr
+            , ix_def_at: \i -> ix <> (fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepDefinitionItem 0))
+            , csr_def_at: \i -> checkCursorSteps (fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepDefinitionItem 0)) csr
+            , ix_defSep_at: \i -> ix <> fromSublistIndexToUpwardIndex i
+            , csr_defSep_at: \i -> checkCursorSteps (fromSublistIndexToDownwardIndex i) csr
             }
     }
 
@@ -205,8 +205,8 @@ type RecDefinition_DataDefinition a
         , isSelected :: Boolean
         , ix_typeBinding :: UpwardIndex
         , csr_typeBinding :: Cursor
-        , ix_constrItem_at :: Int -> UpwardIndex
-        , csr_constrItem_at :: Int -> Cursor
+        , ix_constr_at :: Int -> UpwardIndex
+        , csr_constr_at :: Int -> Cursor
         , ix_constrSep_at :: Int -> UpwardIndex
         , csr_constrSep_at :: Int -> Cursor
         } ->
@@ -245,15 +245,15 @@ recDefinition rec =
               , isSelected: (checkCursorHere csr)
               , ix_typeBinding: (ix :- IndexStep StepDataDefinition 0)
               , csr_typeBinding: (checkCursorStep (IndexStep StepDataDefinition 0) csr)
-              , ix_constrItem_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepConstructorItem 0))
-              , csr_constrItem_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepConstructorItem 0)) csr)
+              , ix_constr_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepConstructorItem 0))
+              , csr_constr_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepConstructorItem 0)) csr)
               , ix_constrSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToUpwardIndex i)
               , csr_constrSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i) csr)
               }
     }
 
 type RecConstructorSeparator a
-  = { ix_parentDefItems :: UpwardIndex
+  = { ix_parentBlock :: UpwardIndex
     , ix_parentDef :: UpwardIndex
     , ix :: UpwardIndex
     , csr :: Cursor
@@ -261,7 +261,7 @@ type RecConstructorSeparator a
     a
 
 type RecConstructorSeparator_Separator a
-  = { ix_parentDefItems :: UpwardIndex
+  = { ix_parentBlock :: UpwardIndex
     , ix_parentDef :: UpwardIndex
     , ix :: UpwardIndex
     , isSelected :: Boolean
@@ -272,9 +272,9 @@ recConstructorSeparator ::
   forall a.
   { separator :: RecConstructorSeparator_Separator a } ->
   RecConstructorSeparator a
-recConstructorSeparator rec { ix_parentDefItems, ix_parentDef, ix, csr } =
+recConstructorSeparator rec { ix_parentBlock, ix_parentDef, ix, csr } =
   rec.separator
-    { ix_parentDefItems
+    { ix_parentBlock
     , ix_parentDef
     , ix
     , isSelected: checkCursorHere csr
@@ -282,7 +282,7 @@ recConstructorSeparator rec { ix_parentDefItems, ix_parentDef, ix, csr } =
 
 type RecConstructor a
   = RecMetaContext.RecConstructor
-      ( { ix_parentDefItems :: UpwardIndex
+      ( { ix_parentBlock :: UpwardIndex
         , ix_parentDef :: UpwardIndex
         , ix :: UpwardIndex
         , csr :: Cursor
@@ -292,16 +292,16 @@ type RecConstructor a
 
 type RecConstructor_Constructor a
   = RecMetaContext.RecConstructor_Constructor
-      ( { ix_parentDefItems :: UpwardIndex
+      ( { ix_parentBlock :: UpwardIndex
         , ix_parentDef :: UpwardIndex
         , ix :: UpwardIndex
         , isSelected :: Boolean
         , ix_termBinding :: UpwardIndex
         , csr_termBinding :: Cursor
-        , ix_prm_at :: (Int -> UpwardIndex)
-        , csr_prm_at :: (Int -> Cursor)
-        , ix_prmSep_at :: (Int -> UpwardIndex)
-        , csr_prmSep_at :: (Int -> Cursor)
+        , ix_param_at :: (Int -> UpwardIndex)
+        , csr_param_at :: (Int -> Cursor)
+        , ix_paramSep_at :: (Int -> UpwardIndex)
+        , csr_paramSep_at :: (Int -> Cursor)
         } ->
         a
       )
@@ -314,26 +314,26 @@ recConstructor ::
 recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
-        \termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at { ix_parentDefItems, ix_parentDef, ix, csr } ->
+        \termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at { ix_parentBlock, ix_parentDef, ix, csr } ->
           let
             _ = unit -- if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
           in
             rec.constructor termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at
-              { ix_parentDefItems
+              { ix_parentBlock
               , ix_parentDef
               , ix
               , isSelected: (checkCursorHere csr)
               , ix_termBinding: (ix :- IndexStep StepConstructor 0)
               , csr_termBinding: (checkCursorStep (IndexStep StepConstructor 0) csr)
-              , ix_prm_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepParameterItem 0))
-              , csr_prm_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepParameterItem 0)) csr)
-              , ix_prmSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToUpwardIndex i)
-              , csr_prmSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
+              , ix_param_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepParameterItem 0))
+              , csr_param_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepParameterItem 0)) csr)
+              , ix_paramSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToUpwardIndex i)
+              , csr_paramSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
               }
     }
 
 type RecParameterSeparator a
-  = { ix_parentDefItems :: UpwardIndex
+  = { ix_parentBlock :: UpwardIndex
     , ix_parentDef :: UpwardIndex
     , ix_parentConstr :: UpwardIndex
     , ix :: UpwardIndex
@@ -342,7 +342,7 @@ type RecParameterSeparator a
     a
 
 type RecParameterSeparator_Separator a
-  = { ix_parentDefItems :: UpwardIndex
+  = { ix_parentBlock :: UpwardIndex
     , ix_parentDef :: UpwardIndex
     , ix_parentConstr :: UpwardIndex
     , ix :: UpwardIndex
@@ -354,9 +354,9 @@ recParameterSeparator ::
   forall a.
   { separator :: RecParameterSeparator_Separator a } ->
   RecParameterSeparator a
-recParameterSeparator rec { ix_parentDefItems, ix_parentDef, ix_parentConstr, ix, csr } =
+recParameterSeparator rec { ix_parentBlock, ix_parentDef, ix_parentConstr, ix, csr } =
   rec.separator
-    { ix_parentDefItems
+    { ix_parentBlock
     , ix_parentDef
     , ix_parentConstr
     , ix
@@ -453,8 +453,8 @@ type RecType_Arrow a
   = RecMetaContext.RecType_Arrow
       ( { ix :: UpwardIndex
         , isSelected :: Boolean
-        , ix_prm :: UpwardIndex
-        , csr_prm :: Cursor
+        , ix_param :: UpwardIndex
+        , csr_param :: Cursor
         , ix_type :: UpwardIndex
         , csr_type :: Cursor
         } ->
@@ -500,8 +500,8 @@ recType rec =
           rec.arrow param beta meta gamma metaGamma
             { ix
             , isSelected: (checkCursorHere csr)
-            , ix_prm: (ix :- IndexStep StepArrowType 0)
-            , csr_prm: (checkCursorStep (IndexStep StepArrowType 0) csr)
+            , ix_param: (ix :- IndexStep StepArrowType 0)
+            , csr_param: (checkCursorStep (IndexStep StepArrowType 0) csr)
             , ix_type: (ix :- IndexStep StepArrowType 1)
             , csr_type: (checkCursorStep (IndexStep StepArrowType 1) csr)
             }
@@ -543,8 +543,8 @@ type RecTerm_Match a
         , isSelected :: Boolean
         , ix_term :: UpwardIndex
         , csr_term :: Cursor
-        , ix_caseItem_at :: (Int -> UpwardIndex)
-        , csr_caseItem_at :: (Int -> Cursor)
+        , ix_case_at :: (Int -> UpwardIndex)
+        , csr_case_at :: (Int -> Cursor)
         } ->
         a
       )
@@ -594,8 +594,8 @@ recTerm rec =
             , isSelected: (checkCursorHere csr)
             , ix_term: (ix :- IndexStep StepMatchTerm 0)
             , csr_term: (checkCursorStep (IndexStep StepMatchTerm 0) csr)
-            , ix_caseItem_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepCaseItem 0))
-            , csr_caseItem_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepCaseItem 0)) csr)
+            , ix_case_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepCaseItem 0))
+            , csr_case_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepMatchTerm 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepCaseItem 0)) csr)
             }
     , hole:
         \meta gamma alpha metaGamma { ix, csr } ->
