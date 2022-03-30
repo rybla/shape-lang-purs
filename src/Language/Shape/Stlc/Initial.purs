@@ -83,7 +83,9 @@ module_ =
                 $ mkTermDef
                     (mkTermBind addNat_id addNat_name)
                     (mkArrow (mkParam m_name $ mkData nat_id) $ mkArrow (mkParam n_name $ mkData nat_id) $ mkData nat_id)
-                    ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlockInd Nil
+                    -- ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlockInd Nil
+                    mkHoleTerm
+          {-
                         $ mkMatch nat_id (mkNeutral m_id Nil)
                         $ fromFoldable
                             [ mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkNeutral n_id Nil
@@ -94,7 +96,11 @@ module_ =
                                 $ mkNeutral addNat_id
                                 $ fromFoldable [ mkArgItem $ mkNeutral m'_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                             ]
-                    )
+                        
+                        $ mkNeutral addNat_id
+                        $ fromFoldable [ mkArgItem $ mkNeutral m_id Nil, mkArgItem $ mkNeutral n_id Nil ]
+                      -}
+          {-
           , TermDefinition
               (TermBinding identity_id defaultTermBindingMetadata { name = identity_name })
               ( ArrowType
@@ -253,6 +259,7 @@ module_ =
                                     ]
                             ]
                     )
+          -}
           ]
       )
       defaultModuleMetadata

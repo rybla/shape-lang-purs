@@ -101,7 +101,7 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    preventDefault event
+    -- preventDefault event
     let
       k = key event
     if k `Set.member` nameKeys || k == "Backspace" then do
@@ -482,6 +482,8 @@ programComponent this =
                           Just (module' /\ ix' /\ holeSub) -> do
                             let
                               module'' = subModule holeSub module'
+                            Debug.traceM "[debug]"
+                            Debug.traceM $ show module''
                             React.setState this
                               st
                                 { module_ = module''
