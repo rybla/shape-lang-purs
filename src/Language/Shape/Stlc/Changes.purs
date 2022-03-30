@@ -8,6 +8,7 @@ import Prim hiding (Type)
 
 import Control.Monad.State (State, StateT, get, lift, put, runState, runStateT)
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex)
+import Data.Generic.Rep (class Generic)
 import Data.List (List(..), concat, elem, filter, fold, foldl, foldr, mapMaybe, mapWithIndex, singleton, zip, zipWith, (:))
 import Data.List.Unsafe (deleteAt', index', insertAt')
 import Data.Map (Map, fromFoldable, insert, lookup, mapMaybeWithKey, toUnfoldable, union)
@@ -15,6 +16,7 @@ import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set(..), difference, empty, member)
+import Data.Show.Generic (genericShow)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug as Debug
@@ -33,6 +35,9 @@ data TypeChange
     -- | Replace Type -- can't allow Replace, because it would break the invariant that holesubs collected from chTerm can be applied at the end and never conflict with each other.
     | Dig HoleId
 -- Note for the future: could e.g. make Swap take a typechange which says what happens to rest of type after swap. Currently, it is implicitly NoChange.
+
+derive instance Generic TypeChange _
+instance Show TypeChange where show x = genericShow x
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
@@ -162,7 +167,12 @@ chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List
 chTerm ctx ty chs (Dig _) t = pure $ HoleTerm defaultHoleTermMetadata
 chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
     = do let (Tuple _ change) = chType chs.dataTypeDeletions a
-         block' <- liiift $ chBlock (insertTyping binding a ctx) b (varChange chs binding change) c2 block
+        -- TODO: where to use change? This is indicative of a philosophical issue in how im thinking about this.
+        -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
+        -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
+        -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
+        -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
+         block' <- liiift $ chBlock (insertTyping binding a ctx) b (varChange chs binding c1) c2 block
          pure $ LambdaTerm binding block' md
 chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
     = do let (Tuple a' change) = chType chs.dataTypeDeletions a
@@ -191,8 +201,6 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
-        -- Debug.traceM $ "---------------------------------------------------------------"
-        -- Debug.traceM $ id
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that
