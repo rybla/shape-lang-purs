@@ -181,11 +181,11 @@ chAtType ty gamma (SyntaxType newTy) (ChangeTypeChange tc) (DownwardIndex Nil)
 chAtType ty gamma tRep sbjto idx = Rec.recType {
     arrow : \param out meta gamma tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepArrowType 0) rest)) -> do -- input param
-            (param' /\ (DownwardIndex idx) /\ tcIn /\ holeSub) <- chAtParameter param gamma tRep sbjto (DownwardIndex rest)
-            pure $ (ArrowType param' out meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 0) idx)) /\ (ArrowCh tcIn NoChange) /\ holeSub)
+            (param' /\ (DownwardIndex idx') /\ tcIn /\ holeSub) <- chAtParameter param gamma tRep sbjto (DownwardIndex rest)
+            pure $ (ArrowType param' out meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 0) idx')) /\ (ArrowCh tcIn NoChange) /\ holeSub)
         (DownwardIndex (Cons (IndexStep StepArrowType 1) rest)) -> do -- output type
-            (out' /\ (DownwardIndex idx) /\ tcOut /\ holeSub1) <- chAtType out gamma tRep sbjto (DownwardIndex rest)
-            pure $ (ArrowType param out' meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 1) idx)) /\ (ArrowCh NoChange tcOut) /\ holeSub1)
+            (out' /\ (DownwardIndex idx') /\ tcOut /\ holeSub1) <- chAtType out gamma tRep sbjto (DownwardIndex rest)
+            pure $ (ArrowType param out' meta /\ (DownwardIndex (Cons (IndexStep StepArrowType 1) idx')) /\ (ArrowCh NoChange tcOut) /\ holeSub1)
         _ -> error "no"
     , data : \typeId meta gamma tRep sbjto idx -> error "no" -- shouldn't get here, data type has no children (also, StepDataType doesn't need to exists in Index.purs)
     , hole : \holeId weakenedBy meta gamma tRep sbjto -> error "no"-- shouldn't get here, hole types have no children (also, StepHoleType doesn't need to exists in Index.purs)
@@ -207,7 +207,7 @@ chAtParameter = Rec.recParameter {
     parameter : \ty meta gamma tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) -> do -- the type in the parameter
             (ty' /\ (DownwardIndex idx) /\ tc /\ holeSub) <- chAtType ty gamma tRep sbjto (DownwardIndex rest)
-            pure $ (Parameter ty meta) /\ (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) /\ tc /\ holeSub
+            pure $ (Parameter ty' meta) /\ (DownwardIndex (Cons (IndexStep StepParameter 0) rest)) /\ tc /\ holeSub
         _ -> error "no"
 }
 
