@@ -2,6 +2,10 @@ html {
   background-color: rgb(0, 18, 35);
 }
 
+.editor {
+  color: rgb(154, 148, 168);
+}
+
 .console {
   box-shadow: 0 0 0 1px white;
 }
@@ -11,12 +15,6 @@ html {
   background-color: rgb(0, 18, 35);
 }
 
-.context-item.suggested.exact {
-  box-shadow: 0 0 0 1px green;
-}
-.context-item.suggested.apply {
-  box-shadow: 0 0 0 1px yellow;
-}
 .goal {
   box-shadow: 0 -1px 0 0 white;
 }
@@ -24,7 +22,6 @@ html {
 /* module */
 
 .module {
-  color: rgb(154, 148, 168);
 }
 
 .pushDefinition {

@@ -2,6 +2,10 @@ html {
   background-color: rgb(199, 200, 203);
 }
 
+.editor {
+  color: rgb(99, 103, 117);
+}
+
 .console {
   box-shadow: 0 0 0 1px white;
 }
@@ -24,8 +28,6 @@ html {
 /* module */
 
 .module {
-  color: rgb(99, 103, 117);
-  /* color: rgb(64, 52, 18); */
 }
 
 .pushDefinition {
