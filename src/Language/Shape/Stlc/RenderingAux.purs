@@ -27,10 +27,13 @@ keyword :: _
 keyword =
   fromHomogeneous $ (pure makeKeyword)
     <*> homogeneous
-        { data_: "data"
+        { data_: "type"
+        , of_: "of"
+        , val: "val"
         , match: "match"
         , with: "with"
         , let_: "let"
+        , fun: "fun"
         , in_: "in"
         , lambda: "λ"
         }
@@ -51,7 +54,7 @@ punctuation =
         , alt: "|"
         , arrow: "→"
         , termdef: "="
-        , typedef: "::="
+        , typedef: "="
         , colon: ":"
         , mapsto: "⇒"
         , space: " "
