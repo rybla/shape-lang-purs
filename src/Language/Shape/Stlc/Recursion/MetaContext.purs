@@ -332,11 +332,6 @@ incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 -- set id's shadow index
 registerId :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
-  -- let
-  --   _ = Debug.trace "registerId"
-  --   _ = Debug.trace id
-  --   _ = Debug.trace name
-  -- in
   foldl (>>>) identity
     [ R.modify _names (Map.insert id name)
     , incrementShadow name
