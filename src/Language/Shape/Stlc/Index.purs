@@ -4,7 +4,7 @@ import Data.List.Unsafe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Prim.Row as Row
+
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
@@ -13,6 +13,7 @@ import Data.Symbol (class IsSymbol)
 import Data.Unfoldable (replicate)
 import Debug as Debug
 import Language.Shape.Stlc.Metadata as Meta
+import Prim.Row as Row
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -41,7 +42,7 @@ infixr 6 pushDownwardIndex as -:
 pushUpwardIndex :: UpwardIndex -> IndexStep -> UpwardIndex
 pushUpwardIndex (UpwardIndex steps) step = UpwardIndex $ Cons step steps
 
-infixr 6 pushUpwardIndex as :-
+infixl 6 pushUpwardIndex as :-
 
 toUpwardIndex :: DownwardIndex -> UpwardIndex
 toUpwardIndex (DownwardIndex steps) = UpwardIndex $ reverse steps
@@ -184,6 +185,7 @@ stepSyntax step syn = case syn /\ step of
   SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructor constr
   SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 -> SyntaxCase case_
   SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameter param
+  SyntaxArgItem (arg /\ meta) /\ IndexStep StepArgItem 0 -> SyntaxTerm arg
   SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermId termId
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> h
@@ -218,6 +220,7 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
   SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 /\ SyntaxConstructor constr' -> SyntaxConstructorItem (constr' /\ meta )
   SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 /\ SyntaxCase case'  -> SyntaxCaseItem (case' /\ meta )
   SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 /\ SyntaxParameter param' -> SyntaxParameterItem (param' /\ meta)
+  SyntaxArgItem (arg /\ meta) /\ IndexStep StepArgItem 0 /\ SyntaxTerm arg' -> SyntaxArgItem (arg' /\ meta)
   SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 /\ SyntaxTermId termId' -> SyntaxTermIdItem (termId' /\ meta)
   -- list
   SyntaxList (Cons h t) /\ IndexStep StepCons 0 /\ h' -> SyntaxList (Cons h' t)
@@ -481,7 +484,7 @@ moveDownwardIndex dir mod ix =
                 _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
 -}
 
-toggleIndentedMetadataAt :: forall label. DownwardIndex -> Syntax -> Syntax 
+toggleIndentedMetadataAt :: DownwardIndex -> Syntax -> Syntax 
 toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of 
   Nothing -> identity -- cannot indent at top level
   Just { ix', step } ->
@@ -512,6 +515,7 @@ toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of
       SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructorItem (constr /\ (Meta.toggle Meta._indented meta))
       SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 -> SyntaxCaseItem (case_ /\ (Meta.toggle Meta._indented meta))
       SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameterItem (param /\ (Meta.toggle Meta._indented meta))
+      SyntaxArgItem (arg /\ meta) /\ IndexStep StepArgItem 0 -> SyntaxArgItem (arg /\ (Meta.toggle Meta._indented meta))
       SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermIdItem (termId /\ (Meta.toggle Meta._indented meta))
       -- list
       SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> SyntaxList (Cons h t)
