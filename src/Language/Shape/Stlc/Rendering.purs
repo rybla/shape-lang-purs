@@ -100,13 +100,6 @@ programComponent this =
           addEventListener (EventType "keydown") listener false (toEventTarget win)
     }
   where
-  isEditNameTarget :: Syntax -> Boolean
-  isEditNameTarget = case _ of
-    SyntaxTermBinding _ -> true
-    SyntaxParameter _ -> true
-    SyntaxTypeBinding _ -> true
-    _ -> false
-
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
     -- preventDefault event
@@ -135,9 +128,13 @@ programComponent this =
                     x -> pure x
                 )
                 (SyntaxModule st.module_)
-        React.modifyState this \st' -> st' { module_ = module_ }
+        React.modifyState this \st -> st { module_ = module_ }
       else
         pure unit
+    else if k == "Enter" then do
+      let
+        module_ = toModule $ toggleIndentedMetadataAt st.ix_cursor (SyntaxModule st.module_)
+      React.modifyState this \st -> st { module_ = module_ }
     else
       pure unit
     -- case key event of
@@ -147,7 +144,6 @@ programComponent this =
     -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
     -- "e" -> do
     -- _ -> pure unit
-    Debug.traceM event
     pure unit
 
   state :: ProgramState
@@ -167,17 +163,17 @@ programComponent this =
   render st =
     DOM.div
       [ Props.className "editor"
-      , Props.onMouseUp \event -> do
+      {-, Props.onMouseUp \event -> do
           stopPropagation event
-          Debug.traceM $ "drag cancel"
           React.modifyState this \st -> st { syntax_dragging = Nothing }
+      -}
       ]
       [ renderModule st.module_ emptyContext RecMetaContext.emptyMetaContext { ix: (UpwardIndex Nil), csr: (Just st.ix_cursor) }
-      , renderEnvironment st.environment
+      , renderEnvironment st
       ]
 
-  renderEnvironment :: Environment -> React.ReactElement
-  renderEnvironment env =
+  renderEnvironment :: ProgramState -> React.ReactElement
+  renderEnvironment st =
     let
       contextItemProps termId type_ =
         let
@@ -185,13 +181,61 @@ programComponent this =
         in
           [ Props.className $ "context-item"
           -- TODO: this doesnt work with `==` since that's syntactic equality
-          -- <> if Just type_ == env.goal then
+          -- <> if Just type_ == st.environment.goal then
           --     " suggested exact"
-          --   else if Just beta == env.goal then
+          --   else if Just beta == st.environment.goal then
           --     " suggested apply"
           --   else
           --     ""
           ]
+
+      syn = lookupSyntaxAt st.ix_cursor (SyntaxModule st.module_)
+
+      actions :: Array (String /\ (Unit -> Effect Unit))
+      actions = case syn of
+        SyntaxModule module_ -> []
+        SyntaxBlock block -> []
+        SyntaxDefinition def -> []
+        SyntaxConstructor constr -> []
+        SyntaxTerm term -> []
+        SyntaxCase case_ -> []
+        SyntaxType type_ ->
+          [ "enArrow"
+              /\ \_ -> do
+                  Debug.traceM "[action > enArrow]"
+                  Debug.traceM $ "st.ix_cursor: " <> show st.ix_cursor
+                  Debug.traceM $ "selected syntax: " <> show syn
+                  Debug.traceM $ "...chAtModule..."
+                  let
+                    holeId = freshHoleId unit
+
+                    holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
+                  case chAtModule st.module_ emptyContext
+                      (SyntaxType $ mkArrow (mkParam (TermName Nothing) holeType) type_)
+                      (ChangeTypeChange (InsertArg holeType))
+                      st.ix_cursor of
+                    Just (module' /\ ix' /\ holeSub) -> do
+                      Debug.traceM $ "ix': " <> show ix'
+                      React.setState this
+                        st
+                          { module_ = subModule holeSub module'
+                          , ix_cursor = ix' -- DownwardIndex Nil
+                          }
+                    Nothing -> pure unit
+          ]
+        SyntaxParameter param -> []
+        SyntaxTermBinding termBinding -> []
+        SyntaxTypeBinding typeBinding -> []
+        SyntaxTermId termId -> []
+        -- items
+        SyntaxDefinitionItem defItem -> []
+        SyntaxConstructorItem constrItem -> []
+        SyntaxParameterItem paramItem -> []
+        SyntaxCaseItem caseItem -> []
+        SyntaxArgItem argItem -> []
+        SyntaxTermIdItem termIdItem -> []
+        -- for lists
+        SyntaxList syns -> []
     in
       DOM.div [ Props.className "environment" ]
         $ [ DOM.div
@@ -200,22 +244,36 @@ programComponent this =
                   ( \(termId /\ type_) ->
                       DOM.div
                         (contextItemProps termId type_)
-                        [ renderTermId' termId env.metaGamma
+                        [ renderTermId' termId st.environment.metaGamma
                         , punctuation.space
                         , punctuation.colon
                         , punctuation.space
-                        , renderType' type_ emptyContext env.metaGamma
+                        , renderType' type_ emptyContext st.environment.metaGamma
                         ]
                   )
-                  (Array.reverse $ Map.toUnfoldable env.gamma.types)
+                  (Array.reverse $ Map.toUnfoldable st.environment.gamma.types)
               )
           ]
-        <> case env.goal of
-            Just type_ ->
-              [ DOM.div [ Props.className "goal" ]
-                  [ renderType' type_ emptyContext env.metaGamma ]
-              ]
-            Nothing -> []
+        <> ( case st.environment.goal of
+              Just type_ ->
+                [ DOM.div [ Props.className "goal" ]
+                    [ renderType' type_ emptyContext st.environment.metaGamma ]
+                ]
+              Nothing -> []
+          )
+        <> [ DOM.div
+              [ Props.className "actions" ]
+              ( map
+                  ( \(label /\ run) ->
+                      DOM.div
+                        [ Props.className "action"
+                        , Props.onClick \_ -> run unit
+                        ]
+                        [ DOM.text label ]
+                  )
+                  actions
+              )
+          ]
 
   renderModule :: RecIndex.RecModule React.ReactElement
   renderModule =
@@ -482,36 +540,7 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                [ {- DOM.span
-                    [ Props.onClick \_ -> do
-                        st <- React.getState this
-                        let
-                          holeId = freshHoleId unit
-
-                          holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
-                        case chAtModule st.module_ emptyContext
-                            ( SyntaxType
-                                $ ArrowType (Parameter holeType defaultParameterMetadata)
-                                    (DataType typeId meta)
-                                    defaultArrowTypeMetadata
-                            )
-                            (ChangeTypeChange (InsertArg holeType))
-                            (toDownwardIndex ixArgs.ix) of
-                          Just (module' /\ ix' /\ holeSub) -> do
-                            let
-                              module'' = subModule holeSub module'
-                            Debug.traceM "[debug]"
-                            Debug.traceM $ show module''
-                            React.setState this
-                              st
-                                { module_ = module''
-                                , ix_cursor = ix'
-                                }
-                          Nothing -> undefined
-                    ]
-                    [ DOM.text "enArrow" ]
-                , -} renderTypeId typeId metaGamma
-                ]
+                [ renderTypeId typeId metaGamma ]
       , hole:
           \holeId wkn meta gamma metaGamma ixArgs ->
             let
@@ -582,7 +611,9 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Just (mkArrow param beta), gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                $ [ DOM.span (draggableProps (SyntaxTermId termId) ixArgs.ix_termId)
+                $ [ keyword.fun
+                  , punctuation.space
+                  , DOM.span (draggableProps (SyntaxTermId termId) ixArgs.ix_termId)
                       [ renderTermId_typed termId gamma metaGamma { ix: ixArgs.ix_termId, csr: ixArgs.csr_termId } (case param of Parameter alpha _ -> alpha) ]
                   ]
                 <> [ punctuation.space
@@ -939,7 +970,7 @@ programComponent this =
   selectableProps ix environment =
     [ Props.onClick \event -> do
         stopPropagation event
-        Debug.traceM $ show (toDownwardIndex ix)
+        Debug.traceM $ "[selectableProps > onClick] index: " <> show (toDownwardIndex ix)
         React.modifyState this \st -> st { ix_cursor = toDownwardIndex ix, environment = environment }
     ]
 
@@ -947,7 +978,6 @@ programComponent this =
   draggableProps syn ix =
     [ Props.onMouseDown \event -> do
         stopPropagation event
-        Debug.traceM $ "drag: " <> show syn
         React.modifyState this \st -> st { syntax_dragging = Just syn }
     ]
 
@@ -958,11 +988,10 @@ programComponent this =
         React.modifyState this \st -> case st.syntax_dragging of
           Just syn -> case syn of
             SyntaxTermId termId ->
-              Debug.trace ("drop: " <> show syn) \_ ->
-                st
-                  { module_ = toModule $ modifySyntaxAt (toDownwardIndex ix) (const $ SyntaxTerm $ NeutralTerm termId Nil defaultNeutralTermMetadata) (SyntaxModule st.module_)
-                  , syntax_dragging = Nothing
-                  }
+              st
+                { module_ = toModule $ modifySyntaxAt (toDownwardIndex ix) (const $ SyntaxTerm $ NeutralTerm termId Nil defaultNeutralTermMetadata) (SyntaxModule st.module_)
+                , syntax_dragging = Nothing
+                }
             _ -> st -- TODO: other cases
           Nothing -> st
     ]
@@ -1008,3 +1037,10 @@ nameKeys =
           <> fromFoldable [ ' ', '!', '@', '#', '$', '%', '^', '&', '*', '-', '+', '_', '=', '|', '\\', ':', '\"', ';', '\'', '<', '>', ',', '.', '?', '/' ] ::
           List Char
       )
+
+isEditNameTarget :: Syntax -> Boolean
+isEditNameTarget = case _ of
+  SyntaxTermBinding _ -> true
+  SyntaxParameter _ -> true
+  SyntaxTypeBinding _ -> true
+  _ -> false
