@@ -263,17 +263,16 @@ programComponent this =
           )
         <> [ DOM.div
               [ Props.className "actions" ]
-              -- ( map
-              --     ( \(label /\ run) ->
-              --         DOM.div
-              --           [ Props.className "action"
-              --           , Props.onClick \_ -> run unit
-              --           ]
-              --           [ DOM.text label ]
-              --     )
-              --     actions
-              -- )
-              []
+              ( map
+                  ( \(label /\ run) ->
+                      DOM.div
+                        [ Props.className "action"
+                        , Props.onClick \_ -> run unit
+                        ]
+                        [ DOM.text label ]
+                  )
+                  actions
+              )
           ]
 
   renderModule :: RecIndex.RecModule React.ReactElement
@@ -541,7 +540,7 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                [ DOM.button
+                [ {-DOM.button
                     [ Props.onClick \_ -> do
                         st <- React.getState this
                         let
@@ -562,7 +561,7 @@ programComponent this =
                           Nothing -> pure unit
                     ]
                     [ DOM.text "enArrow" ]
-                , renderTypeId typeId metaGamma
+                , -} renderTypeId typeId metaGamma
                 ]
       , hole:
           \holeId wkn meta gamma metaGamma ixArgs ->
