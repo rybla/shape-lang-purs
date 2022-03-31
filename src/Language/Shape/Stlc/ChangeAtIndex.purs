@@ -62,7 +62,6 @@ chAtDefinitionItems :: Rec.RecDefinitionItems (Syntax -> Change -> DownwardIndex
     -> Maybe (List DefinitionItem /\ DownwardIndex /\ HoleSub))
 chAtDefinitionItems = Rec.recDefinitionItems {
     definitionItems : unsafePartial \defs gamma tRep sbjto idx -> do
-        Debug.traceM (show (convertIndexAtList idx))
         let (n /\ (DownwardIndex (IndexStep StepCons 0 : IndexStep StepDefinitionItem 0 : idx'))) = convertIndexAtList idx
         let (def /\ md) = index' defs n
         (def' /\ (DownwardIndex idx'') /\ tc /\ holeSub)
