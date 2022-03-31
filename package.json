@@ -12,6 +12,7 @@
     "serve": "cd dist/; parcel index.html"
   },
   "dependencies": {
+    "purescript-psa": "^0.8.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   }
