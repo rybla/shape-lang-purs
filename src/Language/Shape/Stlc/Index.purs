@@ -485,10 +485,10 @@ moveDownwardIndex dir mod ix =
 -}
 
 toggleIndentedMetadataAt :: DownwardIndex -> Syntax -> Syntax 
-toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of 
-  Nothing -> identity -- cannot indent at top level
+toggleIndentedMetadataAt ix syn = case unsnocDownwardIndex ix of 
+  Nothing -> syn -- cannot indent at top level
   Just { ix', step } ->
-    modifySyntaxAt ix' \synParent -> case synParent /\ step of
+    (modifySyntaxAt ix' \synParent -> case synParent /\ step of
       SyntaxModule (Module defItems meta) /\ IndexStep StepModule 0 -> SyntaxModule (Module defItems meta)
       SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 0 -> SyntaxBlock (Block defItems a (Meta.toggle Meta._indented meta))
       SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 1 -> SyntaxBlock (Block defItems a (Meta.toggle Meta._indented meta))
@@ -499,17 +499,17 @@ toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of
       SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 -> SyntaxDefinition (DataDefinition t constrItems meta)
       SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 0 -> SyntaxConstructor (Constructor x paramItems meta)
       SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 1 -> SyntaxConstructor (Constructor x paramItems meta)
-      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 0 -> SyntaxType (ArrowType param beta meta )
-      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType (ArrowType param beta meta)
+      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 0 -> toggleIndentedMetadataAt ix' syn
+      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType (ArrowType param beta (Meta.toggle Meta._indented meta))
       SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 -> SyntaxTerm (LambdaTerm x block (Meta.toggle Meta._indented meta))
       SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 -> SyntaxTerm (LambdaTerm x block (Meta.toggle Meta._indented meta))
-      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 -> SyntaxTerm (NeutralTerm x argItems meta)
-      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 1 -> SyntaxTerm (NeutralTerm x argItems meta)
+      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 -> toggleIndentedMetadataAt ix' syn
+      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 1 -> toggleIndentedMetadataAt ix' syn
       SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 0 -> SyntaxTerm (MatchTerm typeId a caseItems (Meta.toggle Meta._indented meta))
       SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 1 -> SyntaxTerm (MatchTerm typeId a caseItems (Meta.toggle Meta._indented meta))
       SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 0 -> SyntaxCase (Case xItems block (Meta.toggle Meta._indented meta))
       SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1 -> SyntaxCase (Case xItems block (Meta.toggle Meta._indented meta))
-      SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 -> SyntaxParameter (Parameter alpha meta)
+      SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 -> toggleIndentedMetadataAt ix' syn
       -- items
       SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 -> SyntaxDefinitionItem (def /\ (Meta.toggle Meta._indented meta))
       SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructorItem (constr /\ (Meta.toggle Meta._indented meta))
@@ -518,6 +518,7 @@ toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of
       SyntaxArgItem (arg /\ meta) /\ IndexStep StepArgItem 0 -> SyntaxArgItem (arg /\ (Meta.toggle Meta._indented meta))
       SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermIdItem (termId /\ (Meta.toggle Meta._indented meta))
       -- list
-      SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> SyntaxList (Cons h t)
-      SyntaxList (Cons h t) /\ IndexStep StepCons 1 -> SyntaxList (Cons h t)
-      syn /\ step -> Unsafe.error $ "toggleIndentedMetadataAt: impossible: " <> show (step /\ syn)
+      SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> toggleIndentedMetadataAt ix' syn
+      SyntaxList (Cons h t) /\ IndexStep StepCons 1 -> toggleIndentedMetadataAt ix' syn
+      syn /\ step -> Unsafe.error $ "toggleIndentedMetadataAt: impossible: " <> show (step /\ syn))
+    syn
