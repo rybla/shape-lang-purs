@@ -45,7 +45,7 @@ _typeChange = Proxy :: Proxy "typeChange"
 
 -- transformations only operate on the prestate
 type Transformation
-  = forall r. RenderingTypes.Prestate r -> Maybe (RenderingTypes.Prestate r)
+  = RenderingTypes.Prestate () -> Maybe (RenderingTypes.Prestate ())
 
 type ModuleTransformation
   = { gamma :: Context
