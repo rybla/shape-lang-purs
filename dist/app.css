@@ -64,6 +64,17 @@ html {
   padding-top: 1em;
 }
 
+.actions {
+  margin-top: 1em;
+  padding-top: 1px;
+  padding-bottom: 1em;
+}
+
+.action {
+  margin-top: 0.5em;
+  cursor: pointer;
+}
+
 /* module */
 
 .module {
