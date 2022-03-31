@@ -263,16 +263,17 @@ programComponent this =
           )
         <> [ DOM.div
               [ Props.className "actions" ]
-              ( map
-                  ( \(label /\ run) ->
-                      DOM.div
-                        [ Props.className "action"
-                        , Props.onClick \_ -> run unit
-                        ]
-                        [ DOM.text label ]
-                  )
-                  actions
-              )
+              -- ( map
+              --     ( \(label /\ run) ->
+              --         DOM.div
+              --           [ Props.className "action"
+              --           , Props.onClick \_ -> run unit
+              --           ]
+              --           [ DOM.text label ]
+              --     )
+              --     actions
+              -- )
+              []
           ]
 
   renderModule :: RecIndex.RecModule React.ReactElement
@@ -540,7 +541,29 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                [ renderTypeId typeId metaGamma ]
+                [ DOM.button
+                    [ Props.onClick \_ -> do
+                        st <- React.getState this
+                        let
+                          holeId = freshHoleId unit
+
+                          holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
+                        case chAtModule st.module_ emptyContext
+                            (SyntaxType $ mkArrow (mkParam (TermName Nothing) holeType) (DataType typeId meta))
+                            (ChangeTypeChange (InsertArg holeType))
+                            (toDownwardIndex ixArgs.ix) of
+                          Just (module' /\ ix' /\ holeSub) -> do
+                            Debug.traceM $ "ix': " <> show ix'
+                            React.setState this
+                              st
+                                { module_ = subModule holeSub module'
+                                , ix_cursor = ix' -- DownwardIndex Nil
+                                }
+                          Nothing -> pure unit
+                    ]
+                    [ DOM.text "enArrow" ]
+                , renderTypeId typeId metaGamma
+                ]
       , hole:
           \holeId wkn meta gamma metaGamma ixArgs ->
             let
