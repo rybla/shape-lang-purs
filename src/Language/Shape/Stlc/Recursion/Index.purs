@@ -236,20 +236,17 @@ recDefinition rec =
             }
     , data:
         \typeBinding constrs meta gamma metaGamma { ix_parentBlock, ix, csr } ->
-          let
-            _ = unit -- if isJust csr then Debug.trace ("data" /\ ix /\ csr) identity else unit
-          in
-            rec.data typeBinding constrs meta gamma metaGamma
-              { ix_parentBlock
-              , ix
-              , isSelected: (checkCursorHere csr)
-              , ix_typeBinding: (ix :- IndexStep StepDataDefinition 0)
-              , csr_typeBinding: (checkCursorStep (IndexStep StepDataDefinition 0) csr)
-              , ix_constr_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepConstructorItem 0))
-              , csr_constr_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepConstructorItem 0)) csr)
-              , ix_constrSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToUpwardIndex i)
-              , csr_constrSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i) csr)
-              }
+          rec.data typeBinding constrs meta gamma metaGamma
+            { ix_parentBlock
+            , ix
+            , isSelected: (checkCursorHere csr)
+            , ix_typeBinding: (ix :- IndexStep StepDataDefinition 0)
+            , csr_typeBinding: (checkCursorStep (IndexStep StepDataDefinition 0) csr)
+            , ix_constr_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepConstructorItem 0))
+            , csr_constr_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepConstructorItem 0)) csr)
+            , ix_constrSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToUpwardIndex i)
+            , csr_constrSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepDataDefinition 1) <> fromSublistIndexToDownwardIndex i) csr)
+            }
     }
 
 type RecConstructorSeparator a
@@ -315,21 +312,18 @@ recConstructor rec =
   RecMetaContext.recConstructor
     { constructor:
         \termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at { ix_parentBlock, ix_parentDef, ix, csr } ->
-          let
-            _ = unit -- if isJust csr then Debug.trace ("constructor" /\ ix /\ csr) identity else unit
-          in
-            rec.constructor termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at
-              { ix_parentBlock
-              , ix_parentDef
-              , ix
-              , isSelected: (checkCursorHere csr)
-              , ix_termBinding: (ix :- IndexStep StepConstructor 0)
-              , csr_termBinding: (checkCursorStep (IndexStep StepConstructor 0) csr)
-              , ix_param_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepParameterItem 0))
-              , csr_param_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepParameterItem 0)) csr)
-              , ix_paramSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToUpwardIndex i)
-              , csr_paramSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
-              }
+          rec.constructor termBinding params meta typeId gamma alpha metaGamma metaGamma_param_at
+            { ix_parentBlock
+            , ix_parentDef
+            , ix
+            , isSelected: (checkCursorHere csr)
+            , ix_termBinding: (ix :- IndexStep StepConstructor 0)
+            , csr_termBinding: (checkCursorStep (IndexStep StepConstructor 0) csr)
+            , ix_param_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepParameterItem 0))
+            , csr_param_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepParameterItem 0)) csr)
+            , ix_paramSep_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToUpwardIndex i)
+            , csr_paramSep_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepConstructor 1) <> fromSublistIndexToDownwardIndex i) csr)
+            }
     }
 
 type RecParameterSeparator a
