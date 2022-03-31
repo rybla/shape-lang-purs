@@ -1,12 +1,22 @@
 module Language.Shape.Stlc.Metadata where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.String (codePointFromChar)
 import Data.String as String
+import Data.Symbol (class IsSymbol)
+import Prim.Row (class Cons)
+import Record as Record
+import Type.Proxy (Proxy(..))
+import Undefined (undefined)
+
+_indented = Proxy :: Proxy "indented"
+_hidden = Proxy :: Proxy "hidden"
+_annotated = Proxy :: Proxy "annotated"
 
 type ModuleMetadata = { hidden :: Boolean }
 defaultModuleMetadata = { hidden: true } :: ModuleMetadata
@@ -117,3 +127,6 @@ instance Show TermName where
   show (TermName (Just label)) = label
   show (TermName Nothing) = "_"
 
+
+toggle :: forall label row' row. IsSymbol label => Cons label Boolean row' row => Proxy label -> Record row -> Record row 
+toggle label = Record.modify label not 

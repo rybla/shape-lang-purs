@@ -4,13 +4,16 @@ import Data.List.Unsafe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
-
+import Prim.Row as Row
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
+import Data.Symbol (class IsSymbol)
 import Data.Unfoldable (replicate)
 import Debug as Debug
+import Language.Shape.Stlc.Metadata as Meta
+import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 import Unsafe as Unsafe
 
@@ -53,6 +56,11 @@ unconsDownwardIndex :: DownwardIndex -> Maybe { step :: IndexStep, ix' :: Downwa
 unconsDownwardIndex (DownwardIndex steps) = do
   { head: step, tail: steps' } <- uncons steps
   Just { step, ix': DownwardIndex steps' }
+
+unsnocDownwardIndex :: DownwardIndex -> Maybe { ix' :: DownwardIndex, step :: IndexStep }
+unsnocDownwardIndex (DownwardIndex steps) = do 
+  { init: steps', last: step } <- unsnoc steps 
+  Just $ { ix': DownwardIndex steps' , step }
 
 unconsUpwardIndex :: UpwardIndex -> Maybe { step :: IndexStep, ix' :: UpwardIndex }
 unconsUpwardIndex (UpwardIndex ix) = do
@@ -219,8 +227,10 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
 lookupSyntaxAt :: DownwardIndex -> Syntax -> Syntax
 lookupSyntaxAt ix syn = 
   case unconsDownwardIndex ix of 
-    Nothing -> syn
-    Just {step, ix'} -> lookupSyntaxAt ix' (stepSyntax step syn)
+    Nothing -> 
+      syn
+    Just {step, ix'} ->
+      lookupSyntaxAt ix' (stepSyntax step syn)
 
 modifySyntaxAt :: DownwardIndex -> (Syntax -> Syntax) -> Syntax -> Syntax
 modifySyntaxAt ix f syn = 
@@ -432,7 +442,7 @@ moveDownwardIndex dir mod ix =
             let
               syn = lookupSyntaxAt (toDownwardIndex ix') (SyntaxModule mod)
             in
-              Debug.trace (syn /\ step) \_ -> case syn /\ step of
+              case syn /\ step of
                 SyntaxModule (Module defs _) /\ IndexStep StepModule i
                   | inBounds (i + 1) 0 (Conslength defs - 1) -> toDownwardIndex $ ix' :- IndexStep StepModule (i + 1)
                   | otherwise -> ix
@@ -470,3 +480,40 @@ moveDownwardIndex dir mod ix =
                   | otherwise -> ix
                 _ -> Unsafe.error "moveDownwardIndex.Left: impossible"
 -}
+
+toggleIndentedMetadataAt :: forall label. DownwardIndex -> Syntax -> Syntax 
+toggleIndentedMetadataAt ix = case unsnocDownwardIndex ix of 
+  Nothing -> identity -- cannot indent at top level
+  Just { ix', step } ->
+    modifySyntaxAt ix' \synParent -> case synParent /\ step of
+      SyntaxModule (Module defItems meta) /\ IndexStep StepModule 0 -> SyntaxModule (Module defItems meta)
+      SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 0 -> SyntaxBlock (Block defItems a (Meta.toggle Meta._indented meta))
+      SyntaxBlock (Block defItems a meta) /\ IndexStep StepBlock 1 -> SyntaxBlock (Block defItems a (Meta.toggle Meta._indented meta))
+      SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 0 -> SyntaxDefinition (TermDefinition x alpha a (Meta.toggle Meta._indented meta))
+      SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 1 -> SyntaxDefinition (TermDefinition x alpha a (Meta.toggle Meta._indented meta))
+      SyntaxDefinition (TermDefinition x alpha a meta) /\ IndexStep StepTermDefinition 2 -> SyntaxDefinition (TermDefinition x alpha a (Meta.toggle Meta._indented meta))
+      SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 0 -> SyntaxDefinition (DataDefinition t constrItems meta)
+      SyntaxDefinition (DataDefinition t constrItems meta) /\ IndexStep StepDataDefinition 1 -> SyntaxDefinition (DataDefinition t constrItems meta)
+      SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 0 -> SyntaxConstructor (Constructor x paramItems meta)
+      SyntaxConstructor (Constructor x paramItems meta) /\ IndexStep StepConstructor 1 -> SyntaxConstructor (Constructor x paramItems meta)
+      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 0 -> SyntaxType (ArrowType param beta meta )
+      SyntaxType (ArrowType param beta meta) /\ IndexStep StepArrowType 1 -> SyntaxType (ArrowType param beta meta)
+      SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 0 -> SyntaxTerm (LambdaTerm x block (Meta.toggle Meta._indented meta))
+      SyntaxTerm (LambdaTerm x block meta) /\ IndexStep StepLambdaTerm 1 -> SyntaxTerm (LambdaTerm x block (Meta.toggle Meta._indented meta))
+      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 0 -> SyntaxTerm (NeutralTerm x argItems meta)
+      SyntaxTerm (NeutralTerm x argItems meta) /\ IndexStep StepNeutralTerm 1 -> SyntaxTerm (NeutralTerm x argItems meta)
+      SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 0 -> SyntaxTerm (MatchTerm typeId a caseItems (Meta.toggle Meta._indented meta))
+      SyntaxTerm (MatchTerm typeId a caseItems meta) /\ IndexStep StepMatchTerm 1 -> SyntaxTerm (MatchTerm typeId a caseItems (Meta.toggle Meta._indented meta))
+      SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 0 -> SyntaxCase (Case xItems block (Meta.toggle Meta._indented meta))
+      SyntaxCase (Case xItems block meta) /\ IndexStep StepCase 1 -> SyntaxCase (Case xItems block (Meta.toggle Meta._indented meta))
+      SyntaxParameter (Parameter alpha meta) /\ IndexStep StepParameter 0 -> SyntaxParameter (Parameter alpha meta)
+      -- items
+      SyntaxDefinitionItem (def /\ meta) /\ IndexStep StepDefinitionItem 0 -> SyntaxDefinitionItem (def /\ (Meta.toggle Meta._indented meta))
+      SyntaxConstructorItem (constr /\ meta) /\ IndexStep StepConstructorItem 0 -> SyntaxConstructorItem (constr /\ (Meta.toggle Meta._indented meta))
+      SyntaxCaseItem (case_ /\ meta) /\ IndexStep StepCaseItem 0 -> SyntaxCaseItem (case_ /\ (Meta.toggle Meta._indented meta))
+      SyntaxParameterItem (param /\ meta) /\ IndexStep StepParameterItem 0 -> SyntaxParameterItem (param /\ (Meta.toggle Meta._indented meta))
+      SyntaxTermIdItem (termId /\ meta) /\ IndexStep StepTermIdItem 0 -> SyntaxTermIdItem (termId /\ (Meta.toggle Meta._indented meta))
+      -- list
+      SyntaxList (Cons h t) /\ IndexStep StepCons 0 -> SyntaxList (Cons h t)
+      SyntaxList (Cons h t) /\ IndexStep StepCons 1 -> SyntaxList (Cons h t)
+      syn /\ step -> Unsafe.error $ "toggleIndentedMetadataAt: impossible: " <> show (step /\ syn)
