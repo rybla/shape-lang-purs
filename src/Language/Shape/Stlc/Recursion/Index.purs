@@ -630,8 +630,8 @@ recArgItems rec =
           rec.cons argItem argItems gamma param beta metaGamma
             { ix
             , isSelected: checkCursorHere csr
-            , ix_term: (ix :- IndexStep StepCons 0)
-            , csr_term: (checkCursorStep (IndexStep StepCons 0) csr)
+            , ix_term: (ix :- IndexStep StepCons 0 :- IndexStep StepArgItem 0)
+            , csr_term: (checkCursorSteps (DownwardIndex (IndexStep StepCons 0 : IndexStep StepArgItem 0 : Nil)) csr)
             , ix_argItems: (ix :- IndexStep StepCons 1)
             , csr_argItems: (checkCursorStep (IndexStep StepCons 1) csr)
             }
