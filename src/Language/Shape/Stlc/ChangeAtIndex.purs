@@ -81,7 +81,7 @@ chAtDefinitionItems = Rec.recDefinitionItems {
                             in (defItemsAcc <> (map (_ /\ defaultDefinitionItemMetadata) displaced) <> singleton (def /\ md))
                                 /\ holeSub /\ if index < n then offsetAcc + (length displaced) else offsetAcc
                     ) (Nil /\ emptyHoleSub /\ 0) intermediateComputation1
-                Just (defs' /\ buildIndexAtList cursorOffset (DownwardIndex (IndexStep StepCons 0 : IndexStep StepDefinitionItem 0 : idx'')) /\ holeSub)
+                Just (defs' /\ buildIndexAtList (n + cursorOffset) (DownwardIndex (IndexStep StepCons 0 : IndexStep StepDefinitionItem 0 : idx'')) /\ holeSub)
             (DataDefinition _ _ _) -> error "not implemented yet whoops"
 }
 -- chAtDefinitionItems = Rec.recDefinitionItems {
