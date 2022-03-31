@@ -229,6 +229,7 @@ wrapStepSyntax step syn synSub = case syn /\ step /\ synSub of
 
 lookupSyntaxAt :: DownwardIndex -> Syntax -> Syntax
 lookupSyntaxAt ix syn = 
+  Debug.trace (show ix) \_ ->
   case unconsDownwardIndex ix of 
     Nothing -> 
       syn

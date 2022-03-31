@@ -160,10 +160,10 @@ unwords = Array.intercalate " "
 unwordsL = List.intercalate " " 
 
 instance Show Module where 
-  show (Module defItems _) = List.intercalate "; " (showItem <$> defItems)
+  show (Module defItems _) = unwords [ "{" , List.intercalate "; " (showItem <$> defItems), "}"]
 
 instance Show Block where 
-  show (Block defItems a _) = List.intercalate "; " (showItem <$> defItems) <> "; " <> show a 
+  show (Block defItems a _) = unwords ["{", List.intercalate "; " (showItem <$> defItems), "in", show a, "}" ]
 
 instance Show Definition where 
   show = case _ of 

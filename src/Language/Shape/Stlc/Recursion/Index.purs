@@ -671,8 +671,8 @@ recCase rec =
             { ix_parentMatch
             , ix
             , isSelected: (checkCursorHere csr)
-            , ix_termId_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepCase 1) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepTermIdItem 0))
-            , csr_termId_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepCase 1) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepTermIdItem 0)) csr)
+            , ix_termId_at: (\i -> ix <> singletonUpwardIndex (IndexStep StepCase 0) <> fromListIndexToUpwardIndex i <> singletonUpwardIndex (IndexStep StepTermIdItem 0))
+            , csr_termId_at: (\i -> checkCursorSteps (singletonDownwardIndex (IndexStep StepCase 0) <> fromListIndexToDownwardIndex i <> singletonDownwardIndex (IndexStep StepTermIdItem 0)) csr)
             , ix_block: (ix :- IndexStep StepCase 1)
             , csr_block: (checkCursorStep (IndexStep StepCase 1) csr)
             }
