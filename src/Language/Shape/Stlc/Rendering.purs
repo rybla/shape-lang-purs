@@ -355,7 +355,7 @@ programComponent this =
       }
 
   renderDefinitionSeparator :: { indented :: Boolean } -> RecIndex.RecDefinitionSeparator React.ReactElement
-  renderDefinitionSeparator renderArgs =
+  renderDefinitionSeparator rndArgs =
     RecIndex.recDefinitionSeparator
       { separator:
           \ixArgs ->
@@ -363,11 +363,11 @@ programComponent this =
               eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ]
+                ( [ selectableClassName ("definitionSeparator separator " <> indentedToClassName rndArgs) ixArgs.isSelected, Props._id eid ]
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ]
+                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -434,7 +434,7 @@ programComponent this =
       }
 
   renderConstructorSeparator :: { indented :: Boolean } -> RecIndex.RecConstructorSeparator React.ReactElement
-  renderConstructorSeparator renderArgs =
+  renderConstructorSeparator rndArgs =
     RecIndex.recConstructorSeparator
       { separator:
           \ixArgs ->
@@ -442,11 +442,11 @@ programComponent this =
               eid = upwardIndexToEid ixArgs.ix
             in
               DOM.span
-                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ]
+                ( [ selectableClassName ("constructorSeparator separator " <> indentedToClassName rndArgs) ixArgs.isSelected, Props._id eid ]
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ] ]
+                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -493,7 +493,7 @@ programComponent this =
       }
 
   renderParameterSeparator :: forall r. { indented :: Boolean | r } -> RecIndex.RecParameterSeparator React.ReactElement
-  renderParameterSeparator renderArgs =
+  renderParameterSeparator rndArgs =
     RecIndex.recParameterSeparator
       { separator:
           \ixArgs ->
@@ -501,11 +501,11 @@ programComponent this =
               eid = upwardIndexToEid ixArgs.ix
             in
               DOM.div
-                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName renderArgs) ixArgs.isSelected, Props._id eid ]
+                ( [ selectableClassName ("parameterSeparator separator " <> indentedToClassName rndArgs) ixArgs.isSelected, Props._id eid ]
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if renderArgs.indented then [] else [ DOM.text "|" ] ]
+                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -523,11 +523,10 @@ programComponent this =
                     <> highlightableProps eid
                 )
                 $ [ renderParameter param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }
-                  {-, renderParameterDeletor ix-}
                   , punctuation.space
                   ]
                 <> [ punctuation.arrow
-                  , punctuation.space
+                  , indentOrSpace meta metaGamma
                   , renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
                   ]
       , data:
@@ -727,9 +726,9 @@ programComponent this =
             DOM.span'
               $ [ punctuation.space ]
               <> [ let
-                    unparenthesized = renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
+                    unparenthesized = DOM.span' [ indent argItem_meta metaGamma, renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term } ]
 
-                    parenthesized = DOM.span' [ punctuation.lparen, renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }, punctuation.rparen ]
+                    parenthesized = DOM.span' [ indent argItem_meta metaGamma, punctuation.lparen, renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }, punctuation.rparen ]
                   in
                     case a of
                       LambdaTerm _ _ _ -> parenthesized
