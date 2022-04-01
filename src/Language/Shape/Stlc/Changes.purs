@@ -223,7 +223,7 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
                InsertConstructor params -> pure $ freshCase params
                ChangeConstructor pch n -> do cas' <- chCase2 (fst (index' cases n)) i (index' (lookupConstructorIds i ctx) index) ctx ty chs pch ch -- chCase ctx ty chs pch ch (fst (index' cases n))
                                              pure $ cas' /\ (snd (index' cases n))) changes)
-    t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
+    t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs NoChange t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen? I don't think it should.
 chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
