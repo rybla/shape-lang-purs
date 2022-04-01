@@ -180,7 +180,8 @@ chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block 
          block' <- liiift $ chBlock (insertTyping index a ctx) b (varChange chs index change) NoChange block
          pure $ LambdaTerm index block' md
 chTerm ctx ty chs (InsertArg a) t =
-    do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
+    -- do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
+    do t' <- (chTerm ctx ty chs NoChange t)
        pure $ LambdaTerm newBinding (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
     where newBinding = (freshTermId unit)
 chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
