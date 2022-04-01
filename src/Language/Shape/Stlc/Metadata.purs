@@ -42,8 +42,8 @@ defaultConstructorMetadata = {} :: ConstructorMetadata
 type ParameterItemMetadata = {indented::Boolean}
 defaultParameterItemMetadata = {indented:false} :: ParameterItemMetadata
 
-type ArrowTypeMetadata = {}
-defaultArrowTypeMetadata = {} :: ArrowTypeMetadata
+type ArrowTypeMetadata = {indented::Boolean}
+defaultArrowTypeMetadata = {indented:false} :: ArrowTypeMetadata
 
 type DataTypeMetadata = {}
 defaultDataTypeMetadata = {} :: DataTypeMetadata
