@@ -23,6 +23,8 @@
     - [x] metacontext (for derived metadata stuff: names, shadows, constructor
           ids, etc)
     - [ ] index (still have to handle typechanges)
+    - [ ] transformation
+    - [ ] prerender
   - [ ] index
     - [x] upgrade syntax/metadata so that lists have an `*ItemMetadata` for each
           element of the list
@@ -31,7 +33,6 @@
     - [x] upgrade index recursor layer
     - [x] upgrade renderer
   - [ ] rendering
-
     - [x] basic outline
     - [x] indentation
     - [x] shadowing
