@@ -86,7 +86,7 @@ applyTC (InsertArg a) t = ArrowType (Parameter a defaultParameterMetadata) t def
 applyTC Swap (ArrowType a (ArrowType b c md1) md2) = ArrowType b (ArrowType a c md1) md2
 applyTC RemoveArg (ArrowType a b _) = b
 applyTC (Dig id) t = HoleType (freshHoleId unit) empty defaultHoleTypeMetadata
-applyTC _ _ = error "Shouldn't get ehre"
+applyTC tc ty = error $ "Shouldn't get ehre. tc is: " <> show tc <> " ty is: " <> show ty
 
 -- TODO: consider just outputting TypeChange, and then use chType : Type -> TypeChange -> Type to actually get the Type.
 chType :: KindChanges -> Type -> Tuple Type TypeChange
@@ -176,10 +176,12 @@ chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm bindi
          pure $ LambdaTerm binding block' md
 chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
     = do let (Tuple a' change) = chType chs.dataTypeDeletions a
+         -- TODO TODO TODO TODO: also here and all the other cases with ArrowCh (or really function types at all)
          block' <- liiift $ chBlock (insertTyping index a ctx) b (varChange chs index change) NoChange block
          pure $ LambdaTerm index block' md
 chTerm ctx ty chs (InsertArg a) t =
-    do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
+    -- do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
+    do t' <- (chTerm ctx ty chs NoChange t)
        pure $ LambdaTerm newBinding (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
     where newBinding = (freshTermId unit)
 chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
@@ -201,6 +203,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
+        Debug.traceM $ "Calling chArgs from an id with type: " <> show (lookup' id ctx.types) <> " and typechange " <> show varTC
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that
@@ -221,7 +224,7 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
                InsertConstructor params -> pure $ freshCase params
                ChangeConstructor pch n -> do cas' <- chCase2 (fst (index' cases n)) i (index' (lookupConstructorIds i ctx) index) ctx ty chs pch ch -- chCase ctx ty chs pch ch (fst (index' cases n))
                                              pure $ cas' /\ (snd (index' cases n))) changes)
-    t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs ch t)
+    t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs NoChange t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen? I don't think it should.
 chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
@@ -331,7 +334,7 @@ chBlock ctx ty chs ch (Block defs t md) = do
     --     caseChanges = map (\(Tuple id pchs)
     --         -> Tuple id (mapWithIndex ChangeParam pchs)) constructorChangesTemp
     let constructorChanges :: List (Tuple TermId TypeChange)
-        constructorChanges = map (\(Tuple id chs) -> Tuple id (chsToArrowCh chs)) constructorChangesTemp
+        constructorChanges = map (\(Tuple id chList) -> Tuple id (chsToArrowCh chList)) constructorChangesTemp
     let newMatchChanges :: List (Tuple TypeId (List ConstructorChange))
         newMatchChanges = map (\(Tuple id ctrChs)
             -> Tuple id (mapWithIndex (\ix (Tuple _ chs) ->
@@ -379,7 +382,8 @@ chArgs ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swa
     arg2' <- chTerm ctx b chs NoChange arg2
     (Tuple rest chOut) <- chArgs ctx c chs NoChange args
     pure $ Tuple (Cons (Tuple arg2' md2) (Cons (Tuple arg1' md1) rest)) chOut -- chOut = NoChange alwyas
-chArgs ctx a chs NoChange Nil = pure $ Tuple Nil NoChange
+-- chArgs ctx a chs NoChange Nil = pure $ Tuple Nil NoChange
+chArgs ctx a chs ch Nil = if isNoChange ch then pure $ Tuple Nil ch else error "shoudln't get here 2"
 chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (Cons (Tuple arg md) args) = do
     arg' <- chTerm ctx a chs NoChange arg
     (Tuple args' outCh) <- chArgs ctx b chs NoChange args
@@ -387,7 +391,7 @@ chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (Cons (Tuple arg md) arg
 chArgs ctx ty chs (Dig hId) args = do
     displaceArgs ty args
     pure $ Tuple Nil (Dig hId)
-chArgs _ _ _ _ _ = error "shouldn't get here"
+chArgs _ ty _ ch args = error $ "shouldn't get here " <> (show ty) <> " and " <> (show ch) <> " and args is " <> (show args)
 
 displaceArgs :: Type -> (List ArgItem) -> State (Tuple (List Definition) HoleSub) Unit
 displaceArgs _ Nil = pure unit

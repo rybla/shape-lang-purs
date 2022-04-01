@@ -94,6 +94,11 @@ module_ =
                                 $ mkNeutral addNat_id
                                 $ fromFoldable [ mkArgItem $ mkNeutral m'_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                             ]
+                            -- [
+                            --     mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkHoleTerm
+                            --     ,
+                            --     mkCaseItem $ mkCase (singleton $ mkTermIdItem m'_id) $ mkBlock Nil $ mkHoleTerm
+                            -- ]
                     -- $ mkNeutral addNat_id
                     -- $ fromFoldable [ mkArgItem $ mkNeutral m_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                     )
