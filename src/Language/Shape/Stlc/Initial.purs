@@ -83,7 +83,7 @@ module_ =
                 $ mkTermDef
                     (mkTermBind addNat_id addNat_name)
                     (mkArrow (mkParam m_name $ mkData nat_id) $ mkArrow (mkParam n_name $ mkData nat_id) $ mkData nat_id)
-                    ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlockInd Nil
+                    ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlock Nil
                         $ mkMatch nat_id (mkNeutral m_id Nil)
                         $ fromFoldable
                             [ mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkNeutral n_id Nil
@@ -94,11 +94,11 @@ module_ =
                                 $ mkNeutral addNat_id
                                 $ fromFoldable [ mkArgItem $ mkNeutral m'_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                             ]
-                            -- [
-                            --     mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkHoleTerm
-                            --     ,
-                            --     mkCaseItem $ mkCase (singleton $ mkTermIdItem m'_id) $ mkBlock Nil $ mkHoleTerm
-                            -- ]
+                    -- [
+                    --     mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkHoleTerm
+                    --     ,
+                    --     mkCaseItem $ mkCase (singleton $ mkTermIdItem m'_id) $ mkBlock Nil $ mkHoleTerm
+                    -- ]
                     -- $ mkNeutral addNat_id
                     -- $ fromFoldable [ mkArgItem $ mkNeutral m_id Nil, mkArgItem $ mkNeutral n_id Nil ]
                     )
@@ -221,10 +221,10 @@ module_ =
                 $ mkTermDef
                     (mkTermBind addInt_id addInt_name)
                     (mkArrow (mkParam i_name $ mkData int_id) $ mkArrow (mkParam j_name $ mkData int_id) $ mkData int_id)
-                    ( mkLambda i_id $ mkBlock Nil $ mkLambda j_id $ mkBlockInd Nil
+                    ( mkLambda i_id $ mkBlock Nil $ mkLambda j_id $ mkBlock Nil
                         $ mkMatch int_id (mkNeutral i_id Nil)
                         $ fromFoldable
-                            [ mkCaseItem $ mkCase (singleton $ mkTermIdItem i'1_id) $ mkBlockInd Nil
+                            [ mkCaseItem $ mkCase (singleton $ mkTermIdItem i'1_id) $ mkBlock Nil
                                 $ mkMatch int_id (mkNeutral j_id Nil)
                                 $ fromFoldable
                                     -- +i'1 + +j'1 = +(i'1 + j'1)
@@ -240,7 +240,7 @@ module_ =
                                     -- +i'1 + (-1 -j'2) = ...
                                     , mkCaseItem $ mkCase (singleton $ mkTermIdItem j'2_id) $ mkBlock Nil mkHoleTerm
                                     ]
-                            , mkCaseItem $ mkCase (singleton $ mkTermIdItem i'2_id) $ mkBlockInd Nil
+                            , mkCaseItem $ mkCase (singleton $ mkTermIdItem i'2_id) $ mkBlock Nil
                                 $ mkMatch int_id (mkNeutral j_id Nil)
                                 $ fromFoldable
                                     -- (-1 - i'2) + +j'1 = ...

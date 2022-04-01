@@ -222,7 +222,7 @@ programComponent this =
                   let
                     holeId = freshHoleId unit
 
-                    holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
+                    holeType = mkHoleType holeId Set.empty
                   case chAtModule st.module_ emptyContext
                       (SyntaxType $ mkArrow (mkParam (TermName Nothing) holeType) type_)
                       (ChangeTypeChange (InsertArg holeType))
@@ -232,7 +232,29 @@ programComponent this =
                       React.setState this
                         st
                           { module_ = subModule holeSub module'
-                          , ix_cursor = ix' -- DownwardIndex Nil
+                          , ix_cursor = ix'
+                          }
+                    Nothing -> pure unit
+          , "dig"
+              /\ \_ -> do
+                  Debug.traceM "[action > dig]"
+                  Debug.traceM $ "st.ix_cursor: " <> show st.ix_cursor
+                  Debug.traceM $ "selected syntax: " <> show syn
+                  Debug.traceM $ "...chAtModule..."
+                  let
+                    holeId = freshHoleId unit
+
+                    holeType = mkHoleType holeId Set.empty
+                  case chAtModule st.module_ emptyContext
+                      (SyntaxType $ holeType)
+                      (ChangeTypeChange (Dig holeId))
+                      st.ix_cursor of
+                    Just (module' /\ ix' /\ holeSub) -> do
+                      Debug.traceM $ "ix': " <> show ix'
+                      React.setState this
+                        st
+                          { module_ = subModule holeSub module'
+                          , ix_cursor = ix'
                           }
                     Nothing -> pure unit
           ]
@@ -319,7 +341,6 @@ programComponent this =
                     <> highlightableProps eid
                 )
                 $ [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
-                  , indentOrNothing meta metaGamma
                   , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                   ]
       }

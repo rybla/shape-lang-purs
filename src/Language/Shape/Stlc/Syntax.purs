@@ -81,7 +81,6 @@ data HoleId
 mkModule defItems = Module defItems defaultModuleMetadata 
 
 mkBlock defItems a = Block defItems a defaultBlockMetadata
-mkBlockInd defItems a = Block defItems a defaultBlockMetadata {indented=true}
 
 mkDefItem def = def /\ defaultDefinitionItemMetadata
 

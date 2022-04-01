@@ -1,7 +1,6 @@
 module Language.Shape.Stlc.Metadata where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
@@ -15,118 +14,178 @@ import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 _indented = Proxy :: Proxy "indented"
+
 _hidden = Proxy :: Proxy "hidden"
+
 _annotated = Proxy :: Proxy "annotated"
 
-type ModuleMetadata = { hidden :: Boolean }
+type ModuleMetadata
+  = { hidden :: Boolean }
+
 defaultModuleMetadata = { hidden: true } :: ModuleMetadata
 
-type BlockMetadata = { indented::Boolean , hidden :: Boolean }
-defaultBlockMetadata = { indented:false, hidden: false } :: BlockMetadata
+type BlockMetadata
+  = { hidden :: Boolean }
 
-type DefinitionItemMetadata = { indented::Boolean }
-defaultDefinitionItemMetadata = {indented: true} :: DefinitionItemMetadata
+defaultBlockMetadata = { hidden: false } :: BlockMetadata
 
-type TermDefinitionMetadata = { indented::Boolean, hidden :: Boolean }
-defaultTermDefinitionMetadata = { indented:false, hidden: false } :: TermDefinitionMetadata
+type DefinitionItemMetadata
+  = {}
 
-type DataDefinitionMetadata = { hidden :: Boolean }
+defaultDefinitionItemMetadata = {} :: DefinitionItemMetadata
+
+type TermDefinitionMetadata
+  = { indented :: Boolean, hidden :: Boolean }
+
+defaultTermDefinitionMetadata = { indented: false, hidden: false } :: TermDefinitionMetadata
+
+type DataDefinitionMetadata
+  = { hidden :: Boolean }
+
 defaultDataDefinitionMetadata = { hidden: false } :: DataDefinitionMetadata
 
-type ConstructorItemMetadata = {indented::Boolean}
-defaultConstructorItemMetadata = {indented:false} :: ConstructorItemMetadata
+type ConstructorItemMetadata
+  = { indented :: Boolean }
 
-type ConstructorMetadata = {}
+defaultConstructorItemMetadata = { indented: false } :: ConstructorItemMetadata
+
+type ConstructorMetadata
+  = {}
+
 defaultConstructorMetadata = {} :: ConstructorMetadata
 
-type ParameterItemMetadata = {indented::Boolean}
-defaultParameterItemMetadata = {indented:false} :: ParameterItemMetadata
+type ParameterItemMetadata
+  = { indented :: Boolean }
 
-type ArrowTypeMetadata = {indented::Boolean}
-defaultArrowTypeMetadata = {indented:false} :: ArrowTypeMetadata
+defaultParameterItemMetadata = { indented: false } :: ParameterItemMetadata
 
-type DataTypeMetadata = {}
+type ArrowTypeMetadata
+  = { indented :: Boolean }
+
+defaultArrowTypeMetadata = { indented: false } :: ArrowTypeMetadata
+
+type DataTypeMetadata
+  = {}
+
 defaultDataTypeMetadata = {} :: DataTypeMetadata
 
-type HoleTypeMetadata = {}
+type HoleTypeMetadata
+  = {}
+
 defaultHoleTypeMetadata = {} :: HoleTypeMetadata
 
-type LambdaTermMetadata = { annotated :: Boolean, indented :: Boolean }
+type LambdaTermMetadata
+  = { annotated :: Boolean, indented :: Boolean }
+
 defaultLambdaTermMetadata = { annotated: true, indented: false } :: LambdaTermMetadata
 
-type ArgConsMetaData = { indented :: Boolean }
-defaultArgConsMetaData = { indented : false } :: ArgConsMetaData
+type ArgConsMetaData
+  = { indented :: Boolean }
 
-type NeutralTermMetadata = {}
+defaultArgConsMetaData = { indented: false } :: ArgConsMetaData
+
+type NeutralTermMetadata
+  = {}
+
 defaultNeutralTermMetadata = {} :: NeutralTermMetadata
 
-type ArgItemMetadata = {indented::Boolean}
-defaultArgItemMetadata = {indented:false} :: ArgItemMetadata
+type ArgItemMetadata
+  = { indented :: Boolean }
 
-type VariableTermMetadata =  {}
+defaultArgItemMetadata = { indented: false } :: ArgItemMetadata
+
+type VariableTermMetadata
+  = {}
+
 defaultVariableTermMetadata = {} :: VariableTermMetadata
 
-type MatchTermMetadata = { indented :: Boolean }
-defaultMatchTermMetadata = { indented: false } :: MatchTermMetadata
+type MatchTermMetadata
+  = {}
 
-type CaseItemMetadata = {indented::Boolean}
-defaultCaseItemMetadata = {indented:true} :: CaseItemMetadata
+defaultMatchTermMetadata = {} :: MatchTermMetadata
 
-type TermIdItemMetadata = {indented::Boolean}
-defaultTermIdItemMetadata = {indented:false} :: TermIdItemMetadata
+type CaseItemMetadata
+  = { indented :: Boolean }
 
-type HoleTermMetadata = {}
+defaultCaseItemMetadata = { indented: true } :: CaseItemMetadata
+
+type TermIdItemMetadata
+  = { indented :: Boolean }
+
+defaultTermIdItemMetadata = { indented: false } :: TermIdItemMetadata
+
+type HoleTermMetadata
+  = {}
+
 defaultHoleTermMetadata = {} :: HoleTermMetadata
 
-type CaseMetadata = {indented::Boolean}
-defaultCaseMetadata = {indented:false} :: CaseMetadata
+type CaseMetadata
+  = { indented :: Boolean }
 
-type ParameterMetadata = { name :: TermName }
-defaultParameterMetadata = {name: TermName Nothing} :: ParameterMetadata
+defaultCaseMetadata = { indented: false } :: CaseMetadata
 
-type TypeBindingMetadata = {name::TypeName}
-defaultTypeBindingMetadata = {name:TypeName Nothing} :: TypeBindingMetadata
+type ParameterMetadata
+  = { name :: TermName }
 
-type TermBindingMetadata = {name::TermName}
-defaultTermBindingMetadata = {name: TermName Nothing} :: TermBindingMetadata
+defaultParameterMetadata = { name: TermName Nothing } :: ParameterMetadata
 
-data TypeName = TypeName (Maybe String)
-data TermName = TermName (Maybe String)
+type TypeBindingMetadata
+  = { name :: TypeName }
+
+defaultTypeBindingMetadata = { name: TypeName Nothing } :: TypeBindingMetadata
+
+type TermBindingMetadata
+  = { name :: TermName }
+
+defaultTermBindingMetadata = { name: TermName Nothing } :: TermBindingMetadata
+
+data TypeName
+  = TypeName (Maybe String)
+
+data TermName
+  = TermName (Maybe String)
 
 -- instances for TypeName
-derive instance Generic TypeName _
-derive instance Eq TypeName
-derive instance Ord TypeName
+derive instance genericTypeName :: Generic TypeName _
 
-instance Show TypeName where
+derive instance eqTypeName :: Eq TypeName
+
+derive instance ordTypeName :: Ord TypeName
+
+instance showTypeName :: Show TypeName where
   show (TypeName (Just label)) = label
   show (TypeName Nothing) = "_"
 
-readTermName :: String -> TermName 
-readTermName str = 
-  let str' = String.trim str in 
-  if str' == "_" then 
-    TermName Nothing 
-  else 
-    TermName (Just str')
+readTermName :: String -> TermName
+readTermName str =
+  let
+    str' = String.trim str
+  in
+    if str' == "_" then
+      TermName Nothing
+    else
+      TermName (Just str')
 
 readTypeName :: String -> TypeName
-readTypeName str = 
-  let str' = String.trim str in 
-  if str' == "_" then 
-    TypeName Nothing 
-  else 
-    TypeName (Just str')
+readTypeName str =
+  let
+    str' = String.trim str
+  in
+    if str' == "_" then
+      TypeName Nothing
+    else
+      TypeName (Just str')
 
 -- instances for TermName
-derive instance Generic TermName _
-derive instance Eq TermName
-derive instance Ord TermName
+derive instance genericTermName :: Generic TermName _
 
-instance Show TermName where
+derive instance eqTermName :: Eq TermName
+
+derive instance ordTermName :: Ord TermName
+
+instance showTermName :: Show TermName where
   show (TermName (Just label)) = label
   show (TermName Nothing) = "_"
 
-
-toggle :: forall label row' row. IsSymbol label => Cons label Boolean row' row => Proxy label -> Record row -> Record row 
-toggle label = Record.modify label not 
+toggle :: forall label row' row. IsSymbol label => Cons label Boolean row' row => Proxy label -> Record row -> Record row
+toggle label = Record.modify label not
