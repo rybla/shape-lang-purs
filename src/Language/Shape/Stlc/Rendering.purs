@@ -26,11 +26,14 @@ import Language.Shape.Stlc.ChangeAtIndex (Change(..), chAtModule)
 import Language.Shape.Stlc.Changes (TypeChange(..))
 import Language.Shape.Stlc.Holes (subModule)
 import Language.Shape.Stlc.Index as Index
+import Language.Shape.Stlc.IndexCursor (Direction(..), moveDownwardIndex)
+import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMetaContext
 import Language.Shape.Stlc.Syntax as Syntax
+import Partial.Unsafe (unsafePartial)
 import React as React
 import React.DOM as DOM
 import React.DOM.Props as Prop
@@ -102,48 +105,58 @@ programComponent this =
   where
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    -- preventDefault event
+    preventDefault event
     st <- React.getState this
     let
       syn = lookupSyntaxAt st.ix_cursor (SyntaxModule st.module_)
 
       k = key event
-    if isEditNameTarget syn then
-      if k `Set.member` nameKeys || k == "Backspace" then do
-        let
-          modifyName name =
-            if k `Set.member` nameKeys then
-              maybe (Just k) (Just <<< (_ <> k)) name
-            else if k == "Backspace" then
-              maybe Nothing (\str -> if String.length str == 1 then Nothing else Just (String.take (String.length str - 1) str)) name
-            else
-              name
-        module_ <-
-          toModule
-            <$> modifySyntaxAtM st.ix_cursor
-                ( case _ of
-                    SyntaxTermBinding termBinding@(TermBinding termId meta) -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = TermName $ modifyName case meta.name of TermName name -> name }
-                    SyntaxParameter param@(Parameter alpha meta) -> pure $ SyntaxParameter $ Parameter alpha meta { name = TermName $ modifyName case meta.name of TermName name -> name }
-                    SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = TypeName $ modifyName case meta.name of TypeName name -> name }
-                    x -> pure x
-                )
-                (SyntaxModule st.module_)
-        React.modifyState this \st -> st { module_ = module_ }
-      else
-        pure unit
-    else if k == "Enter" then do
+    if isEditNameTarget syn
+      && (k `Set.member` nameKeys || k == "Backspace") then do
       let
-        module_ = toModule $ toggleIndentedMetadataAt st.ix_cursor (SyntaxModule st.module_)
+        modifyName name =
+          if k `Set.member` nameKeys then
+            maybe (Just k) (Just <<< (_ <> k)) name
+          else if k == "Backspace" then
+            maybe Nothing (\str -> if String.length str == 1 then Nothing else Just (String.take (String.length str - 1) str)) name
+          else
+            name
+      module_ <-
+        toModule
+          <$> modifySyntaxAtM st.ix_cursor
+              ( case _ of
+                  SyntaxTermBinding termBinding@(TermBinding termId meta) -> pure $ SyntaxTermBinding $ TermBinding termId meta { name = TermName $ modifyName case meta.name of TermName name -> name }
+                  SyntaxParameter param@(Parameter alpha meta) -> pure $ SyntaxParameter $ Parameter alpha meta { name = TermName $ modifyName case meta.name of TermName name -> name }
+                  SyntaxTypeBinding typeBinding@(TypeBinding typeId meta) -> pure $ SyntaxTypeBinding $ TypeBinding typeId meta { name = TypeName $ modifyName case meta.name of TypeName name -> name }
+                  x -> pure x
+              )
+              (SyntaxModule st.module_)
       React.modifyState this \st -> st { module_ = module_ }
-    else
+    else if k == "Enter" then do
+      React.modifyState this \st ->
+        st
+          { module_ =
+            toModule $ toggleIndentedMetadataAt st.ix_cursor (SyntaxModule st.module_)
+          }
+    else if k `Array.elem` [ "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight" ] then
+      React.modifyState this \st ->
+        st
+          { ix_cursor =
+            let
+              dir =
+                unsafePartial case key event of
+                  "ArrowUp" -> Up
+                  "ArrowDown" -> Down
+                  "ArrowLeft" -> Left
+                  "ArrowRight" -> Right
+
+              ix' = moveDownwardIndex dir (SyntaxModule st.module_) st.ix_cursor
+            in
+              Debug.trace ("ix': " <> show ix') \_ -> ix'
+          }
+    else do
+      Debug.traceM $ "unhandled key: " <> k
       pure unit
-    -- case key event of
-    -- "ArrowUp" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Up st.module_ st.ix_cursor }
-    -- "ArrowDown" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Down st.module_ st.ix_cursor }
-    -- "ArrowLeft" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Left st.module_ st.ix_cursor }
-    -- "ArrowRight" -> React.modifyState this \st -> st { ix_cursor = moveDownwardIndex Right st.module_ st.ix_cursor }
-    -- "e" -> do
-    -- _ -> pure unit
     pure unit
 
   state :: ProgramState
