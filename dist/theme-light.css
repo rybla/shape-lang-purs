@@ -1,5 +1,5 @@
 html {
-  background-color: rgb(199, 200, 203);
+  background-color: rgb(194, 188, 172);
 }
 
 .editor {
@@ -12,7 +12,8 @@ html {
 
 .environment {
   box-shadow: -1px 0 0 0 black;
-  background-color: rgb(199, 200, 203);
+  /* background-color: rgb(199, 200, 203); */
+  background-color: rgb(194, 188, 172);
 }
 
 .context-item.suggested.exact {
