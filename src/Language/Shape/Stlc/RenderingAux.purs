@@ -59,6 +59,7 @@ punctuation =
         , mapsto: "⇒"
         , space: " "
         , newline: "\n"
+        , sep: "•"
         }
   where
   makePunctuation label =
