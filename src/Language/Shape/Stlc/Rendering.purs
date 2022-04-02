@@ -12,6 +12,7 @@ import Prim hiding (Type)
 import Data.Array as Array
 import Data.Char as Char
 import Data.Enum as Enum
+import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
@@ -132,7 +133,7 @@ programComponent this =
               )
               (SyntaxModule st.module_)
       React.modifyState this \st -> st { module_ = module_ }
-    else if k == "Enter" then do
+    else if k `Array.elem` [ "Enter", "Tab" ] then do
       React.modifyState this \st ->
         st
           { module_ =
@@ -319,9 +320,6 @@ programComponent this =
               eid = upwardIndexToEid ixArgs.ix
             in
               DOM.div
-                -- ( [ selectableClassName "module" ixArgs.isSelected, Props._id eid ]
-                --     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
-                -- )
                 (inertProps "module")
                 [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
                 ]
@@ -335,14 +333,17 @@ programComponent this =
             let
               eid = upwardIndexToEid ixArgs.ix
             in
-              DOM.span
-                ( [ selectableClassName "block" ixArgs.isSelected, Props._id eid ]
-                    <> selectableProps ixArgs.ix { goal: Just alpha, gamma, metaGamma }
-                    <> highlightableProps eid
-                )
-                $ [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
-                  , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
-                  ]
+              DOM.span'
+                [ DOM.span
+                    ( [ selectableClassName "block" ixArgs.isSelected, Props._id eid ]
+                        <> selectableProps ixArgs.ix { goal: Just alpha, gamma, metaGamma }
+                        <> highlightableProps eid
+                    )
+                    $ [ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
+                      , indentOrNothing meta metaGamma
+                      , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
+                      ]
+                ]
       }
 
   renderDefinitionItems :: RecIndex.RecDefinitionItems React.ReactElement
@@ -352,11 +353,6 @@ programComponent this =
           \defItems gamma metaGamma ixArgs ->
             DOM.span
               (inertProps "definitionItems")
-              -- [ intersperseRightHTML
-              --     [ punctuation.newline, undefined, punctuation.newline ]
-              --     $ toUnfoldable
-              --     $ mapWithIndex (\i def -> renderDefinition def gamma metaGamma ix (ix_def_at i) (csr_def_at i)) (fromItem <$> defItems)
-              -- ]
               [ DOM.span'
                   $ toUnfoldable
                   $ mapWithIndex
@@ -366,11 +362,8 @@ programComponent this =
                             , renderDefinitionSeparator
                                 { indented: true }
                                 { ix_parentBlock: ixArgs.ix_parentBlock, ix: (ixArgs.ix_defSep_at i), csr: (ixArgs.csr_defSep_at i) }
-                            -- , punctuation.newline
                             , indent { indented: true } (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
                             , renderDefinition def gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix: (ixArgs.ix_def_at i), csr: (ixArgs.csr_def_at i) }
-                            --  { ixArgs.ix (ixArgs.ix_def_at i) (ixArgs.csr_def_at i)}
-                            -- , punctuation.newline
                             ]
                       )
                       (fromItem <$> defItems)
@@ -401,7 +394,6 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -423,7 +415,7 @@ programComponent this =
                 , renderTermBinding termBinding gamma metaGamma { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
                 , punctuation.space
                 , punctuation.colon
-                , indentOrSpace meta metaGamma
+                , indentOrSpace { indented: meta.indented_type } metaGamma
                 , renderType alpha gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
                 , punctuation.newline
                 , indentation (R.modify RecMetaContext._indentation (_ - 1) metaGamma)
@@ -432,7 +424,7 @@ programComponent this =
                 , renderTermBinding' termBinding metaGamma
                 , punctuation.space
                 , punctuation.termdef
-                , indentOrSpace meta metaGamma
+                , indentOrSpace { indented: meta.indented_term } metaGamma
                 , renderTerm a gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                 ]
       , data:
@@ -480,7 +472,6 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -539,7 +530,6 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma: emptyContext, metaGamma: emptyMetaContext }
                     <> highlightableProps eid
                 )
-                -- [ DOM.span' $ if rndArgs.indented then [] else [ DOM.text "|" ] ]
                 [ DOM.span' [ DOM.text "•" ] ]
       }
 
@@ -573,29 +563,7 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                [ {-DOM.button
-                    [ Props.onClick \_ -> do
-                        st <- React.getState this
-                        let
-                          holeId = freshHoleId unit
-
-                          holeType = HoleType holeId Set.empty defaultHoleTypeMetadata
-                        case chAtModule st.module_ emptyContext
-                            (SyntaxType $ mkArrow (mkParam (TermName Nothing) holeType) (DataType typeId meta))
-                            (ChangeTypeChange (InsertArg holeType))
-                            (toDownwardIndex ixArgs.ix) of
-                          Just (module' /\ ix' /\ holeSub) -> do
-                            Debug.traceM $ "ix': " <> show ix'
-                            React.setState this
-                              st
-                                { module_ = subModule holeSub module'
-                                , ix_cursor = ix' -- DownwardIndex Nil
-                                }
-                          Nothing -> pure unit
-                    ]
-                    [ DOM.text "enArrow" ]
-                , -} renderTypeId typeId metaGamma
-                ]
+                [ renderTypeId typeId metaGamma ]
       , hole:
           \holeId wkn meta gamma metaGamma ixArgs ->
             let
@@ -673,7 +641,6 @@ programComponent this =
                   ]
                 <> [ punctuation.space
                   , punctuation.mapsto
-                  , indentOrNothing meta metaGamma
                   , renderBlock block gamma beta metaGamma { ix: ixArgs.ix_block, csr: ixArgs.csr_block }
                   ]
       , neutral:
@@ -713,21 +680,14 @@ programComponent this =
                     ( Array.fromFoldable
                         $ mapWithIndex
                             ( \i (case_ /\ meta) ->
-                                DOM.span'
+                                DOM.span
+                                  (inertProps "match caseItems")
                                   [ indentOrSpace meta metaGamma
                                   , renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma { ix_parentMatch: ixArgs.ix, ix: ixArgs.ix_case_at i, csr: ixArgs.csr_case_at i }
                                   ]
                             )
                             caseItems
                     )
-                -- , DOM.span
-                --     (inertProps "match caseItems")
-                --     [ intercalateHTML [ indentOrSpace meta metaGamma, punctuation.alt, punctuation.space ]
-                --         $ Array.fromFoldable
-                --         $ mapWithIndex
-                --             (\i case_ -> renderCase case_ typeId (index' constrIds i) gamma alpha metaGamma ix (ix_case_at i) (csr_case_at i))
-                --             (fromItem <$> caseItems)
-                --     ]
                 ]
       , hole:
           \meta gamma alpha metaGamma ixArgs ->
@@ -753,7 +713,6 @@ programComponent this =
   renderArgItems :: RecIndex.RecArgItems React.ReactElement
   renderArgItems =
     RecIndex.recArgItems
-      -- TODO: render separator
       { nil: \gamma alpha metaGamma -> DOM.span' []
       , cons:
           \(a /\ argItem_meta) argItems gamma (Parameter alpha _) beta metaGamma ixArgs ->
@@ -813,7 +772,6 @@ programComponent this =
                     ]
                 , punctuation.space
                 , punctuation.mapsto
-                , indentOrNothing meta metaGamma
                 , renderBlock block gamma alpha metaGamma { ix: ixArgs.ix_block, csr: ixArgs.csr_block }
                 ]
       }
@@ -840,7 +798,6 @@ programComponent this =
                     <> selectableProps ixArgs.ix { goal: Nothing, gamma, metaGamma }
                     <> highlightableProps eid
                 )
-                -- [ renderType alpha gamma metaGamma ix_type csr_type ]
                 [ punctuation.lparen
                 , printTermName meta.name shadow_i
                 , punctuation.space

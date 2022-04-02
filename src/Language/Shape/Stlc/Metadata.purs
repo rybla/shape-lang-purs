@@ -15,6 +15,10 @@ import Undefined (undefined)
 
 _indented = Proxy :: Proxy "indented"
 
+_indented_term = Proxy :: Proxy "indented_term"
+
+_indented_type = Proxy :: Proxy "indented_type"
+
 _hidden = Proxy :: Proxy "hidden"
 
 _annotated = Proxy :: Proxy "annotated"
@@ -35,9 +39,9 @@ type DefinitionItemMetadata
 defaultDefinitionItemMetadata = {} :: DefinitionItemMetadata
 
 type TermDefinitionMetadata
-  = { indented :: Boolean, hidden :: Boolean }
+  = { indented_type :: Boolean, indented_term :: Boolean, hidden :: Boolean }
 
-defaultTermDefinitionMetadata = { indented: false, hidden: false } :: TermDefinitionMetadata
+defaultTermDefinitionMetadata = { indented_type: false, indented_term: false, hidden: false } :: TermDefinitionMetadata
 
 type DataDefinitionMetadata
   = { hidden :: Boolean }
