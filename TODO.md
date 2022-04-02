@@ -3,13 +3,20 @@
 - Jacob
 
   - [x] decide how cases work in match
-  - [ ] recursion principle with wrap (uses TypeChanges context)
-  - [ ] change\*
+  - [ ] figure out how to deal with having Changes and TypeChange at the same time.
+  - [ ] function to move term from one context to another for copy/paste/drag
+  - [ ] chAt*
+    - [x] chAtModule
+    - [ ] chAtTerm
+    - [x] chAtCase
+    - [x] chAtType
+    - [ ] ...
+  - [x] change\*
     - [x] changeTerm
     - [x] changeType
-    - [ ] changeDef
-    - [ ] changeBlock
-    - [ ] changeNeu
+    - [x] changeDef
+    - [x] changeBlock
+    - [x] changeNeu
   - [x] changes syntax (curried)
   - [x] hole stuff (i.e. unification)
 
