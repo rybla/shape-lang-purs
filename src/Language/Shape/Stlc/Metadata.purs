@@ -25,9 +25,9 @@ type ModuleMetadata
 defaultModuleMetadata = { hidden: true } :: ModuleMetadata
 
 type BlockMetadata
-  = { hidden :: Boolean }
+  = { indented :: Boolean, hidden :: Boolean }
 
-defaultBlockMetadata = { hidden: false } :: BlockMetadata
+defaultBlockMetadata = { indented: false, hidden: false } :: BlockMetadata
 
 type DefinitionItemMetadata
   = {}
@@ -75,9 +75,9 @@ type HoleTypeMetadata
 defaultHoleTypeMetadata = {} :: HoleTypeMetadata
 
 type LambdaTermMetadata
-  = { annotated :: Boolean, indented :: Boolean }
+  = { annotated :: Boolean }
 
-defaultLambdaTermMetadata = { annotated: true, indented: false } :: LambdaTermMetadata
+defaultLambdaTermMetadata = { annotated: true } :: LambdaTermMetadata
 
 type ArgConsMetaData
   = { indented :: Boolean }
@@ -120,9 +120,9 @@ type HoleTermMetadata
 defaultHoleTermMetadata = {} :: HoleTermMetadata
 
 type CaseMetadata
-  = { indented :: Boolean }
+  = {}
 
-defaultCaseMetadata = { indented: false } :: CaseMetadata
+defaultCaseMetadata = {} :: CaseMetadata
 
 type ParameterMetadata
   = { name :: TermName }
@@ -146,7 +146,7 @@ data TermName
   = TermName (Maybe String)
 
 -- instances for TypeName
-derive instance genericTypeName :: Generic TypeName _
+derive instance genericTypeNam :: Generic TypeName _
 
 derive instance eqTypeName :: Eq TypeName
 
