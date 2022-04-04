@@ -428,7 +428,7 @@ recDefinitionBindings rec =
             (ix_term :- LambdaTerm_Block)
             (checkCursorStep LambdaTerm_Block ?csr_term)
     , wildcard:
-        \alpha a gamma metaGamma ix_def ix_alpha csr_alpha ix_a csr_a ->
+        \alpha term gamma metaGamma ix_def ix_alpha csr_alpha ix_term csr_a ->
           rec.wildcard alpha a gamma metaGamma
             -- def
             ix_def
@@ -436,7 +436,7 @@ recDefinitionBindings rec =
             ix_alpha
             (checkCursorHere csr_alpha)
             -- a 
-            ix_a
+            ix_term
             (checkCursorHere csr_a)
     }
 -}
@@ -472,12 +472,7 @@ type RecType_Hole a
       )
 
 type RecType_ProxyHole a
-  = RecMetaContext.RecType_ProxyHole
-      ( { ix :: UpwardIndex
-        , isSelected :: Boolean
-        } ->
-        a
-      )
+  = RecMetaContext.RecType_ProxyHole a
 
 recType ::
   forall a.
@@ -500,8 +495,8 @@ recType rec =
             , csr_type: (checkCursorStep (IndexStep StepArrowType 1) csr)
             }
     , data: \typeId meta gamma metaGamma { ix, csr } -> rec.data typeId meta gamma metaGamma { ix, isSelected: checkCursorHere csr }
-    , hole: \holeID wkn meta gamma metaGamma { ix, csr } -> rec.hole holeID wkn meta gamma metaGamma { ix, isSelected: checkCursorHere csr }
-    , proxyHole: \holeID gamma metaGamma { ix, csr } -> rec.proxyHole holeID gamma metaGamma { ix, isSelected: checkCursorHere csr }
+    , hole: \holeId wkn meta gamma metaGamma { ix, csr } -> rec.hole holeId wkn meta gamma metaGamma { ix, isSelected: checkCursorHere csr }
+    , proxyHole: \holeId gamma metaGamma { ix, csr } -> rec.proxyHole holeId gamma metaGamma
     }
 
 type RecTerm a
@@ -582,8 +577,8 @@ recTerm rec =
             , csr_argItems: (checkCursorStep (IndexStep StepNeutralTerm 1) csr)
             }
     , match:
-        \typeId a cases meta gamma alpha metaGamma constrIDs { ix, csr } ->
-          rec.match typeId a cases meta gamma alpha metaGamma constrIDs
+        \typeId a cases meta gamma alpha metaGamma constrIds { ix, csr } ->
+          rec.match typeId a cases meta gamma alpha metaGamma constrIds
             { ix
             , isSelected: (checkCursorHere csr)
             , ix_term: (ix :- IndexStep StepMatchTerm 0)

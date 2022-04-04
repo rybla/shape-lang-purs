@@ -12,6 +12,7 @@ import Data.List (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
+import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.Initial as Initial
@@ -29,6 +30,20 @@ import React.DOM.Props as Props
 import Record as Record
 import Undefined (undefined)
 import Unsafe.Coerce (unsafeCoerce)
+import Web.Event.Event (Event, EventType(..), preventDefault)
+import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.HTML (HTMLElement, window)
+import Web.HTML.HTMLElement (classList)
+
+foreign import code :: Event -> String
+
+foreign import key :: Event -> String
+
+-- foreign import setNativeEventTargetProp :: forall a. NativeEventTarget -> String -> a -> Effect Unit
+-- foreign import getClassName :: NativeEventTarget -> String
+foreign import setHTMLElementField :: forall a. String -> a -> HTMLElement -> Effect Unit
+
+foreign import getElementById :: String -> Effect HTMLElement
 
 {-
 Naming conventions:
@@ -80,7 +95,8 @@ programComponent this =
             createNode "block"
               (nodePropsFromIxArgs ixArgs)
               $ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
-              <> [ indent meta metaGamma ]
+              <> indentation meta metaGamma
+              <> [ token.space ]
               <> renderTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
       }
 
@@ -89,19 +105,22 @@ programComponent this =
     RecTrans.recDefinitionItems
       { definitionItems:
           \defItems gamma metaGamma ixArgs transArgs ->
-            createNode "definition item"
+            createNode "definition items"
               defaultNodeProps
               $ concat
-              $ mapWithIndex
-                  ( \i (def /\ meta) ->
-                      concat
-                        [ [ indent { indented: true } metaGamma ]
-                        , renderDefinitionSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix: ixArgs.ix_defSep_at i, csr: ixArgs.csr_defSep_at i }
-                        , [ indent { indented: true } metaGamma ]
-                        , renderDefinition def gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix: ixArgs.ix_def_at i, csr: ixArgs.csr_def_at i }
-                        ]
-                  )
-              $ (fromFoldable defItems)
+              $ [ concat
+                    $ mapWithIndex
+                        ( \i (def /\ meta) ->
+                            concat
+                              [ indentation { indented: true } metaGamma
+                              , renderDefinitionSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix: ixArgs.ix_defSep_at i, csr: ixArgs.csr_defSep_at i }
+                              , renderDefinition def gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix: ixArgs.ix_def_at i, csr: ixArgs.csr_def_at i }
+                              ]
+                        )
+                    $ (fromFoldable defItems)
+                , indentation { indented: not (List.null defItems) } metaGamma
+                , renderDefinitionSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix: ixArgs.ix_defSep_at (List.length defItems), csr: ixArgs.csr_defSep_at (List.length defItems) }
+                ]
       }
 
   renderDefinitionSeparator :: RecTrans.RecDefinitionSeparator ReactElements
@@ -118,43 +137,42 @@ programComponent this =
   renderDefinition =
     RecTrans.recDefinition
       { term:
-          \termBinding type_ term meta gamma metaGamma ixArgs trans ->
+          \termBinding type_ term meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
             createNode "term definition"
               (nodePropsFromIxArgs ixArgs)
               $ concat
-                  [ [ indent { indented: true } metaGamma
-                    , token.termDef_sig_head
-                    ]
-                  , renderTermBinding termBinding gamma metaGamma { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
+                  [ indentation { indented: true } metaGamma_self
+                  , [ token.termDef_sig_head ]
+                  , renderTermBinding termBinding gamma metaGamma_children { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
                   , [ token.termDef_sig_sep ]
-                  , renderType type_ gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
-                  , [ indent { indented: true } metaGamma
-                    , token.termDef_imp_head
-                    ]
-                  , renderTermBinding termBinding gamma metaGamma { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
+                  , renderType type_ gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+                  , indentation { indented: true } metaGamma_self
+                  , [ token.termDef_imp_head ]
+                  , renderTermBinding termBinding gamma metaGamma_children { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding }
                   , [ token.termDef_imp_sep ]
-                  , renderTerm term gamma type_ metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
+                  , renderTerm term gamma type_ metaGamma_children { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
                   ]
       , data:
-          \typeBinding@(TypeBinding typeId _) constrItems meta gamma metaGamma ixArgs trans ->
+          \typeBinding@(TypeBinding typeId _) constrItems meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
             createNode "data definition" (nodePropsFromIxArgs ixArgs)
               $ concat
-                  [ [ indent { indented: true } metaGamma
-                    , token.dataDef_head
-                    ]
-                  , renderTypeBinding typeBinding gamma metaGamma { ix: ixArgs.ix_typeBinding, csr: ixArgs.csr_typeBinding }
+                  [ indentation { indented: true } metaGamma_self
+                  , [ token.dataDef_head ]
+                  , renderTypeBinding typeBinding gamma metaGamma_children { ix: ixArgs.ix_typeBinding, csr: ixArgs.csr_typeBinding }
                   , [ token.dataDef_sep ]
                   , concat
                       $ mapWithIndex
                           ( \i (constr /\ meta) ->
                               concat
-                                [ [ indent meta metaGamma ]
+                                [ indentation meta metaGamma_children
                                 , renderConstructorSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: ixArgs.ix_constrSep_at i, csr: ixArgs.csr_constrSep_at i }
-                                , [ indent meta metaGamma ]
-                                , renderConstructor constr typeId gamma metaGamma { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: ixArgs.ix_constr_at i, csr: ixArgs.csr_constr_at i }
+                                , indentation meta metaGamma_children
+                                , renderConstructor constr typeId gamma metaGamma_children { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: ixArgs.ix_constr_at i, csr: ixArgs.csr_constr_at i }
                                 ]
                           )
                           (fromFoldable constrItems)
+                  , indentation { indented: true } metaGamma_children
+                  , renderConstructorSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix, ix: ixArgs.ix_constrSep_at (List.length constrItems), csr: ixArgs.csr_constrSep_at (List.length constrItems) }
                   ]
       }
 
@@ -173,10 +191,11 @@ programComponent this =
                           ( \i (param /\ meta) ->
                               concat
                                 [ renderParameterSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix_parentDef, ix_parentConstr: ixArgs.ix, ix: ixArgs.ix_paramSep_at i, csr: ixArgs.csr_paramSep_at i }
-                                , renderParameter param gamma metaGamma { ix: ixArgs.ix_param_at i, csr: ixArgs.csr_param_at i }
+                                , renderParameter_Constructor param gamma metaGamma { ix: ixArgs.ix_param_at i, csr: ixArgs.csr_param_at i }
                                 ]
                           )
                           (fromFoldable paramItems)
+                  , renderParameterSeparator { ix_parentBlock: ixArgs.ix_parentBlock, ix_parentDef: ixArgs.ix_parentDef, ix_parentConstr: ixArgs.ix, ix: ixArgs.ix_paramSep_at (List.length paramItems), csr: ixArgs.csr_paramSep_at (List.length paramItems) }
                   ]
       }
 
@@ -195,7 +214,7 @@ programComponent this =
       { arrow:
           \param beta meta gamma metaGamma ixArgs trans ->
             createNode "arrow type" (nodePropsFromIxArgs ixArgs)
-              $ concat [ renderParameter param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
       , data:
           \typeId meta gamma metaGamma ixArgs trans ->
             createNode "data type" (nodePropsFromIxArgs ixArgs)
@@ -204,7 +223,10 @@ programComponent this =
           \holeId wkn meta gamma metaGamma ixArgs trans ->
             createNode "hole type" (nodePropsFromIxArgs ixArgs)
               $ printHoleId holeId metaGamma
-      , proxyHole: unsafeCrashWith "renderType.proxyHole: should never render a proxyHole"
+      , proxyHole: -- unsafeCrashWith "renderType.proxyHole: should never render a proxyHole"
+          \holeId gamma metaGamma ->
+            createNode "proxy hole type" defaultNodeProps
+              $ printHoleId holeId metaGamma
       }
 
   printType :: RecMeta.RecType ReactElements
@@ -261,7 +283,7 @@ programComponent this =
                       $ mapWithIndex
                           ( \i (case_ /\ meta) ->
                               concat
-                                [ [ indent meta metaGamma ]
+                                [ indentation meta metaGamma
                                 , renderCase case_ typeId (List.index' constrIds i) gamma alpha metaGamma { ix_parentMatch: ixArgs.ix, ix: ixArgs.ix_case_at i, csr: ixArgs.csr_case_at i }
                                 ]
                           )
@@ -281,14 +303,26 @@ programComponent this =
           \gamma alpha metaGamma ixArgs trans ->
             createNode "nil argItems"
               (nodePropsFromIxArgs ixArgs)
-              [ token.argSep ]
+              -- []
+              [ token.argItems_end ]
       , cons:
           \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs trans ->
             createNode "cons argItems"
               (nodePropsFromIxArgs ixArgs)
               $ concat
-                  [ [ token.argSep ]
-                  , renderTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
+                  [ [ token.space ]
+                  , let
+                      paren = \_ -> [ token.lparen ] <> renderTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term } <> [ token.rparen ]
+
+                      nonparen = \_ -> renderTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
+                    in
+                      case term of
+                        LambdaTerm _ _ _ -> paren unit
+                        NeutralTerm _ Nil _ -> nonparen unit
+                        NeutralTerm _ _ _ -> paren unit
+                        HoleTerm _ -> nonparen unit
+                        MatchTerm _ _ _ _ -> paren unit
+                  , if List.null argItems then [ token.space ] else []
                   , renderArgItems argItems gamma beta metaGamma { ix_parentNeutral: ixArgs.ix_parentNeutral, ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                   ]
       }
@@ -302,10 +336,14 @@ programComponent this =
               (nodePropsFromIxArgs ixArgs)
               $ concat
                   [ [ token.case_head ]
+                  , printTermId constrId metaGamma
                   , concat
                       $ mapWithIndex
                           ( \i (termId /\ meta) ->
-                              renderTermId termId gamma metaGamma { ix: ixArgs.ix_termId_at i, csr: ixArgs.csr_termId_at i }
+                              concat
+                                [ [ token.space ]
+                                , renderTermId termId gamma metaGamma { ix: ixArgs.ix_termId_at i, csr: ixArgs.csr_termId_at i }
+                                ]
                           )
                           (fromFoldable termIdItems)
                   , [ token.case_sep ]
@@ -313,36 +351,40 @@ programComponent this =
                   ]
       }
 
-  renderParameter :: RecTrans.RecParameter ReactElements
-  renderParameter =
+  renderParameter_Constructor :: RecTrans.RecParameter ReactElements
+  renderParameter_Constructor =
     RecTrans.recParameter
       { parameter:
-          \alpha meta gamma metaGamma ixArgs trans ->
+          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
             createNode "parameter"
               (nodePropsFromIxArgs ixArgs)
               $ concat
                   [ [ token.lparen ]
-                  , printTermName meta.name metaGamma
+                  , printTermName meta.name metaGamma_children
                   , [ token.param_sep ]
-                  , renderType alpha gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+                  , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
                   , [ token.rparen ]
                   ]
+      }
+
+  renderParameter_Arrow :: RecTrans.RecParameter ReactElements
+  renderParameter_Arrow =
+    RecTrans.recParameter
+      { parameter:
+          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
+            createNode "parameter"
+              (nodePropsFromIxArgs ixArgs)
+              $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
       }
 
   printParameter :: RecMeta.RecParameter ReactElements
   printParameter =
     RecMeta.recParameter
       { parameter:
-          \alpha meta gamma metaGamma ->
+          \alpha meta gamma { metaGamma_self, metaGamma_children } ->
             createNode "parameter"
               defaultNodeProps
-              $ concat
-                  [ [ token.lparen ]
-                  , printTermName meta.name metaGamma
-                  , [ token.param_sep ]
-                  , printType alpha gamma metaGamma
-                  , [ token.rparen ]
-                  ]
+              $ printType alpha gamma metaGamma_children
       }
 
   renderParameterSeparator :: RecTrans.RecParameterSeparator ReactElements

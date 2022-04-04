@@ -85,7 +85,6 @@ recDefinitionItems rec =
           rec.definitionItems defItems gamma
             <<< foldl (>>>) identity
                 [ registerDefinitions (fromItem <$> defItems)
-                , incrementIndentation
                 ]
     }
 
@@ -93,10 +92,10 @@ type RecDefinition a
   = RecContext.RecDefinition (MetaContext -> a)
 
 type RecDefinition_TermDefinition a
-  = RecContext.RecDefinition_TermDefinition (MetaContext -> a)
+  = RecContext.RecDefinition_TermDefinition ({ metaGamma_self :: MetaContext, metaGamma_children :: MetaContext } -> a)
 
 type RecDefinition_DataDefinition a
-  = RecContext.RecDefinition_DataDefinition (MetaContext -> a)
+  = RecContext.RecDefinition_DataDefinition ({ metaGamma_self :: MetaContext, metaGamma_children :: MetaContext } -> a)
 
 -- registration already handled by recDefinitionItems
 recDefinition ::
@@ -105,11 +104,21 @@ recDefinition ::
   , data :: RecDefinition_DataDefinition a
   } ->
   RecDefinition a
--- RecContext.recDefinition
---   { term: \termBinding alpha a meta gamma -> rec.term termBinding alpha a meta gamma <<< incrementIndentation
---   , data: \typeBinding cases meta gamma -> rec.data typeBinding cases meta gamma <<< incrementIndentation
---   }
-recDefinition = RecContext.recDefinition
+recDefinition rec =
+  RecContext.recDefinition
+    { term:
+        \termBinding type_ term meta gamma metaGamma ->
+          rec.term termBinding type_ term meta gamma
+            { metaGamma_self: metaGamma
+            , metaGamma_children: incrementIndentation metaGamma
+            }
+    , data:
+        \typeBinding cases meta gamma metaGamma ->
+          rec.data typeBinding cases meta gamma
+            { metaGamma_self: metaGamma
+            , metaGamma_children: incrementIndentation metaGamma
+            }
+    }
 
 type RecConstructor a
   = RecContext.RecConstructor (MetaContext -> a)
@@ -285,7 +294,7 @@ type RecParameter a
   = RecContext.RecParameter (MetaContext -> a)
 
 type RecParameter_Parameter a
-  = RecContext.RecParameter_Parameter (MetaContext -> a)
+  = RecContext.RecParameter_Parameter ({ metaGamma_self :: MetaContext, metaGamma_children :: MetaContext } -> a)
 
 -- `recParameter` doesn't need to `registerParameterName` because recType
 -- already does. This is because the updated `metaGamma` needs to be passed to
@@ -297,11 +306,11 @@ recParameter ::
 recParameter rec =
   RecContext.recParameter
     { parameter:
-        \alpha meta gamma ->
+        \alpha meta gamma metaGamma ->
           rec.parameter alpha meta gamma
-            <<< foldl (>>>) identity
-                [ incrementIndentation
-                ]
+            { metaGamma_self: metaGamma
+            , metaGamma_children: foldl (>>>) identity [ incrementIndentation, registerParameterName meta.name ] metaGamma
+            }
     }
 
 -- Scope
@@ -330,7 +339,7 @@ incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 -- set id's name 
 -- increment name's shadow
 -- set id's shadow index
-registerId :: forall id name. Ord id => Ord name => id -> name -> Scope id name -> Scope id name
+registerId :: forall id name. Show name => Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
   foldl (>>>) identity
     [ R.modify _names (Map.insert id name)

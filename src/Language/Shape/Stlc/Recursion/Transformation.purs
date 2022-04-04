@@ -45,7 +45,7 @@ _change = Proxy :: Proxy "change"
 _typeChange = Proxy :: Proxy "typeChange"
 
 unimplementedTransformation :: String -> Transformation
-unimplementedTransformation label = unsafeCrashWith $ "unimplemented transformation: " <> label
+unimplementedTransformation label = \_ _ -> unsafeCrashWith $ "unimplemented transformation: " <> label
 
 -- transformations only operate on the prestate
 type Transformation
@@ -98,25 +98,37 @@ type RecModule a
   = Rec.RecModule a
 
 type RecModule_Module a
-  = Rec.RecModule_Module a
+  = Rec.RecModule_Module ({} -> a)
 
 recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
-recModule rec = Rec.recModule { module_: rec.module_ }
+recModule rec =
+  Rec.recModule
+    { module_:
+        \defItems meta gamma metaGamma ixArgs ->
+          rec.module_ defItems meta gamma metaGamma ixArgs
+            {}
+    }
 
 type RecBlock a
   = Rec.RecBlock a
 
 type RecBlock_Block a
-  = Rec.RecBlock_Block a
+  = Rec.RecBlock_Block ({} -> a)
 
 recBlock ::
   forall a.
   { block :: RecBlock_Block a } ->
   RecBlock a
-recBlock rec = Rec.recBlock { block: rec.block }
+recBlock rec =
+  Rec.recBlock
+    { block:
+        \defItems block meta gamma alpha metaGamma ixArgs ->
+          rec.block defItems block meta gamma alpha metaGamma ixArgs
+            {}
+    }
 
 type RecDefinitionItems a
   = Rec.RecDefinitionItems a

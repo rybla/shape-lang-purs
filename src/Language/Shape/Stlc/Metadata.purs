@@ -51,7 +51,7 @@ defaultDataDefinitionMetadata = { hidden: false } :: DataDefinitionMetadata
 type ConstructorItemMetadata
   = { indented :: Boolean }
 
-defaultConstructorItemMetadata = { indented: false } :: ConstructorItemMetadata
+defaultConstructorItemMetadata = { indented: true } :: ConstructorItemMetadata
 
 type ConstructorMetadata
   = {}
@@ -143,11 +143,14 @@ type TermBindingMetadata
 
 defaultTermBindingMetadata = { name: TermName Nothing } :: TermBindingMetadata
 
+type Name
+  = Maybe String
+
 data TypeName
-  = TypeName (Maybe String)
+  = TypeName Name
 
 data TermName
-  = TermName (Maybe String)
+  = TermName Name
 
 -- instances for TypeName
 derive instance genericTypeNam :: Generic TypeName _

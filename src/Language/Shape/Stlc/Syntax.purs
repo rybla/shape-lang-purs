@@ -90,7 +90,7 @@ mkModule defItems = Module defItems defaultModuleMetadata
 
 mkBlock defItems a = Block defItems a defaultBlockMetadata
 
-mkBlockInt defItems a = Block defItems a defaultBlockMetadata { indented = true }
+mkBlockInd defItems a = Block defItems a defaultBlockMetadata { indented = true }
 
 mkDefItem def = def /\ defaultDefinitionItemMetadata
 
@@ -137,6 +137,8 @@ mkParam name alpha = Parameter alpha defaultParameterMetadata { name = name }
 mkTermBind termId name = TermBinding termId defaultTermBindingMetadata { name = name }
 
 mkTypeBind typeId name = TypeBinding typeId defaultTypeBindingMetadata { name = name }
+
+mkItems = List.fromFoldable
 
 -- Item
 fromItem :: forall a md. a /\ md -> a

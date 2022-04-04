@@ -1,0 +1,213 @@
+html {
+  user-select: none;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.main {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.app {
+  font-family: monospace;
+  line-height: 16pt;
+  font-size: 12pt;
+  height: 100vh;
+  padding: 0;
+}
+/* TODO: disallow sub from making the line taller */
+
+/* editor */
+
+.editor {
+  height: 100vh;
+}
+
+/* console */
+
+.console {
+  margin-top: 1em;
+  padding: 1em;
+}
+
+/* environment */
+
+.environment {
+  position: fixed;
+  right: 0;
+  top: 0;
+  padding: 1em;
+  height: 100%;
+  max-width: 50%;
+}
+
+.context {
+}
+.context-item {
+}
+.context-item.suggested.exact {
+}
+.context-item.suggested.apply {
+}
+.goal {
+  margin-top: 1em;
+  padding-top: 1em;
+}
+
+.actions {
+  margin-top: 1em;
+  padding-top: 1px;
+  padding-bottom: 1em;
+}
+
+.action {
+  margin-top: 0.5em;
+  cursor: pointer;
+}
+
+/* module */
+
+.module {
+  padding-top: 0em;
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 2em;
+  /* height: calc(100% - 2em); */
+}
+
+.definition {
+}
+
+.pushDefinition {
+  border: none;
+  display: inline-block;
+  font-size: 12pt;
+
+  padding: 0 4px;
+  margin-right: 8px;
+  font-family: monospace;
+}
+
+.constructor {
+}
+
+.type {
+}
+.arrow.type {
+}
+.data.type {
+}
+.hole.type {
+}
+
+.term {
+}
+.term.hole {
+  /* border-width: 2px;
+  border-style: inset; */
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 10px;
+
+  /* transition-property: all;
+  transition-duration: 0.2s;
+
+  font-size: 100%;
+  display: inline-block;
+  transform: rotate(0deg);
+  padding: 0px;
+  width: auto;
+  margin-top: 0; */
+}
+/* .term.hole:hover {
+  transition-property: all;
+  transition-duration: 1s;
+
+  font-size: 600%;
+  display: inline-block;
+  transform: rotate(3deg);
+  padding: 40px;
+  border-width: 10px;
+  width: 50%;
+  margin-top: -70px;
+} */
+
+.typeName,
+.termName {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* token */
+
+.token {
+  font-weight: bold;
+}
+
+.indentation {
+  white-space: pre;
+}
+
+/* mousing */
+
+.selected {
+}
+
+.highlighted,
+.insertor:hover,
+.deletor:hover {
+}
+
+.module.selected {
+  box-shadow: none;
+  background-color: inherit;
+}
+
+.module.highlighted {
+  box-shadow: none;
+  background-color: inherit;
+}
+
+/* separator, insertor, deletor */
+
+.separator {
+  display: inline-block;
+}
+
+.separator.nonindented {
+  margin: 0 4px;
+}
+
+.separator.indented {
+  /* width: 400px; */
+}
+
+.separator.selected {
+}
+
+.separator.highlighted,
+.insertor:hover,
+.deletor:hover {
+}
+
+/* cursor */
+
+span {
+  cursor: pointer;
+}
+span.termId,
+span.termBinding {
+  cursor: text;
+}
