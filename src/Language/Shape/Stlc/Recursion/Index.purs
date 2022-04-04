@@ -597,14 +597,27 @@ recTerm rec =
     }
 
 type RecArgItems a
-  = RecMetaContext.RecArgItems ({ ix :: UpwardIndex, csr :: Cursor } -> a)
+  = RecMetaContext.RecArgItems
+      ( { ix_parentNeutral :: UpwardIndex
+        , ix :: UpwardIndex
+        , csr :: Cursor
+        } ->
+        a
+      )
 
 type RecArgItems_Nil (a :: Prim.Type)
-  = RecMetaContext.RecArgItems_Nil a
+  = RecMetaContext.RecArgItems_Nil
+      ( { ix_parentNeutral :: UpwardIndex
+        , ix :: UpwardIndex
+        , isSelected :: Boolean
+        } ->
+        a
+      )
 
 type RecArgItems_Cons a
   = RecMetaContext.RecArgItems_Cons
-      ( { ix :: UpwardIndex
+      ( { ix_parentNeutral :: UpwardIndex
+        , ix :: UpwardIndex
         , isSelected :: Boolean
         , ix_term :: UpwardIndex
         , csr_term :: Cursor
@@ -623,12 +636,17 @@ recArgItems ::
 recArgItems rec =
   RecMetaContext.recArgItems
     { nil:
-        \gamma alpha metaGamma { ix, csr } ->
+        \gamma alpha metaGamma { ix_parentNeutral, ix, csr } ->
           rec.nil gamma alpha metaGamma
+            { ix_parentNeutral
+            , ix
+            , isSelected: checkCursorHere csr
+            }
     , cons:
-        \argItem argItems gamma param beta metaGamma { ix, csr } ->
+        \argItem argItems gamma param beta metaGamma { ix_parentNeutral, ix, csr } ->
           rec.cons argItem argItems gamma param beta metaGamma
-            { ix
+            { ix_parentNeutral
+            , ix
             , isSelected: checkCursorHere csr
             , ix_term: (ix :- IndexStep StepCons 0 :- IndexStep StepArgItem 0)
             , csr_term: (checkCursorSteps (DownwardIndex (IndexStep StepCons 0 : IndexStep StepArgItem 0 : Nil)) csr)

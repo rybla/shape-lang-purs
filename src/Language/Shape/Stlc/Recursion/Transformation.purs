@@ -25,6 +25,7 @@ import Language.Shape.Stlc.Recursion.Index as Rec
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.RenderingTypes (Environment)
 import Language.Shape.Stlc.RenderingTypes as RenderingTypes
+import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import Record.Unsafe.Union (unsafeUnion)
 import Type.Proxy (Proxy(..))
@@ -43,76 +44,89 @@ _change = Proxy :: Proxy "change"
 
 _typeChange = Proxy :: Proxy "typeChange"
 
+unimplementedTransformation :: String -> Transformation
+unimplementedTransformation label = unsafeCrashWith $ "unimplemented transformation: " <> label
+
 -- transformations only operate on the prestate
 type Transformation
-  = RenderingTypes.Prestate () -> Maybe (RenderingTypes.Prestate ())
+  = TransformationInputs ->
+    RenderingTypes.Prestate () -> Maybe (RenderingTypes.Prestate ())
+
+type TransformationInputs
+  = { syntax :: Maybe Syntax
+    , i :: Maybe Int
+    }
 
 type ModuleTransformation
-  = { gamma :: Context
+  = TransformationInputs ->
+    { gamma :: Context
     , ix :: DownwardIndex
     , syntax :: Syntax
     , change :: Change
     }
 
 type TypeTransformation
-  = { gamma :: Context
+  = TransformationInputs ->
+    { gamma :: Context
     , ix :: DownwardIndex
     , type_ :: Type
     , typeChange :: TypeChange
     }
 
 makeModuleTransformation :: ModuleTransformation -> Transformation
-makeModuleTransformation transArgs st = do
+makeModuleTransformation makeTransArgs transInputs st = do
+  let
+    transArgs = makeTransArgs transInputs
   (module_ /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   let
     module' = subModule holeSub module_
   pure st { module_ = module', ix_cursor = ix' }
 
 makeTypeTransformation :: TypeTransformation -> Transformation
-makeTypeTransformation transArgs =
-  makeModuleTransformation
-    $ union
+makeTypeTransformation makeTransArgs =
+  makeModuleTransformation \transInputs ->
+    let
+      transArgs = makeTransArgs transInputs
+    in
+      union
         { syntax: SyntaxType transArgs.type_
         , change: ChangeTypeChange transArgs.typeChange
         }
         (delete _type_ $ delete _typeChange transArgs)
 
 type RecModule a
-  = Rec.RecModule (a)
+  = Rec.RecModule a
 
 type RecModule_Module a
-  = Rec.RecModule_Module ({} -> a)
+  = Rec.RecModule_Module a
 
 recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
-recModule rec =
-  Rec.recModule
-    { module_: undefined
-    }
+recModule rec = Rec.recModule { module_: rec.module_ }
 
 type RecBlock a
-  = Rec.RecBlock (a)
+  = Rec.RecBlock a
 
 type RecBlock_Block a
-  = Rec.RecBlock_Block ({} -> a)
+  = Rec.RecBlock_Block a
 
 recBlock ::
   forall a.
   { block :: RecBlock_Block a } ->
   RecBlock a
-recBlock rec =
-  Rec.recBlock
-    { block:
-        undefined
-    }
+recBlock rec = Rec.recBlock { block: rec.block }
 
 type RecDefinitionItems a
-  = Rec.RecDefinitionItems (a)
+  = Rec.RecDefinitionItems a
 
 type RecDefinitionItems_DefinitionItems a
-  = Rec.RecDefinitionItems_DefinitionItems ({} -> a)
+  = Rec.RecDefinitionItems_DefinitionItems
+      ( { moveDefinition :: Transformation
+        } ->
+        a
+      )
 
 recDefinitionItems ::
   forall a.
@@ -121,14 +135,23 @@ recDefinitionItems ::
 recDefinitionItems rec =
   Rec.recDefinitionItems
     { definitionItems:
-        undefined
+        \defItems gamma metaGamma ixArgs ->
+          rec.definitionItems defItems gamma metaGamma ixArgs
+            { moveDefinition: unimplementedTransformation "DefinitionItems.moveDefinition"
+            }
     }
 
 type RecDefinitionSeparator a
   = Rec.RecDefinitionSeparator a
 
 type RecDefinitionSeparator_Separator a
-  = Rec.RecDefinitionSeparator_Separator ({} -> a)
+  = Rec.RecDefinitionSeparator_Separator
+      ( { insertTermDefinition :: Transformation
+        , insertDataDefinition :: Transformation
+        , paste :: Transformation
+        } ->
+        a
+      )
 
 recDefinitionSeparator ::
   forall a.
@@ -137,17 +160,41 @@ recDefinitionSeparator ::
 recDefinitionSeparator rec =
   Rec.recDefinitionSeparator
     { separator:
-        undefined
+        \ixArgs ->
+          rec.separator ixArgs
+            { insertTermDefinition: unimplementedTransformation "DefinitionSeparator.insertTermDefinition"
+            , insertDataDefinition: unimplementedTransformation "DefinitionSeparator.insertDataDefinition"
+            , paste: unimplementedTransformation "DefinitionSeparator.paste"
+            }
+    }
+
+type CommonDefinitionTransformations r
+  = { rename :: Transformation
+    , delete :: Transformation
+    | r
+    }
+
+makeCommonDefinitionTransformations :: forall r. Record r -> CommonDefinitionTransformations r
+makeCommonDefinitionTransformations r =
+  unsafeUnion r
+    { rename: unimplementedTransformation "transformation: Definition.rename"
+    , delete: unimplementedTransformation "transformation: Definition.delete"
     }
 
 type RecDefinition a
-  = Rec.RecDefinition (a)
+  = Rec.RecDefinition a
 
 type RecDefinition_TermDefinition a
-  = Rec.RecDefinition_TermDefinition ({} -> a)
+  = Rec.RecDefinition_TermDefinition
+      ( CommonDefinitionTransformations () ->
+        a
+      )
 
 type RecDefinition_DataDefinition a
-  = Rec.RecDefinition_DataDefinition ({} -> a)
+  = Rec.RecDefinition_DataDefinition
+      ( CommonDefinitionTransformations () ->
+        a
+      )
 
 recDefinition ::
   forall a.
@@ -158,16 +205,25 @@ recDefinition ::
 recDefinition rec =
   Rec.recDefinition
     { term:
-        undefined
+        \termBinding type_ term meta gamma metaGamma ixArgs ->
+          rec.term termBinding type_ term meta gamma metaGamma ixArgs
+            $ makeCommonDefinitionTransformations {}
     , data:
-        undefined
+        \typeBinding constrItems meta gamma metaGamma ixArgs ->
+          rec.data typeBinding constrItems meta gamma metaGamma ixArgs
+            $ makeCommonDefinitionTransformations {}
     }
 
 type RecConstructorSeparator a
   = Rec.RecConstructorSeparator a
 
 type RecConstructorSeparator_Separator a
-  = Rec.RecConstructorSeparator_Separator ({} -> a)
+  = Rec.RecConstructorSeparator_Separator
+      ( { insert :: Transformation
+        , paste :: Transformation
+        } ->
+        a
+      )
 
 recConstructorSeparator ::
   forall a.
@@ -175,13 +231,24 @@ recConstructorSeparator ::
   RecConstructorSeparator a
 recConstructorSeparator rec =
   Rec.recConstructorSeparator
-    { separator: undefined }
+    { separator:
+        \ixArgs ->
+          rec.separator ixArgs
+            { insert: unimplementedTransformation "ConstructorSeparator.insert"
+            , paste: unimplementedTransformation "ConstructorSeparator.insert"
+            }
+    }
 
 type RecConstructor a
-  = Rec.RecConstructor (a)
+  = Rec.RecConstructor a
 
 type RecConstructor_Constructor a
-  = Rec.RecConstructor_Constructor ({} -> a)
+  = Rec.RecConstructor_Constructor
+      ( { rename :: Transformation
+        , move :: Transformation
+        } ->
+        a
+      )
 
 -- registration already handled by recDefinitionItems
 recConstructor ::
@@ -191,14 +258,22 @@ recConstructor ::
 recConstructor rec =
   Rec.recConstructor
     { constructor:
-        undefined
+        \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_t ixArgs ->
+          rec.constructor termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_t ixArgs
+            { move: unimplementedTransformation "Constructor.move"
+            , rename: unimplementedTransformation "Constructor.rename"
+            }
     }
 
 type RecParameterSeparator a
   = Rec.RecParameterSeparator a
 
 type RecParameterSeparator_Separator a
-  = Rec.RecParameterSeparator_Separator ({} -> a)
+  = Rec.RecParameterSeparator_Separator
+      ( { insert :: Transformation
+        } ->
+        a
+      )
 
 recParameterSeparator ::
   forall a.
@@ -207,7 +282,9 @@ recParameterSeparator ::
 recParameterSeparator rec =
   Rec.recParameterSeparator
     { separator:
-        undefined
+        \ixArgs ->
+          rec.separator ixArgs
+            { insert: unimplementedTransformation "ParametereSeparator.insert " }
     }
 
 type CommonTypeTransformationsArgs
@@ -222,39 +299,43 @@ type CommonTypeTransformations r
     | r
     }
 
--- WARNING: don't overlap labels in `CommonTypeTransformations` and `r`.
-makeCommonTypeTransformations :: forall r. CommonTypeTransformationsArgs -> Record r -> CommonTypeTransformations r
-makeCommonTypeTransformations transArgs r =
+makeCommonTypeTransformations :: forall r. Record r -> CommonTypeTransformationsArgs -> CommonTypeTransformations r
+makeCommonTypeTransformations r commonArgs =
   unsafeUnion r
     { enArrow:
         let
           hole = mkHoleType (freshHoleId unit) Set.empty
         in
-          makeTypeTransformation
-            $ union
-                { type_: mkArrow (mkParam (TermName Nothing) hole) transArgs.type_
-                , typeChange: InsertArg hole
-                }
-                (delete _type_ transArgs)
+          makeTypeTransformation \transInputs ->
+            union
+              { type_: mkArrow (mkParam (TermName Nothing) hole) commonArgs.type_
+              , typeChange: InsertArg hole
+              }
+              (delete _type_ commonArgs)
     , dig:
         let
           holeId = freshHoleId unit
 
           hole = mkHoleType holeId Set.empty
         in
-          makeTypeTransformation
-            $ union
-                { type_: hole
-                , typeChange: Dig holeId
-                }
-                (delete _type_ transArgs)
+          makeTypeTransformation \transInputs ->
+            union
+              { type_: hole
+              , typeChange: Dig holeId
+              }
+              (delete _type_ commonArgs)
     }
 
 type RecType a
-  = Rec.RecType (a)
+  = Rec.RecType a
 
 type RecType_Arrow a
-  = Rec.RecType_Arrow (CommonTypeTransformations ( delete :: Transformation ) -> a)
+  = Rec.RecType_Arrow
+      ( CommonTypeTransformations
+          ( delete :: Transformation
+          ) ->
+        a
+      )
 
 type RecType_Data a
   = Rec.RecType_Data (CommonTypeTransformations () -> a)
@@ -281,33 +362,67 @@ recType rec =
             ix = toDownwardIndex ixArgs.ix
           in
             rec.arrow prm beta meta gamma metaGamma ixArgs
-              $ makeCommonTypeTransformations { gamma, ix, type_: ArrowType prm beta meta }
-                  { delete: makeTypeTransformation { gamma, ix, type_: beta, typeChange: RemoveArg } }
+              $ makeCommonTypeTransformations
+                  { delete: makeTypeTransformation \transInputs -> { gamma, ix, type_: beta, typeChange: RemoveArg } }
+                  { gamma, ix, type_: ArrowType prm beta meta }
     , data:
         \typeId meta gamma metaGamma ixArgs ->
           rec.data typeId meta gamma metaGamma ixArgs
-            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ixArgs.ix, type_: DataType typeId meta } {}
+            $ makeCommonTypeTransformations {} { gamma, ix: toDownwardIndex ixArgs.ix, type_: DataType typeId meta }
     , hole:
         \holeId wkn meta gamma metaGamma ixArgs ->
           rec.hole holeId wkn meta gamma metaGamma ixArgs
-            $ makeCommonTypeTransformations { gamma, ix: toDownwardIndex ixArgs.ix, type_: HoleType holeId wkn meta } {}
+            $ makeCommonTypeTransformations {} { gamma, ix: toDownwardIndex ixArgs.ix, type_: HoleType holeId wkn meta }
     , proxyHole: rec.proxyHole
     }
 
+type CommonTermTransformations r
+  = { enLambda :: Transformation
+    , dig :: Transformation
+    | r
+    }
+
+type CommonTermTransformationsArgs
+  = {}
+
+makeCommonTermTransformations :: forall r. Record r -> CommonTermTransformationsArgs -> CommonTermTransformations r
+makeCommonTermTransformations r commonArgs =
+  unsafeUnion r
+    { copy: unimplementedTransformation "Term.copy"
+    , enLambda: unimplementedTransformation "Term.enLambda"
+    , dig: unimplementedTransformation "Term.dig"
+    }
+
 type RecTerm a
-  = Rec.RecTerm (a)
+  = Rec.RecTerm a
 
 type RecTerm_Lambda a
-  = Rec.RecTerm_Lambda ({} -> a)
+  = Rec.RecTerm_Lambda
+      ( CommonTermTransformations
+          ( unLambda :: Transformation
+          , etaContract :: Transformation
+          ) ->
+        a
+      )
 
 type RecTerm_Neutral a
-  = Rec.RecTerm_Neutral ({} -> a)
+  = Rec.RecTerm_Neutral
+      ( CommonTermTransformations
+          ( etaExpand :: Transformation
+          ) ->
+        a
+      )
 
 type RecTerm_Match a
-  = Rec.RecTerm_Match ({} -> a)
+  = Rec.RecTerm_Match (CommonTermTransformations () -> a)
 
 type RecTerm_Hole a
-  = Rec.RecTerm_Hole ({} -> a)
+  = Rec.RecTerm_Hole
+      ( CommonTermTransformations
+          ( fill :: Transformation
+          ) ->
+        a
+      )
 
 recTerm ::
   forall a.
@@ -320,20 +435,42 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lambda:
-        undefined
+        \termId block meta gamma param beta metaGamma ixArgs ->
+          rec.lambda termId block meta gamma param beta metaGamma ixArgs
+            $ makeCommonTermTransformations
+                { unLambda: unimplementedTransformation "LambdaTerm.unLambda"
+                , etaContract: unimplementedTransformation "LambdaTerm.etaContract"
+                }
+                {}
     , neutral:
-        undefined
+        \termId argItems meta gamma alpha metaGamma ixArgs ->
+          rec.neutral termId argItems meta gamma alpha metaGamma ixArgs
+            $ makeCommonTermTransformations
+                { etaExpand: unimplementedTransformation "NeutralTerm.etaExpand"
+                }
+                {}
     , match:
-        undefined
+        \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs ->
+          rec.match typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs
+            $ makeCommonTermTransformations {} {}
     , hole:
-        undefined
+        \meta gamma alpha metaGamma ixArgs ->
+          rec.hole meta gamma alpha metaGamma ixArgs
+            $ makeCommonTermTransformations
+                { fill: unimplementedTransformation "HoleTerm.fill"
+                }
+                {}
     }
 
 type RecArgItems a
-  = Rec.RecArgItems (a)
+  = Rec.RecArgItems a
 
 type RecArgItems_Nil a
-  = Rec.RecArgItems_Nil ({} -> a)
+  = Rec.RecArgItems_Nil
+      ( { insert :: Transformation
+        } ->
+        a
+      )
 
 type RecArgItems_Cons a
   = Rec.RecArgItems_Cons ({} -> a)
@@ -346,12 +483,18 @@ recArgItems ::
   RecArgItems a
 recArgItems rec =
   Rec.recArgItems
-    { nil: undefined
-    , cons: undefined
+    { nil:
+        \gamma alpha metaGamma ixArgs ->
+          rec.nil gamma alpha metaGamma ixArgs
+            { insert: unimplementedTransformation "NilArgItems.insert" }
+    , cons:
+        \argItem argItems meta prm alpha metaGamma ixArgs ->
+          rec.cons argItem argItems meta prm alpha metaGamma ixArgs
+            {}
     }
 
 type RecCase a
-  = Rec.RecCase (a)
+  = Rec.RecCase a
 
 type RecCase_Case a
   = Rec.RecCase_Case ({} -> a)
@@ -363,11 +506,13 @@ recCase ::
 recCase rec =
   Rec.recCase
     { case_:
-        undefined
+        \termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs ->
+          rec.case_ termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs
+            {}
     }
 
 type RecParameter a
-  = Rec.RecParameter (a)
+  = Rec.RecParameter a
 
 type RecParameter_Parameter a
   = Rec.RecParameter_Parameter ({} -> a)
@@ -379,7 +524,9 @@ recParameter ::
 recParameter rec =
   Rec.recParameter
     { parameter:
-        undefined
+        \alpha meta gamma metaGamma ixArgs ->
+          rec.parameter alpha meta gamma metaGamma ixArgs
+            {}
     }
 
 type RecTypeBinding a
@@ -395,7 +542,11 @@ recTypeBinding ::
   RecTypeBinding a
 recTypeBinding rec =
   Rec.recTypeBinding
-    { typeBinding: undefined }
+    { typeBinding:
+        \typeId meta gamma metaGamma ixArgs ->
+          rec.typeBinding typeId meta gamma metaGamma ixArgs
+            {}
+    }
 
 type RecTermBinding a
   = Rec.RecTermBinding a
@@ -410,7 +561,11 @@ recTermBinding ::
   RecTermBinding a
 recTermBinding rec =
   Rec.recTermBinding
-    { termBinding: undefined }
+    { termBinding:
+        \typeId meta gamma metaGmma ixArgs ->
+          rec.termBinding typeId meta gamma metaGmma ixArgs
+            {}
+    }
 
 type RecTermId a
   = Rec.RecTermId a
@@ -419,4 +574,10 @@ type RecTermId_TermId a
   = Rec.RecTermId_TermId ({} -> a)
 
 recTermId :: forall a. { termId :: RecTermId_TermId a } -> RecTermId a
-recTermId rec = Rec.recTermId { termId: undefined }
+recTermId rec =
+  Rec.recTermId
+    { termId:
+        \termId gamma metaGamma ixArgs ->
+          rec.termId termId gamma metaGamma ixArgs
+            {}
+    }
