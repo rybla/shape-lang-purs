@@ -306,7 +306,6 @@ recTerm rec =
               [ selection ixArgs
                   $ prerndSub.termId
                   <> [ WordReactElement punctuation.mapsto ]
-                  <> indent meta metaGamma
                   <> prerndSub.block
               ]
     , neutral:
