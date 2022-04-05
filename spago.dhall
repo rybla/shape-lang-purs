@@ -17,6 +17,7 @@
   , "react"
   , "react-dom"
   , "record"
+  , "refs"
   , "strings"
   , "transformers"
   , "tuples"

@@ -1,7 +1,7 @@
 "use strict"
 
-exports.code = function(e) {return e.code}
-exports.key = function(e) {return e.key}
+exports.eventCode = function(e) {return e.code}
+exports.eventKey = function(e) {return e.key}
 
 // exports.setNativeEventTargetProp = (nativeEventTarget) => (key) => (value) => () => nativeEventTarget[key] = value
 

@@ -20,7 +20,7 @@ html {
 
 .app {
   font-family: monospace;
-  line-height: 16pt;
+  line-height: 14pt;
   font-size: 12pt;
   height: 100vh;
   padding: 0;
@@ -28,6 +28,15 @@ html {
 
 .span {
   display: inline-block;
+}
+
+/* syntax */
+
+.hole {
+  color: white;
+  background-color: black;
+  border-radius: 10px;
+  padding: 0 4px;
 }
 
 /* name */
@@ -50,6 +59,12 @@ html {
 .separator:hover {
   color: black;
 } */
+
+/* selected */
+
+.selected {
+  background-color: rgb(157, 228, 169);
+}
 
 /* token */
 

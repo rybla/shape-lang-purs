@@ -46,6 +46,12 @@ data ParamChange = InsertParam Parameter | ChangeParam Int TypeChange
 -- e.g. if both (ChangeParam i c) and (ChangeParam j c') are in the list, then i =/= j.
 data ConstructorChange = ChangeConstructor (List ParamChange) Int | InsertConstructor (List Parameter)
 
+derive instance Generic ConstructorChange _ 
+instance Show ConstructorChange where show x = genericShow x 
+
+derive instance Generic ParamChange _ 
+instance Show ParamChange where show x = genericShow x 
+
 type Changes = {
     termChanges :: Map TermId VarChange,
     matchChanges :: Map TypeId (List ConstructorChange),
@@ -203,7 +209,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
         Nothing -> ifChanged NoChange
     where
     ifChanged varTC = do
-        Debug.traceM $ "Calling chArgs from an id with type: " <> show (lookup' id ctx.types) <> " and typechange " <> show varTC
+        -- Debug.traceM $ "Calling chArgs from an id with type: " <> show (lookup' id ctx.types) <> " and typechange " <> show varTC
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
         let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
         -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that

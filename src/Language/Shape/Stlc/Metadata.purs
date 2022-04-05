@@ -83,6 +83,7 @@ type LambdaTermMetadata
 
 defaultLambdaTermMetadata = { annotated: true } :: LambdaTermMetadata
 
+-- this shouldn't have "indented", but for some reason causes an error in Changes...
 type ArgConsMetaData
   = { indented :: Boolean }
 

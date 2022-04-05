@@ -3,19 +3,24 @@ module Language.Shape.Stlc.Recursion.MetaContext where
 import Data.Foldable
 import Data.Maybe
 import Data.Tuple.Nested
+import Effect.Ref as Ref
+import Effect.Ref (Ref)
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
-import Data.List (List, take)
+import Data.List (List(..), take)
 import Data.List as List
 import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
+import Data.Set (Set)
+import Data.Set as Set
 import Data.Tuple (fst)
 import Debug as Debug
+import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Recursion.Context as RecContext
-import Record as R
+import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -24,6 +29,7 @@ import Unsafe as Unsafe
 type MetaContext
   = { typeScope :: Scope TypeId TypeName
     , termScope :: Scope TermId TermName
+    , typeHoleIds :: Ref (List HoleId)
     , indentation :: Int
     }
 
@@ -31,6 +37,7 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
+  , typeHoleIds: unsafePerformEffect $ Ref.new Nil
   , indentation: 0
   }
 
@@ -39,6 +46,8 @@ _typeScope = Proxy :: Proxy "typeScope"
 _termScope = Proxy :: Proxy "termScope"
 
 _constructorTermIds = Proxy :: Proxy "constructorTermIds"
+
+_typeHoleIds = Proxy :: Proxy "typeHoleIds"
 
 _indentation = Proxy :: Proxy "indentation"
 
@@ -66,7 +75,9 @@ recBlock ::
   forall a.
   { block :: RecBlock_Block a } ->
   RecBlock a
-recBlock rec block gamma alpha = RecContext.recBlock rec block gamma alpha <<< incrementIndentation
+recBlock rec block@(Block defItems _ _) gamma alpha =
+  RecContext.recBlock rec block gamma alpha
+    <<< (if not (List.null defItems) then incrementIndentation else identity)
 
 type RecDefinitionItems a
   = RecContext.RecDefinitionItems (MetaContext -> a)
@@ -200,8 +211,14 @@ recType rec =
                 , incrementIndentation
                 ]
     , data: rec.data
-    , hole: rec.hole
-    , proxyHole: rec.proxyHole
+    , hole:
+        \holeId wkn meta gamma ->
+          rec.hole holeId wkn meta gamma
+            <<< registerHoleId holeId
+    , proxyHole:
+        \holeId gamma ->
+          rec.proxyHole holeId gamma
+            <<< registerHoleId holeId
     }
 
 type RecTerm a
@@ -334,7 +351,7 @@ emptyScope =
   }
 
 incrementShadow :: forall id name. Ord name => name -> Scope id name -> Scope id name
-incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
+incrementShadow name = Record.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 
 -- set id's name 
 -- increment name's shadow
@@ -342,28 +359,28 @@ incrementShadow name = R.modify _shadows $ Map.insertWith (\i _ -> i + 1) name 0
 registerId :: forall id name. Show name => Ord id => Ord name => id -> name -> Scope id name -> Scope id name
 registerId id name =
   foldl (>>>) identity
-    [ R.modify _names (Map.insert id name)
+    [ Record.modify _names (Map.insert id name)
     , incrementShadow name
-    , \scope -> R.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
+    , \scope -> Record.modify _shadowIndices (Map.insert id $ Map.lookup' name scope.shadows) scope
     ]
 
 incrementIndentation :: MetaContext -> MetaContext
-incrementIndentation = R.modify _indentation (_ + 1)
+incrementIndentation = Record.modify _indentation (_ + 1)
 
 registerTypeBinding :: TypeBinding -> MetaContext -> MetaContext
-registerTypeBinding (TypeBinding id { name }) = R.modify _typeScope $ registerId id name
+registerTypeBinding (TypeBinding id { name }) = Record.modify _typeScope $ registerId id name
 
 registerTermBinding :: TermBinding -> MetaContext -> MetaContext
-registerTermBinding (TermBinding id { name }) = R.modify _termScope $ registerId id name
+registerTermBinding (TermBinding id { name }) = Record.modify _termScope $ registerId id name
 
 registerTermBindings :: List TermBinding -> MetaContext -> MetaContext
 registerTermBindings = flip $ foldl (flip registerTermBinding)
 
 registerParameterName :: TermName -> MetaContext -> MetaContext
-registerParameterName name = R.modify _termScope $ incrementShadow name
+registerParameterName name = Record.modify _termScope $ incrementShadow name
 
 registerTermId :: TermId -> TermName -> MetaContext -> MetaContext
-registerTermId id name = R.modify _termScope $ registerId id name
+registerTermId id name = Record.modify _termScope $ registerId id name
 
 registerTermIds :: List (TermId /\ TermName) -> MetaContext -> MetaContext
 registerTermIds = flip $ foldl (flip $ \(id /\ name) -> registerTermId id name)
@@ -373,7 +390,7 @@ registerDatatype x@(TypeBinding typeId _) constrBnds metaGamma =
   ( foldl (>>>) identity
       [ registerTypeBinding x
       , registerTermBindings constrBnds
-      -- , R.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
+      -- , Record.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
       ]
       metaGamma
   )
@@ -385,3 +402,23 @@ registerDefinition = case _ of
 
 registerDefinitions :: List Definition -> MetaContext -> MetaContext
 registerDefinitions def = flip (foldl (flip registerDefinition)) def
+
+registerHoleId :: HoleId -> MetaContext -> MetaContext
+registerHoleId holeId metaGamma =
+  unsafePerformEffect
+    $ do
+        Ref.modify_
+          ( \typeHoleIds ->
+              if elem holeId typeHoleIds then
+                typeHoleIds
+              else
+                Cons holeId typeHoleIds
+          )
+          metaGamma.typeHoleIds
+        pure metaGamma
+
+-- typeHoleIds <- Ref.read metaGamma.typeHoleIds
+-- undefined
+-- let typeHoleIds = Record.ge
+-- Record.modify _typeHoleIds
+--   (\typeHoleIds -> if elem holeId typeHoleIds then typeHoleIds else Cons holeId typeHoleIds)

@@ -4,6 +4,7 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.List (List)
+import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Effect (Effect)
 import React (ReactElement)
@@ -21,11 +22,15 @@ type Prestate r
     | r
     }
 
+type Poststate
+  = ( syntax_dragging :: Maybe Syntax
+    , outline_parents :: List HTMLElement
+    , keyCallbacks_static :: Map String (Effect Unit)
+    , keyCallbacks_dynamic :: Map String (Effect Unit)
+    )
+
 type State
-  = Prestate
-      ( syntax_dragging :: Maybe Syntax
-      , outline_parents :: List HTMLElement
-      )
+  = Prestate Poststate
 
 type Given
   = { state :: State

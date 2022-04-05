@@ -9,6 +9,8 @@ import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Data.Map.Unsafe as Map
+import Data.Tuple (fst)
+import Debug as Debug
 import Language.Shape.Stlc.Recursion.Base as RecBase
 import Undefined (undefined)
 import Unsafe as Unsafe
@@ -173,6 +175,7 @@ recTerm rec =
           _ -> Unsafe.error $ "[Context.recTerm.lambda] impossible: the term " <> show (LambdaTerm termId block meta) <> " has type " <> show alpha
     , neutral:
         \termId argItems meta gamma alpha ->
+          -- Debug.trace ("RecContext.recTerm:neutral" <> "\ntypes: " <> show gamma.types <> "\ntype: " <> show (lookupTyping termId gamma) <> "\nargs: " <> show (fromItem <$> argItems)) \_ ->
           rec.neutral termId argItems meta gamma (lookupTyping termId gamma)
     , hole:
         \meta gamma alpha ->
