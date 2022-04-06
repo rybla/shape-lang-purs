@@ -249,7 +249,9 @@ programComponent this =
       }
 
   makeCommonTypeActions :: forall r. CommonTypeTransformations Poststate r -> Array Action
-  makeCommonTypeActions trans = [] -- { label: Just "enArrow", trigger: Trigger_Click, transformation: trans.enArrow 
+  makeCommonTypeActions trans =
+    [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, transformation: trans.enArrow }
+    ]
 
   renderType :: RecTrans.RecType ReactElements
   renderType =
