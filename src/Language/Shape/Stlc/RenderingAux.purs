@@ -49,6 +49,7 @@ token =
         , lambda_sep: inj _literal " ⇒ "
         , match_head: inj _literal "match "
         , match_sep: inj _literal " with "
+        , holeTerm_head: inj _literal ":" -- TODO: insert space after ":" ?
         -- Case
         , case_head: inj _literal "| "
         , case_sep: inj _literal " ⇒ "

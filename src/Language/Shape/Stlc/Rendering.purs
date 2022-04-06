@@ -284,7 +284,9 @@ programComponent this =
               )
                 { actions = makeCommonTypeActions trans
                 }
-              $ printTypeHoleId holeId metaGamma
+              [ DOM.span [ Props.className "liner" ]
+                  $ printTypeHoleId holeId metaGamma
+              ]
       , proxyHole: -- unsafeCrashWith "renderType.proxyHole: should never render a proxyHole"
           \holeId gamma metaGamma ->
             createNode "proxy hole type" defaultNodeProps
@@ -307,7 +309,9 @@ programComponent this =
       , hole:
           \holeId wkn meta gamma metaGamma ->
             createNode "hole type" defaultNodeProps
-              $ printTypeHoleId holeId metaGamma
+              [ DOM.span [ Props.className "liner" ]
+                  $ printTypeHoleId holeId metaGamma
+              ]
       , proxyHole:
           \holeId gamma metaGamma ->
             createNode "proxy hole type" defaultNodeProps
@@ -363,7 +367,10 @@ programComponent this =
             createNode "hole term"
               (nodePropsFromIxArgs ixArgs)
                 { isIndentable = true }
-              $ printType alpha gamma metaGamma
+              $ concat
+                  [ [ token.holeTerm_head ]
+                  , printType alpha gamma metaGamma
+                  ]
       }
 
   renderArgItems :: RecTrans.RecArgItems ReactElements

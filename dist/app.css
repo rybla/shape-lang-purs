@@ -32,10 +32,18 @@ html {
 
 /* syntax */
 
-.hole {
+.hole.type > .liner {
   color: white;
   background-color: black;
-  border-radius: 10px;
+  border-radius: 8px;
+  padding: 0 4px;
+}
+
+.hole.term {
+  box-shadow: 0 0 0 1px red;
+  border-left: 4px solid red;
+  border-right: 4px solid red;
+  border-radius: 8px;
   padding: 0 4px;
 }
 
@@ -63,7 +71,7 @@ html {
 /* selected */
 
 .selected {
-  background-color: rgb(157, 228, 169);
+  background-color: lightgreen;
 }
 
 /* token */
