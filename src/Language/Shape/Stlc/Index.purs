@@ -33,8 +33,11 @@ instance Semigroup UpwardIndex where
 
 derive newtype instance Semigroup DownwardIndex
 
-instance Show UpwardIndex where show (UpwardIndex steps) = show steps
-instance Show DownwardIndex where show (DownwardIndex steps) = show steps
+instance showUpwardIndex :: Show UpwardIndex where show (UpwardIndex steps) = show steps
+instance showDownwardIndex :: Show DownwardIndex where show (DownwardIndex steps) = show steps
+
+derive instance Generic UpwardIndex _ 
+derive instance Generic DownwardIndex _ 
 
 pushDownwardIndex :: IndexStep -> DownwardIndex -> DownwardIndex
 pushDownwardIndex step (DownwardIndex steps) = DownwardIndex $ Cons step steps

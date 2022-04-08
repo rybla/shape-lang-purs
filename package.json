@@ -9,6 +9,7 @@
   "scripts": {
     "test": "spago test",
     "build": "spago bundle-app --purs-args \"--censor-warnings --stash\" --main Main --to dist/app.js --source-maps",
+    "bundle": "spago bundle-app --purs-args \"--censor-warnings --stash\" --main Main --to dist/app.js --source-maps",
     "serve": "cd dist/; parcel index.html"
   },
   "dependencies": {

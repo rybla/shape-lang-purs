@@ -15,6 +15,7 @@ import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
+import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
 import Debug as Debug
@@ -251,6 +252,7 @@ programComponent this =
   makeCommonTypeActions :: forall r. CommonTypeTransformations Poststate r -> Array Action
   makeCommonTypeActions trans =
     [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, transformation: trans.enArrow }
+    , { label: Just "dig", trigger: Trigger_Keypress { key: "d" }, transformation: trans.dig }
     ]
 
   renderType :: RecTrans.RecType ReactElements
@@ -568,7 +570,7 @@ programComponent this =
                   React.stopPropagation event
                   let
                     ixDw = toDownwardIndex ixUp
-                  Debug.traceM $ "selecting ix: " <> show ixDw
+                  Debug.traceM $ "selecting ix: " <> genericShow ixDw
                   modifyState this \st ->
                     st
                       { ix_cursor = ixDw
