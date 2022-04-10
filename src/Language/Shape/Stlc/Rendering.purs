@@ -13,7 +13,8 @@ import Data.Foldable (sequence_, traverse_)
 import Data.List (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), isJust, maybe)
+import Data.Serialize (decode, encode)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
@@ -70,7 +71,12 @@ programComponent :: ReactThis Props State -> Effect Given
 programComponent this =
   pure
     { state
-    , render: DOM.div' <<< render <$> getState this
+    , render:
+        do
+          st <- getState this
+          Debug.traceM $ "encode st.ix_cursor == " <> encode st.ix_cursor
+          Debug.traceM $ "decode (encode st.ix_cursor) == " <> show (decode (encode st.ix_cursor) :: DownwardIndex)
+          pure $ DOM.div' (render st)
     , componentDidMount:
         do
           Console.log "componentDidMount"
@@ -561,38 +567,22 @@ programComponent this =
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els =
-    [ DOM.span
-        ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
-          , Props.onClick \event -> do
-              case props.ix /\ props.isSelected of
-                -- selectable 
-                Just ixUp /\ Just _ -> do
-                  React.stopPropagation event
-                  let
-                    ixDw = toDownwardIndex ixUp
-                  Debug.traceM $ "selecting ix: " <> genericShow ixDw
-                  modifyState this \st ->
-                    st
-                      { ix_cursor = ixDw
-                      , keyCallbacks_dynamic =
-                        if props.isEditable then
-                          st.keyCallbacks_dynamic -- TODO: edit name 
-                        else
-                          Map.unions $ concat
-                            $ [ if props.isIndentable then [ Map.singleton "Tab" do runToggleIndentedAt ixDw ] else []
-                              , [ Map.fromFoldable
-                                    $ concatMap
-                                        ( \{ label, trigger, transformation } -> case trigger of
-                                            Trigger_Keypress { key } -> [ key /\ runTransformation transformation defaultTransformationInputs ]
-                                            _ -> []
-                                        )
-                                        props.actions
-                                ]
-                              ]
-                      }
-                -- nonselectable
-                _ -> pure unit
-          {-
+    unsafePerformEffect do
+      -- when (props.isSelected == Just true && isJust props.isSelected) case props.ix of
+      --   Just ixUp -> runSelectIx props ixUp
+      --   _ -> pure unit
+      pure
+        [ DOM.span
+            ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
+              , Props.onClick \event -> do
+                  case props.ix /\ props.isSelected of
+                    -- selectable
+                    Just ixUp /\ Just _ -> do
+                      React.stopPropagation event
+                      runSelectIx props ixUp
+                    -- nonselectable
+                    _ -> pure unit
+              {-
           , Props.onClick \event ->
               traverse_
                 ( \{ label, trigger, transformation } ->
@@ -604,10 +594,10 @@ programComponent this =
                 )
                 props.actions
           -}
-          ]
-        )
-        els
-    ]
+              ]
+            )
+            els
+        ]
 
   runTransformation :: Transformation Poststate -> TransformationInputs -> Effect Unit
   runTransformation trans inputs =
@@ -619,6 +609,32 @@ programComponent this =
   runToggleIndentedAt ix = do
     Debug.traceM $ "runToggleIndexAt: ix: " <> show ix
     modifyState this \st -> st { module_ = toModule $ toggleIndentedMetadataAt ix (SyntaxModule st.module_) }
+
+  -- TODO: somehow trigger this from `handleKeyEvent` since after running the transformation, need to set that actions at the newly-selected node 
+  runSelectIx :: NodeProps -> UpwardIndex -> Effect Unit
+  runSelectIx props ixUp = do
+    let
+      ixDw = toDownwardIndex ixUp
+    Debug.traceM $ "selecting ix: " <> genericShow ixDw
+    modifyState this \st ->
+      st
+        { ix_cursor = ixDw
+        , keyCallbacks_dynamic =
+          if props.isEditable then
+            st.keyCallbacks_dynamic -- TODO: edit name 
+          else
+            Map.unions $ concat
+              $ [ if props.isIndentable then [ Map.singleton "Tab" do runToggleIndentedAt ixDw ] else []
+                , [ Map.fromFoldable
+                      $ concatMap
+                          ( \{ label, trigger, transformation } -> case trigger of
+                              Trigger_Keypress { key } -> [ key /\ do runTransformation transformation defaultTransformationInputs ]
+                              _ -> []
+                          )
+                          props.actions
+                  ]
+                ]
+        }
 
 defaultNodeProps :: NodeProps
 defaultNodeProps =

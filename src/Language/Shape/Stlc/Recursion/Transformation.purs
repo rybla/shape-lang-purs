@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Recursion.Transformation where
 
 import Data.Either
+import Language.Shape.Stlc.IndexSyntax
 import Data.Maybe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
@@ -93,6 +94,7 @@ makeModuleTransformation makeTransArgs transInputs st = do
   (module' /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   -- let
   --   module' = subModule holeSub module_
+  Debug.traceM $ "ix': " <> show ix'
   pure st { module_ = module', ix_cursor = ix' }
 
 makeTypeTransformation :: forall st. TypeTransformation -> Transformation st
