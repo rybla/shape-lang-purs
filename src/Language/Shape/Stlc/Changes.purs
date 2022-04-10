@@ -15,8 +15,10 @@ import Data.Map (Map, fromFoldable, insert, lookup, mapMaybeWithKey, toUnfoldabl
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
+import Data.Serialize (class Serialize, decode', encode)
 import Data.Set (Set(..), difference, empty, member)
 import Data.Show.Generic (genericShow)
+import Data.String.Parse (parseStringIn)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug as Debug
@@ -39,6 +41,30 @@ data TypeChange
 derive instance Generic TypeChange _
 instance Show TypeChange where show x = genericShow x
 
+instance Serialize TypeChange where
+  encode (ArrowCh tc1 tc2) = "ArrowCh " <> encode tc1 <> " " <> encode tc2
+  encode NoChange = "NoChange"
+  encode (InsertArg t) = "InsertArg " <> encode t
+  encode Swap = "Swap"
+  encode RemoveArg = "RemoveArg"
+  encode (Dig holeId) = "Dig " <> encode holeId
+
+  decode' s = 
+    let s' /\ k =
+          parseStringIn
+            [ "ArrowCh " /\ \s1 ->
+                let s2 /\ tc1 = decode' s1 in
+                let s3 /\ tc2 = decode' s2 in
+                s3 /\ ArrowCh tc1 tc2
+            , "NoChange" /\ (_ /\ NoChange)
+            , "InsertArg " /\ \s1 -> InsertArg <$> decode' s1
+            , "Swap" /\ (_ /\ Swap)
+            , "RemoveArg" /\ (_ /\ RemoveArg)
+            , "Dig " /\ \s1 -> Dig <$> decode' s1
+            ]
+            s
+    in k s' 
+
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
 
 data ParamChange = InsertParam Parameter | ChangeParam Int TypeChange
@@ -51,6 +77,12 @@ instance Show ConstructorChange where show x = genericShow x
 
 derive instance Generic ParamChange _ 
 instance Show ParamChange where show x = genericShow x 
+
+instance Serialize ConstructorChange where 
+  encode (ChangeConstructor pcs i) = undefined
+  encode (InsertConstructor params) = undefined
+
+  decode' s = undefined
 
 type Changes = {
     termChanges :: Map TermId VarChange,

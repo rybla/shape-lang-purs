@@ -3,10 +3,12 @@ module Language.Shape.Stlc.RenderingTypes where
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Syntax
 import Prelude
+import Data.Tuple.Nested
 import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Effect (Effect)
+import Language.Shape.Stlc.ChangeAtIndex (Change)
 import React (ReactElement)
 import React as React
 import Web.HTML (HTMLElement)
@@ -19,6 +21,7 @@ type Prestate r
   = { module_ :: Module
     , ix_cursor :: DownwardIndex
     -- , environment :: Environment -- TODO
+    , changeHistory :: List (DownwardIndex /\ Change)
     | r
     }
 

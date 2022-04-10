@@ -1,18 +1,26 @@
 module Language.Shape.Stlc.Syntax where
 
+import Data.String
+import Data.String.CodePoints
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
+
 import Data.Array as Array
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.List as List
+import Data.Maybe (Maybe(..))
+import Data.Serialize (class Serialize, decode', encode)
 import Data.Set (Set)
+import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.String as String
+import Data.String.Parse (parseString, parseStringIn, parseStringWhile, parseStringWhile)
 import Data.Tuple (fst)
-import Data.UUID (UUID, genUUID)
+import Data.UUID (UUID)
+import Data.UUID as UUID
 import Effect.Unsafe (unsafePerformEffect)
 import Partial.Unsafe (unsafeCrashWith)
 import Undefined (undefined)
@@ -85,6 +93,68 @@ data TypeId
 data HoleId
   = HoleId UUID
 
+{-
+data Type
+  = ArrowType Parameter Type ArrowTypeMetadata
+  | DataType TypeId DataTypeMetadata
+  | HoleType HoleId TypeWeakening HoleTypeMetadata
+  | ProxyHoleType HoleId
+
+data Parameter
+  = Parameter Type ParameterMetadata
+-}
+
+instance Serialize Type where
+  encode (ArrowType param beta _) = "ArrowType " <> encode param <> " " <> encode beta
+  encode (DataType typeId _) = "DataType " <> encode typeId
+  encode (HoleType holeId _ _) = "HoleType " <> encode holeId
+  encode (ProxyHoleType holeId) = "ProxyHoleType " <> encode holeId
+
+  decode' s = 
+    let s' /\ k =
+          parseStringIn 
+            [ "ArrowType " /\ \s1 ->
+                let s2 /\ param = decode' s1 in 
+                let s3 /\ beta = decode' s2 in 
+                s3 /\ mkArrow param beta
+            , "DataType " /\ \s1 -> mkData <$> decode' s1
+            , "HoleType " /\ \s1 -> flip mkHoleType Set.empty <$> decode' s1 
+            , "HoleProxyType " /\ \s1 -> mkProxyHoleType <$> decode' s1
+            ]
+            s
+    in k s'
+
+instance Serialize Parameter where 
+  encode (Parameter alpha _) = "Parameter " <> encode alpha
+  decode' s =
+    let s1 = parseString "Parameter " s in
+    let s2 /\ alpha = decode' s1 in
+    s2 /\ Parameter alpha defaultParameterMetadata
+
+instance Serialize TypeId where 
+  encode (TypeId uuid) = "TypeId " <> encodeUUID uuid
+  decode' s = 
+    let s1 = parseString "TypeId " s in
+    let s2 /\ uuid = decodeUUID s1 in 
+    s2 /\ TypeId uuid
+
+instance Serialize HoleId where 
+  encode (HoleId uuid) = "HoleId " <> encodeUUID uuid
+  decode' s = 
+    let s1 = parseString "HoleId " s in
+    let s2 /\ uuid = decodeUUID s1 in 
+    s2 /\ HoleId uuid
+
+encodeUUID :: UUID -> String
+encodeUUID uuid = UUID.toString uuid
+
+decodeUUID :: String -> String /\ UUID
+decodeUUID s = 
+  let s1 /\ s2 = parseStringWhile (codePointFromChar ' ' == _) s in
+  case UUID.parseUUID s1 of 
+    Just uuid -> s2 /\ uuid 
+    Nothing -> unsafeCrashWith $ "[error: decodeUUID] could not decode to UUID at '" <> s <> "'"
+
 -- mk
 mkModule defItems = Module defItems defaultModuleMetadata
 
@@ -146,13 +216,13 @@ fromItem = fst
 
 -- Fresh
 freshTermId :: Unit -> TermId
-freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
+freshTermId _ = unsafePerformEffect $ TermId <$> UUID.genUUID
 
 freshTypeId :: Unit -> TypeId
-freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
+freshTypeId _ = unsafePerformEffect $ TypeId <$> UUID.genUUID
 
 freshHoleId :: Unit -> HoleId
-freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
+freshHoleId _ = unsafePerformEffect $ HoleId <$> UUID.genUUID
 
 -- Generic instances
 derive instance genericModule :: Generic Module _

@@ -6,6 +6,7 @@ import Data.String.CodePoints
 import Data.Tuple
 import Data.Tuple.Nested
 import Prelude
+
 import Data.Maybe (Maybe(..), maybe')
 import Data.String as String
 import Debug as Debug
@@ -38,3 +39,15 @@ parseStringIn ps s = case foldl
     ps of
   Just r -> r
   Nothing -> unsafeCrashWith $ "[error:parseStringIn] expected pattern in '" <> show (fst <$> ps) <> "' but found '" <> s <> "'"
+
+parseStringWhile :: (CodePoint -> Boolean) -> String -> (String /\ String)
+parseStringWhile cond s =
+  case String.uncons s of 
+    Just {head, tail} -> 
+      if cond head then 
+        let s1 /\ s2 = parseStringWhile cond tail in
+        (String.singleton head <> s1) /\ s2
+      else
+        "" /\ s
+    Nothing ->
+      "" /\ s

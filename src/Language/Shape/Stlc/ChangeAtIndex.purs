@@ -10,7 +10,9 @@ import Data.Generic.Rep (class Generic)
 import Data.List (List(..), foldl, length, mapWithIndex, singleton, take)
 import Data.List.Unsafe (index', (:))
 import Data.Maybe (Maybe(..))
+import Data.Serialize (class Serialize, decode', encode)
 import Data.Show.Generic (genericShow)
+import Data.String.Parse (parseStringIn)
 import Data.Tuple (Tuple(..))
 import Debug as Debug
 import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
@@ -30,6 +32,20 @@ data Change
 
 derive instance genericChange :: Generic Change _ 
 instance showChange :: Show Change where show x = genericShow x 
+
+instance serializeChange :: Serialize Change where
+  encode (ChangeTypeChange tc) = "Change " <> encode tc 
+  encode (ChangeConstructorChange cc) = "ChangeConstructorChange " <> encode cc
+  encode ChangeNone = "ChangeNone"
+
+  decode' s =
+    let (s' /\ k) = parseStringIn 
+                      [ "Change " /\ \s1 -> ChangeTypeChange <$> decode' s1
+                      , "ChangeConstructorChange " /\ \s1 -> ChangeConstructorChange <$> decode' s1
+                      , "ChangeNone" /\ (_ /\ ChangeNone)
+                      ]
+                      s 
+    in k s'
 
 castChangeTC :: Change -> TypeChange
 castChangeTC = case _ of

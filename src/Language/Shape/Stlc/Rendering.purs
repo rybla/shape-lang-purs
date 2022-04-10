@@ -74,8 +74,8 @@ programComponent this =
     , render:
         do
           st <- getState this
-          Debug.traceM $ "encode st.ix_cursor == " <> encode st.ix_cursor
-          Debug.traceM $ "decode (encode st.ix_cursor) == " <> show (decode (encode st.ix_cursor) :: DownwardIndex)
+          -- Debug.traceM $ "encode st.ix_cursor == " <> encode st.ix_cursor
+          -- Debug.traceM $ "decode (encode st.ix_cursor) == " <> show (decode (encode st.ix_cursor) :: DownwardIndex)
           pure $ DOM.div' (render st)
     , componentDidMount:
         do
@@ -93,6 +93,7 @@ programComponent this =
     , syntax_dragging: Nothing
     , keyCallbacks_static: Map.empty -- TODO
     , keyCallbacks_dynamic: Map.empty
+    , changeHistory: List.Nil
     }
 
   keyboardEventHandler :: Event -> Effect Unit
@@ -618,7 +619,7 @@ programComponent this =
     Debug.traceM $ "selecting ix: " <> genericShow ixDw
     modifyState this \st ->
       st
-        { ix_cursor = ixDw
+        { ix_cursor = DownwardIndex List.Nil -- TODO: how to set to `ixDw` and then update the actions available here?
         , keyCallbacks_dynamic =
           if props.isEditable then
             st.keyCallbacks_dynamic -- TODO: edit name 

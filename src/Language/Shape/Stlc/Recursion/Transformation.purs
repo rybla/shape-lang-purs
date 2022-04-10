@@ -91,11 +91,15 @@ makeModuleTransformation makeTransArgs transInputs st = do
         , "change: " <> show transArgs.change
         , "ix: " <> show transArgs.ix
         ]
+  
+  let changeHistory' = (transArgs.ix /\ transArgs.change) List.: st.changeHistory
+  Debug.traceM $ "=============================================\nchangeHistory"
+  Debug.traceM $ show changeHistory'
+
   (module' /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
-  -- let
-  --   module' = subModule holeSub module_
+  -- TODO: let module' = subModule holeSub module_
   Debug.traceM $ "ix': " <> show ix'
-  pure st { module_ = module', ix_cursor = ix' }
+  pure st { module_ = module', ix_cursor = ix', changeHistory = changeHistory' }
 
 makeTypeTransformation :: forall st. TypeTransformation -> Transformation st
 makeTypeTransformation makeTransArgs =
