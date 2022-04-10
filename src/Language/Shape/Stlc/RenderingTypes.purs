@@ -21,9 +21,11 @@ type Prestate r
   = { module_ :: Module
     , ix_cursor :: DownwardIndex
     -- , environment :: Environment -- TODO
-    , changeHistory :: List (DownwardIndex /\ Change)
+    , changeHistory :: ChangeHistory
     | r
     }
+
+type ChangeHistory = List (Syntax /\ Change /\ DownwardIndex)
 
 type Poststate
   = ( syntax_dragging :: Maybe Syntax

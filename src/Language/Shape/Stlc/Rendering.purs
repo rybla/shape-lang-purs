@@ -14,7 +14,6 @@ import Data.List (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), isJust, maybe)
-import Data.Serialize (decode, encode)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
@@ -74,8 +73,6 @@ programComponent this =
     , render:
         do
           st <- getState this
-          -- Debug.traceM $ "encode st.ix_cursor == " <> encode st.ix_cursor
-          -- Debug.traceM $ "decode (encode st.ix_cursor) == " <> show (decode (encode st.ix_cursor) :: DownwardIndex)
           pure $ DOM.div' (render st)
     , componentDidMount:
         do

@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Metadata where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
@@ -160,9 +161,10 @@ derive instance eqTypeName :: Eq TypeName
 
 derive instance ordTypeName :: Ord TypeName
 
-instance showTypeName :: Show TypeName where
-  show (TypeName (Just label)) = label
-  show (TypeName Nothing) = "_"
+-- instance showTypeName :: Show TypeName where
+--   show (TypeName (Just label)) = label
+--   show (TypeName Nothing) = "_"
+instance showTypeName :: Show TypeName where show x = genericShow x 
 
 readTermName :: String -> TermName
 readTermName str =
@@ -191,9 +193,10 @@ derive instance eqTermName :: Eq TermName
 
 derive instance ordTermName :: Ord TermName
 
-instance showTermName :: Show TermName where
-  show (TermName (Just label)) = label
-  show (TermName Nothing) = "_"
+-- instance showTermName :: Show TermName where
+--   show (TermName (Just label)) = label
+--   show (TermName Nothing) = "_"
+instance showTermName :: Show TermName where show x = genericShow x 
 
 toggle :: forall label row' row. IsSymbol label => Cons label Boolean row' row => Proxy label -> Record row -> Record row
 toggle label = Record.modify label not

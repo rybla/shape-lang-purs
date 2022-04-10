@@ -1,23 +1,28 @@
 module Language.Shape.Stlc.Recursion.Transformation where
 
 import Data.Either
-import Language.Shape.Stlc.IndexSyntax
 import Data.Maybe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.IndexSyntax
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
 import Record
+
 import Control.Monad.State (State, runState)
 import Data.Foldable (foldl)
+import Data.Generic.Rep (class Generic)
+import Data.List.Unsafe (List)
 import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Set as Set
+import Data.Show.Generic (class GenericShow, genericShow)
 import Data.String as String
+import Data.Tuple (Tuple)
 import Debug as Debug
 import Language.Shape.Stlc.ChangeAtIndex (Change(..), chAtModule)
 import Language.Shape.Stlc.Changes (TypeChange(..))
@@ -78,6 +83,9 @@ type TypeTransformation
     , typeChange :: TypeChange
     }
 
+-- genericShowListTuple :: forall a1 rep1 a2 rep2. Generic a1 rep1 => Generic a2 rep2 => GenericShow rep1 => GenericShow rep2 => List (Tuple a1 a2) -> String
+-- genericShowListTuple ls = show $ ((\(a1 /\ a2) -> genericShow a1 /\ genericShow a2) <$> ls)
+
 makeModuleTransformation :: forall st. ModuleTransformation -> Transformation st
 makeModuleTransformation makeTransArgs transInputs st = do
   let
@@ -92,13 +100,12 @@ makeModuleTransformation makeTransArgs transInputs st = do
         , "ix: " <> show transArgs.ix
         ]
   
-  let changeHistory' = (transArgs.ix /\ transArgs.change) List.: st.changeHistory
-  Debug.traceM $ "=============================================\nchangeHistory"
+  let changeHistory' = (transArgs.syntax /\ transArgs.change /\ transArgs.ix) List.: st.changeHistory
+  Debug.traceM $ "===[ changeHistory ] ================================================"
   Debug.traceM $ show changeHistory'
 
   (module' /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   -- TODO: let module' = subModule holeSub module_
-  Debug.traceM $ "ix': " <> show ix'
   pure st { module_ = module', ix_cursor = ix', changeHistory = changeHistory' }
 
 makeTypeTransformation :: forall st. TypeTransformation -> Transformation st

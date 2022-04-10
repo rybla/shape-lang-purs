@@ -1,7 +1,6 @@
 module Language.Shape.Stlc.Index where
 
 import Data.List.Unsafe
-import Data.Serialize
 import Data.Tuple.Nested
 import Prelude
 import Data.Array as Array
@@ -12,7 +11,6 @@ import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..))
 import Data.String as String
-import Data.String.Parse (parseString, parseStringIn)
 import Data.Symbol (class IsSymbol)
 import Data.Unfoldable (replicate)
 import Debug as Debug
@@ -39,26 +37,6 @@ instance showUpwardIndex :: Show UpwardIndex where
 
 instance showDownwardIndex :: Show DownwardIndex where
   show x = genericShow x
-
-instance serializeUpwardIndex :: Serialize UpwardIndex where
-  encode (UpwardIndex steps) = "UpwardIndex " <> String.joinWith "," (toUnfoldable (encode <$> steps))
-  decode' s =
-    let
-      s1 = parseString "UpwardIndex " s
-
-      s2 /\ steps = decodeIndexSteps s1
-    in
-      s2 /\ UpwardIndex steps
-
-instance serializeDownwardIndex :: Serialize DownwardIndex where
-  encode (DownwardIndex steps) = "DownwardIndex " <> String.joinWith "," (toUnfoldable (encode <$> steps))
-  decode' s =
-    let
-      s1 = parseString "DownwardIndex " s
-
-      s2 /\ steps = decodeIndexSteps s1
-    in
-      s2 /\ DownwardIndex steps
 
 derive instance genericUpwardIndex :: Generic UpwardIndex _
 
@@ -142,56 +120,8 @@ derive instance genericStepIndex :: Generic IndexStep _
 instance eqStepIndex :: Eq IndexStep where
   eq ix1 ix2 = genericEq ix1 ix2
 
--- instance showStepIndex :: Show IndexStep where
---   show step = genericShow step
--- TODO: this should work for decoding anyway, right? since encoding uses show also
 instance showStepIndex :: Show IndexStep where
-  show (IndexStep l i) = show l <> "(" <> show i <> ")"
-
-instance serializeIndexStep :: Serialize IndexStep where
-  encode step = show step
-  decode' =
-    parseStringIn
-      $ foldMap
-          ( \label ->
-              (\i -> let step = IndexStep label i in (show step /\ step))
-                <$> Array.range 0 (childrenCount label)
-          )
-      $ [ StepModule
-        , StepBlock
-        , StepTermDefinition
-        , StepDataDefinition
-        , StepConstructor
-        , StepArrowType
-        , StepDataType
-        , StepHoleType
-        , StepLambdaTerm
-        , StepNeutralTerm
-        , StepMatchTerm
-        , StepCase
-        , StepParameter
-        , StepDefinitionItem
-        , StepConstructorItem
-        , StepParameterItem
-        , StepCaseItem
-        , StepArgItem
-        , StepTermIdItem
-        , StepCons
-        , StepNil
-        ]
-
-encodeIndexSteps :: List IndexStep -> String
-encodeIndexSteps steps = String.joinWith "," (show <$> toUnfoldable steps)
-
-decodeIndexSteps :: String -> (String /\ List IndexStep)
-decodeIndexSteps s =
-  if String.null s then
-    ("" /\ Nil)
-  else
-    let
-      steps = decode <$> String.split (Pattern ",") s
-    in
-      "" /\ fromFoldable steps
+  show step = genericShow step
 
 -- i^th element of a cons-list
 fromListIndexToDownwardIndex :: Int -> DownwardIndex

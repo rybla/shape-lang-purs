@@ -265,3 +265,57 @@ module_ =
           ]
       )
       defaultModuleMetadata
+
+test1 :: Module
+test1 =
+  let
+    nat_id /\ nat_name = makeTypeVar "Nat"
+    zero_id /\ zero_name = makeTermVar "0"
+    suc_id /\ suc_name = makeTermVar "suc"
+
+    addNat_id /\ addNat_name = makeTermVar "+"
+    n_name = TermName (Just "n")
+  in
+    mkModule
+      ( fromFoldable
+          [ DataDefinition (TypeBinding nat_id defaultTypeBindingMetadata { name = nat_name })
+              ( fromFoldable
+                  [ Constructor
+                      (TermBinding zero_id defaultTermBindingMetadata { name = zero_name })
+                      Nil
+                      defaultConstructorMetadata
+                      /\ defaultConstructorItemMetadata
+                  , Constructor
+                      (TermBinding suc_id defaultTermBindingMetadata { name = suc_name })
+                      (fromFoldable [ Parameter (DataType nat_id defaultDataTypeMetadata) defaultParameterMetadata { name = n_name } /\ defaultParameterItemMetadata ])
+                      defaultConstructorMetadata
+                      /\ defaultConstructorItemMetadata
+                  ]
+              )
+              defaultDataDefinitionMetadata
+              /\ defaultDefinitionItemMetadata
+          , let
+              m_id /\ m_name = makeTermVar "m"
+
+              m'_id /\ _ = makeTermVar "m'"
+
+              n_id /\ n_name = makeTermVar "n"
+            in
+              mkDefItem -- addNat
+                $ mkTermDef
+                    (mkTermBind addNat_id addNat_name)
+                    (mkArrow (mkParam m_name $ mkData nat_id) $ mkArrow (mkParam n_name $ mkData nat_id) $ mkData nat_id)
+                    ( mkLambda m_id $ mkBlock Nil $ mkLambda n_id $ mkBlock Nil
+                        $ mkMatch nat_id (mkNeutral m_id Nil)
+                        $ fromFoldable
+                            [ mkCaseItem $ mkCase Nil $ mkBlock Nil $ mkNeutral n_id Nil
+                            , mkCaseItem $ mkCase (singleton $ mkTermIdItem m'_id) $ mkBlock Nil
+                                $ mkNeutral suc_id
+                                $ singleton
+                                $ mkArgItem
+                                $ mkNeutral addNat_id
+                                $ fromFoldable [ mkArgItem $ mkNeutral m'_id Nil, mkArgItem $ mkNeutral n_id Nil ]
+                            ]
+                    )
+          ]
+      )

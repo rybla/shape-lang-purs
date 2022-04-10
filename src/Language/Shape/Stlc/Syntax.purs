@@ -12,12 +12,10 @@ import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.List as List
 import Data.Maybe (Maybe(..))
-import Data.Serialize (class Serialize, decode', encode)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.String as String
-import Data.String.Parse (parseString, parseStringIn, parseStringWhile, parseStringWhile)
 import Data.Tuple (fst)
 import Data.UUID (UUID)
 import Data.UUID as UUID
@@ -92,68 +90,6 @@ data TypeId
 
 data HoleId
   = HoleId UUID
-
-{-
-data Type
-  = ArrowType Parameter Type ArrowTypeMetadata
-  | DataType TypeId DataTypeMetadata
-  | HoleType HoleId TypeWeakening HoleTypeMetadata
-  | ProxyHoleType HoleId
-
-data Parameter
-  = Parameter Type ParameterMetadata
--}
-
-instance Serialize Type where
-  encode (ArrowType param beta _) = "ArrowType " <> encode param <> " " <> encode beta
-  encode (DataType typeId _) = "DataType " <> encode typeId
-  encode (HoleType holeId _ _) = "HoleType " <> encode holeId
-  encode (ProxyHoleType holeId) = "ProxyHoleType " <> encode holeId
-
-  decode' s = 
-    let s' /\ k =
-          parseStringIn 
-            [ "ArrowType " /\ \s1 ->
-                let s2 /\ param = decode' s1 in 
-                let s3 /\ beta = decode' s2 in 
-                s3 /\ mkArrow param beta
-            , "DataType " /\ \s1 -> mkData <$> decode' s1
-            , "HoleType " /\ \s1 -> flip mkHoleType Set.empty <$> decode' s1 
-            , "HoleProxyType " /\ \s1 -> mkProxyHoleType <$> decode' s1
-            ]
-            s
-    in k s'
-
-instance Serialize Parameter where 
-  encode (Parameter alpha _) = "Parameter " <> encode alpha
-  decode' s =
-    let s1 = parseString "Parameter " s in
-    let s2 /\ alpha = decode' s1 in
-    s2 /\ Parameter alpha defaultParameterMetadata
-
-instance Serialize TypeId where 
-  encode (TypeId uuid) = "TypeId " <> encodeUUID uuid
-  decode' s = 
-    let s1 = parseString "TypeId " s in
-    let s2 /\ uuid = decodeUUID s1 in 
-    s2 /\ TypeId uuid
-
-instance Serialize HoleId where 
-  encode (HoleId uuid) = "HoleId " <> encodeUUID uuid
-  decode' s = 
-    let s1 = parseString "HoleId " s in
-    let s2 /\ uuid = decodeUUID s1 in 
-    s2 /\ HoleId uuid
-
-encodeUUID :: UUID -> String
-encodeUUID uuid = UUID.toString uuid
-
-decodeUUID :: String -> String /\ UUID
-decodeUUID s = 
-  let s1 /\ s2 = parseStringWhile (codePointFromChar ' ' == _) s in
-  case UUID.parseUUID s1 of 
-    Just uuid -> s2 /\ uuid 
-    Nothing -> unsafeCrashWith $ "[error: decodeUUID] could not decode to UUID at '" <> s <> "'"
 
 -- mk
 mkModule defItems = Module defItems defaultModuleMetadata
@@ -252,67 +188,85 @@ derive instance genericTypeId :: Generic TypeId _
 derive instance genericHoleId :: Generic HoleId _
 
 -- Show instances
-unwords = Array.intercalate " "
+instance showModule :: Show Module where show x = genericShow x
+instance showBlock :: Show Block where show x = genericShow x
+instance showDefinition :: Show Definition where show x = genericShow x
+instance showConstructor :: Show Constructor where show x = genericShow x
+instance showType :: Show Type where show x = genericShow x
+instance showTerm :: Show Term where show x = genericShow x
+instance showCase :: Show Case where show x = genericShow x
+instance showParameter :: Show Parameter where show x = genericShow x
+instance showTypeBinding :: Show TypeBinding where show x = genericShow x
+instance showTermBinding :: Show TermBinding where show x = genericShow x
+instance showTypeId :: Show TypeId where show (TypeId uuid) = "(TypeId " <> showUUID uuid <> ")"
+instance showTermId :: Show TermId where show (TermId uuid) = "(TermId " <> showUUID uuid <> ")"
+instance showHoleId :: Show HoleId where show (HoleId uuid) = "(HoleId " <> showUUID uuid <> ")"
 
-unwordsL = List.intercalate " "
+showUUID :: UUID -> String 
+showUUID uuid = "(fromJust (UUID.parseUUID \"" <> UUID.toString uuid <> "\"))"
 
-instance showModule :: Show Module where
-  show (Module defItems _) = unwords [ "{", List.intercalate "; " (showItem <$> defItems), "}" ]
+-- -- Show instances
+-- unwords = Array.intercalate " "
 
-instance showBlock :: Show Block where
-  show (Block defItems a _) = unwords [ "{", List.intercalate "; " (showItem <$> defItems), "in", show a, "}" ]
+-- unwordsL = List.intercalate " "
 
-instance showDefinition :: Show Definition where
-  show = case _ of
-    TermDefinition termBnd type_ term _ -> unwords [ show termBnd, ":", show type_, "=", show term ]
-    DataDefinition typeBnd constrItems _ -> unwords [ show typeBnd, "::=", "{", unwordsL $ showItem <$> constrItems, "}" ]
+-- instance showModule :: Show Module where
+--   show (Module defItems _) = unwords [ "{", List.intercalate "; " (showItem <$> defItems), "}" ]
 
-instance showConstructor :: Show Constructor where
-  show (Constructor termBnd prmItems _) = unwords [ "|", show termBnd, "of", unwordsL $ showItem <$> prmItems ]
+-- instance showBlock :: Show Block where
+--   show (Block defItems a _) = unwords [ "{", List.intercalate "; " (showItem <$> defItems), "in", show a, "}" ]
 
-instance showType :: Show Type where
-  show = case _ of
-    ArrowType prm beta _ -> unwords [ "(", show prm, "->", show beta, ")" ]
-    DataType typeId _ -> show typeId
-    HoleType holeId wkn _ -> show holeId
-    ProxyHoleType holeId -> "Proxy(" <> show holeId <> ")"
+-- instance showDefinition :: Show Definition where
+--   show = case _ of
+--     TermDefinition termBnd type_ term _ -> unwords [ show termBnd, ":", show type_, "=", show term ]
+--     DataDefinition typeBnd constrItems _ -> unwords [ show typeBnd, "::=", "{", unwordsL $ showItem <$> constrItems, "}" ]
 
-instance showTerm :: Show Term where
-  show = case _ of
-    LambdaTerm termId block _ -> unwords [ "(", show termId, "=>", show block, ")" ]
-    NeutralTerm termId argItems _ -> unwords [ "(", show termId, unwordsL $ showItem <$> argItems ]
-    HoleTerm _ -> "?"
-    MatchTerm typeId term caseItems _ -> unwords [ "(", "match", show term, ":", show typeId, "with", unwordsL $ showItem <$> caseItems, ")" ]
+-- instance showConstructor :: Show Constructor where
+--   show (Constructor termBnd prmItems _) = unwords [ "|", show termBnd, "of", unwordsL $ showItem <$> prmItems ]
 
-instance showCase :: Show Case where
-  show (Case termIdItems block _) = unwords [ "|", unwordsL $ showItem <$> termIdItems, "=>", show block ]
+-- instance showType :: Show Type where
+--   show = case _ of
+--     ArrowType prm beta _ -> unwords [ "(", show prm, "->", show beta, ")" ]
+--     DataType typeId _ -> show typeId
+--     HoleType holeId wkn _ -> show holeId
+--     ProxyHoleType holeId -> "Proxy(" <> show holeId <> ")"
 
-instance showParameter :: Show Parameter where
-  show (Parameter alpha meta) = unwords [ "(", show meta.name, ":", show alpha, ")" ]
+-- instance showTerm :: Show Term where
+--   show = case _ of
+--     LambdaTerm termId block _ -> unwords [ "(", show termId, "=>", show block, ")" ]
+--     NeutralTerm termId argItems _ -> unwords [ "(", show termId, unwordsL $ showItem <$> argItems ]
+--     HoleTerm _ -> "?"
+--     MatchTerm typeId term caseItems _ -> unwords [ "(", "match", show term, ":", show typeId, "with", unwordsL $ showItem <$> caseItems, ")" ]
 
-instance showTypeBinding :: Show TypeBinding where
-  show (TypeBinding typeId meta) = show meta.name
+-- instance showCase :: Show Case where
+--   show (Case termIdItems block _) = unwords [ "|", unwordsL $ showItem <$> termIdItems, "=>", show block ]
 
-instance showTermBinding :: Show TermBinding where
-  show (TermBinding termId meta) = show meta.name
+-- instance showParameter :: Show Parameter where
+--   show (Parameter alpha meta) = unwords [ "(", show meta.name, ":", show alpha, ")" ]
 
-instance showTermId :: Show TermId where
-  show (TermId uuid) = "TermId(" <> showUUID uuid <> ")"
+-- instance showTypeBinding :: Show TypeBinding where
+--   show (TypeBinding typeId meta) = show meta.name
 
-instance showTypeId :: Show TypeId where
-  show (TypeId uuid) = "TypeId(" <> showUUID uuid <> ")"
+-- instance showTermBinding :: Show TermBinding where
+--   show (TermBinding termId meta) = show meta.name
 
-instance showHoleId :: Show HoleId where
-  show (HoleId uuid) = "HoleId(" <> showUUID uuid <> ")"
+-- instance showTermId :: Show TermId where
+--   show (TermId uuid) = "TermId(" <> showUUID uuid <> ")"
 
-showItem = show <<< fst
+-- instance showTypeId :: Show TypeId where
+--   show (TypeId uuid) = "TypeId(" <> showUUID uuid <> ")"
 
-showUUID :: UUID -> String
-showUUID uuid =
-  let
-    s = show uuid
-  in
-    String.take 4 $ String.drop 6 $ String.take (String.length s - 6) $ s
+-- instance showHoleId :: Show HoleId where
+--   show (HoleId uuid) = "HoleId(" <> showUUID uuid <> ")"
+
+-- showItem = show <<< fst
+
+-- showUUID :: UUID -> String
+-- showUUID uuid =
+--   let
+--     s = show uuid
+--   in
+--     String.take 4 $ String.drop 6 $ String.take (String.length s - 6) $ s
 
 -- Eq instances
 derive instance eqModule :: Eq Module
@@ -372,8 +326,7 @@ data Syntax
 
 derive instance genericSyntax :: Generic Syntax _
 
-instance showSyntax :: Show Syntax where
-  show x = genericShow x
+instance showSyntax :: Show Syntax where show x = genericShow x
 
 toModule :: Syntax -> Module
 toModule (SyntaxModule mod) = mod
