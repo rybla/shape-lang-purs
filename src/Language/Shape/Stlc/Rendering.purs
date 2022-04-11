@@ -27,6 +27,7 @@ import Effect.Console as Console
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
+import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
@@ -47,7 +48,7 @@ import Undefined (undefined)
 import Unsafe (fromJust)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (Event, EventType(..), preventDefault)
-import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.Event.EventTarget (addEventListener, eventListener, removeEventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
 import Web.HTML.Window (toEventTarget)
@@ -90,18 +91,18 @@ programComponent this =
     }
   where
   state :: State
-  state =
+  state = 
     { module_: Initial.module_
     , ix_cursor: DownwardIndex List.Nil
     , changeHistory: List.Nil
     , outline_parents: List.Nil
     , syntax_dragging: Nothing
     , actions: []
-    , environment: {
-      metaGamma: Nothing,
-      gamma: Nothing,
-      goal: Nothing
-    }
+    , environment:
+        { metaGamma: Nothing
+        , gamma: Nothing
+        , goal: Nothing
+        }
     }
 
   keyboardEventHandler :: Event -> Effect Unit
@@ -127,48 +128,52 @@ programComponent this =
     pure unit
 
   render :: State -> ReactElements
-  render st = 
-    renderPanel st <>
-    renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
+  render (st) =
+    renderPanel (st)
+      <> renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
 
   renderPanel :: State -> ReactElements
-  renderPanel st = [
-    DOM.div [Props.className "panel"]
-      $ renderEnvironment st <> renderPalette st
-  ]
+  renderPanel st =
+    [ DOM.div [ Props.className "panel" ]
+        $ renderEnvironment st
+        <> renderPalette st
+    ]
 
   renderEnvironment :: State -> ReactElements
-  renderEnvironment st = [
-    DOM.div [Props.className "environment"]
-      $ (case st.environment.gamma /\ st.environment.metaGamma of
-          Just gamma /\ Just metaGamma -> [
-            DOM.div [Props.className "context"] $ concat $
-              -- TODO: ((\(typeId /\ termIds) -> concat [ printTypeId typeId metaGamma]) <$> Map.toUnfoldable gamma.constructors) <>
-              ((\(termId /\ type_) -> concat [printTermId termId metaGamma, [token.termDef_sig_sep], printType type_ gamma metaGamma]) <$> Map.toUnfoldable gamma.types)
-          ]
-          _ -> []) <>
-        (case st.environment.gamma /\ st.environment.metaGamma /\ st.environment.goal of
-          Just gamma /\ Just metaGamma /\ Just type_ -> [
-            DOM.div [Props.className "goal"] $ printType type_ gamma metaGamma
-          ]
-          _ -> [])
-  ]
+  renderEnvironment (st) =
+    [ DOM.div [ Props.className "environment" ]
+        $ ( case st.environment.gamma /\ st.environment.metaGamma of
+              Just gamma /\ Just metaGamma ->
+                [ DOM.div [ Props.className "context" ] $ concat
+                    $ -- TODO: ((\(typeId /\ termIds) -> concat [ printTypeId typeId metaGamma]) <$> Map.toUnfoldable gamma.constructors) <>
+                      ((\(termId /\ type_) -> concat [ printTermId termId metaGamma, [ token.termDef_sig_sep ], printType type_ gamma metaGamma ]) <$> Map.toUnfoldable gamma.types)
+                ]
+              _ -> []
+          )
+        <> ( case st.environment.gamma /\ st.environment.metaGamma /\ st.environment.goal of
+              Just gamma /\ Just metaGamma /\ Just type_ ->
+                [ DOM.div [ Props.className "goal" ] $ printType type_ gamma metaGamma
+                ]
+              _ -> []
+          )
+    ]
 
   renderPalette :: State -> ReactElements
-  renderPalette st = [
-    DOM.div [Props.className "palette"] $
-      concatMap
-        (\{label, trigger, effect} -> 
-          case label of 
-            Just str -> [
-              DOM.button
-                [ Props.className "action"
-                , Props.onClick \event -> effect ]
-                [DOM.text str]
-            ]
-            _ -> [])
-        st.actions
-  ]
+  renderPalette (st) =
+    [ DOM.div [ Props.className "palette" ]
+        $ concatMap
+            ( \{ label, trigger, effect } -> case label of
+                Just str ->
+                  [ DOM.button
+                      [ Props.className "action"
+                      , Props.onClick \event -> effect
+                      ]
+                      [ DOM.text str ]
+                  ]
+                _ -> []
+            )
+            st.actions
+    ]
 
   renderModule :: RecTrans.RecModule ReactElements
   renderModule =
@@ -306,12 +311,6 @@ programComponent this =
             createNode "constructor separator" (nodePropsFromIxArgs ixArgs)
               [ token.constrSep ]
       }
-
-  makeCommonTypeActions :: forall r. CommonTypeTransformations Poststate r -> Array Action
-  makeCommonTypeActions trans =
-    [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, effect: runTransformation trans.enArrow defaultTransformationInputs }
-    , { label: Just "dig", trigger: Trigger_Keypress { key: "d" }, effect: runTransformation trans.dig defaultTransformationInputs }
-    ]
 
   renderType :: RecTrans.RecType ReactElements
   renderType =
@@ -619,79 +618,19 @@ programComponent this =
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els =
-    unsafePerformEffect do
-      -- TODO: can't do this because it causes a re-render
-      -- when (props.isSelected == Just true && isJust props.ix) do
-      --   runSelectIx props (fromJust props.ix)
-      pure
-        [ DOM.span
-            ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
-              , Props.onClick \event -> do
-                  case props.ix /\ props.isSelected of
-                    -- selectable
-                    Just ix /\ Just _ -> do
-                      stopPropagation event
-                      runSelectIx props ix 
-                    -- nonselectable
-                    _ -> pure unit
-              ]
-            )
-            els
-        ]
+    [ DOM.span
+        ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
+          , Props.onClick \event -> do
+              case props.ix /\ props.isSelected of
+                -- selectable
+                Just ix /\ Just _ -> do
+                  stopPropagation event
+                  runSelectIx props ix
+                -- nonselectable
+                _ -> pure unit
+          ]
+        )
+        els
+    ]
 
-  runTransformation :: Transformation Poststate -> TransformationInputs -> Effect Unit
-  runTransformation trans inputs = do
-    Debug.traceM $ "[runTransformation]"
-    modifyState this \st -> case trans inputs st of
-      Just st' -> st'
-      Nothing -> st
 
-  runToggleIndentedAt :: DownwardIndex -> Effect Unit
-  runToggleIndentedAt ix = do
-    Debug.traceM $ "[runToggleIndexAt] ix = " <> show ix
-    modifyState this \st -> st { module_ = toModule $ toggleIndentedMetadataAt ix (SyntaxModule st.module_) }
-
-  -- TODO: somehow trigger this from `handleKeyEvent` since after running the transformation, need to set that actions at the newly-selected node 
-  runSelectIx :: NodeProps -> UpwardIndex -> Effect Unit
-  runSelectIx props ixUp = do
-    Debug.traceM $ "[runSelectIx] ixDw = " <> show (toDownwardIndex ixUp)
-    let
-      ixDw = toDownwardIndex ixUp
-
-      actions =
-        props.actions
-          <> (if props.isIndentable then [ { label: Just "indent", trigger: Trigger_Keypress { key: "Tab" }, effect: runToggleIndentedAt ixDw } ] else [])
-
-    modifyState this \st -> st 
-      { ix_cursor = ixDw 
-      , actions = actions 
-      , environment = {
-          metaGamma: Nothing,
-          gamma: Nothing,
-          goal: Nothing
-        }
-      }
-
-defaultNodeProps :: NodeProps
-defaultNodeProps =
-  { ix: Nothing
-  , isSelected: Nothing
-  , actions: []
-  , isIndentable: false
-  , isEditable: false
-  }
-
-nodePropsFromIxArgs :: forall r. { ix :: UpwardIndex, isSelected :: Boolean | r } -> NodeProps
-nodePropsFromIxArgs { ix, isSelected } = defaultNodeProps { ix = Just ix, isSelected = Just isSelected }
-
-type NodeProps
-  = { ix :: Maybe UpwardIndex
-    , isSelected :: Maybe Boolean
-    , actions :: Array Action
-    , isIndentable :: Boolean
-    , isEditable :: Boolean
-    }
-
--- type Action = 
-unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1
-unsafeSubrecord = unsafeCoerce
