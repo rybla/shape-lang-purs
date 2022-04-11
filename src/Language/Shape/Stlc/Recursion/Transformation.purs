@@ -15,7 +15,7 @@ import Record
 import Control.Monad.State (State, runState)
 import Data.Foldable (foldl)
 import Data.Generic.Rep (class Generic)
-import Data.List.Unsafe (List)
+import Data.List.Unsafe (List(..))
 import Data.List.Unsafe as List
 import Data.Map (Map)
 import Data.Map as Map
@@ -90,15 +90,15 @@ makeModuleTransformation :: forall st. ModuleTransformation -> Transformation st
 makeModuleTransformation makeTransArgs transInputs st = do
   let
     transArgs = makeTransArgs transInputs
-  Debug.traceM
-    $ String.joinWith "\n"
-        [ "transformation"
-        , "module: " <> show st.module_
-        , "gamma: " <> show transArgs.gamma
-        , "syntax: " <> show transArgs.syntax
-        , "change: " <> show transArgs.change
-        , "ix: " <> show transArgs.ix
-        ]
+  -- Debug.traceM
+  --   $ String.joinWith "\n"
+  --       [ "transformation"
+  --       , "module: " <> show st.module_
+  --       , "gamma: " <> show transArgs.gamma
+  --       , "syntax: " <> show transArgs.syntax
+  --       , "change: " <> show transArgs.change
+  --       , "ix: " <> show transArgs.ix
+  --       ]
   
   let changeHistory' = (transArgs.syntax /\ transArgs.change /\ transArgs.ix) List.: st.changeHistory
   Debug.traceM $ "===[ changeHistory ] ================================================"
@@ -106,7 +106,8 @@ makeModuleTransformation makeTransArgs transInputs st = do
 
   (module' /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   -- TODO: let module' = subModule holeSub module_
-  pure st { module_ = module', ix_cursor = ix', changeHistory = changeHistory' }
+  -- pure st { module_ = module', ix_cursor = ix', changeHistory = changeHistory' }
+  pure st { module_ = module', ix_cursor = DownwardIndex Nil, changeHistory = changeHistory' }
 
 makeTypeTransformation :: forall st. TypeTransformation -> Transformation st
 makeTypeTransformation makeTransArgs =

@@ -30,6 +30,23 @@ html {
   display: inline-block;
 }
 
+/* panel */
+
+.panel {}
+
+.palette {
+  position: absolute;
+  right: 0;
+  width: 300px;
+}
+.action {
+  display: block;
+}
+
+.environment {}
+.context {}
+.goal {}
+
 /* syntax */
 
 .hole.type > .liner {

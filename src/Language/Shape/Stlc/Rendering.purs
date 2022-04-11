@@ -7,20 +7,24 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Data.Array (concat, concatMap, elemIndex, fromFoldable, mapWithIndex)
+
+import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
 import Data.List (List(..))
 import Data.List.Unsafe as List
+import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
+import Data.Variant (Variant, inj)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
+import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
@@ -33,11 +37,14 @@ import Language.Shape.Stlc.Typing (emptyContext)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactClass, ReactElement, ReactThis, component, getState, modifyState)
+import React as React
 import React.DOM.Dynamic as DOM
 import React.DOM.Props as Props
-import React.SyntheticEvent as React
+import React.SyntheticEvent (stopPropagation)
 import Record as Record
+import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+import Unsafe (fromJust)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (Event, EventType(..), preventDefault)
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -84,37 +91,84 @@ programComponent this =
   where
   state :: State
   state =
-    { ix_cursor: DownwardIndex List.Nil
-    , module_: Initial.module_
+    { module_: Initial.module_
+    , ix_cursor: DownwardIndex List.Nil
+    , changeHistory: List.Nil
     , outline_parents: List.Nil
     , syntax_dragging: Nothing
-    , keyCallbacks_static: Map.empty -- TODO
-    , keyCallbacks_dynamic: Map.empty
-    , changeHistory: List.Nil
+    , actions: []
+    , environment: {
+      metaGamma: Nothing,
+      gamma: Nothing,
+      goal: Nothing
+    }
     }
 
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
     -- preventDefault event 
-    st <- getState this
-    let
-      key = eventKey event
-    Debug.traceM $ "===[ Key Press: " <> key <> " ] ================================================"
-    Debug.traceM $ "available keypress actions:"
-    Debug.traceM $ "dynamic: " <> show ((fst <$> Map.toUnfoldable st.keyCallbacks_dynamic) :: Array String)
-    Debug.traceM $ "static: " <> show ((fst <$> Map.toUnfoldable st.keyCallbacks_static) :: Array String)
-    case Map.lookup key st.keyCallbacks_dynamic of
-      Just eff -> do
-        preventDefault event
-        eff
-      Nothing -> case Map.lookup key st.keyCallbacks_static of
-        Just eff -> do
-          preventDefault event
-          eff
-        Nothing -> pure unit
+    -- let
+    --   key = eventKey event
+    -- Debug.traceM $ "===[ Key Press: " <> key <> " ] ================================================"
+    -- Debug.traceM $ "action keymap:"
+    -- akm_dynamic <- Ref.read actions_keymap_dynamic
+    -- akm_static <- Ref.read actions_keymap_static
+    -- Debug.traceM $ "dynamic: " <> show ((fst <$> Map.toUnfoldable akm_dynamic) :: Array String)
+    -- Debug.traceM $ "static: " <> show ((fst <$> Map.toUnfoldable akm_static) :: Array String)
+    -- case Map.lookup key akm_dynamic of
+    --   Just a -> do
+    --     preventDefault event
+    --     a.effect
+    --   Nothing -> case Map.lookup key akm_static of
+    --     Just a -> do
+    --       preventDefault event
+    --       a.effect
+    --     Nothing -> pure unit
+    pure unit
 
   render :: State -> ReactElements
-  render st = renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
+  render st = 
+    renderPanel st <>
+    renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
+
+  renderPanel :: State -> ReactElements
+  renderPanel st = [
+    DOM.div [Props.className "panel"]
+      $ renderEnvironment st <> renderPalette st
+  ]
+
+  renderEnvironment :: State -> ReactElements
+  renderEnvironment st = [
+    DOM.div [Props.className "environment"]
+      $ (case st.environment.gamma /\ st.environment.metaGamma of
+          Just gamma /\ Just metaGamma -> [
+            DOM.div [Props.className "context"] $ concat $
+              -- TODO: ((\(typeId /\ termIds) -> concat [ printTypeId typeId metaGamma]) <$> Map.toUnfoldable gamma.constructors) <>
+              ((\(termId /\ type_) -> concat [printTermId termId metaGamma, [token.termDef_sig_sep], printType type_ gamma metaGamma]) <$> Map.toUnfoldable gamma.types)
+          ]
+          _ -> []) <>
+        (case st.environment.gamma /\ st.environment.metaGamma /\ st.environment.goal of
+          Just gamma /\ Just metaGamma /\ Just type_ -> [
+            DOM.div [Props.className "goal"] $ printType type_ gamma metaGamma
+          ]
+          _ -> [])
+  ]
+
+  renderPalette :: State -> ReactElements
+  renderPalette st = [
+    DOM.div [Props.className "palette"] $
+      concatMap
+        (\{label, trigger, effect} -> 
+          case label of 
+            Just str -> [
+              DOM.button
+                [ Props.className "action"
+                , Props.onClick \event -> effect ]
+                [DOM.text str]
+            ]
+            _ -> [])
+        st.actions
+  ]
 
   renderModule :: RecTrans.RecModule ReactElements
   renderModule =
@@ -255,8 +309,8 @@ programComponent this =
 
   makeCommonTypeActions :: forall r. CommonTypeTransformations Poststate r -> Array Action
   makeCommonTypeActions trans =
-    [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, transformation: trans.enArrow }
-    , { label: Just "dig", trigger: Trigger_Keypress { key: "d" }, transformation: trans.dig }
+    [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, effect: runTransformation trans.enArrow defaultTransformationInputs }
+    , { label: Just "dig", trigger: Trigger_Keypress { key: "d" }, effect: runTransformation trans.dig defaultTransformationInputs }
     ]
 
   renderType :: RecTrans.RecType ReactElements
@@ -566,73 +620,57 @@ programComponent this =
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els =
     unsafePerformEffect do
-      -- when (props.isSelected == Just true && isJust props.isSelected) case props.ix of
-      --   Just ixUp -> runSelectIx props ixUp
-      --   _ -> pure unit
+      -- TODO: can't do this because it causes a re-render
+      -- when (props.isSelected == Just true && isJust props.ix) do
+      --   runSelectIx props (fromJust props.ix)
       pure
         [ DOM.span
             ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
               , Props.onClick \event -> do
                   case props.ix /\ props.isSelected of
                     -- selectable
-                    Just ixUp /\ Just _ -> do
-                      React.stopPropagation event
-                      runSelectIx props ixUp
+                    Just ix /\ Just _ -> do
+                      stopPropagation event
+                      runSelectIx props ix 
                     -- nonselectable
                     _ -> pure unit
-              {-
-          , Props.onClick \event ->
-              traverse_
-                ( \{ label, trigger, transformation } ->
-                    when (trigger == Trigger_Click) do
-                      Debug.traceM $ "Action.Click: " <> show label
-                      modifyState this \st -> case transformation defaultTransformationInputs st of
-                        Just st' -> st'
-                        Nothing -> st
-                )
-                props.actions
-          -}
               ]
             )
             els
         ]
 
   runTransformation :: Transformation Poststate -> TransformationInputs -> Effect Unit
-  runTransformation trans inputs =
+  runTransformation trans inputs = do
+    Debug.traceM $ "[runTransformation]"
     modifyState this \st -> case trans inputs st of
       Just st' -> st'
       Nothing -> st
 
   runToggleIndentedAt :: DownwardIndex -> Effect Unit
   runToggleIndentedAt ix = do
-    Debug.traceM $ "runToggleIndexAt: ix: " <> show ix
+    Debug.traceM $ "[runToggleIndexAt] ix = " <> show ix
     modifyState this \st -> st { module_ = toModule $ toggleIndentedMetadataAt ix (SyntaxModule st.module_) }
 
   -- TODO: somehow trigger this from `handleKeyEvent` since after running the transformation, need to set that actions at the newly-selected node 
   runSelectIx :: NodeProps -> UpwardIndex -> Effect Unit
   runSelectIx props ixUp = do
+    Debug.traceM $ "[runSelectIx] ixDw = " <> show (toDownwardIndex ixUp)
     let
       ixDw = toDownwardIndex ixUp
-    Debug.traceM $ "selecting ix: " <> genericShow ixDw
-    modifyState this \st ->
-      st
-        { ix_cursor = DownwardIndex List.Nil -- TODO: how to set to `ixDw` and then update the actions available here?
-        , keyCallbacks_dynamic =
-          if props.isEditable then
-            st.keyCallbacks_dynamic -- TODO: edit name 
-          else
-            Map.unions $ concat
-              $ [ if props.isIndentable then [ Map.singleton "Tab" do runToggleIndentedAt ixDw ] else []
-                , [ Map.fromFoldable
-                      $ concatMap
-                          ( \{ label, trigger, transformation } -> case trigger of
-                              Trigger_Keypress { key } -> [ key /\ do runTransformation transformation defaultTransformationInputs ]
-                              _ -> []
-                          )
-                          props.actions
-                  ]
-                ]
+
+      actions =
+        props.actions
+          <> (if props.isIndentable then [ { label: Just "indent", trigger: Trigger_Keypress { key: "Tab" }, effect: runToggleIndentedAt ixDw } ] else [])
+
+    modifyState this \st -> st 
+      { ix_cursor = ixDw 
+      , actions = actions 
+      , environment = {
+          metaGamma: Nothing,
+          gamma: Nothing,
+          goal: Nothing
         }
+      }
 
 defaultNodeProps :: NodeProps
 defaultNodeProps =
@@ -653,21 +691,6 @@ type NodeProps
     , isIndentable :: Boolean
     , isEditable :: Boolean
     }
-
-type Action
-  = { label :: Maybe String
-    , trigger :: Trigger
-    , transformation :: Transformation Poststate
-    }
-
-data Trigger
-  = Trigger_Drop
-  | Trigger_Keypress { key :: String }
-  | Trigger_Paste
-  | Trigger_Hover
-  | Trigger_Button
-
-derive instance eqTrigger :: Eq Trigger
 
 -- type Action = 
 unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1

@@ -1,14 +1,18 @@
 module Language.Shape.Stlc.RenderingTypes where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Data.Tuple.Nested
+import Prim hiding (Type)
+
 import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Effect (Effect)
 import Language.Shape.Stlc.ChangeAtIndex (Change)
+import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
+import Language.Shape.Stlc.Typing (Context)
 import React (ReactElement)
 import React as React
 import Web.HTML (HTMLElement)
@@ -30,8 +34,12 @@ type ChangeHistory = List (Syntax /\ Change /\ DownwardIndex)
 type Poststate
   = ( syntax_dragging :: Maybe Syntax
     , outline_parents :: List HTMLElement
-    , keyCallbacks_static :: Map String (Effect Unit)
-    , keyCallbacks_dynamic :: Map String (Effect Unit)
+    , actions :: Array Action 
+    , environment :: 
+      { metaGamma :: Maybe MetaContext
+      , gamma :: Maybe Context
+      , goal :: Maybe Type
+      }
     )
 
 type State
@@ -48,3 +56,18 @@ type Environment
 
 type This
   = React.ReactThis Props State
+
+type Action
+  = { label :: Maybe String
+    , trigger :: Trigger
+    , effect :: Effect Unit
+    }
+
+data Trigger
+  = Trigger_Drop
+  | Trigger_Keypress { key :: String }
+  | Trigger_Paste
+  | Trigger_Hover
+  | Trigger_Button
+
+derive instance eqTrigger :: Eq Trigger

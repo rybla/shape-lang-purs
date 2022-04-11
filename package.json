@@ -7,9 +7,9 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "test": "spago test --purs-args \"--censor-warnings --stash\"",
-    "build": "spago bundle-app --purs-args \"--censor-warnings --stash\" --main Main --to dist/app.js --source-maps",
-    "bundle": "spago bundle-app --purs-args \"--censor-warnings --stash\" --main Main --to dist/app.js --source-maps",
+    "test": "spago test --purs-args \"--censor-warnings --stash -g sourcemaps\" --source-maps",
+    "build": "spago bundle-app --purs-args \"--censor-warnings --stash -g sourcemaps\" --main Main --to dist/app.js --source-maps",
+    "bundle": "spago bundle-app --purs-args \"--censor-warnings --stash -g sourcemaps\" --main Main --to dist/app.js --source-maps",
     "serve": "cd dist/; parcel index.html"
   },
   "dependencies": {
