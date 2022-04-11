@@ -5,7 +5,6 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-
 import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
@@ -13,46 +12,46 @@ import Effect (Effect)
 import Language.Shape.Stlc.ChangeAtIndex (Change)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext)
 import Language.Shape.Stlc.Typing (Context)
+import Prim.Row (class Union)
 import React (ReactElement)
 import React as React
+import Unsafe.Coerce (unsafeCoerce)
+import Web.Event.EventTarget (EventListener)
 import Web.HTML (HTMLElement)
+import Record as Record
 
 type Props
   = {}
 
 -- transformations only operate on the prestate
-type Prestate r
+type Prestate
   = { module_ :: Module
     , ix_cursor :: DownwardIndex
-    -- , environment :: Environment -- TODO
     , changeHistory :: ChangeHistory
-    | r
     }
 
-type ChangeHistory = List (Syntax /\ Change /\ DownwardIndex)
+type ChangeHistory
+  = List (Syntax /\ Change /\ DownwardIndex)
 
-type Poststate
-  = ( syntax_dragging :: Maybe Syntax
+type State 
+  ={ module_ :: Module
+    , ix_cursor :: DownwardIndex
+    , changeHistory :: ChangeHistory
+    , syntax_dragging :: Maybe Syntax
     , outline_parents :: List HTMLElement
-    , actions :: Array Action 
-    , environment :: 
-      { metaGamma :: Maybe MetaContext
-      , gamma :: Maybe Context
-      , goal :: Maybe Type
-      }
-    )
-
-type State
-  = Prestate Poststate
+    , actions :: Array ({ label :: Maybe String, trigger :: Trigger, effect :: Effect Unit })
+    , environment ::
+        { metaGamma :: Maybe MetaContext
+        , gamma :: Maybe Context
+        , goal :: Maybe Type
+        }
+  }
 
 type Given
   = { state :: State
     , render :: Effect ReactElement
     , componentDidMount :: Effect Unit
     }
-
-type Environment
-  = {} -- TODO
 
 type This
   = React.ReactThis Props State
@@ -71,3 +70,19 @@ data Trigger
   | Trigger_Button
 
 derive instance eqTrigger :: Eq Trigger
+
+type Actions
+  = Array Action
+
+unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1
+unsafeSubrecord = unsafeCoerce
+
+liftPrestate :: (Prestate -> Prestate) -> State -> State
+liftPrestate f = \st ->
+    f (unsafeSubrecord st)
+        `Record.union`
+          { syntax_dragging: st.syntax_dragging
+          , outline_parents: st.outline_parents
+          , actions: st.actions
+          , environment: st.environment
+          }
