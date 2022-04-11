@@ -14,6 +14,7 @@ import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol)
 import Data.Unfoldable (replicate)
 import Debug as Debug
+import Language.Shape.Stlc.IndexSyntax
 import Language.Shape.Stlc.Metadata as Meta
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row as Row

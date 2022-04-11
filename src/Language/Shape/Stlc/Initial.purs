@@ -17,7 +17,10 @@ makeTermVar :: String -> TermId /\ TermName
 makeTermVar label = freshTermId unit /\ TermName (Just label)
 
 module_ :: Module
-module_ =
+module_ = test1
+
+test1 :: Module
+test1 =
   let
     nat_id /\ nat_name = makeTypeVar "Nat"
 

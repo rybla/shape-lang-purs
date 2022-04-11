@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.IndexCursor where
 
+import Language.Shape.Stlc.IndexSyntax
 import Data.List.Unsafe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
