@@ -18,5 +18,5 @@ import Unsafe (fromJust)
 
 main :: Effect Unit
 main = do
-  ChangeHistory.runChangeHistory $ Map.lookup' "test1" ChangeHistory.changeHistories
+  ChangeHistory.runChangeHistory $ Map.lookup' "testdigfirstnat" ChangeHistory.changeHistories
   pure unit
