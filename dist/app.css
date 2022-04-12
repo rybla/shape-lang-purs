@@ -60,7 +60,7 @@ html {
   box-shadow: 0 0 0 1px red;
   /* border-left: 4px solid red; */
   border-left: 8px solid red;
-  border-right: 8px solid red;
+  /* border-right: 8px solid red; */
   border-radius: 8px;
   padding: 0 4px;
 }
