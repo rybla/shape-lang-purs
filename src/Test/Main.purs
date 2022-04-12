@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Changes
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.List (List(..), (:))
 import Data.Map.Unsafe as Map
 import Data.Set (fromFoldable)
@@ -13,6 +14,7 @@ import Data.UUID as UUID
 import Effect (Effect)
 import Effect.Console (log)
 import Language.Shape.Stlc.RenderingTypes (ChangeHistory)
+import Partial.Unsafe (unsafeCrashWith)
 import Test.ChangeHistory as ChangeHistory
 import Unsafe (fromJust)
 

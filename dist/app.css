@@ -30,6 +30,23 @@ html {
   display: inline-block;
 }
 
+/* panel */
+
+.panel {}
+
+.palette {
+  position: absolute;
+  right: 0;
+  width: 300px;
+}
+.action {
+  display: block;
+}
+
+.environment {}
+.context {}
+.goal {}
+
 /* syntax */
 
 .hole.type > .liner {
@@ -41,16 +58,24 @@ html {
 
 .hole.term {
   box-shadow: 0 0 0 1px red;
-  border-left: 4px solid red;
-  border-right: 4px solid red;
+  /* border-left: 4px solid red; */
+  border-left: 8px solid red;
+  border-right: 8px solid red;
   border-radius: 8px;
   padding: 0 4px;
+}
+
+.hole.term > .token {
+  display: inline-block;
+  /* background-color: red; */
+  padding-right: 2px;
+  margin-left: -13px;
 }
 
 /* name */
 
 .name {
-  box-shadow: 0 -1px 0 0 black inset;
+  /* box-shadow: 0 -1px 0 0 black inset; */
 }
 
 /* separator */

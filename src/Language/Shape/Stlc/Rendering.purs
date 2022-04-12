@@ -7,40 +7,46 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Data.Array (concat, concatMap, elemIndex, fromFoldable, mapWithIndex)
+import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
 import Data.List (List(..))
 import Data.List.Unsafe as List
+import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
+import Data.Variant (Variant, inj)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
+import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
+import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
-import Language.Shape.Stlc.Recursion.Transformation (CommonTypeTransformations, Transformation, TransformationInputs, defaultTransformationInputs)
-import Language.Shape.Stlc.Recursion.Transformation as RecTrans
+import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Typing (emptyContext)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactClass, ReactElement, ReactThis, component, getState, modifyState)
+import React as React
 import React.DOM.Dynamic as DOM
 import React.DOM.Props as Props
-import React.SyntheticEvent as React
+import React.SyntheticEvent (stopPropagation)
 import Record as Record
+import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+import Unsafe (fromJust)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (Event, EventType(..), preventDefault)
-import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.Event.EventTarget (addEventListener, eventListener, removeEventListener)
 import Web.HTML (HTMLElement, window)
 import Web.HTML.HTMLElement (classList)
 import Web.HTML.Window (toEventTarget)
@@ -84,53 +90,103 @@ programComponent this =
   where
   state :: State
   state =
-    { ix_cursor: DownwardIndex List.Nil
-    , module_: Initial.module_
+    { module_: Initial.module_
+    , ix_cursor: DownwardIndex List.Nil
+    , changeHistory: List.Nil
     , outline_parents: List.Nil
     , syntax_dragging: Nothing
-    , keyCallbacks_static: Map.empty -- TODO
-    , keyCallbacks_dynamic: Map.empty
-    , changeHistory: List.Nil
+    , actions: []
+    , actions_keymap: Map.empty
+    , environment:
+        { metaGamma: Nothing
+        , gamma: Nothing
+        , goal: Nothing
+        }
     }
 
   keyboardEventHandler :: Event -> Effect Unit
   keyboardEventHandler event = do
-    -- preventDefault event 
     st <- getState this
     let
       key = eventKey event
-    Debug.traceM $ "===[ Key Press: " <> key <> " ] ================================================"
-    Debug.traceM $ "available keypress actions:"
-    Debug.traceM $ "dynamic: " <> show ((fst <$> Map.toUnfoldable st.keyCallbacks_dynamic) :: Array String)
-    Debug.traceM $ "static: " <> show ((fst <$> Map.toUnfoldable st.keyCallbacks_static) :: Array String)
-    case Map.lookup key st.keyCallbacks_dynamic of
-      Just eff -> do
+    Debug.traceM $ "===[ KeyDown: " <> key <> " ] ================================================"
+    case Map.lookup key st.actions_keymap of
+      Just a -> do
         preventDefault event
-        eff
-      Nothing -> case Map.lookup key st.keyCallbacks_static of
-        Just eff -> do
-          preventDefault event
-          eff
-        Nothing -> pure unit
+        a.effect
+      Nothing -> pure unit
+    pure unit
 
   render :: State -> ReactElements
-  render st = renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
+  render (st) =
+    renderPanel (st)
+      <> renderModule st.module_ emptyContext emptyMetaContext { csr: Just st.ix_cursor, ix: UpwardIndex Nil }
 
-  renderModule :: RecTrans.RecModule ReactElements
+  renderPanel :: State -> ReactElements
+  renderPanel st =
+    [ DOM.div [ Props.className "panel" ]
+        $ renderEnvironment st
+        <> renderPalette st
+    ]
+
+  renderEnvironment :: State -> ReactElements
+  renderEnvironment (st) =
+    [ DOM.div [ Props.className "environment" ]
+        $ ( case st.environment.gamma /\ st.environment.metaGamma of
+              Just gamma /\ Just metaGamma ->
+                [ DOM.div [ Props.className "context" ] $ concat
+                    -- TODO: ((\(typeId /\ termIds) -> concat [ printTypeId typeId metaGamma]) <$> Map.toUnfoldable gamma.constructors) <>
+                    
+                    $ ((\(termId /\ type_) -> concat [ printTermId termId metaGamma, [ token.termDef_sig_sep ], printType type_ gamma metaGamma ]) <$> Map.toUnfoldable gamma.types)
+                ]
+              _ -> []
+          )
+        <> ( case st.environment.gamma /\ st.environment.metaGamma /\ st.environment.goal of
+              Just gamma /\ Just metaGamma /\ Just type_ ->
+                [ DOM.div [ Props.className "goal" ] $ printType type_ gamma metaGamma
+                ]
+              _ -> []
+          )
+    ]
+
+  renderPalette :: State -> ReactElements
+  renderPalette (st) =
+    [ DOM.div [ Props.className "palette" ]
+        $ concatMap
+            ( \{ label, trigger, effect } -> case label of
+                Just str ->
+                  [ DOM.button
+                      [ Props.className "action"
+                      , Props.onClick \event -> effect
+                      ]
+                      [ let
+                          shortcut = case trigger of
+                            Trigger_Keypress { key } -> "[" <> key <> "]"
+                            _ -> ""
+                        in
+                          DOM.text $ shortcut <> " " <> str
+                      ]
+                  ]
+                _ -> []
+            )
+            st.actions
+    ]
+
+  renderModule :: RecIndex.RecModule ReactElements
   renderModule =
-    RecTrans.recModule
+    RecIndex.recModule
       { module_:
-          \defItems meta gamma metaGamma ixArgs trans ->
+          \defItems meta gamma metaGamma ixArgs ->
             createNode "module"
               defaultNodeProps -- (nodePropsFromIxArgs ixArgs)
               $ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
       }
 
-  renderBlock :: RecTrans.RecBlock ReactElements
+  renderBlock :: RecIndex.RecBlock ReactElements
   renderBlock =
-    RecTrans.recBlock
+    RecIndex.recBlock
       { block:
-          \defItems term meta gamma alpha metaGamma ixArgs trans ->
+          \defItems term meta gamma alpha metaGamma ixArgs ->
             createNode "block"
               ((nodePropsFromIxArgs ixArgs) { isIndentable = true })
               $ renderDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems }
@@ -139,11 +195,11 @@ programComponent this =
               <> renderTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term }
       }
 
-  renderDefinitionItems :: RecTrans.RecDefinitionItems ReactElements
+  renderDefinitionItems :: RecIndex.RecDefinitionItems ReactElements
   renderDefinitionItems =
-    RecTrans.recDefinitionItems
+    RecIndex.recDefinitionItems
       { definitionItems:
-          \defItems gamma metaGamma ixArgs transArgs ->
+          \defItems gamma metaGamma ixArgs ->
             createNode "definition items"
               defaultNodeProps
               $ concat
@@ -162,21 +218,21 @@ programComponent this =
                 ]
       }
 
-  renderDefinitionSeparator :: RecTrans.RecDefinitionSeparator ReactElements
+  renderDefinitionSeparator :: RecIndex.RecDefinitionSeparator ReactElements
   renderDefinitionSeparator =
-    RecTrans.recDefinitionSeparator
+    RecIndex.recDefinitionSeparator
       { separator:
-          \ixArgs trans ->
+          \ixArgs ->
             createNode "definition separator"
               (nodePropsFromIxArgs ixArgs)
               [ token.defSep ]
       }
 
-  renderDefinition :: RecTrans.RecDefinition ReactElements
+  renderDefinition :: RecIndex.RecDefinition ReactElements
   renderDefinition =
-    RecTrans.recDefinition
+    RecIndex.recDefinition
       { term:
-          \termBinding type_ term meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
+          \termBinding type_ term meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
             concat
               [ indentation { indented: true } metaGamma_self
               , createNode "term definition"
@@ -196,7 +252,7 @@ programComponent this =
                       ]
               ]
       , data:
-          \typeBinding@(TypeBinding typeId _) constrItems meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
+          \typeBinding@(TypeBinding typeId _) constrItems meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
             concat
               [ indentation { indented: true } metaGamma_self
               , createNode "data definition" (nodePropsFromIxArgs ixArgs)
@@ -221,11 +277,11 @@ programComponent this =
               ]
       }
 
-  renderConstructor :: RecTrans.RecConstructor ReactElements
+  renderConstructor :: RecIndex.RecConstructor ReactElements
   renderConstructor =
-    RecTrans.recConstructor
+    RecIndex.recConstructor
       { constructor:
-          \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_at ixArgs trans ->
+          \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_at ixArgs ->
             createNode "constructor" (nodePropsFromIxArgs ixArgs)
               $ concat
                   [ [ token.constr_head ]
@@ -244,52 +300,38 @@ programComponent this =
                   ]
       }
 
-  renderConstructorSeparator :: RecTrans.RecConstructorSeparator ReactElements
+  renderConstructorSeparator :: RecIndex.RecConstructorSeparator ReactElements
   renderConstructorSeparator =
-    RecTrans.recConstructorSeparator
+    RecIndex.recConstructorSeparator
       { separator:
-          \ixArgs trans ->
+          \ixArgs ->
             createNode "constructor separator" (nodePropsFromIxArgs ixArgs)
               [ token.constrSep ]
       }
 
-  makeCommonTypeActions :: forall r. CommonTypeTransformations Poststate r -> Array Action
-  makeCommonTypeActions trans =
-    [ { label: Just "enArrow", trigger: Trigger_Keypress { key: "l" }, transformation: trans.enArrow }
-    , { label: Just "dig", trigger: Trigger_Keypress { key: "d" }, transformation: trans.dig }
-    ]
-
-  renderType :: RecTrans.RecType ReactElements
+  renderType :: RecIndex.RecType ReactElements
   renderType =
-    RecTrans.recType
+    RecIndex.recType
       { arrow:
-          \param beta meta gamma metaGamma ixArgs trans ->
+          \param beta meta gamma metaGamma ixArgs ->
             createNode "arrow type"
               ( (nodePropsFromIxArgs ixArgs)
-                  { isIndentable = true
-                  , actions = makeCommonTypeActions trans
-                  }
+                  { isIndentable = true }
               )
               $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
       , data:
-          \typeId meta gamma metaGamma ixArgs trans ->
+          \typeId meta gamma metaGamma ixArgs ->
             createNode "data type"
               ( (nodePropsFromIxArgs ixArgs)
-                  { isIndentable = true
-                  , actions = makeCommonTypeActions trans
-                  }
+                  { isIndentable = true }
               )
               $ printTypeId typeId metaGamma
       , hole:
-          \holeId wkn meta gamma metaGamma ixArgs trans ->
+          \holeId wkn meta gamma metaGamma ixArgs ->
             createNode "hole type"
               ( (nodePropsFromIxArgs ixArgs)
-                  { isIndentable = true
-                  , actions = makeCommonTypeActions trans
-                  }
+                  { isIndentable = true }
               )
-                { actions = makeCommonTypeActions trans
-                }
               [ DOM.span [ Props.className "liner" ]
                   $ printTypeHoleId holeId metaGamma
               ]
@@ -324,11 +366,11 @@ programComponent this =
               $ printTypeHoleId holeId metaGamma
       }
 
-  renderTerm :: RecTrans.RecTerm ReactElements
+  renderTerm :: RecIndex.RecTerm ReactElements
   renderTerm =
-    RecTrans.recTerm
+    RecIndex.recTerm
       { lambda:
-          \termId block meta gamma param beta metaGamma ixArgs trans ->
+          \termId block meta gamma param beta metaGamma ixArgs ->
             createNode "lambda term"
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
@@ -340,7 +382,7 @@ programComponent this =
                   , renderBlock block gamma beta metaGamma { ix: ixArgs.ix_block, csr: ixArgs.csr_block }
                   ]
       , neutral:
-          \termId argItems meta gamma alpha metaGamma ixArgs trans ->
+          \termId argItems meta gamma alpha metaGamma ixArgs ->
             createNode "neutral term"
               (nodePropsFromIxArgs ixArgs)
                 { isIndentable = true }
@@ -349,7 +391,7 @@ programComponent this =
                   , renderArgItems argItems gamma alpha metaGamma { ix_parentNeutral: ixArgs.ix, ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                   ]
       , match:
-          \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs trans ->
+          \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs ->
             createNode "match term"
               (nodePropsFromIxArgs ixArgs)
                 { isIndentable = true }
@@ -369,7 +411,7 @@ programComponent this =
                           (fromFoldable caseItems)
                   ]
       , hole:
-          \meta gamma alpha metaGamma ixArgs trans ->
+          \meta gamma alpha metaGamma ixArgs ->
             createNode "hole term"
               (nodePropsFromIxArgs ixArgs)
                 { isIndentable = true }
@@ -379,17 +421,17 @@ programComponent this =
                   ]
       }
 
-  renderArgItems :: RecTrans.RecArgItems ReactElements
+  renderArgItems :: RecIndex.RecArgItems ReactElements
   renderArgItems =
-    RecTrans.recArgItems
+    RecIndex.recArgItems
       { nil:
-          \gamma alpha metaGamma ixArgs trans ->
+          \gamma alpha metaGamma ixArgs ->
             createNode "nil argItems"
               (nodePropsFromIxArgs ixArgs)
               -- []
               [ token.argItems_end ]
       , cons:
-          \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs trans ->
+          \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs ->
             createNode "cons argItems"
               defaultNodeProps
               $ concat
@@ -410,11 +452,11 @@ programComponent this =
                   ]
       }
 
-  renderCase :: RecTrans.RecCase ReactElements
+  renderCase :: RecIndex.RecCase ReactElements
   renderCase =
-    RecTrans.recCase
+    RecIndex.recCase
       { case_:
-          \termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs trans ->
+          \termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs ->
             createNode "case"
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
@@ -437,11 +479,11 @@ programComponent this =
                   ]
       }
 
-  renderParameter_Constructor :: RecTrans.RecParameter ReactElements
+  renderParameter_Constructor :: RecIndex.RecParameter ReactElements
   renderParameter_Constructor =
-    RecTrans.recParameter
+    RecIndex.recParameter
       { parameter:
-          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
+          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
             createNode "parameter"
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
@@ -455,11 +497,11 @@ programComponent this =
                   ]
       }
 
-  renderParameter_Arrow :: RecTrans.RecParameter ReactElements
+  renderParameter_Arrow :: RecIndex.RecParameter ReactElements
   renderParameter_Arrow =
-    RecTrans.recParameter
+    RecIndex.recParameter
       { parameter:
-          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs trans ->
+          \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
             -- createNode "parameter"
             --   (nodePropsFromIxArgs ixArgs)
             --   $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
@@ -486,41 +528,41 @@ programComponent this =
               $ printType alpha gamma metaGamma_children
       }
 
-  renderParameterSeparator :: RecTrans.RecParameterSeparator ReactElements
+  renderParameterSeparator :: RecIndex.RecParameterSeparator ReactElements
   renderParameterSeparator =
-    RecTrans.recParameterSeparator
+    RecIndex.recParameterSeparator
       { separator:
-          \ixArgs trans ->
+          \ixArgs ->
             createNode "parameter separator"
               (nodePropsFromIxArgs ixArgs)
               [ token.paramSep ]
       }
 
-  renderTypeBinding :: RecTrans.RecTypeBinding ReactElements
+  renderTypeBinding :: RecIndex.RecTypeBinding ReactElements
   renderTypeBinding =
-    RecTrans.recTypeBinding
+    RecIndex.recTypeBinding
       { typeBinding:
-          \typeId meta gamma metaGamma ixArgs trans ->
+          \typeId meta gamma metaGamma ixArgs ->
             createNode "typeBinding"
               (nodePropsFromIxArgs ixArgs)
               $ printTypeId typeId metaGamma
       }
 
-  renderTermBinding :: RecTrans.RecTermBinding ReactElements
+  renderTermBinding :: RecIndex.RecTermBinding ReactElements
   renderTermBinding =
-    RecTrans.recTermBinding
+    RecIndex.recTermBinding
       { termBinding:
-          \termId meta gamma metaGamma ixArgs trans ->
+          \termId meta gamma metaGamma ixArgs ->
             createNode "termBinding"
               (nodePropsFromIxArgs ixArgs)
               $ printTermId termId metaGamma
       }
 
-  renderTermId :: RecTrans.RecTermId ReactElements
+  renderTermId :: RecIndex.RecTermId ReactElements
   renderTermId =
-    RecTrans.recTermId
+    RecIndex.recTermId
       { termId:
-          \termId gamma metaGamma ixArgs trans ->
+          \termId gamma metaGamma ixArgs ->
             createNode "termId"
               (nodePropsFromIxArgs ixArgs)
               $ printTermId termId metaGamma
@@ -565,110 +607,17 @@ programComponent this =
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els =
-    unsafePerformEffect do
-      -- when (props.isSelected == Just true && isJust props.isSelected) case props.ix of
-      --   Just ixUp -> runSelectIx props ixUp
-      --   _ -> pure unit
-      pure
-        [ DOM.span
-            ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
-              , Props.onClick \event -> do
-                  case props.ix /\ props.isSelected of
-                    -- selectable
-                    Just ixUp /\ Just _ -> do
-                      React.stopPropagation event
-                      runSelectIx props ixUp
-                    -- nonselectable
-                    _ -> pure unit
-              {-
-          , Props.onClick \event ->
-              traverse_
-                ( \{ label, trigger, transformation } ->
-                    when (trigger == Trigger_Click) do
-                      Debug.traceM $ "Action.Click: " <> show label
-                      modifyState this \st -> case transformation defaultTransformationInputs st of
-                        Just st' -> st'
-                        Nothing -> st
-                )
-                props.actions
-          -}
-              ]
-            )
-            els
-        ]
-
-  runTransformation :: Transformation Poststate -> TransformationInputs -> Effect Unit
-  runTransformation trans inputs =
-    modifyState this \st -> case trans inputs st of
-      Just st' -> st'
-      Nothing -> st
-
-  runToggleIndentedAt :: DownwardIndex -> Effect Unit
-  runToggleIndentedAt ix = do
-    Debug.traceM $ "runToggleIndexAt: ix: " <> show ix
-    modifyState this \st -> st { module_ = toModule $ toggleIndentedMetadataAt ix (SyntaxModule st.module_) }
-
-  -- TODO: somehow trigger this from `handleKeyEvent` since after running the transformation, need to set that actions at the newly-selected node 
-  runSelectIx :: NodeProps -> UpwardIndex -> Effect Unit
-  runSelectIx props ixUp = do
-    let
-      ixDw = toDownwardIndex ixUp
-    Debug.traceM $ "selecting ix: " <> genericShow ixDw
-    modifyState this \st ->
-      st
-        { ix_cursor = DownwardIndex List.Nil -- TODO: how to set to `ixDw` and then update the actions available here?
-        , keyCallbacks_dynamic =
-          if props.isEditable then
-            st.keyCallbacks_dynamic -- TODO: edit name 
-          else
-            Map.unions $ concat
-              $ [ if props.isIndentable then [ Map.singleton "Tab" do runToggleIndentedAt ixDw ] else []
-                , [ Map.fromFoldable
-                      $ concatMap
-                          ( \{ label, trigger, transformation } -> case trigger of
-                              Trigger_Keypress { key } -> [ key /\ do runTransformation transformation defaultTransformationInputs ]
-                              _ -> []
-                          )
-                          props.actions
-                  ]
-                ]
-        }
-
-defaultNodeProps :: NodeProps
-defaultNodeProps =
-  { ix: Nothing
-  , isSelected: Nothing
-  , actions: []
-  , isIndentable: false
-  , isEditable: false
-  }
-
-nodePropsFromIxArgs :: forall r. { ix :: UpwardIndex, isSelected :: Boolean | r } -> NodeProps
-nodePropsFromIxArgs { ix, isSelected } = defaultNodeProps { ix = Just ix, isSelected = Just isSelected }
-
-type NodeProps
-  = { ix :: Maybe UpwardIndex
-    , isSelected :: Maybe Boolean
-    , actions :: Array Action
-    , isIndentable :: Boolean
-    , isEditable :: Boolean
-    }
-
-type Action
-  = { label :: Maybe String
-    , trigger :: Trigger
-    , transformation :: Transformation Poststate
-    }
-
-data Trigger
-  = Trigger_Drop
-  | Trigger_Keypress { key :: String }
-  | Trigger_Paste
-  | Trigger_Hover
-  | Trigger_Button
-
-derive instance eqTrigger :: Eq Trigger
-
--- type Action = 
-unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1
-unsafeSubrecord = unsafeCoerce
+    [ DOM.span
+        ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
+          , Props.onClick \event -> do
+              case props.ix /\ props.isSelected of
+                -- selectable
+                Just _ /\ Just _ -> do
+                  stopPropagation event
+                  runSelectHere props this
+                -- nonselectable
+                _ -> pure unit
+          ]
+        )
+        els
+    ]

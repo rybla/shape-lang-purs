@@ -12,8 +12,7 @@
 dist/app.js.map
 dist/app.js
 dist/dist/
-dist/dist/index.28bc3d09.js.map
-dist/dist/index.28bc3d09.js
+dist/*.js
+dist/*.js.map
 */.DS_Store
 src/App/State.purs
-
