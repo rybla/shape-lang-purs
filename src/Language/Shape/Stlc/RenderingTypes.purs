@@ -23,29 +23,23 @@ import Record as Record
 type Props
   = {}
 
--- transformations only operate on the prestate
-type Prestate
-  = { module_ :: Module
-    , ix_cursor :: DownwardIndex
-    , changeHistory :: ChangeHistory
-    }
-
 type ChangeHistory
   = List (Syntax /\ Change /\ DownwardIndex)
 
-type State 
-  ={ module_ :: Module
+type State
+  = { module_ :: Module
     , ix_cursor :: DownwardIndex
     , changeHistory :: ChangeHistory
     , syntax_dragging :: Maybe Syntax
     , outline_parents :: List HTMLElement
-    , actions :: Array ({ label :: Maybe String, trigger :: Trigger, effect :: Effect Unit })
+    , actions :: Array Action
+    , actions_keymap :: Map String Action
     , environment ::
         { metaGamma :: Maybe MetaContext
         , gamma :: Maybe Context
         , goal :: Maybe Type
         }
-  }
+    }
 
 type Given
   = { state :: State
@@ -74,15 +68,23 @@ derive instance eqTrigger :: Eq Trigger
 type Actions
   = Array Action
 
-unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1
-unsafeSubrecord = unsafeCoerce
-
-liftPrestate :: (Prestate -> Prestate) -> State -> State
-liftPrestate f = \st ->
-    f (unsafeSubrecord st)
-        `Record.union`
-          { syntax_dragging: st.syntax_dragging
-          , outline_parents: st.outline_parents
-          , actions: st.actions
-          , environment: st.environment
-          }
+-- unsafeSubrecord :: forall row1 row2 row3. Union row1 row2 row3 => Record row3 -> Record row1
+-- unsafeSubrecord = unsafeCoerce
+-- liftPrestate :: (Prestate -> Prestate) -> (State -> State)
+-- liftPrestate f st =
+--     f (unsafeSubrecord st)
+--         `Record.union`
+--           { syntax_dragging: st.syntax_dragging
+--           , outline_parents: st.outline_parents
+--           , actions: st.actions
+--           , environment: st.environment
+--           }
+-- liftPrestateM :: forall m. Monad m => (Prestate -> m Prestate) -> (State -> m State)
+-- liftPrestateM f st = do 
+--   pst <- f (unsafeSubrecord st)
+--   pure $ pst `Record.union`
+--     { syntax_dragging: st.syntax_dragging
+--     , outline_parents: st.outline_parents
+--     , actions: st.actions
+--     , environment: st.environment
+--     }

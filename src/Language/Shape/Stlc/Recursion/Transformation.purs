@@ -56,7 +56,7 @@ unimplementedTransformation label = \_ _ -> unsafeCrashWith $ "unimplemented tra
 -- transformations only operate on the prestate
 type Transformation
   = TransformationInputs ->
-    RenderingTypes.Prestate -> Maybe RenderingTypes.Prestate
+    RenderingTypes.State -> Maybe RenderingTypes.State
 
 type TransformationInputs
   = { syntax :: Maybe Syntax
@@ -106,7 +106,7 @@ makeModuleTransformation makeTransArgs transInputs st = do
   (module' /\ ix' /\ holeSub) <- chAtModule st.module_ transArgs.gamma transArgs.syntax transArgs.change transArgs.ix
   -- TODO: let module' = subModule holeSub module_
   -- pure { module_ = module', ix_cursor = DownwardIndex Nil, changeHistory = changeHistory' }
-  pure { module_: module', ix_cursor: ix', changeHistory: changeHistory' }
+  pure st { module_ = module', ix_cursor = ix', changeHistory = changeHistory' }
 
 makeTypeTransformation :: TypeTransformation -> Transformation
 makeTypeTransformation makeTransArgs =
@@ -309,6 +309,7 @@ type RecParameterSeparator a
 type RecParameterSeparator_Separator a
   = Rec.RecParameterSeparator_Separator
       ( { insert :: Transformation
+        , paste :: Transformation
         } ->
         a
       )
@@ -322,7 +323,8 @@ recParameterSeparator rec =
     { separator:
         \ixArgs ->
           rec.separator ixArgs
-            { insert: unimplementedTransformation "ParametereSeparator.insert " }
+            { insert: unimplementedTransformation "ParametereSeparator.insert"
+            , paste: unimplementedTransformation "ParametereSeparator.paste" }
     }
 
 type CommonTypeTransformationsArgs
@@ -412,7 +414,8 @@ recType rec =
     }
 
 type CommonTermTransformations r
-  = { enLambda :: Transformation
+  = { copy :: Transformation 
+    , enLambda :: Transformation
     , dig :: Transformation
     | r
     }
