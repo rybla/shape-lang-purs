@@ -8,9 +8,11 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
+import Data.Hashable (hash)
 import Data.List (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe (Map)
@@ -21,6 +23,7 @@ import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
 import Data.Variant (Variant, inj)
+import Data.Words (getword_4letter)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
@@ -617,13 +620,17 @@ programComponent this =
 
   -- only for HoleType
   printTypeHoleId :: HoleId -> MetaContext -> ReactElements
-  printTypeHoleId holeId metaGamma =
+  printTypeHoleId (HoleId uuid) metaGamma =
     createNode "holeId" defaultNodeProps
-      [ DOM.text $ "?" <> show i ]
+      [ DOM.text $ "?" <> w ]
     where
-    i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
-      Just i -> i
-      Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
+    s = show uuid
+    i = hash s
+    w = getword_4letter i
+    -- where
+    -- i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
+    --   Just i -> i
+    --   Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els = case isSelectable props of

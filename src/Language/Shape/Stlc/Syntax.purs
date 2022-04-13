@@ -251,22 +251,22 @@ showUUID uuid = "(fromJust (UUID.parseUUID \"" <> UUID.toString uuid <> "\"))"
 --   show (TermBinding termId meta) = show meta.name
 
 -- instance showTermId :: Show TermId where
---   show (TermId uuid) = "TermId(" <> showUUID uuid <> ")"
+--   show (TermId uuid) = "TermId(" <> prettyUUID uuid <> ")"
 
 -- instance showTypeId :: Show TypeId where
---   show (TypeId uuid) = "TypeId(" <> showUUID uuid <> ")"
+--   show (TypeId uuid) = "TypeId(" <> prettyUUID uuid <> ")"
 
 -- instance showHoleId :: Show HoleId where
---   show (HoleId uuid) = "HoleId(" <> showUUID uuid <> ")"
+--   show (HoleId uuid) = "HoleId(" <> prettyUUID uuid <> ")"
 
 -- showItem = show <<< fst
 
--- showUUID :: UUID -> String
--- showUUID uuid =
---   let
---     s = show uuid
---   in
---     String.take 4 $ String.drop 6 $ String.take (String.length s - 6) $ s
+prettyUUID :: UUID -> String
+prettyUUID uuid =
+  let
+    s = show uuid
+  in
+    String.take 4 $ String.drop 6 $ String.take (String.length s - 6) $ s
 
 -- Eq instances
 derive instance eqModule :: Eq Module

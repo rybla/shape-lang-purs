@@ -5,8 +5,6 @@ import Data.Maybe
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
-import Effect.Ref (Ref)
-import Effect.Ref as Ref
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
@@ -29,7 +27,6 @@ import Unsafe as Unsafe
 type MetaContext
   = { typeScope :: Scope TypeId TypeName
     , termScope :: Scope TermId TermName
-    , typeHoleIds :: Ref (List HoleId)
     , indentation :: Int
     }
 
@@ -37,7 +34,6 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
-  , typeHoleIds: unsafePerformEffect $ Ref.new Nil
   , indentation: 0
   }
 
@@ -64,7 +60,6 @@ recModule ::
   RecModule a
 recModule rec mod gamma = RecContext.recModule rec mod gamma 
   <<< incrementIndentation
-  <<< Record.set _typeHoleIds (unsafePerformEffect $ Ref.new Nil)
 
 type RecBlock a
   = RecContext.RecBlock (MetaContext -> a)
@@ -215,11 +210,9 @@ recType rec =
     , hole:
         \holeId wkn meta gamma ->
           rec.hole holeId wkn meta gamma
-            <<< registerHoleId holeId
     , proxyHole:
         \holeId gamma ->
           rec.proxyHole holeId gamma
-            <<< registerHoleId holeId
     }
 
 type RecTerm a
@@ -391,6 +384,7 @@ registerDatatype x@(TypeBinding typeId _) constrBnds metaGamma =
   ( foldl (>>>) identity
       [ registerTypeBinding x
       , registerTermBindings constrBnds
+      -- TODO: why did I remove this??
       -- , Record.modify _constructorTermIds $ Map.insert typeId (map (\(TermBinding constrID _) -> constrID) constrBnds)
       ]
       metaGamma
@@ -404,19 +398,19 @@ registerDefinition = case _ of
 registerDefinitions :: List Definition -> MetaContext -> MetaContext
 registerDefinitions def = flip (foldl (flip registerDefinition)) def
 
-registerHoleId :: HoleId -> MetaContext -> MetaContext
-registerHoleId holeId metaGamma =
-  unsafePerformEffect
-    $ do
-        Ref.modify_
-          ( \typeHoleIds ->
-              if elem holeId typeHoleIds then
-                typeHoleIds
-              else
-                Cons holeId typeHoleIds
-          )
-          metaGamma.typeHoleIds
-        pure metaGamma
+-- registerHoleId :: HoleId -> MetaContext -> MetaContext
+-- registerHoleId holeId metaGamma =
+--   unsafePerformEffect
+--     $ do
+--         Ref.modify_
+--           ( \typeHoleIds ->
+--               if elem holeId typeHoleIds then
+--                 typeHoleIds
+--               else
+--                 Cons holeId typeHoleIds
+--           )
+--           metaGamma.typeHoleIds
+--         pure metaGamma
 
 -- typeHoleIds <- Ref.read metaGamma.typeHoleIds
 -- undefined
