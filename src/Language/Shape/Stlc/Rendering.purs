@@ -8,7 +8,6 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
@@ -33,7 +32,7 @@ import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
-import Language.Shape.Stlc.Typing (emptyContext)
+import Language.Shape.Stlc.Typing (emptyContext, flattenArrowType)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactClass, ReactElement, ReactThis, component, getState, modifyState)
@@ -80,15 +79,16 @@ programComponent this =
     , render:
         do
           st <- getState this
-          pure $ DOM.div
-            [ Props.className "editor"
-            , Props.onClick \event -> do
-                -- unselect by clicking outside of the program
-                stopPropagation event
-                React.modifyState this \st -> st { ix_cursor = DownwardIndex Nil }
-                runRefreshSelection this
-             ]
-            (render st)
+          pure
+            $ DOM.div
+                [ Props.className "editor"
+                , Props.onClick \event -> do
+                    -- unselect by clicking outside of the program
+                    stopPropagation event
+                    React.modifyState this \st -> st { ix_cursor = DownwardIndex Nil }
+                    runRefreshSelection this
+                ]
+                (render st)
     , componentDidMount:
         do
           Console.log "componentDidMount"
@@ -437,8 +437,11 @@ programComponent this =
           \gamma alpha metaGamma ixArgs ->
             createNode "nil argItems"
               (nodePropsFromIxArgs ixArgs)
-              -- []
-              [ token.argItems_end ]
+              -- only display token.argItems_end if function is partialy applied
+              let
+                alphas /\ beta = flattenArrowType alpha
+              in
+                if not (List.null alphas) then [ token.argItems_end ] else []
       , cons:
           \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs ->
             createNode "cons argItems"
@@ -456,7 +459,11 @@ programComponent this =
                         NeutralTerm _ _ _ -> paren unit
                         HoleTerm _ -> nonparen unit
                         MatchTerm _ _ _ _ -> paren unit
-                  , if List.null argItems then [ token.space ] else []
+                  , let
+                      alphas /\ beta = flattenArrowType beta
+                    in
+                      -- only display space (before the impending token.argItems_end) if function is partialy applied 
+                      if List.null argItems && not (List.null alphas) then [ token.space ] else []
                   , renderArgItems argItems gamma beta metaGamma { ix_parentNeutral: ixArgs.ix_parentNeutral, ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                   ]
       }
@@ -647,12 +654,12 @@ programComponent this =
                 -- pop self from stack
                 -- if parent on top of stack, then highlight it
                 unhighlight elem
-                elements_highlighted' <- case st.elements_highlighted of 
+                elements_highlighted' <- case st.elements_highlighted of
                   Nil -> unsafeCrashWith "expected there to be a highlighted parent, but there isn't one"
-                  Cons _ Nil -> pure Nil 
+                  Cons _ Nil -> pure Nil
                   Cons _ (Cons elemParent elements_highlighted') -> do
-                      highlight elemParent
-                      pure elements_highlighted'
+                    highlight elemParent
+                    pure elements_highlighted'
                 React.modifyState this \st -> st { elements_highlighted = elements_highlighted' }
             ]
             els
