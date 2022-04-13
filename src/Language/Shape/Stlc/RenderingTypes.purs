@@ -31,7 +31,7 @@ type State
     , ix_cursor :: DownwardIndex
     , changeHistory :: ChangeHistory
     , syntax_dragging :: Maybe Syntax
-    , outline_parents :: List HTMLElement
+    , elements_highlighted :: List HTMLElement
     , actions :: Array Action
     , actions_keymap :: Map String Action
     , environment ::

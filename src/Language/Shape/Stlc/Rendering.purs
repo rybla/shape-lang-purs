@@ -1,15 +1,18 @@
 module Language.Shape.Stlc.Rendering where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
+import Data.Hashable (hash)
 import Data.List (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe (Map)
@@ -20,19 +23,19 @@ import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
 import Data.Variant (Variant, inj)
+import Data.Words (getword_4letter)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Initial as Initial
+import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
-import Language.Shape.Stlc.Recursion.Index as RecIndex
-import Language.Shape.Stlc.Typing (emptyContext)
+import Language.Shape.Stlc.Typing (emptyContext, flattenArrowType)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactClass, ReactElement, ReactThis, component, getState, modifyState)
@@ -79,7 +82,16 @@ programComponent this =
     , render:
         do
           st <- getState this
-          pure $ DOM.div' (render st)
+          pure
+            $ DOM.div
+                [ Props.className "editor"
+                , Props.onClick \event -> do
+                    -- unselect by clicking outside of the program
+                    stopPropagation event
+                    React.modifyState this \st -> st { ix_cursor = DownwardIndex Nil }
+                    runRefreshSelection this
+                ]
+                (render st)
     , componentDidMount:
         do
           Console.log "componentDidMount"
@@ -93,7 +105,7 @@ programComponent this =
     { module_: Initial.module_
     , ix_cursor: DownwardIndex List.Nil
     , changeHistory: List.Nil
-    , outline_parents: List.Nil
+    , elements_highlighted: List.Nil
     , syntax_dragging: Nothing
     , actions: []
     , actions_keymap: Map.empty
@@ -318,7 +330,9 @@ programComponent this =
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
               )
-              $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              -- * infixed version
+              -- $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              $ concat [ [ token.lparen, token.arrow_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
       , data:
           \typeId meta gamma metaGamma ixArgs ->
             createNode "data type"
@@ -428,8 +442,11 @@ programComponent this =
           \gamma alpha metaGamma ixArgs ->
             createNode "nil argItems"
               (nodePropsFromIxArgs ixArgs)
-              -- []
-              [ token.argItems_end ]
+              -- only display token.argItems_end if function is partialy applied
+              let
+                alphas /\ beta = flattenArrowType alpha
+              in
+                if not (List.null alphas) then [ token.argItems_end ] else []
       , cons:
           \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs ->
             createNode "cons argItems"
@@ -447,7 +464,11 @@ programComponent this =
                         NeutralTerm _ _ _ -> paren unit
                         HoleTerm _ -> nonparen unit
                         MatchTerm _ _ _ _ -> paren unit
-                  , if List.null argItems then [ token.space ] else []
+                  , let
+                      alphas /\ beta = flattenArrowType beta
+                    in
+                      -- only display space (before the impending token.argItems_end) if function is partialy applied 
+                      if List.null argItems && not (List.null alphas) then [ token.space ] else []
                   , renderArgItems argItems gamma beta metaGamma { ix_parentNeutral: ixArgs.ix_parentNeutral, ix: ixArgs.ix_argItems, csr: ixArgs.csr_argItems }
                   ]
       }
@@ -502,20 +523,22 @@ programComponent this =
     RecIndex.recParameter
       { parameter:
           \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
-            -- createNode "parameter"
-            --   (nodePropsFromIxArgs ixArgs)
-            --   $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            -- * prefixed and unnamed
             createNode "parameter"
-              ( (nodePropsFromIxArgs ixArgs)
-                  { isIndentable = true }
-              )
-              $ concat
-                  [ [ token.lparen ]
-                  , printTermName meta.name metaGamma_children
-                  , [ token.param_sep ]
-                  , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
-                  , [ token.rparen ]
-                  ]
+              (nodePropsFromIxArgs ixArgs)
+              $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            -- -- * infixed & named
+            -- createNode "parameter"
+            --   ( (nodePropsFromIxArgs ixArgs)
+            --       { isIndentable = true }
+            --   )
+            --   $ concat
+            --       [ [ token.lparen ]
+            --       , printTermName meta.name metaGamma_children
+            --       , [ token.param_sep ]
+            --       , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            --       , [ token.rparen ]
+            --       ]
       }
 
   printParameter :: RecMeta.RecParameter ReactElements
@@ -587,7 +610,7 @@ programComponent this =
     createNode "termName" defaultNodeProps
       $ printName
           (case termName of TermName name -> name)
-          (Map.lookup' termName metaGamma.termScope.shadows)
+          (Map.lookup' termName metaGamma.termScope.shadows - 1) -- TODO: shouldn't need to subtract 1, but for some reason I do for parameters (only place printTermName is used)
 
   printName :: Name -> Int -> ReactElements
   printName name i =
@@ -597,27 +620,64 @@ programComponent this =
 
   -- only for HoleType
   printTypeHoleId :: HoleId -> MetaContext -> ReactElements
-  printTypeHoleId holeId metaGamma =
+  printTypeHoleId (HoleId uuid) metaGamma =
     createNode "holeId" defaultNodeProps
-      [ DOM.text $ "?" <> show i ]
+      [ DOM.text $ "?" <> w ]
     where
-    i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
-      Just i -> i
-      Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
+    s = show uuid
+    i = hash s
+    w = getword_4letter i
+    -- where
+    -- i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
+    --   Just i -> i
+    --   Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
-  createNode label props els =
-    [ DOM.span
-        ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
-          , Props.onClick \event -> do
-              case props.ix /\ props.isSelected of
-                -- selectable
-                Just _ /\ Just _ -> do
-                  stopPropagation event
-                  runSelectHere props this
-                -- nonselectable
-                _ -> pure unit
-          ]
-        )
-        els
-    ]
+  createNode label props els = case isSelectable props of
+    -- selectable
+    Just (ix /\ isSelected) ->
+      let
+        _id = fromUpwardIndexToElementId <$> props.ix
+      in
+        [ DOM.span
+            [ Props.className $ label <> if isSelected then " selected" else ""
+            , Props._id $ fromJust _id
+            , Props.onClick \event -> do
+                stopPropagation event
+                runSelectHere props this
+            , Props.onMouseOver \event -> do
+                stopPropagation event
+                st <- React.getState this
+                elem <- getElementById (fromJust $ _id)
+                -- if parent on top of stack, then unhighlight it
+                case st.elements_highlighted of
+                  Nil -> pure unit
+                  Cons elemParent _ -> unhighlight elemParent
+                -- highlight self
+                highlight elem
+                -- push self to stack
+                React.modifyState this \st -> st { elements_highlighted = Cons elem st.elements_highlighted }
+            , Props.onMouseOut \event -> do
+                stopPropagation event
+                st <- React.getState this
+                elem <- getElementById (fromJust $ _id)
+                -- unhighlight self
+                -- pop self from stack
+                -- if parent on top of stack, then highlight it
+                unhighlight elem
+                elements_highlighted' <- case st.elements_highlighted of
+                  Nil -> unsafeCrashWith "expected there to be a highlighted parent, but there isn't one"
+                  Cons _ Nil -> pure Nil
+                  Cons _ (Cons elemParent elements_highlighted') -> do
+                    highlight elemParent
+                    pure elements_highlighted'
+                React.modifyState this \st -> st { elements_highlighted = elements_highlighted' }
+            ]
+            els
+        ]
+    -- not selectable
+    Nothing ->
+      [ DOM.span
+          [ Props.className $ label ]
+          els
+      ]
