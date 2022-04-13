@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Rendering where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.RenderingAux
@@ -26,12 +27,11 @@ import Effect.Console as Console
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.Actions
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Initial as Initial
+import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
 import Language.Shape.Stlc.Recursion.MetaContext as RecMeta
-import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Typing (emptyContext)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
@@ -93,7 +93,7 @@ programComponent this =
     { module_: Initial.module_
     , ix_cursor: DownwardIndex List.Nil
     , changeHistory: List.Nil
-    , outline_parents: List.Nil
+    , elements_highlighted: List.Nil
     , syntax_dragging: Nothing
     , actions: []
     , actions_keymap: Map.empty
@@ -606,18 +606,51 @@ programComponent this =
       Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
 
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
-  createNode label props els =
-    [ DOM.span
-        ( [ Props.className $ label <> if props.isSelected == Just true then " selected" else ""
-          , Props.onClick \event -> do
-              case props.ix /\ props.isSelected of
-                -- selectable
-                Just _ /\ Just _ -> do
-                  stopPropagation event
-                  runSelectHere props this
-                -- nonselectable
-                _ -> pure unit
-          ]
-        )
-        els
-    ]
+  createNode label props els = case isSelectable props of
+    -- selectable
+    Just (ix /\ isSelected) ->
+      let
+        _id = fromUpwardIndexToElementId <$> props.ix
+      in
+        [ DOM.span
+            [ Props.className $ label <> if isSelected then " selected" else ""
+            , Props._id $ fromJust _id
+            , Props.onClick \event -> do
+                stopPropagation event
+                runSelectHere props this
+            , Props.onMouseOver \event -> do
+                stopPropagation event
+                st <- React.getState this
+                elem <- getElementById (fromJust $ _id)
+                -- if parent on top of stack, then unhighlight it
+                case st.elements_highlighted of
+                  Nil -> pure unit
+                  Cons elemParent _ -> unhighlight elemParent
+                -- highlight self
+                highlight elem
+                -- push self to stack
+                React.modifyState this \st -> st { elements_highlighted = Cons elem st.elements_highlighted }
+            , Props.onMouseOut \event -> do
+                stopPropagation event
+                st <- React.getState this
+                elem <- getElementById (fromJust $ _id)
+                -- unhighlight self
+                -- pop self from stack
+                -- if parent on top of stack, then highlight it
+                unhighlight elem
+                elements_highlighted' <- case st.elements_highlighted of 
+                  Nil -> unsafeCrashWith "expected there to be a highlighted parent, but there isn't one"
+                  Cons _ Nil -> pure Nil 
+                  Cons _ (Cons elemParent elements_highlighted') -> do
+                      highlight elemParent
+                      pure elements_highlighted'
+                React.modifyState this \st -> st { elements_highlighted = elements_highlighted' }
+            ]
+            els
+        ]
+    -- not selectable
+    Nothing ->
+      [ DOM.span
+          [ Props.className $ label ]
+          els
+      ]

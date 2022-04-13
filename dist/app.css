@@ -96,7 +96,15 @@ html {
 /* selected */
 
 .selected {
-  background-color: lightgreen;
+  background-color: lightcoral;
+}
+
+.highlighted {
+  background-color: lightskyblue;
+}
+
+.selected.highlighted {
+  background-color: lightcoral;
 }
 
 /* token */

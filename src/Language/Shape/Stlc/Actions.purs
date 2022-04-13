@@ -7,6 +7,7 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.List.Unsafe (List(..))
 import Data.List.Unsafe as List
 import Data.Map as Map
@@ -22,6 +23,9 @@ import Language.Shape.Stlc.Typing (Context, emptyContext)
 import React (getState, modifyState)
 import Undefined (undefined)
 import Unsafe (fromJust)
+import Web.DOM.DOMTokenList as DOMTokenList
+import Web.HTML (HTMLElement)
+import Web.HTML.HTMLElement (classList)
 
 getActionsInModule :: RecTrans.RecModule (This -> Actions)
 getActionsInModule =
@@ -399,3 +403,20 @@ runAction :: Action -> Effect Unit
 runAction action = do
   Debug.traceM $ "[runAction] label = " <> show (action.label)
   action.effect
+
+isSelectable :: NodeProps -> Maybe (UpwardIndex /\ Boolean)
+isSelectable props = (\ix b -> ix /\ b) <$> props.ix <*> props.isSelected
+
+fromUpwardIndexToElementId :: UpwardIndex -> String 
+fromUpwardIndexToElementId ix = show ix
+
+highlight :: HTMLElement -> Effect Unit 
+highlight elem = do
+  cls <- classList elem 
+  isSelected <- DOMTokenList.contains cls "selected"
+  DOMTokenList.add cls "highlighted"
+
+unhighlight :: HTMLElement -> Effect Unit
+unhighlight elem = do 
+  cls <- classList elem
+  DOMTokenList.remove cls "highlighted"
