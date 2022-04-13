@@ -8,6 +8,7 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
@@ -79,7 +80,15 @@ programComponent this =
     , render:
         do
           st <- getState this
-          pure $ DOM.div' (render st)
+          pure $ DOM.div
+            [ Props.className "editor"
+            , Props.onClick \event -> do
+                -- unselect by clicking outside of the program
+                stopPropagation event
+                React.modifyState this \st -> st { ix_cursor = DownwardIndex Nil }
+                runRefreshSelection this
+             ]
+            (render st)
     , componentDidMount:
         do
           Console.log "componentDidMount"
