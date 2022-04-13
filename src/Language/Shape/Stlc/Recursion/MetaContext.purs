@@ -3,10 +3,10 @@ module Language.Shape.Stlc.Recursion.MetaContext where
 import Data.Foldable
 import Data.Maybe
 import Data.Tuple.Nested
-import Effect.Ref as Ref
-import Effect.Ref (Ref)
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
+import Effect.Ref (Ref)
+import Effect.Ref as Ref
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
@@ -62,8 +62,9 @@ recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
--- recModule rec mod gamma = RecContext.recModule rec mod gamma <<< incrementIndentation
-recModule = RecContext.recModule
+recModule rec mod gamma = RecContext.recModule rec mod gamma 
+  <<< incrementIndentation
+  <<< Record.set _typeHoleIds (unsafePerformEffect $ Ref.new Nil)
 
 type RecBlock a
   = RecContext.RecBlock (MetaContext -> a)

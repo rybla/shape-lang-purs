@@ -587,7 +587,7 @@ programComponent this =
     createNode "termName" defaultNodeProps
       $ printName
           (case termName of TermName name -> name)
-          (Map.lookup' termName metaGamma.termScope.shadows)
+          (Map.lookup' termName metaGamma.termScope.shadows - 1) -- TODO: shouldn't need to subtract 1, but for some reason I do for parameters (only place printTermName is used)
 
   printName :: Name -> Int -> ReactElements
   printName name i =
