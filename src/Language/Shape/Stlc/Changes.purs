@@ -95,7 +95,7 @@ applyTC NoChange t = t
 applyTC (InsertArg a) t = ArrowType (Parameter a defaultParameterMetadata) t defaultArrowTypeMetadata
 applyTC Swap (ArrowType a (ArrowType b c md1) md2) = ArrowType b (ArrowType a c md1) md2
 applyTC RemoveArg (ArrowType a b _) = b
-applyTC (Dig id) t = HoleType (freshHoleId unit) empty defaultHoleTypeMetadata
+applyTC (Dig id) t = HoleType id empty defaultHoleTypeMetadata
 applyTC tc ty = error $ "Shouldn't get ehre. tc is: " <> show tc <> " ty is: " <> show ty
 
 -- TODO: consider just outputting TypeChange, and then use chType : Type -> TypeChange -> Type to actually get the Type.
