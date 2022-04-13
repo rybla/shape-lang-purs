@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..))
 import Debug as Debug
-import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
+import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
 import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
 import Language.Shape.Stlc.Metadata (DefinitionItemMetadata, defaultDefinitionItemMetadata)

@@ -19,8 +19,9 @@ import Data.Set (Set(..), difference, empty, member)
 import Data.Show.Generic (genericShow)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
+import Debug (trace)
 import Debug as Debug
-import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub, subType, unifyType)
+import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub, subType, unifyRestricted, unifyType)
 import Language.Shape.Stlc.Recursion.Context as Rec
 import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, insertTyping, lookupConstructorIds, lookupTyping)
 import Undefined (undefined)
@@ -171,10 +172,14 @@ split s = do a <- get
              lift (put b)
              pure c
 
--- morally, the type input here should not have metadata. But we can just go with it anyway.
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List Definition) HoleSub) Term
-chTerm ctx ty chs (Dig _) t = pure $ HoleTerm defaultHoleTermMetadata
-chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
+chTerm ctx ty chs tc t = trace ("chTermCalled at " <> (show t) <> "\nwith type change " <> (show tc))
+    (\_ -> chTermImpl ctx ty chs tc t)
+
+-- morally, the type input here should not have metadata. But we can just go with it anyway.
+chTermImpl :: Context -> Type -> Changes -> TypeChange -> Term -> State (Tuple (List Definition) HoleSub) Term
+chTermImpl ctx ty chs (Dig _) t = pure $ HoleTerm defaultHoleTermMetadata
+chTermImpl ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm binding block md)
     = do let (Tuple _ change) = chType chs.dataTypeDeletions a
         -- TODO: where to use change? This is indicative of a philosophical issue in how im thinking about this.
         -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
@@ -183,28 +188,28 @@ chTerm ctx (ArrowType (Parameter a _) b _) chs (ArrowCh c1 c2) (LambdaTerm bindi
         -- TODO: TODO TODO TODO TODO TODO TODO TODO TODO
          block' <- liiift $ chBlock (insertTyping binding a ctx) b (varChange chs binding c1) c2 block
          pure $ LambdaTerm binding block' md
-chTerm ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
+chTermImpl ctx (ArrowType (Parameter a _) b _) chs NoChange (LambdaTerm index block md)
     = do let (Tuple a' change) = chType chs.dataTypeDeletions a
          -- TODO TODO TODO TODO: also here and all the other cases with ArrowCh (or really function types at all)
          block' <- liiift $ chBlock (insertTyping index a ctx) b (varChange chs index change) NoChange block
          pure $ LambdaTerm index block' md
-chTerm ctx ty chs (InsertArg a) t =
+chTermImpl ctx ty chs (InsertArg a) t =
     -- do t' <- (chTerm ctx (ArrowType (Parameter a defaultParameterMetadata) ty defaultArrowTypeMetadata) chs NoChange t)
     do t' <- (chTerm ctx ty chs NoChange t)
        pure $ LambdaTerm newBinding (Block Nil t' defaultBlockMetadata) defaultLambdaTermMetadata
     where newBinding = (freshTermId unit)
-chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
+chTermImpl ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swap (LambdaTerm i1 (Block defs (LambdaTerm i2 (Block defs2 t md4) md1) md2) md3) =
     do let (Tuple a' change1) = (chType chs.dataTypeDeletions a)
        let (Tuple b' change2) = (chType chs.dataTypeDeletions b)
        let ctx' = (insertTyping i2 b' (insertTyping i1 a' ctx))
        let chs' = varChange (varChange chs i1 change1) i2 change2
        block <- liiift $ chBlock ctx' c chs' NoChange (Block (defs <> defs2) t md4)
        pure $ LambdaTerm i2 (Block Nil (LambdaTerm i1 block md3) md2) md1
-chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
+chTermImpl ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
       do displacedDefs <- sequence $ map (\(Tuple def _) -> chDefinition ctx (deleteVar chs i) def) defs
          displaceDefs displacedDefs
          chTerm ctx b (deleteVar chs i) NoChange t
-chTerm ctx ty chs ch (NeutralTerm id args md) =
+chTermImpl ctx ty chs ch (NeutralTerm id args md) =
     case lookup id chs.termChanges of
         Just VariableDeletion -> do displaceArgs (lookupTyping id ctx) args
                                     pure $ HoleTerm defaultHoleTermMetadata
@@ -214,16 +219,18 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
     ifChanged varTC = do
         -- Debug.traceM $ "Calling chArgs from an id with type: " <> show (lookup' id ctx.types) <> " and typechange " <> show varTC
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
-        let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
+        let _ = trace ("ch is " <> (show ch) <> " and ch' is " <> (show ch')) (\_ -> 5)
+        let maybeSub = unifyRestricted (applyTC ch ty) (applyTC ch' ty)
         -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that
+        let _ = trace ("resulting sub from that is " <> (show maybeSub)) (\_ -> 5)
         case maybeSub of
             Just holeSub -> do subHoles holeSub
                                pure $ NeutralTerm id args' md
             Nothing -> do displaceDefs (singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) (applyTC ch' ty)
                                                         (NeutralTerm id args' md) defaultTermDefinitionMetadata))
                           pure $ HoleTerm defaultHoleTermMetadata
-chTerm ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
-chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
+chTermImpl ctx ty chs ch (HoleTerm md) = pure $ HoleTerm md
+chTermImpl ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to deal with constructors being changed/added/removed and datatypes being deleted.
     cases' <- case lookup i chs.matchChanges of
         Nothing -> sequence $ (mapWithIndex (\index (cas@(Case ids _ _) /\ md)
             -> do cas' <- chCase2 cas i (index' (lookupConstructorIds i ctx) index) ctx ty chs (emptyParamsChange ids) ch --chCase ctx ty chs (emptyParamsChange ids) ch cas
@@ -236,12 +243,13 @@ chTerm ctx ty chs ch (MatchTerm i t cases md) = do -- TODO, IMPORTANT: Needs to 
     t' <- (chTerm ctx (DataType i defaultDataTypeMetadata) chs NoChange t)
     pure $ MatchTerm i t' cases' md
 -- TODO: does this last case ever actually happen? I don't think it should.
-chTerm ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
-    = let (Tuple ty' change) = chType chs.dataTypeDeletions ty in
-    do
-    t' <- chTerm ctx ty chs change t -- is passing in ty correct? the type input to chTerm is the type of the term that is inputted?
-    _ <- displaceDefs $ singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) ty' t' defaultTermDefinitionMetadata)
-    pure $ HoleTerm defaultHoleTermMetadata
+chTermImpl ctx ty chs _ t -- anything that doesn't fit a pattern just goes into a hole
+    = error "I dont think that this should happen"
+    -- let (Tuple ty' change) = chType chs.dataTypeDeletions ty in
+    -- do
+    -- t' <- chTerm ctx ty chs change t -- is passing in ty correct? the type input to chTerm is the type of the term that is inputted?
+    -- _ <- displaceDefs $ singleton (TermDefinition (TermBinding (freshTermId unit) defaultTermBindingMetadata) ty' t' defaultTermDefinitionMetadata)
+    -- pure $ HoleTerm defaultHoleTermMetadata
 
 freshCase :: forall a . List a -> CaseItem
 freshCase params = Tuple (Case
@@ -326,6 +334,7 @@ chsToArrowCh (Cons ch chs) = ArrowCh ch (chsToArrowCh chs)
 -- morally, shouldn't have the (List Definition) in the state of chBlock, as it always outputs the empty list.
 chBlock :: Context -> Type -> Changes -> TypeChange -> Block -> State HoleSub Block
 chBlock ctx ty chs ch (Block defs t md) = do
+    let _ = trace ("calling chBlock with tc " <> (show ch)) (\_ -> 5) 
     let ctx' = addDefinitionsToContext (map fst defs) ctx
     let termDefs = mapMaybe (case _ of TermDefinition id ty te md /\ _ -> Just (Tuple id ty)
                                        DataDefinition id ctrs md /\ _ -> Nothing) defs
@@ -391,7 +400,7 @@ chArgs ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swa
     arg2' <- chTerm ctx b chs NoChange arg2
     (Tuple rest chOut) <- chArgs ctx c chs NoChange args
     pure $ Tuple (Cons (Tuple arg2' md2) (Cons (Tuple arg1' md1) rest)) chOut -- chOut = NoChange alwyas
--- chArgs ctx a chs NoChange Nil = pure $ Tuple Nil NoChange
+chArgs ctx a chs ch Nil = pure $ Tuple Nil ch -- TODO: was there a reason that I wanted this to return only NoChange? Kind of defeats the point of using the result of chArgs in NeutralTerm case of chTerm!
 chArgs ctx a chs ch Nil = if isNoChange ch then pure $ Tuple Nil ch else error "shoudln't get here 2"
 chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (Cons (Tuple arg md) args) = do
     arg' <- chTerm ctx a chs NoChange arg
