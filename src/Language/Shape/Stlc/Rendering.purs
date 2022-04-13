@@ -327,7 +327,9 @@ programComponent this =
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
               )
-              $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              -- * infixed version
+              -- $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              $ concat [ [ token.lparen, token.arrow_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
       , data:
           \typeId meta gamma metaGamma ixArgs ->
             createNode "data type"
@@ -518,20 +520,22 @@ programComponent this =
     RecIndex.recParameter
       { parameter:
           \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
-            -- createNode "parameter"
-            --   (nodePropsFromIxArgs ixArgs)
-            --   $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            -- * prefixed and unnamed
             createNode "parameter"
-              ( (nodePropsFromIxArgs ixArgs)
-                  { isIndentable = true }
-              )
-              $ concat
-                  [ [ token.lparen ]
-                  , printTermName meta.name metaGamma_children
-                  , [ token.param_sep ]
-                  , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
-                  , [ token.rparen ]
-                  ]
+              (nodePropsFromIxArgs ixArgs)
+              $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            -- -- * infixed & named
+            -- createNode "parameter"
+            --   ( (nodePropsFromIxArgs ixArgs)
+            --       { isIndentable = true }
+            --   )
+            --   $ concat
+            --       [ [ token.lparen ]
+            --       , printTermName meta.name metaGamma_children
+            --       , [ token.param_sep ]
+            --       , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+            --       , [ token.rparen ]
+            --       ]
       }
 
   printParameter :: RecMeta.RecParameter ReactElements
