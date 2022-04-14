@@ -200,10 +200,10 @@ chTerm ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swa
        let chs' = varChange (varChange chs i1 change1) i2 change2
        block <- liiift $ chBlock ctx' c chs' NoChange (Block (defs <> defs2) t md4)
        pure $ LambdaTerm i2 (Block Nil (LambdaTerm i1 block md3) md2) md1
-chTerm ctx (ArrowType a b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
+chTerm ctx (ArrowType (Parameter a _) b _ ) chs RemoveArg (LambdaTerm i (Block defs t md) _) =
       do displacedDefs <- sequence $ map (\(Tuple def _) -> chDefinition ctx (deleteVar chs i) def) defs
          displaceDefs displacedDefs
-         chTerm ctx b (deleteVar chs i) NoChange t
+         chTerm (insertTyping i a ctx) b (deleteVar chs i) NoChange t
 chTerm ctx ty chs ch (NeutralTerm id args md) =
     case lookup id chs.termChanges of
         Just VariableDeletion -> do displaceArgs (lookupTyping id ctx) args

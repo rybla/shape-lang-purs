@@ -11,10 +11,10 @@ import Data.Set as Set
 import Effect (Effect)
 
 makeTypeVar :: String -> TypeId /\ TypeName
-makeTypeVar label = freshTypeId unit /\ TypeName (Just label)
+makeTypeVar label = freshTypeId unit /\ TypeName label
 
 makeTermVar :: String -> TermId /\ TermName
-makeTermVar label = freshTermId unit /\ TermName (Just label)
+makeTermVar label = freshTermId unit /\ TermName label
 
 module_ :: Module
 module_ = test1

@@ -330,9 +330,10 @@ programComponent this =
               ( (nodePropsFromIxArgs ixArgs)
                   { isIndentable = true }
               )
-              -- * infixed version
-              -- $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
-              $ concat [ [ token.lparen, token.arrow_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
+              -- * infixed
+              $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_infix_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
+              -- * prefixed
+              -- $ concat [ [ token.lparen, token.arrow_infix_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_prefix_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
       , data:
           \typeId meta gamma metaGamma ixArgs ->
             createNode "data type"
@@ -363,7 +364,7 @@ programComponent this =
             createNode "arrow type"
               defaultNodeProps
                 { isIndentable = true }
-              $ concat [ printParameter param gamma metaGamma, [ token.arrow_sep ], printType beta gamma metaGamma ]
+              $ concat [ printParameter param gamma metaGamma, [ token.arrow_infix_sep ], printType beta gamma metaGamma ]
       , data:
           \typeId meta gamma metaGamma ->
             createNode "data type" defaultNodeProps
@@ -612,21 +613,24 @@ programComponent this =
           (case termName of TermName name -> name)
           (Map.lookup' termName metaGamma.termScope.shadows - 1) -- TODO: shouldn't need to subtract 1, but for some reason I do for parameters (only place printTermName is used)
 
-  printName :: Name -> Int -> ReactElements
+  printName :: String -> Int -> ReactElements
   printName name i =
     createNode "name" defaultNodeProps
-      $ [ DOM.span [ Props.className "base" ] [ DOM.text $ maybe "~" identity name ] ]
+      $ [ DOM.span [ Props.className "base" ] [ DOM.text name ] ]
       <> if i > 0 then [ DOM.span [ Props.className "shadow" ] [ DOM.text (show i) ] ] else []
 
   -- only for HoleType
   printTypeHoleId :: HoleId -> MetaContext -> ReactElements
-  printTypeHoleId (HoleId uuid) metaGamma =
+  printTypeHoleId holeId@(HoleId uuid) metaGamma =
     createNode "holeId" defaultNodeProps
-      [ DOM.text $ "?" <> w ]
+      [ DOM.text $ "?" <> show i ]
     where
-    s = show uuid
-    i = hash s
-    w = getword_4letter i
+    i = 0
+    -- i = List.elemIndex holeId (Set.toUnfoldable metaGamma.holes :: List HoleId) 
+    -- where
+    -- s = show uuid
+    -- i = hash s
+    -- w = getword_4letter i
     -- where
     -- i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
     --   Just i -> i

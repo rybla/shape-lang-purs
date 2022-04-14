@@ -346,7 +346,7 @@ makeCommonTypeTransformations r commonArgs =
         let
           hole = mkHoleType (freshHoleId unit) Set.empty
 
-          termName = TermName Nothing
+          termName = defaultTermName
         in
           makeTypeTransformation \transInputs ->
             union
