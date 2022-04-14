@@ -5,7 +5,6 @@
   , "debug"
   , "effect"
   , "either"
-  , ""
   , "foldable-traversable"
   , "homogeneous"
   , "lists"

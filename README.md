@@ -39,6 +39,12 @@ Build the purescript `spago` project via:
 npm run build
 ```
 
+To use sourcemaps, first set the environment variable
+```
+export NODE_OPTIONS=--enable-source-maps
+```
+or whatever windows uses for environment variable syntax.
+
 ### Serving
 
 Serve the app via `parcel` using:
