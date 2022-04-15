@@ -8,7 +8,6 @@ import Language.Shape.Stlc.RenderingAux
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.Array (concat, concatMap, elemIndex, filter, fromFoldable, mapWithIndex)
 import Data.Array.Unsafe as Array
 import Data.Foldable (sequence_, traverse_)
@@ -18,8 +17,11 @@ import Data.List.Unsafe as List
 import Data.Map.Unsafe (Map)
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), isJust, maybe)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
+import Data.String (Pattern(..))
+import Data.String as String
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
 import Data.Variant (Variant, inj)
@@ -31,6 +33,7 @@ import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
+import Language.Shape.Stlc.IndexSyntax (lookupSyntaxAt, modifySyntaxAt)
 import Language.Shape.Stlc.Initial as Initial
 import Language.Shape.Stlc.Recursion.Index as RecIndex
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
@@ -126,8 +129,24 @@ programComponent this =
       Just a -> do
         preventDefault event
         a.effect
-      Nothing -> pure unit
-    pure unit
+      Nothing -> do 
+        if key `Array.elem` [ "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown" ] then do
+          preventDefault event
+          pure unit
+        else do 
+          modifyState this \st ->
+            st
+              { module_ =
+                toModule
+                  $ modifySyntaxAt
+                      st.ix_cursor
+                      ( case _ of
+                          SyntaxTypeBinding (TypeBinding typeId meta) -> SyntaxTypeBinding (TypeBinding typeId meta { name = wrap (updateNameViaKey key (unwrap meta.name)) })
+                          SyntaxTermBinding (TermBinding termId meta) -> SyntaxTermBinding (TermBinding termId meta { name = wrap (updateNameViaKey key (unwrap meta.name)) })
+                          syn -> syn
+                      )
+                      (SyntaxModule st.module_)
+              }
 
   render :: State -> ReactElements
   render (st) =
@@ -331,9 +350,14 @@ programComponent this =
                   { isIndentable = true }
               )
               -- * infixed
-              $ concat [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_infix_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type } ]
-              -- * prefixed
-              -- $ concat [ [ token.lparen, token.arrow_infix_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_prefix_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
+              
+              $ concat
+                  [ renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }
+                  , [ token.arrow_infix_sep ]
+                  , renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+                  ]
+      -- * prefixed
+      -- $ concat [ [ token.lparen, token.arrow_infix_head ], renderParameter_Arrow param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param }, [ token.arrow_prefix_sep ], renderType beta gamma metaGamma { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
       , data:
           \typeId meta gamma metaGamma ixArgs ->
             createNode "data type"
@@ -530,20 +554,21 @@ programComponent this =
           \alpha meta gamma { metaGamma_self, metaGamma_children } ixArgs ->
             -- * prefixed and unnamed
             createNode "parameter"
-              (nodePropsFromIxArgs ixArgs)
-              $ renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
-            -- -- * infixed & named
-            -- createNode "parameter"
-            --   ( (nodePropsFromIxArgs ixArgs)
-            --       { isIndentable = true }
-            --   )
-            --   $ concat
-            --       [ [ token.lparen ]
-            --       , printTermName meta.name metaGamma_children
-            --       , [ token.param_sep ]
-            --       , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
-            --       , [ token.rparen ]
-            --       ]
+              (nodePropsFromIxArgs ixArgs) case alpha of
+              ArrowType _ _ _ -> concat [ [ token.lparen ], renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }, [ token.rparen ] ]
+              _ -> renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+      -- -- * infixed & named
+      -- createNode "parameter"
+      --   ( (nodePropsFromIxArgs ixArgs)
+      --       { isIndentable = true }
+      --   )
+      --   $ concat
+      --       [ [ token.lparen ]
+      --       , printTermName meta.name metaGamma_children
+      --       , [ token.param_sep ]
+      --       , renderType alpha gamma metaGamma_children { ix: ixArgs.ix_type, csr: ixArgs.csr_type }
+      --       , [ token.rparen ]
+      --       ]
       }
 
   printParameter :: RecMeta.RecParameter ReactElements
@@ -630,15 +655,15 @@ programComponent this =
       [ DOM.text $ "?" <> show i ]
     where
     i = (List.length metaGamma.holes - 1) - (fromJust $ List.elemIndex holeId metaGamma.holes)
-    -- where
-    -- s = show uuid
-    -- i = hash s
-    -- w = getword_4letter i
-    -- where
-    -- i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
-    --   Just i -> i
-    --   Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
 
+  -- where
+  -- s = show uuid
+  -- i = hash s
+  -- w = getword_4letter i
+  -- where
+  -- i = case List.elemIndex holeId (unsafePerformEffect $ Ref.read metaGamma.typeHoleIds) of
+  --   Just i -> i
+  --   Nothing -> unsafeCrashWith $ "printTypeHoleId: holeId was not registered: " <> show holeId
   createNode :: String -> NodeProps -> ReactElements -> ReactElements
   createNode label props els = case isSelectable props of
     -- selectable
@@ -688,3 +713,16 @@ programComponent this =
           [ Props.className $ label ]
           els
       ]
+
+updateNameViaKey :: String -> String -> String
+updateNameViaKey key name =
+  if key `Array.elem` label_keys then
+    name <> key
+  else if key == "Backspace" then
+    String.take (String.length name - 1) name
+  else
+    name
+
+-- keys that are allowed in labels (names of types and terms)
+label_keys :: Array String
+label_keys = String.split (Pattern " ") "a b c d e f g h i j k l m n o p q r s t u v w x y z ! @ # $ % ^ & * ( ) _ + { } : \" < > ? 1 2 3 4 5 6 7 8 9 0 - = [ ] ; ' . , /"

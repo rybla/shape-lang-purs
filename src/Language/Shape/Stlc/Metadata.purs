@@ -5,6 +5,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 import Data.String (codePointFromChar)
 import Data.String as String
@@ -153,6 +154,9 @@ newtype TermName
 
 defaultTypeName = TypeName "_" :: TypeName 
 defaultTermName = TermName "_" :: TermName
+
+derive instance newtypeTypeName :: Newtype TypeName _ 
+derive instance newtypeTermName :: Newtype TermName _
 
 -- instances for TypeName
 derive instance genericTypeNam :: Generic TypeName _
