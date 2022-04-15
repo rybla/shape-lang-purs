@@ -104,9 +104,27 @@ html {
 
 .selected {
   background-color: lightcoral;
+  box-shadow: none;
   /* border-left: 4px solid black; */
-  box-shadow: -4px 0 0 0 black;
+  /* box-shadow: -4px 0 0 0 black; */
 }
+
+.selected {
+  animation: blink-animation 1s steps(2, start) infinite;
+}
+
+@keyframes blink-animation {
+  to {
+    /* box-shadow: -2px 0 0 0 white, -6px 0 0 0 black; */
+    box-shadow: -4px 0 0 0 black;
+  }
+}
+
+/* @-webkit-keyframes blink-animation {
+  to {
+    box-shadow: -2px 0 0 0 white, -6px 0 0 0 black;
+  }
+} */
 
 .highlighted {
   background-color: lightskyblue;

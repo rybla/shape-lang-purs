@@ -353,7 +353,9 @@ programComponent this =
       , proxyHole: -- unsafeCrashWith "renderType.proxyHole: should never render a proxyHole"
           \holeId gamma metaGamma ->
             createNode "proxy hole type" defaultNodeProps
-              $ printTypeHoleId holeId metaGamma
+              [ DOM.span [ Props.className "liner" ]
+                  $ printTypeHoleId holeId metaGamma
+              ]
       }
 
   printType :: RecMeta.RecType ReactElements
@@ -378,7 +380,9 @@ programComponent this =
       , proxyHole:
           \holeId gamma metaGamma ->
             createNode "proxy hole type" defaultNodeProps
-              $ printTypeHoleId holeId metaGamma
+              [ DOM.span [ Props.className "liner" ]
+                  $ printTypeHoleId holeId metaGamma
+              ]
       }
 
   renderTerm :: RecIndex.RecTerm ReactElements
@@ -625,8 +629,7 @@ programComponent this =
     createNode "holeId" defaultNodeProps
       [ DOM.text $ "?" <> show i ]
     where
-    i = 0
-    -- i = List.elemIndex holeId (Set.toUnfoldable metaGamma.holes :: List HoleId) 
+    i = (List.length metaGamma.holes - 1) - (fromJust $ List.elemIndex holeId metaGamma.holes)
     -- where
     -- s = show uuid
     -- i = hash s

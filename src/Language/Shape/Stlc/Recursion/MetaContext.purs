@@ -37,7 +37,7 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
-  , holes: Set.empty
+  , holes: List.Nil
   , indentation: 0
   }
 

@@ -172,7 +172,7 @@ getActionsInType =
         \param beta meta gamma metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
             makeCommonTypeActions trans this <> 
-            [ {label: Just "delete", trigger: Trigger_Keypress {key: "d"}, effect: runTransformation trans.delete defaultTransformationInputs this}
+            [ {label: Just "delete", trigger: Trigger_Keypress {key: "Backspace"}, effect: runTransformation trans.delete defaultTransformationInputs this}
             ]
           else
             concat
