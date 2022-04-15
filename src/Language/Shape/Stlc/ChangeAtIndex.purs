@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..))
 import Debug as Debug
-import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
+import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chArgs, chBlock, chDefinition, chTerm, combineSubs, emptyChanges, emptyDisplaced, varChange)
 import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub)
 import Language.Shape.Stlc.Index (DownwardIndex(..), IndexStep(..), StepLabel(..), emptyDownwardIndex, unconsDownwardIndex)
 import Language.Shape.Stlc.Metadata (DefinitionItemMetadata, defaultDefinitionItemMetadata)
@@ -115,7 +115,11 @@ chAtDefinition = Rec.recDefinition {
             -- and deal with it in chAtDefinitionItems
             pure (TermDefinition binding ty' t' meta /\ (DownwardIndex (Cons (IndexStep StepTermDefinition 1) idx'))
                     /\ tc /\ combineSubs holeSub holeSub2)
-        (DownwardIndex (Cons (IndexStep StepTermDefinition 2) rest)) -> undefined -- term
+        (DownwardIndex (Cons (IndexStep StepTermDefinition 2) rest)) -> do
+            (t' /\ (DownwardIndex idx') /\ tc /\ holeSub) <- chAtTerm t gamma ty tRep sbjto (DownwardIndex rest)
+            let ty' = applyTC tc ty
+            pure (TermDefinition binding ty' t' meta /\ (DownwardIndex (Cons (IndexStep StepTermDefinition 2) idx'))
+                    /\ tc /\ holeSub)
         _ -> error "no6"
 }
 
