@@ -7,7 +7,6 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.RenderingTypes
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.List.Unsafe (List(..))
 import Data.List.Unsafe as List
 import Data.Map as Map
@@ -44,7 +43,7 @@ getActionsInBlock =
     { block:
         \defItems term meta gamma alpha metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
-            []
+            [ makeIndentAction ixArgs this ]
           else
             concat
               [ getActionsInDefinitionItems defItems gamma metaGamma { ix_parentBlock: ixArgs.ix, ix: ixArgs.ix_defItems, csr: ixArgs.csr_defItems } this
@@ -83,8 +82,7 @@ getActionsInDefinitionSeparator =
 
 makeCommonDefinitionActions :: forall r. CommonDefinitionTransformations r -> This -> Actions
 makeCommonDefinitionActions trans this =
-  [ { label: Just "rename", trigger: Trigger_Keypress { key: "r" }, effect: runTransformation trans.rename defaultTransformationInputs this }
-  , { label: Just "delete", trigger: Trigger_Keypress { key: "d" }, effect: runTransformation trans.delete defaultTransformationInputs this }
+  [ { label: Just "delete", trigger: Trigger_Keypress { key: "d" }, effect: runTransformation trans.delete defaultTransformationInputs this }
   ]
 
 getActionsInDefinition :: RecTrans.RecDefinition (This -> Actions)
@@ -94,6 +92,7 @@ getActionsInDefinition =
         \termBinding type_ term meta gamma { metaGamma_self, metaGamma_children } ixArgs trans this ->
           if ixArgs.isSelected then
             makeCommonDefinitionActions trans this
+              <> [ makeIndentAction ixArgs this ]
           else
             concat
               [ getActionsInTermBinding termBinding gamma metaGamma_children { ix: ixArgs.ix_termBinding, csr: ixArgs.csr_termBinding } this
@@ -105,6 +104,7 @@ getActionsInDefinition =
         \typeBinding@(TypeBinding typeId _) constrItems meta gamma { metaGamma_self, metaGamma_children } ixArgs trans this ->
           if ixArgs.isSelected then
             makeCommonDefinitionActions trans this
+              <> [ makeIndentAction ixArgs this ]
           else
             concat
               [ getActionsInTypeBinding typeBinding gamma metaGamma_children { ix: ixArgs.ix_typeBinding, csr: ixArgs.csr_typeBinding } this
@@ -127,8 +127,8 @@ getActionsInConstructor =
     { constructor:
         \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_at ixArgs trans this ->
           if ixArgs.isSelected then
-            [ { label: Just "rename", trigger: Trigger_Keypress { key: "r" }, effect: runTransformation trans.rename defaultTransformationInputs this }
-            , { label: Just "move", trigger: Trigger_Drop, effect: runTransformation trans.move defaultTransformationInputs this }
+            [ { label: Just "move", trigger: Trigger_Drop, effect: runTransformation trans.move defaultTransformationInputs this }
+            , makeIndentAction ixArgs this
             ]
           else
             concat
@@ -171,9 +171,10 @@ getActionsInType =
     { arrow:
         \param beta meta gamma metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
-            makeCommonTypeActions trans this <> 
-            [ {label: Just "delete", trigger: Trigger_Keypress {key: "Backspace"}, effect: runTransformation trans.delete defaultTransformationInputs this}
-            ]
+            makeCommonTypeActions trans this
+              <> [ makeIndentAction ixArgs this
+                , { label: Just "delete", trigger: Trigger_Keypress { key: "Backspace" }, effect: runTransformation trans.delete defaultTransformationInputs this }
+                ]
           else
             concat
               [ getActionsInParameter param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param } this
@@ -203,6 +204,7 @@ getActionsInTerm =
             makeCommonTermActions trans this
               <> [ { label: Just "unLambda", trigger: Trigger_Keypress { key: "Shift+l" }, effect: runTransformation trans.unLambda defaultTransformationInputs this }
                 , { label: Just "etaContract", trigger: Trigger_Keypress { key: "Shift+e" }, effect: runTransformation trans.etaContract defaultTransformationInputs this }
+                , makeIndentAction ixArgs this
                 ]
           else
             concat
@@ -214,6 +216,7 @@ getActionsInTerm =
           if ixArgs.isSelected then
             makeCommonTermActions trans this
               <> [ { label: Just "etaExpand", trigger: Trigger_Keypress { key: "e" }, effect: runTransformation trans.etaExpand defaultTransformationInputs this }
+                , makeIndentAction ixArgs this
                 ]
           else
             concat
@@ -224,6 +227,7 @@ getActionsInTerm =
         \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs trans this ->
           if ixArgs.isSelected then
             makeCommonTermActions trans this
+              <> [ makeIndentAction ixArgs this ]
           else
             concat
               [ getActionsInTerm term gamma (mkData typeId) metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term } this
@@ -239,6 +243,7 @@ getActionsInTerm =
           if ixArgs.isSelected then
             makeCommonTermActions trans this
               <> [ { label: Just "fill", trigger: Trigger_Drop, effect: runTransformation trans.fill defaultTransformationInputs this }
+                , makeIndentAction ixArgs this
                 ]
           else
             []
@@ -253,7 +258,7 @@ getActionsInArgItems =
     , cons:
         \(term /\ meta) argItems gamma param@(Parameter alpha _) beta metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
-            []
+            [ makeIndentAction ixArgs this ]
           else
             concat
               [ getActionsInTerm term gamma alpha metaGamma { ix: ixArgs.ix_term, csr: ixArgs.csr_term } this
@@ -267,7 +272,7 @@ getActionsInCase =
     { case_:
         \termIdItems block meta typeId constrId gamma alpha metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
-            []
+            [ makeIndentAction ixArgs this ]
           else
             concat
               [ concat
@@ -317,14 +322,15 @@ getActionsInTermBinding :: RecTrans.RecTermBinding (This -> Actions)
 getActionsInTermBinding =
   RecTrans.recTermBinding
     { termBinding:
-        \termId meta gamma metaGamma ixArgs trans this -> if ixArgs.isSelected then [] else []
+        \termId meta gamma metaGamma ixArgs trans this ->
+          if ixArgs.isSelected then [] else []
     }
 
 getActionsInTermId :: RecTrans.RecTermId (This -> Actions)
 getActionsInTermId =
   RecTrans.recTermId
     { termId:
-        \termId gamma metaGamma ixArgs trans this -> if ixArgs.isSelected then [] else []
+        \termId gamma metaGamma ixArgs trans this -> if ixArgs.isSelected then [ makeIndentAction ixArgs this ] else []
     }
 
 runTransformation :: Transformation -> TransformationInputs -> This -> Effect Unit
@@ -367,11 +373,6 @@ runSelectHere :: NodeProps -> This -> Effect Unit
 runSelectHere props this = do
   let
     ix = toDownwardIndex $ fromJust props.ix
-  -- actions =
-  --   concat
-  --     [ props.actions
-  --     , if props.isIndentable then [ { label: Just "indent", trigger: Trigger_Keypress { key: "Tab" }, effect: runToggleIndentedAt ix this } ] else []
-  --     ]
   modifyState this \st ->
     st
       { ix_cursor = ix
@@ -409,16 +410,23 @@ runAction action = do
 isSelectable :: NodeProps -> Maybe (UpwardIndex /\ Boolean)
 isSelectable props = (\ix b -> ix /\ b) <$> props.ix <*> props.isSelected
 
-fromUpwardIndexToElementId :: UpwardIndex -> String 
+fromUpwardIndexToElementId :: UpwardIndex -> String
 fromUpwardIndexToElementId ix = show ix
 
-highlight :: HTMLElement -> Effect Unit 
+highlight :: HTMLElement -> Effect Unit
 highlight elem = do
-  cls <- classList elem 
+  cls <- classList elem
   isSelected <- DOMTokenList.contains cls "selected"
   DOMTokenList.add cls "highlighted"
 
 unhighlight :: HTMLElement -> Effect Unit
-unhighlight elem = do 
+unhighlight elem = do
   cls <- classList elem
   DOMTokenList.remove cls "highlighted"
+
+makeIndentAction :: forall r. { ix :: UpwardIndex | r } -> This -> Action
+makeIndentAction ixArgs this =
+  { label: Just "indent"
+  , trigger: Trigger_Keypress { key: "Tab" }
+  , effect: modifyState this \st -> st { module_ = toModule $ toggleIndentedMetadataAt (toDownwardIndex ixArgs.ix) (SyntaxModule st.module_) }
+  }

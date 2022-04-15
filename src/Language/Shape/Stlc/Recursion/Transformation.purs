@@ -12,7 +12,7 @@ import Prelude
 import Prim hiding (Type)
 import Record
 
-import Control.Monad.State (State, runState)
+import Control.Monad.State (State, evalState, runState)
 import Data.Foldable (foldl)
 import Data.Generic.Rep (class Generic)
 import Data.List.Unsafe (List(..))
@@ -25,7 +25,7 @@ import Data.String as String
 import Data.Tuple (Tuple)
 import Debug as Debug
 import Language.Shape.Stlc.ChangeAtIndex (Change(..), chAtModule)
-import Language.Shape.Stlc.Changes (TypeChange(..))
+import Language.Shape.Stlc.Changes (TypeChange(..), chBlock, deleteVar, emptyChanges, varChange)
 import Language.Shape.Stlc.Changes as Ch
 import Language.Shape.Stlc.Holes (HoleSub, subModule)
 import Language.Shape.Stlc.Recursion.Index as Rec
@@ -43,6 +43,8 @@ _gamma = Proxy :: Proxy "gamma"
 _ix = Proxy :: Proxy "ix"
 
 _type_ = Proxy :: Proxy "type_"
+
+_term = Proxy :: Proxy "term"
 
 _syntax = Proxy :: Proxy "syntax"
 
@@ -82,6 +84,14 @@ type TypeTransformation
     , typeChange :: TypeChange
     }
 
+type TermTransformation
+  = TransformationInputs ->
+    { gamma :: Context
+    , ix :: DownwardIndex
+    , term :: Term 
+    , typeChange :: TypeChange
+    }
+
 -- genericShowListTuple :: forall a1 rep1 a2 rep2. Generic a1 rep1 => Generic a2 rep2 => GenericShow rep1 => GenericShow rep2 => List (Tuple a1 a2) -> String
 -- genericShowListTuple ls = show $ ((\(a1 /\ a2) -> genericShow a1 /\ genericShow a2) <$> ls)
 
@@ -89,15 +99,6 @@ makeModuleTransformation :: ModuleTransformation -> Transformation
 makeModuleTransformation makeTransArgs transInputs st = do
   let
     transArgs = makeTransArgs transInputs
-  -- Debug.traceM
-  --   $ String.joinWith "\n"
-  --       [ "transformation"
-  --       , "module: " <> show st.module_
-  --       , "gamma: " <> show transArgs.gamma
-  --       , "syntax: " <> show transArgs.syntax
-  --       , "change: " <> show transArgs.change
-  --       , "ix: " <> show transArgs.ix
-  --       ]
   
   let changeHistory' = (transArgs.syntax /\ transArgs.change /\ transArgs.ix) List.: st.changeHistory
   Debug.traceM $ "===[ changeHistory ] ================================================"
@@ -119,6 +120,18 @@ makeTypeTransformation makeTransArgs =
         , change: ChangeTypeChange transArgs.typeChange
         }
         (delete _type_ $ delete _typeChange transArgs)
+
+makeTermTransformation :: TermTransformation -> Transformation
+makeTermTransformation makeTransArgs =
+  makeModuleTransformation \transInputs ->
+    let 
+      transArgs = makeTransArgs transInputs 
+    in 
+      union 
+        { syntax: SyntaxTerm transArgs.term 
+        , change: ChangeTypeChange transArgs.typeChange 
+        }
+        (delete _term $ delete _typeChange transArgs)
 
 type RecModule a
   = Rec.RecModule a
@@ -207,16 +220,14 @@ recDefinitionSeparator rec =
     }
 
 type CommonDefinitionTransformations r
-  = { rename :: Transformation
-    , delete :: Transformation
+  = { delete :: Transformation
     | r
     }
 
 makeCommonDefinitionTransformations :: forall r. Record r -> CommonDefinitionTransformations r
 makeCommonDefinitionTransformations r =
   unsafeUnion r
-    { rename: unimplementedTransformation "transformation: Definition.rename"
-    , delete: unimplementedTransformation "transformation: Definition.delete"
+    { delete: unimplementedTransformation "transformation: Definition.delete"
     }
 
 type RecDefinition a
@@ -282,8 +293,7 @@ type RecConstructor a
 
 type RecConstructor_Constructor a
   = Rec.RecConstructor_Constructor
-      ( { rename :: Transformation
-        , move :: Transformation
+      ( { move :: Transformation
         } ->
         a
       )
@@ -299,7 +309,6 @@ recConstructor rec =
         \termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_t ixArgs ->
           rec.constructor termBinding paramItems meta typeId gamma alpha metaGamma metaGamma_param_t ixArgs
             { move: unimplementedTransformation "Constructor.move"
-            , rename: unimplementedTransformation "Constructor.rename"
             }
     }
 
@@ -421,14 +430,19 @@ type CommonTermTransformations r
     }
 
 type CommonTermTransformationsArgs
-  = {}
+  = { gamma :: Context 
+    , type_ :: Type
+    , term :: Term
+    , ix :: DownwardIndex }
 
 makeCommonTermTransformations :: forall r. Record r -> CommonTermTransformationsArgs -> CommonTermTransformations r
 makeCommonTermTransformations r commonArgs =
   unsafeUnion r
     { copy: unimplementedTransformation "Term.copy"
-    , enLambda: unimplementedTransformation "Term.enLambda"
-    , dig: unimplementedTransformation "Term.dig"
+    , enLambda: makeTermTransformation \transArgs -> {gamma: commonArgs.gamma, ix: commonArgs.ix, term: mkLambda (freshTermId unit) (mkBlock Nil commonArgs.term), typeChange: InsertArg (mkHoleType (freshHoleId unit) Set.empty)}
+    --  unimplementedTransformation "Term.enLambda"
+    -- , dig: unimplementedTransformation "Term.dig"
+    , dig: makeTermTransformation \transArgs -> {gamma:commonArgs.gamma, ix: commonArgs.ix, term: mkHoleTerm, typeChange: Dig (freshHoleId unit) }
     }
 
 type RecTerm a
@@ -471,28 +485,31 @@ recTerm rec =
         \termId block meta gamma param beta metaGamma ixArgs ->
           rec.lambda termId block meta gamma param beta metaGamma ixArgs
             $ makeCommonTermTransformations
-                { unLambda: unimplementedTransformation "LambdaTerm.unLambda"
+                { unLambda: makeTermTransformation \transArgs -> {gamma, ix: toDownwardIndex ixArgs.ix, term:     
+                    let (Block _ a _) = (evalState (chBlock gamma beta (deleteVar emptyChanges termId) NoChange block) Map.empty) in a
+                  , typeChange: NoChange}
                 , etaContract: unimplementedTransformation "LambdaTerm.etaContract"
                 }
-                {}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: mkArrow param beta, term: mkLambda termId block}
     , neutral:
         \termId argItems meta gamma alpha metaGamma ixArgs ->
           rec.neutral termId argItems meta gamma alpha metaGamma ixArgs
             $ makeCommonTermTransformations
                 { etaExpand: unimplementedTransformation "NeutralTerm.etaExpand"
                 }
-                {}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkNeutral termId argItems}
     , match:
         \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs ->
           rec.match typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs
-            $ makeCommonTermTransformations {} {}
+            $ makeCommonTermTransformations {} 
+              {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkMatch typeId term caseItems}
     , hole:
         \meta gamma alpha metaGamma ixArgs ->
           rec.hole meta gamma alpha metaGamma ixArgs
             $ makeCommonTermTransformations
                 { fill: unimplementedTransformation "HoleTerm.fill"
                 }
-                {}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkHoleTerm}
     }
 
 type RecArgItems a

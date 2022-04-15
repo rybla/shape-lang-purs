@@ -9,6 +9,7 @@
   , "homogeneous"
   , "lists"
   , "maybe"
+  , "newtype"
   , "ordered-collections"
   , "partial"
   , "prelude"
