@@ -12,7 +12,7 @@ import Prelude
 import Prim hiding (Type)
 import Record
 
-import Control.Monad.State (State, runState)
+import Control.Monad.State (State, evalState, runState)
 import Data.Foldable (foldl)
 import Data.Generic.Rep (class Generic)
 import Data.List.Unsafe (List(..))
@@ -25,7 +25,7 @@ import Data.String as String
 import Data.Tuple (Tuple)
 import Debug as Debug
 import Language.Shape.Stlc.ChangeAtIndex (Change(..), chAtModule)
-import Language.Shape.Stlc.Changes (TypeChange(..))
+import Language.Shape.Stlc.Changes (TypeChange(..), chBlock, deleteVar, emptyChanges, varChange)
 import Language.Shape.Stlc.Changes as Ch
 import Language.Shape.Stlc.Holes (HoleSub, subModule)
 import Language.Shape.Stlc.Recursion.Index as Rec
@@ -432,15 +432,16 @@ type CommonTermTransformations r
 type CommonTermTransformationsArgs
   = { gamma :: Context 
     , type_ :: Type
+    , term :: Term
     , ix :: DownwardIndex }
 
 makeCommonTermTransformations :: forall r. Record r -> CommonTermTransformationsArgs -> CommonTermTransformations r
 makeCommonTermTransformations r commonArgs =
   unsafeUnion r
     { copy: unimplementedTransformation "Term.copy"
-    , enLambda: unimplementedTransformation "Term.enLambda"
+    , enLambda: makeTermTransformation \transArgs -> {gamma: commonArgs.gamma, ix: commonArgs.ix, term: mkLambda (freshTermId unit) (mkBlock Nil commonArgs.term), typeChange: InsertArg (mkHoleType (freshHoleId unit) Set.empty)}
+    --  unimplementedTransformation "Term.enLambda"
     -- , dig: unimplementedTransformation "Term.dig"
-    -- the holeId generated here will be unified away... right?
     , dig: makeTermTransformation \transArgs -> {gamma:commonArgs.gamma, ix: commonArgs.ix, term: mkHoleTerm, typeChange: Dig (freshHoleId unit) }
     }
 
@@ -484,29 +485,31 @@ recTerm rec =
         \termId block meta gamma param beta metaGamma ixArgs ->
           rec.lambda termId block meta gamma param beta metaGamma ixArgs
             $ makeCommonTermTransformations
-                { unLambda: unimplementedTransformation "LambdaTerm.unLambda"
+                { unLambda: makeTermTransformation \transArgs -> {gamma, ix: toDownwardIndex ixArgs.ix, term:     
+                    let (Block _ a _) = (evalState (chBlock gamma beta (deleteVar emptyChanges termId) NoChange block) Map.empty) in a
+                  , typeChange: NoChange}
                 , etaContract: unimplementedTransformation "LambdaTerm.etaContract"
                 }
-                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: mkArrow param beta}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: mkArrow param beta, term: mkLambda termId block}
     , neutral:
         \termId argItems meta gamma alpha metaGamma ixArgs ->
           rec.neutral termId argItems meta gamma alpha metaGamma ixArgs
             $ makeCommonTermTransformations
                 { etaExpand: unimplementedTransformation "NeutralTerm.etaExpand"
                 }
-                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkNeutral termId argItems}
     , match:
         \typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs ->
           rec.match typeId term caseItems meta gamma alpha metaGamma constrIds ixArgs
             $ makeCommonTermTransformations {} 
-              {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha}
+              {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkMatch typeId term caseItems}
     , hole:
         \meta gamma alpha metaGamma ixArgs ->
           rec.hole meta gamma alpha metaGamma ixArgs
             $ makeCommonTermTransformations
                 { fill: unimplementedTransformation "HoleTerm.fill"
                 }
-                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha}
+                {gamma, ix: toDownwardIndex (ixArgs.ix), type_: alpha, term: mkHoleTerm}
     }
 
 type RecArgItems a
