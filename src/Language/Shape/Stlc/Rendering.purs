@@ -617,7 +617,8 @@ programComponent this =
       { termId:
           \termId gamma metaGamma ixArgs ->
             createNode "termId"
-              (nodePropsFromIxArgs ixArgs)
+              -- (nodePropsFromIxArgs ixArgs)
+              defaultNodeProps
               $ printTermId termId metaGamma
       }
 
