@@ -401,7 +401,7 @@ chArgs ctx (ArrowType (Parameter a _) (ArrowType (Parameter b _) c _) _) chs Swa
     (Tuple rest chOut) <- chArgs ctx c chs NoChange args
     pure $ Tuple (Cons (Tuple arg2' md2) (Cons (Tuple arg1' md1) rest)) chOut -- chOut = NoChange alwyas
 chArgs ctx a chs ch Nil = pure $ Tuple Nil ch -- TODO: was there a reason that I wanted this to return only NoChange? Kind of defeats the point of using the result of chArgs in NeutralTerm case of chTerm!
-chArgs ctx a chs ch Nil = if isNoChange ch then pure $ Tuple Nil ch else error "shoudln't get here 2"
+-- chArgs ctx a chs ch Nil = if isNoChange ch then pure $ Tuple Nil ch else error "shoudln't get here 2"
 chArgs ctx (ArrowType (Parameter a _) b _) chs NoChange (Cons (Tuple arg md) args) = do
     arg' <- chTerm ctx a chs NoChange arg
     (Tuple args' outCh) <- chArgs ctx b chs NoChange args
