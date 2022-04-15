@@ -8,6 +8,7 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Typing
 import Prelude
 import Prim hiding (Type)
+
 import Data.List (List(..), take)
 import Data.List as List
 import Data.Map.Unsafe (Map)
@@ -17,6 +18,7 @@ import Data.Set as Set
 import Data.Tuple (fst)
 import Debug as Debug
 import Effect.Unsafe (unsafePerformEffect)
+import Language.Shape.Stlc.CollectHoles (Holes, collectHoles)
 import Language.Shape.Stlc.Recursion.Context as RecContext
 import Record as Record
 import Type.Proxy (Proxy(..))
@@ -27,6 +29,7 @@ import Unsafe as Unsafe
 type MetaContext
   = { typeScope :: Scope TypeId TypeName
     , termScope :: Scope TermId TermName
+    , holes :: Holes
     , indentation :: Int
     }
 
@@ -34,6 +37,7 @@ emptyMetaContext :: MetaContext
 emptyMetaContext =
   { typeScope: emptyScope
   , termScope: emptyScope
+  , holes: List.Nil
   , indentation: 0
   }
 
@@ -43,7 +47,7 @@ _termScope = Proxy :: Proxy "termScope"
 
 _constructorTermIds = Proxy :: Proxy "constructorTermIds"
 
-_typeHoleIds = Proxy :: Proxy "typeHoleIds"
+_holes = Proxy :: Proxy "holes"
 
 _indentation = Proxy :: Proxy "indentation"
 
@@ -58,8 +62,8 @@ recModule ::
   forall a.
   { module_ :: RecModule_Module a } ->
   RecModule a
-recModule rec mod gamma = RecContext.recModule rec mod gamma 
-  <<< incrementIndentation
+recModule rec mod gamma = RecContext.recModule rec mod gamma <<<
+  Record.set _holes (collectHoles mod)
 
 type RecBlock a
   = RecContext.RecBlock (MetaContext -> a)

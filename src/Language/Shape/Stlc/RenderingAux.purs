@@ -43,9 +43,9 @@ token =
         , termDef_imp_head: inj _literal "let "
         , termDef_imp_sep: inj _literal " = "
         -- Type
-        -- , arrow_sep: inj _literal " → "
-        , arrow_head: inj _literal "→ "
-        , arrow_sep: inj _literal " "
+        , arrow_infix_sep: inj _literal " → "
+        -- , arrow_prefix_head: inj _literal "→ "
+        -- , arrow_prefix_sep: inj _literal " "
         -- Term
         , lambda_head: inj _literal "fun "
         , lambda_sep: inj _literal " ⇒ "

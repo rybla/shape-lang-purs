@@ -7,10 +7,11 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "test": "spago test --purs-args \"--censor-warnings --stash -g sourcemaps\" --source-maps",
-    "build": "spago bundle-app --purs-args \"--censor-warnings --stash -g sourcemaps\" --main Main --to dist/app.js --source-maps",
-    "bundle": "spago bundle-app --purs-args \"--censor-warnings --stash -g sourcemaps\" --main Main --to dist/app.js --source-maps",
-    "serve": "cd dist/; parcel index.html"
+    "test": "spago test",
+    "build": "spago build --purs-args \"--censor-warnings -gsourcemaps,js\"",
+    "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to dist/app.js",
+    "serve": "cd dist/; parcel index.html",
+    "run": "spago run"
   },
   "dependencies": {
     "purescript-psa": "^0.8.2",

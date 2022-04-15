@@ -133,26 +133,26 @@ defaultCaseMetadata = {} :: CaseMetadata
 type ParameterMetadata
   = { name :: TermName }
 
-defaultParameterMetadata = { name: TermName Nothing } :: ParameterMetadata
+defaultParameterMetadata = { name: defaultTermName } :: ParameterMetadata
 
 type TypeBindingMetadata
   = { name :: TypeName }
 
-defaultTypeBindingMetadata = { name: TypeName Nothing } :: TypeBindingMetadata
+defaultTypeBindingMetadata = { name: defaultTypeName } :: TypeBindingMetadata
 
 type TermBindingMetadata
   = { name :: TermName }
 
-defaultTermBindingMetadata = { name: TermName Nothing } :: TermBindingMetadata
+defaultTermBindingMetadata = { name: defaultTermName } :: TermBindingMetadata
 
-type Name
-  = Maybe String
+newtype TypeName
+  = TypeName String
 
-data TypeName
-  = TypeName Name
+newtype TermName
+  = TermName String
 
-data TermName
-  = TermName Name
+defaultTypeName = TypeName "_" :: TypeName 
+defaultTermName = TermName "_" :: TermName
 
 -- instances for TypeName
 derive instance genericTypeNam :: Generic TypeName _
@@ -166,25 +166,25 @@ derive instance ordTypeName :: Ord TypeName
 --   show (TypeName Nothing) = "_"
 instance showTypeName :: Show TypeName where show x = genericShow x 
 
-readTermName :: String -> TermName
-readTermName str =
-  let
-    str' = String.trim str
-  in
-    if str' == "_" then
-      TermName Nothing
-    else
-      TermName (Just str')
+-- readTermName :: String -> TermName
+-- readTermName str =
+--   let
+--     str' = String.trim str
+--   in
+--     if str' == "_" then
+--       TermName Nothing
+--     else
+--       TermName (Just str')
 
-readTypeName :: String -> TypeName
-readTypeName str =
-  let
-    str' = String.trim str
-  in
-    if str' == "_" then
-      TypeName Nothing
-    else
-      TypeName (Just str')
+-- readTypeName :: String -> TypeName
+-- readTypeName str =
+--   let
+--     str' = String.trim str
+--   in
+--     if str' == "_" then
+--       TypeName "_"
+--     else
+--       TypeName (Just str')
 
 -- instances for TermName
 derive instance genericTermName :: Generic TermName _

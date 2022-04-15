@@ -17,7 +17,7 @@ import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.IndexMetadata (toggleIndentedMetadataAt)
 import Language.Shape.Stlc.Recursion.MetaContext (MetaContext, emptyMetaContext)
-import Language.Shape.Stlc.Recursion.Transformation (CommonDefinitionTransformations, CommonTypeTransformations, Transformation, TransformationInputs, CommonTermTransformations, defaultTransformationInputs)
+import Language.Shape.Stlc.Recursion.Transformation (CommonDefinitionTransformations, CommonTermTransformations, CommonTypeTransformations, Transformation, TransformationInputs, defaultTransformationInputs)
 import Language.Shape.Stlc.Recursion.Transformation as RecTrans
 import Language.Shape.Stlc.Typing (Context, emptyContext)
 import React (getState, modifyState)
@@ -171,7 +171,9 @@ getActionsInType =
     { arrow:
         \param beta meta gamma metaGamma ixArgs trans this ->
           if ixArgs.isSelected then
-            makeCommonTypeActions trans this
+            makeCommonTypeActions trans this <> 
+            [ {label: Just "delete", trigger: Trigger_Keypress {key: "Backspace"}, effect: runTransformation trans.delete defaultTransformationInputs this}
+            ]
           else
             concat
               [ getActionsInParameter param gamma metaGamma { ix: ixArgs.ix_param, csr: ixArgs.csr_param } this
