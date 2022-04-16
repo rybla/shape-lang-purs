@@ -43,3 +43,4 @@ The idea is that a block is now just a let, which is a term. And if the let only
 
 - Makes mutual recursion a question. Do we have both nested lets and let* for recursion? If so, what is the user interface for dragging definitions to different places in the program?
 - If the top level program uses lets, then this would allow you to select all definitions after a given definition, which seems wierd. Could solve with let* or separate concept of top level definition
+- One feature that we want is to be able to drag a term from your program into a "scratch area", which is just a let bound definition. What would this interface look like? Would you trag it onto another term and then it goes into a let around that term? Should we have a different concept of scratch area that isn't just a let?
