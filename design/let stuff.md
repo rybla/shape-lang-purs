@@ -38,6 +38,7 @@ The idea is that a block is now just a let, which is a term. And if the let only
 - Would make it easier to explain the grammar to people
 - Potentially could be confusing to a user where they can insert definitions
 - Potentially could make displacing terms simpler, although one could debate the desired behaviour here
+- We already have situations where "cursor on the left of e" is equivalent to "select e". So by analogy, we are identifying "put a definition before e" with "wrap e with a let"
 
 ## Disadvantages
 
