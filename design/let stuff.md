@@ -35,4 +35,11 @@ The idea is that a block is now just a let, which is a term. And if the let only
 
 ## Advantages
 
+- Would make it easier to explain the grammar to people
+- Potentially could be confusing to a user where they can insert definitions
+- Potentially could make displacing terms simpler, although one could debate the desired behaviour here
+
 ## Disadvantages
+
+- Makes mutual recursion a question. Do we have both nested lets and let* for recursion? If so, what is the user interface for dragging definitions to different places in the program?
+- If the top level program uses lets, then this would allow you to select all definitions after a given definition, which seems wierd. Could solve with let* or separate concept of top level definition
