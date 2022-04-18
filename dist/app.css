@@ -56,6 +56,15 @@ html {
 
 /* syntax */
 
+.type, .typeId {
+  color: rgb(43, 80, 43);
+}
+
+.termId {
+  color: rgb(100, 55, 38);
+  /* font-style: italic; */
+}
+
 .hole.type > .liner {
   color: white;
   background-color: black;
@@ -103,7 +112,7 @@ html {
 /* selected */
 
 .selected {
-  background-color: lightcoral;
+  background-color: rgb(116, 173, 196);
   box-shadow: none;
   /* border-left: 4px solid black; */
   /* box-shadow: -4px 0 0 0 black; */
@@ -127,11 +136,11 @@ html {
 } */
 
 .highlighted {
-  background-color: lightskyblue;
+  background-color: rgb(199, 199, 199);
 }
 
 .selected.highlighted {
-  background-color: lightcoral;
+  background-color: rgb(116, 173, 196);
 }
 
 /* token */

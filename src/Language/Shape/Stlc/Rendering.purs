@@ -631,7 +631,7 @@ programComponent this =
 
   printTermId :: TermId -> MetaContext -> ReactElements
   printTermId termId metaGamma =
-    createNode "typeId" defaultNodeProps
+    createNode "termId" defaultNodeProps
       $ printName
           (case Map.lookup' termId metaGamma.termScope.names of TermName name -> name)
           (Map.lookup' termId metaGamma.termScope.shadowIndices)

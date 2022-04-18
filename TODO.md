@@ -29,9 +29,8 @@
     - [x] context + type
     - [x] metacontext (for derived metadata stuff: names, shadows, constructor
           ids, etc)
-    - [ ] index (still have to handle typechanges)
-    - [ ] transformation
-    - [ ] prerender
+    - [x] index (still have to handle typechanges)
+    - [x] transformation
   - [ ] index
     - [x] upgrade syntax/metadata so that lists have an `*ItemMetadata` for each
           element of the list
@@ -66,7 +65,7 @@
             correspond to parameterItems of constructor
       - [ ] term holes
         - [x] show type in hole
-        - [x] drag a var from lambda/case/termBinding into hole (bug with
+        - [ ] drag a var from lambda/case/termBinding into hole (bug with
               highlighting)
         - [ ] drag a term into hole
         - paste into hole
@@ -83,10 +82,17 @@
         - copy to clipboard
       - [x] renaming
         - things that can be renamed: parameters, termBindings, typeBindings
-        - [x] pops up a dialogue box
+        - [x] type while selected
         - [ ] edits in place via `<input>` or changing moves and handling
               keyboard input
+      - [ ] type changes
+        - [x] enArrow
+        - [x] delete (parameter)
+        - [x] dig
+        - [ ] swap
+          - does an animation dragging the term you are swapping
     - [ ] cursor (worry about this after mouse actions work)
     - [ ] edit name of variable by lambda/case
       - problem: in the index recursor, how do I keep track of which type's
         parameters map to which Ids??
+      - solution: remove name from parameters, instead is always tracked by each lambda-
