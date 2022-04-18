@@ -20,7 +20,7 @@ import Data.Show.Generic (genericShow)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Debug as Debug
-import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub, subType, unifyType)
+import Language.Shape.Stlc.Holes (HoleSub, emptyHoleSub, subType, unifyType, unifyTypeRestricted)
 import Language.Shape.Stlc.Recursion.Context as Rec
 import Language.Shape.Stlc.Typing (Context, addDefinitionsToContext, insertTyping, lookupConstructorIds, lookupTyping)
 import Undefined (undefined)
@@ -214,7 +214,7 @@ chTerm ctx ty chs ch (NeutralTerm id args md) =
     ifChanged varTC = do
         -- Debug.traceM $ "Calling chArgs from an id with type: " <> show (lookup' id ctx.types) <> " and typechange " <> show varTC
         (Tuple args' ch') <- chArgs ctx (lookupTyping id ctx) chs varTC args
-        let maybeSub = unifyType (applyTC ch ty) (applyTC ch' ty)
+        let maybeSub = unifyTypeRestricted (applyTC ch ty) (applyTC ch' ty)
         -- let maybeSub = Nothing -- TODO: should replace HoleSub with Map Holeid Holeid, and make version of unify to work with that
         case maybeSub of
             Just holeSub -> do subHoles holeSub

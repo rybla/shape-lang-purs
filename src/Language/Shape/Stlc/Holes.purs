@@ -44,6 +44,17 @@ unifyType (ArrowType (Parameter a1 mda1) b1 mdb1) (ArrowType (Parameter a2 mda2)
 unifyType (DataType i1 md1) (DataType i2 md2) = if i1 == i2 then Just empty else Nothing
 unifyType _ _ = Nothing
 
+unifyTypeRestricted :: Type -> Type -> Maybe HoleSub
+unifyTypeRestricted (HoleType id wea md) t2@(HoleType id2 wea2 md2) = if id == id2 then Just $ singleton id t2 else Nothing
+unifyTypeRestricted t1 (HoleType id wea md) = unifyTypeRestricted (HoleType id wea md) t1
+unifyTypeRestricted (ProxyHoleType i1) (ProxyHoleType i2) = if i1 == i2 then Just empty else Nothing
+unifyTypeRestricted (ArrowType (Parameter a1 mda1) b1 mdb1) (ArrowType (Parameter a2 mda2) b2 mdb2) = do
+  a <- unifyTypeRestricted a1 a2
+  b <- unifyTypeRestricted (subType a b1) (subType a b2)
+  pure $ union a b
+unifyTypeRestricted (DataType i1 md1) (DataType i2 md2) = if i1 == i2 then Just empty else Nothing
+unifyTypeRestricted _ _ = Nothing
+
 subModule :: HoleSub -> Module -> Module
 subModule sub (Module defItems md) = Module (map (\(def /\ md) -> subDefinition sub def /\ md) defItems) md
 
