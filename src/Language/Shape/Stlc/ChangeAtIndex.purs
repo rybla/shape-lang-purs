@@ -104,7 +104,7 @@ chAtDefinitionItems = Rec.recDefinitionItems {
 chAtDefinition :: Rec.RecDefinition (Syntax -> Change -> DownwardIndex -> Maybe (Definition /\ DownwardIndex /\ TypeChange /\ HoleSub))
 chAtDefinition = Rec.recDefinition {
     data : \binding constructors meta gamma tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepDataDefinition 1) rest)) -> undefined -- I think this is the list of constructors
+        (DownwardIndex (Cons (IndexStep StepDataDefinition 1) rest)) -> error "undefined1" -- I think this is the list of constructors
         _ -> error "no5"
     , term : \binding@(TermBinding x _) ty t meta gamma tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepTermDefinition 1) rest)) -> do -- type
@@ -143,7 +143,7 @@ chAtTerm t gamma ty tRep sbjto idx = Rec.recTerm {
             -- do (cases' /\ (DownwardIndex idx')) <- chAtCase cases gamma alpha tRep sbjto rest
             -- Here, need to ask Henry about how to deal with cases and index.
             -- Morally there should be a Rec.CaseItemList recursor, but that seems annoying.
-               undefined
+               error ""
         _ -> error "no10"
 } t gamma ty tRep sbjto idx
 
@@ -154,8 +154,8 @@ chAtBlock block gamma ty (SyntaxBlock newBlock) (ChangeTypeChange tc) (DownwardI
     Just (newBlock /\ (DownwardIndex Nil) /\ tc /\ emptyHoleSub)
 chAtBlock block gamma ty tRep sbjto idx = Rec.recBlock {
     block : \ defs t meta gamma ty tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepBlock 0) rest)) -> undefined -- definitions
-        (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> undefined -- into term at end of block
+        (DownwardIndex (Cons (IndexStep StepBlock 0) rest)) -> error "hey" -- definitions
+        (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> error "hey" -- into term at end of block
         _ -> error "no11"
 } block gamma ty tRep sbjto idx
 
@@ -179,7 +179,7 @@ chAtArgs = Rec.recArgItems {
 chAtConstructor :: Rec.RecConstructor (Syntax -> Change -> DownwardIndex -> Maybe (Constructor /\ DownwardIndex /\ ConstructorChange /\ HoleSub))
 chAtConstructor = Rec.recConstructor {
     constructor : \binding parameters meta typeId gamma ty tRep sbjto -> case _ of
-        (DownwardIndex (Cons (IndexStep StepConstructor 1) rest)) -> undefined -- inside parameter list of constructor
+        (DownwardIndex (Cons (IndexStep StepConstructor 1) rest)) -> error "hey" -- inside parameter list of constructor
         _ -> error "no13"
 }
 
@@ -205,7 +205,7 @@ chAtCase :: Rec.RecCase (Syntax -> Change -> DownwardIndex -> Maybe (Case /\ Dow
 chAtCase = Rec.recCase {
     --                                  v Question for henry: what is this termId???
     case_ : \bindings block meta typeId termId  gamma ty tRep sbjTo -> case _ of
-        (DownwardIndex (Cons (IndexStep StepCase 0) rest)) -> undefined -- term in the case
+        (DownwardIndex (Cons (IndexStep StepCase 0) rest)) -> error "hey" -- term in the case
         _ -> error "no18"
 }
 
