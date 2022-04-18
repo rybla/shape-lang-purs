@@ -51,10 +51,10 @@ type RecModule a
 
 type RecModule_Module a
   = RecMetaContext.RecModule_Module
-      ( { ix :: UpwardIndex -- module
-        , isSelected :: Boolean -- module
-        , ix_defItems :: UpwardIndex -- definitionItems
-        , csr_defItems :: Cursor -- definitionItems
+      ( { ix :: UpwardIndex
+        , isSelected :: Boolean
+        , ix_defItems :: UpwardIndex
+        , csr_defItems :: Cursor 
         } ->
         a
       )

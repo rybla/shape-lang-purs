@@ -15,6 +15,8 @@ import Language.Shape.Stlc.Recursion.Base as RecBase
 import Undefined (undefined)
 import Unsafe as Unsafe
 
+-- TODO: adds typeIds to context appropriately
+
 -- Recursion principles for handling context & type
 type RecModule a
   = RecBase.RecModule (Context -> a)

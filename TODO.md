@@ -22,6 +22,13 @@
 
 - Henry
 
+  - next
+    - drag a term "to the side" to pop it out into the nearest block (i.e. allowed scope)
+    - drag a term onto a block handle to add it to that block anonymously
+    - drag a term into a term hole
+    - drag a type into a type hole
+    - when in a term/type hole, can start typing and will present a list of names, which are filtered by the text input as well as compatible types
+
   - [ ] syntax
     - [x] upgrade lists to have metadata for each item
   - [ ] recursors

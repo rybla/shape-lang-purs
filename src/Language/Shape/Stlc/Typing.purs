@@ -12,6 +12,7 @@ import Data.List (List(..))
 import Data.List as List
 import Data.Map.Unsafe (Map, member)
 import Data.Map.Unsafe as Map
+import Data.Set as Set
 import Data.UUID as UUID
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -19,14 +20,17 @@ import Unsafe (error)
 import Unsafe as Unsafe
 
 type Context
-  = { types :: Map TermId Type
+  = { typeIds :: List TypeId
+    , types :: Map TermId Type
     , constructors :: Map TypeId (List TermId)
     }
 
 emptyContext :: Context
-emptyContext = { types: Map.empty, constructors: Map.empty }
+emptyContext = { typeIds: Nil, types: Map.empty, constructors: Map.empty }
 
 _types = Proxy :: Proxy "types"
+
+_typeIds = Proxy :: Proxy "typeIds"
 
 _constructors = Proxy :: Proxy "constructors"
 
@@ -35,6 +39,9 @@ insertTyping id type_ = modify _types (Map.insert id type_)
 
 lookupTyping :: TermId -> Context -> Type
 lookupTyping id context = Map.lookup' id context.types
+
+insertTypeId :: TypeId -> Context -> Context
+insertTypeId typeId = modify _typeIds (Cons typeId)
 
 insertConstructorIds :: TypeId -> List TermId -> Context -> Context
 insertConstructorIds id constrIds = modify _constructors (Map.insert id constrIds)
@@ -54,10 +61,15 @@ replaceHolesWithProxy (HoleType id wkn md) = ProxyHoleType id
 addDefinitionToContext :: Definition -> Context -> Context
 addDefinitionToContext = case _ of
   TermDefinition (TermBinding id _) alpha a meta -> insertTyping id (replaceHolesWithProxy alpha)
-  DataDefinition (TypeBinding typeId _) constrItems meta -> flip (foldl (flip f)) (fromItem <$> constrItems) <<< insertConstructorIds typeId constrIds
+  DataDefinition (TypeBinding typeId _) constrItems meta ->
+    foldl (<<<) identity
+      [ flip (foldl (flip insertConstructorTyping)) (fromItem <$> constrItems)
+      , insertConstructorIds typeId constrIds
+      , insertTypeId typeId
+      ]
     where
-    f :: Constructor -> Context -> Context
-    f (Constructor (TermBinding id _) params _) = insertTyping id (typeOfConstructor params' typeId)
+    insertConstructorTyping :: Constructor -> Context -> Context
+    insertConstructorTyping (Constructor (TermBinding id _) params _) = insertTyping id (typeOfConstructor params' typeId)
       where
       params' = map (\(Parameter a md) -> (Parameter (replaceHolesWithProxy a) md)) (fromItem <$> params)
 
@@ -84,3 +96,10 @@ unflattenArrowType :: (List Parameter /\ Type) -> Type
 unflattenArrowType (Nil /\ beta) = beta
 
 unflattenArrowType ((Cons prm alphas) /\ beta) = mkArrow prm (unflattenArrowType (alphas /\ beta))
+
+recontextType :: Type -> Context -> TypeWeakening -> Type
+recontextType alpha gamma wkn = case alpha of
+  ArrowType (Parameter alpha meta) beta meta' -> ArrowType (Parameter (recontextType alpha gamma wkn) meta) (recontextType beta gamma wkn) meta'
+  DataType typeId meta -> if List.elem typeId gamma.typeIds && not (Set.member typeId wkn) then DataType typeId meta else mkHoleType (freshHoleId unit) Set.empty
+  HoleType holeId wkn' meta -> HoleType holeId wkn' meta
+  ProxyHoleType holeId -> ProxyHoleType holeId -- dont think about it too hard
