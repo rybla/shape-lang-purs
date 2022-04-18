@@ -442,7 +442,7 @@ makeCommonTermTransformations r commonArgs =
     , enLambda: makeTermTransformation \transArgs -> {gamma: commonArgs.gamma, ix: commonArgs.ix, term: mkLambda (freshTermId unit) (mkBlock Nil commonArgs.term), typeChange: InsertArg (mkHoleType (freshHoleId unit) Set.empty)}
     --  unimplementedTransformation "Term.enLambda"
     -- , dig: unimplementedTransformation "Term.dig"
-    , dig: makeTermTransformation \transArgs -> {gamma:commonArgs.gamma, ix: commonArgs.ix, term: mkHoleTerm, typeChange: Dig (freshHoleId unit) }
+    , dig: makeTermTransformation \transArgs -> {gamma:commonArgs.gamma, ix: commonArgs.ix, term: mkHoleTerm, typeChange: NoChange }
     }
 
 type RecTerm a
@@ -487,7 +487,7 @@ recTerm rec =
             $ makeCommonTermTransformations
                 { unLambda: makeTermTransformation \transArgs -> {gamma, ix: toDownwardIndex ixArgs.ix, term:     
                     let (Block _ a _) = (evalState (chBlock gamma beta (deleteVar emptyChanges termId) NoChange block) Map.empty) in a
-                  , typeChange: NoChange}
+                  , typeChange: RemoveArg}
                 , etaContract: unimplementedTransformation "LambdaTerm.etaContract"
                 }
                 {gamma, ix: toDownwardIndex (ixArgs.ix), type_: mkArrow param beta, term: mkLambda termId block}
