@@ -130,12 +130,14 @@ chAtTerm t gamma ty tRep sbjto idx = Rec.recTerm {
     lambda : \termId block meta gamma param beta tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) rest)) -> 
             do (block' /\ (DownwardIndex idx') /\ tc /\ holeSub) <- chAtBlock block gamma beta tRep sbjto (DownwardIndex rest)
-               pure $ LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 2) idx')) /\ ArrowCh NoChange tc /\ holeSub
-        _ -> error "no7"
+               pure $ LambdaTerm termId block' meta /\ (DownwardIndex (Cons (IndexStep StepLambdaTerm 1) idx')) /\ ArrowCh NoChange tc /\ holeSub
+        other -> do
+                Debug.traceM ("index is " <> (show other))
+                error "no7"
     , neutral : \termId argItems meta gamma alpha tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepNeutralTerm 1) rest)) ->
             do (argItems' /\ (DownwardIndex idx') /\ holeSub) <- chAtArgs argItems gamma alpha tRep sbjto (DownwardIndex rest)
-               pure $ (NeutralTerm termId argItems' meta /\ (DownwardIndex (Cons (IndexStep StepNeutralTerm 2) idx')) /\ NoChange /\ holeSub)
+               pure $ (NeutralTerm termId argItems' meta /\ (DownwardIndex (Cons (IndexStep StepNeutralTerm 1) idx')) /\ NoChange /\ holeSub)
         _ -> error "no8"
     , hole : \meta gamma alpha -> error "no9" -- holes have no children, so StepHoleTerm is never used.
     , match : \dataID a cases meta gamma alpha tRep sbjto -> case _ of
@@ -155,7 +157,9 @@ chAtBlock block gamma ty (SyntaxBlock newBlock) (ChangeTypeChange tc) (DownwardI
 chAtBlock block gamma ty tRep sbjto idx = Rec.recBlock {
     block : \ defs t meta gamma ty tRep sbjto -> case _ of
         (DownwardIndex (Cons (IndexStep StepBlock 0) rest)) -> error "hey" -- definitions
-        (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> error "hey" -- into term at end of block
+        (DownwardIndex (Cons (IndexStep StepBlock 1) rest)) -> do
+            (t' /\ (DownwardIndex idx') /\ tc /\ holeSub) <- chAtTerm t gamma ty tRep sbjto (DownwardIndex rest)
+            pure $ Block defs t' meta /\ (DownwardIndex (Cons (IndexStep StepBlock 1) idx')) /\ tc /\ holeSub
         _ -> error "no11"
 } block gamma ty tRep sbjto idx
 
