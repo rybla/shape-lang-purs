@@ -64,5 +64,7 @@ npm run serve
 5. In the console, copy the log that appears directly after "===[ changeHistory ]===" logging header. You now have the  `ChangeHistory`, as a string, that results in the current state.
 6. In `Test.ChangeHistory`, add a new element to the array defining `changeHistories`. The format is `<label> /\ <initial module> /\ <change history>`. So, pick a `<label>`, and use the same `Initial.test*` that you specified in step 1. For the `<change history>` paste the text you copied in step 5.
 7. In `Test.Main`, change the `main` function has a line `ChangeHistory.runChangeHistory $ Map.lookup' <label> ChangeHistory.changeHistories`. Change the `<label>`> to the one you specified in step 6.
+7.5. For stacktraces: On windows, type $Env:NODE_OPTIONS = "--enable-source-maps". On unix, type...
+7.6. Also for stacktraces: Run `npm run build`
 8. Run `npm run test` in the terminal. This should output some logging information corresponding to running your change history.
 9. Add loggers to `Test.ChangeHistory.runChangeHistory` if you want to print out special information in your test.
