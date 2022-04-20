@@ -1,5 +1,12 @@
 # TODO
 
+Potential Plan:
+- Replace block with single let
+- Figure out how to move lets
+- For consistency, the way you move something before a term is by dragging it onto the term. This is consistent with curried types and other stuff.
+- Maybe a buffer is a let and maybe its something similar
+- Buffers are displayed inline
+
 - Jacob
 
   - [x] decide how cases work in match
