@@ -44,9 +44,9 @@ type SumMetadata
 type ProdMetadata
   = { indentProd :: Boolean }
 
--- Destruct Sum and Prod Metadata
-type DestructSumMetadata
+-- Case Sum and Prod Metadata
+type CaseSumMetadata
   = { indentProd :: Boolean, indentSum :: Boolean }
 
-type DestructProdMetadata
+type CaseProdMetadata
   = { indentProd :: Boolean }
