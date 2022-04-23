@@ -6,7 +6,6 @@ import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
 import Record
-
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, under)
 import Data.Set (Set)
@@ -57,28 +56,70 @@ type Data
   = { name :: Name, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, arg :: Term, cases :: DestructSum, meta :: MatchMetadata }
+  = { type_ :: Type, arg :: Term, cases :: CaseSum, meta :: MatchMetadata }
 
 type HoleTerm
   = { type_ :: Type, meta :: HoleTermMetadata }
 
--- | Sum, Prod
+-- | Sum, Prod.
+-- | A datatype is defined as a sum of products (SoP). For example, the natural
+-- | numbers can be defined in a way similar to the syntax defined below as
+-- | ```purescript
+-- | Nat =
+-- |   Plus { name: "zero", prod: One, sum: 
+-- |   Plus { name: "suc" , prod: Mult { name: "n", type_: Nat, prod: One }, sum: 
+-- |   Zero } }
+-- | ```
 data Sum
-  = Zero
-  | Sum { name :: Name, prod :: Prod, sum :: Sum, meta :: SumMetadata }
+  = Zero Zero
+  | Plus Plus
+
+type Zero
+  = {}
+
+type Plus
+  = { name :: Name, prod :: Prod, sum :: Sum, meta :: SumMetadata }
 
 data Prod
-  = One
-  | Prod { name :: Name, type_ :: Type, prod :: Prod, meta :: ProdMetadata }
+  = One One
+  | Mult Mult
 
--- | DestructSum, DestructProd
-data DestructSum
-  = DestructSumLeft { name :: Name, prod :: DestructProd, meta :: DestructSumMetadata }
-  | DestructSumRight DestructSum
+type One
+  = {}
 
-data DestructProd
-  = DestructOne
-  | DestructProd { name :: Name, prod :: DestructProd, meta :: DestructProdMetadata }
+type Mult
+  = { name :: Name, type_ :: Type, prod :: Prod, meta :: ProdMetadata }
+
+-- | CaseSum, CaseProd.
+-- | A pattern matching on a datatype is defined in correspondence to `Sum` and
+-- | `Prod` above. For example, a pattern matching on `Nat` as given as an 
+-- | example in the section for "Sum, Prod", can be defined along the lines of 
+-- | the syntax given below as
+-- | ```purescript
+-- | isZero n =
+-- |   Match { type_: N, arg: n, cases:
+-- |     CasePlus { prod: CaseOne { body: <true> }, sum:
+-- |     CasePlus { prod: CasePair { name: "n", prod: One { body: <false> } } } }
+-- |   }
+data CaseSum
+  = CaseZero CaseZero
+  | CasePlus CasePlus
+
+type CasePlus
+  = { prod :: CaseProd, sum :: CaseSum, meta :: CaseSumMetadata }
+
+type CaseZero
+  = {} -- no body, since this case is impossible
+
+data CaseProd
+  = CaseOne CaseOne
+  | CaseMult CaseMult
+
+type CaseOne
+  = { body :: Term }
+
+type CaseMult
+  = { name :: Name, prod :: CaseProd, meta :: CaseProdMetadata }
 
 -- | HoleId
 newtype HoleId
