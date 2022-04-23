@@ -6,7 +6,6 @@ import Prim hiding (Type)
 import Prim.Row
 import Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 -- | RecType
 type RecType r a
