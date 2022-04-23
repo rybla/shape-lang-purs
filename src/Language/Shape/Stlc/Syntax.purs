@@ -14,53 +14,53 @@ import Data.UUID (UUID)
 
 -- | Type
 data Type
-  = Arrow (Record Arrow)
-  | Base (Record Base)
-  | HoleType (Record HoleType)
+  = Arrow Arrow
+  | Base Base
+  | HoleType HoleType
 
 type Arrow
-  = ( dom :: Type, cod :: Type, meta :: ArrowMetadata )
+  = { dom :: Type, cod :: Type, meta :: ArrowMetadata }
 
 type Base
-  = ( name :: Name, meta :: BaseMetadata )
+  = { name :: Name, meta :: BaseMetadata }
 
 type HoleType
-  = ( holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata )
+  = { holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata }
 
 -- | Term
 data Term
-  = Lam (Record Lam)
-  | App (Record App)
-  | Var (Record Var)
-  | Let (Record Let)
-  | Buf (Record Buf)
-  | Data (Record Data)
-  | Match (Record Match)
-  | HoleTerm (Record HoleTerm)
+  = Lam Lam
+  | App App
+  | Var Var
+  | Let Let
+  | Buf Buf
+  | Data Data
+  | Match Match
+  | HoleTerm HoleTerm
 
 type Lam
-  = ( name :: Name, body :: Term, meta :: LamMetadata )
+  = { name :: Name, body :: Term, meta :: LamMetadata }
 
 type App
-  = ( app :: Term, arg :: Term, meta :: AppMetadata )
+  = { app :: Term, arg :: Term, meta :: AppMetadata }
 
 type Var
-  = ( name :: Name, meta :: VarMetadata )
+  = { name :: Name, meta :: VarMetadata }
 
 type Let
-  = ( name :: Name, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata )
+  = { name :: Name, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata }
 
 type Buf
-  = ( type_ :: Type, buf :: Term, body :: Term, meta :: BufMetadata )
+  = { type_ :: Type, buf :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
-  = ( name :: Name, sum :: Sum, body :: Term, meta :: DataMetadata )
+  = { name :: Name, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = ( type_ :: Type, arg :: Term, cases :: DestructSum, meta :: MatchMetadata )
+  = { type_ :: Type, arg :: Term, cases :: DestructSum, meta :: MatchMetadata }
 
 type HoleTerm
-  = ( type_ :: Type, meta :: HoleTermMetadata )
+  = { type_ :: Type, meta :: HoleTermMetadata }
 
 -- | Sum, Prod
 data Sum
