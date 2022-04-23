@@ -91,6 +91,11 @@ type RecCaseZero r a
 type RecCasePlus r a
   = { casePlus :: CasePlus | r } -> a
 
+recCaseSum :: forall r a. Lacks "caseSum" r => { caseZero :: RecCaseZero r a, casePlus :: RecCasePlus r a } -> RecCaseSum r a
+recCaseSum rec args = case args.caseSum of
+  CaseZero caseZero -> rec.caseZero $ union { caseZero } $ delete (Proxy :: Proxy "caseSum") args
+  CasePlus casePlus -> rec.casePlus $ union { casePlus } $ delete (Proxy :: Proxy "caseSum") args
+
 -- | RecProd
 type RecProd r a
   = { prod :: Prod | r } -> a

@@ -1,12 +1,16 @@
 module Language.Shape.Stlc.Metadata where
 
+import Data.Tuple
+import Data.Tuple.Nested
 import Prelude
+import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 
 -- | Type Metadata
-type ArrowMetadata
+type ArrowTypeMetadata
   = {}
 
-type BaseMetadata
+type DataTypeMetadata
   = {}
 
 type HoleTypeMetadata
@@ -14,7 +18,7 @@ type HoleTypeMetadata
 
 -- | Term Metadata
 type LamMetadata
-  = { indentBody :: Boolean }
+  = { name :: Name, indentBody :: Boolean }
 
 type AppMetadata
   = { indentArg :: Boolean }
@@ -29,24 +33,44 @@ type BufMetadata
   = {}
 
 type DataMetadata
-  = { indentSum :: Boolean }
+  = { name :: Name, indentSum :: Boolean }
 
 type MatchMetadata
   = { indentCases :: Boolean }
 
-type HoleTermMetadata
+type HoleMetadata
   = {}
 
 -- | Sum and Prod Metadata
-type SumMetadata
+type ZeroMetadata
+  = {}
+
+type PlusMetadata
   = { indentSum :: Boolean }
 
-type ProdMetadata
+type OneMetadata
+  = {}
+
+type MultMetadata
   = { indentProd :: Boolean }
 
 -- Case Sum and Prod Metadata
-type CaseSumMetadata
+type CaseZeroMetadata
+  = {}
+
+type CasePlusMetadata
   = { indentProd :: Boolean, indentSum :: Boolean }
 
-type CaseProdMetadata
+type CaseOneMetadata
+  = {}
+
+type CaseMultMetadata
   = { indentProd :: Boolean }
+
+-- | Name 
+newtype Name
+  = Name (Maybe String)
+
+derive instance newTypeName :: Newtype Name _
+
+derive newtype instance eqName :: Eq Name

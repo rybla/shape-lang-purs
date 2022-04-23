@@ -13,15 +13,15 @@ import Data.UUID (UUID)
 
 -- | Type
 data Type
-  = Arrow Arrow
-  | Base Base
+  = ArrowType ArrowType
+  | DataType DataType
   | HoleType HoleType
 
-type Arrow
-  = { dom :: Type, cod :: Type, meta :: ArrowMetadata }
+type ArrowType
+  = { dom :: Type, cod :: Type, meta :: ArrowTypeMetadata }
 
-type Base
-  = { name :: Name, meta :: BaseMetadata }
+type DataType
+  = { meta :: DataTypeMetadata }
 
 type HoleType
   = { holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata }
@@ -35,31 +35,31 @@ data Term
   | Buf Buf
   | Data Data
   | Match Match
-  | HoleTerm HoleTerm
+  | Hole Hole
 
 type Lam
-  = { name :: Name, body :: Term, meta :: LamMetadata }
+  = { id :: Id, body :: Term, meta :: LamMetadata }
 
 type App
   = { app :: Term, arg :: Term, meta :: AppMetadata }
 
 type Var
-  = { name :: Name, meta :: VarMetadata }
+  = { meta :: VarMetadata }
 
 type Let
-  = { name :: Name, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata }
+  = { id :: Id, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata }
 
 type Buf
   = { type_ :: Type, buf :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
-  = { name :: Name, sum :: Sum, body :: Term, meta :: DataMetadata }
+  = { id :: Id, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
   = { type_ :: Type, arg :: Term, cases :: CaseSum, meta :: MatchMetadata }
 
-type HoleTerm
-  = { type_ :: Type, meta :: HoleTermMetadata }
+type Hole
+  = { type_ :: Type, meta :: HoleMetadata }
 
 -- | Sum, Prod.
 -- | A datatype is defined as a sum of products (SoP). For example, the natural
@@ -75,20 +75,20 @@ data Sum
   | Plus Plus
 
 type Zero
-  = {}
+  = { meta :: ZeroMetadata }
 
 type Plus
-  = { name :: Name, prod :: Prod, sum :: Sum, meta :: SumMetadata }
+  = { id :: Id, prod :: Prod, sum :: Sum, meta :: PlusMetadata }
 
 data Prod
   = One One
   | Mult Mult
 
 type One
-  = {}
+  = { meta :: OneMetadata }
 
 type Mult
-  = { name :: Name, type_ :: Type, prod :: Prod, meta :: ProdMetadata }
+  = { id :: Id, type_ :: Type, prod :: Prod, meta :: MultMetadata }
 
 -- | CaseSum, CaseProd.
 -- | A pattern matching on a datatype is defined in correspondence to `Sum` and
@@ -107,30 +107,25 @@ data CaseSum
   | CasePlus CasePlus
 
 type CasePlus
-  = { prod :: CaseProd, sum :: CaseSum, meta :: CaseSumMetadata }
+  = { prod :: CaseProd, sum :: CaseSum, meta :: CasePlusMetadata }
 
 type CaseZero
-  = {} -- no body, since this case is impossible
+  = { meta :: CaseZeroMetadata } -- no body, since this case is impossible
 
 data CaseProd
   = CaseOne CaseOne
   | CaseMult CaseMult
 
 type CaseOne
-  = { body :: Term }
+  = { body :: Term, meta :: CaseOneMetadata }
 
 type CaseMult
-  = { name :: Name, prod :: CaseProd, meta :: CaseProdMetadata }
+  = { id :: Id, prod :: CaseProd, meta :: CaseMultMetadata }
 
 -- | HoleId
 newtype HoleId
   = HoleId UUID
 
--- | Name 
-newtype Name
-  = Name (Maybe String /\ UUID)
-
-derive instance newTypeName :: Newtype Name _
-
-instance eqName :: Eq Name where
-  eq (Name (_ /\ uuid1)) ((Name (_ /\ uuid2))) = uuid1 == uuid2
+-- | Id
+newtype Id
+  = Id UUID
