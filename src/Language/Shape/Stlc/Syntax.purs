@@ -101,6 +101,7 @@ type Mult
 -- |     CasePlus { prod: CaseOne { body: <true> }, sum:
 -- |     CasePlus { prod: CasePair { name: "n", prod: One { body: <false> } } } }
 -- |   }
+-- | ```
 data CaseSum
   = CaseZero CaseZero
   | CasePlus CasePlus
