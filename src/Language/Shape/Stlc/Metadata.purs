@@ -45,26 +45,26 @@ type HoleMetadata
 type ZeroMetadata
   = {}
 
-type PlusMetadata
+type AddMetadata
   = { indentSum :: Boolean }
 
 type OneMetadata
   = {}
 
-type MultMetadata
+type MulMetadata
   = { indentProd :: Boolean }
 
 -- Case Sum and Prod Metadata
-type CaseZeroMetadata
+type ZeroCaseMetadata
   = {}
 
-type CasePlusMetadata
+type AddCaseMetadata
   = { indentProd :: Boolean, indentSum :: Boolean }
 
-type CaseOneMetadata
+type OneCaseMetadata
   = {}
 
-type CaseMultMetadata
+type MulCaseMetadata
   = { indentProd :: Boolean }
 
 -- | Name 

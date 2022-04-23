@@ -56,7 +56,7 @@ type Data
   = { id :: Id, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, arg :: Term, cases :: CaseSum, meta :: MatchMetadata }
+  = { type_ :: Type, arg :: Term, cases :: SumCase, meta :: MatchMetadata }
 
 type Hole
   = { type_ :: Type, meta :: HoleMetadata }
@@ -66,31 +66,31 @@ type Hole
 -- | numbers can be defined in a way similar to the syntax defined below as
 -- | ```purescript
 -- | Nat =
--- |   Plus { name: "zero", prod: One, sum: 
--- |   Plus { name: "suc" , prod: Mult { name: "n", type_: Nat, prod: One }, sum: 
+-- |   Add { name: "zero", prod: One, sum: 
+-- |   Add { name: "suc" , prod: Mul { name: "n", type_: Nat, prod: One }, sum: 
 -- |   Zero } }
 -- | ```
 data Sum
   = Zero Zero
-  | Plus Plus
+  | Add Add
 
 type Zero
   = { meta :: ZeroMetadata }
 
-type Plus
-  = { id :: Id, prod :: Prod, sum :: Sum, meta :: PlusMetadata }
+type Add
+  = { id :: Id, prod :: Prod, sum :: Sum, meta :: AddMetadata }
 
 data Prod
   = One One
-  | Mult Mult
+  | Mul Mul
 
 type One
   = { meta :: OneMetadata }
 
-type Mult
-  = { id :: Id, type_ :: Type, prod :: Prod, meta :: MultMetadata }
+type Mul
+  = { id :: Id, type_ :: Type, prod :: Prod, meta :: MulMetadata }
 
--- | CaseSum, CaseProd.
+-- | SumCase, ProdCase.
 -- | A pattern matching on a datatype is defined in correspondence to `Sum` and
 -- | `Prod` above. For example, a pattern matching on `Nat` as given as an 
 -- | example in the section for "Sum, Prod", can be defined along the lines of 
@@ -98,29 +98,29 @@ type Mult
 -- | ```purescript
 -- | isZero n =
 -- |   Match { type_: N, arg: n, cases:
--- |     CasePlus { prod: CaseOne { body: <true> }, sum:
--- |     CasePlus { prod: CasePair { name: "n", prod: One { body: <false> } } } }
+-- |     AddCase { prod: OneCase { body: <true> }, sum:
+-- |     AddCase { prod: CasePair { name: "n", prod: One { body: <false> } } } }
 -- |   }
 -- | ```
-data CaseSum
-  = CaseZero CaseZero
-  | CasePlus CasePlus
+data SumCase
+  = ZeroCase ZeroCase
+  | AddCase AddCase
 
-type CasePlus
-  = { prod :: CaseProd, sum :: CaseSum, meta :: CasePlusMetadata }
+type AddCase
+  = { prod :: ProdCase, sum :: SumCase, meta :: AddCaseMetadata }
 
-type CaseZero
-  = { meta :: CaseZeroMetadata } -- no body, since this case is impossible
+type ZeroCase
+  = { meta :: ZeroCaseMetadata } -- no body, since this case is impossible
 
-data CaseProd
-  = CaseOne CaseOne
-  | CaseMult CaseMult
+data ProdCase
+  = OneCase OneCase
+  | MulCase MulCase
 
-type CaseOne
-  = { body :: Term, meta :: CaseOneMetadata }
+type OneCase
+  = { body :: Term, meta :: OneCaseMetadata }
 
-type CaseMult
-  = { id :: Id, prod :: CaseProd, meta :: CaseMultMetadata }
+type MulCase
+  = { id :: Id, prod :: ProdCase, meta :: MulCaseMetadata }
 
 -- | HoleId
 newtype HoleId
