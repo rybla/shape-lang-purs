@@ -17,7 +17,7 @@ makeTermVar :: String -> TermId /\ TermName
 makeTermVar label = freshTermId unit /\ TermName label
 
 module_ :: Module
-module_ = test1
+module_ = test2
 
 test1 :: Module
 test1 =
@@ -67,5 +67,73 @@ test1 =
                                     ]
                             ]
                     )
+          ]
+      )
+
+test2 :: Module
+test2 =
+  let
+    nat_id /\ nat_name = makeTypeVar "Nat"
+
+    zero_id /\ zero_name = makeTermVar "zero"
+
+    suc_id /\ suc_name = makeTermVar "suc"
+
+    add_id /\ add_name = makeTermVar "add"
+
+    one_id /\ one_name = makeTermVar "one"
+
+    add'_id /\ add'_name = makeTermVar "add'"
+  in
+    mkModule
+      ( mkItems
+          [ let -- Nat
+              _ /\ n_name = makeTermVar "n"
+            in
+              mkDefItem $ mkDataDef (mkTypeBind nat_id nat_name)
+                $ mkItems
+                    [ mkConstrItem $ mkConstr (mkTermBind zero_id zero_name)
+                        $ mkItems []
+                    , mkConstrItem $ mkConstr (mkTermBind suc_id suc_name)
+                        $ mkItems [ mkParamItem $ mkParam n_name (mkData nat_id) ]
+                    ]
+          , let -- add
+              m_id /\ m_name = makeTermVar "m"
+
+              m'_id /\ m'_name = makeTermVar "m'"
+
+              n_id /\ n_name = makeTermVar "n"
+            in
+              mkDefItem
+                $ mkTermDef (mkTermBind add_id add_name)
+                    (mkParam m_name (mkData nat_id) `mkArrow` (mkParam n_name (mkData nat_id) `mkArrow` mkData nat_id))
+                    ( mkLambda m_id $ mkBlock (mkItems []) $ mkLambda n_id $ mkBlock (mkItems []) $ mkMatch nat_id (mkNeutral m_id (mkItems []))
+                        $ mkItems
+                            [ mkCaseItem $ mkCase (mkItems []) $ mkBlock (mkItems []) $ mkNeutral n_id (mkItems [])
+                            , mkCaseItem $ mkCase (mkItems [ mkTermIdItem m'_id ]) $ mkBlock (mkItems [])
+                                $ mkNeutral suc_id
+                                $ mkItems
+                                    [ mkArgItem
+                                        $ mkNeutral add_id
+                                        $ mkItems
+                                            [ mkArgItem $ mkNeutral m'_id (mkItems [])
+                                            , mkArgItem $ mkNeutral n_id (mkItems [])
+                                            ]
+                                    ]
+                            ]
+                    )
+          , mkDefItem
+              $ mkTermDef (mkTermBind one_id one_name)
+                  (mkData nat_id)
+                  (mkNeutral suc_id (mkItems [ mkArgItem (mkNeutral zero_id (mkItems [])) ]))
+          , let
+              m_id /\ m_name = makeTermVar "m"
+
+              n_id /\ n_name = makeTermVar "n"
+            in
+              mkDefItem
+                $ mkTermDef (mkTermBind add'_id add'_name)
+                    (mkParam m_name (mkData nat_id) `mkArrow` (mkParam n_name (mkData nat_id) `mkArrow` mkData nat_id))
+                    (mkNeutral add_id (mkItems []))
           ]
       )
