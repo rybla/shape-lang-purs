@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "spago test",
+    "quickbuild": "spago build --purs-args \"--censor-warnings\"",
     "build": "spago build --purs-args \"--censor-warnings -gsourcemaps,js\"",
     "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to dist/app.js",
     "serve": "cd dist/; parcel index.html",

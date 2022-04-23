@@ -2,11 +2,13 @@ module Language.Shape.Stlc.Syntax where
 
 import Data.Tuple
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
 import Record
 
 import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype, over, under)
 import Data.Set (Set)
 import Data.UUID (UUID)
 
@@ -17,16 +19,13 @@ data Type
   | HoleType (Record HoleType)
 
 type Arrow
-  = ( dom :: Type, cod :: Type )
+  = ( dom :: Type, cod :: Type, meta :: ArrowMetadata )
 
 type Base
-  = ( name :: Name )
+  = ( name :: Name, meta :: BaseMetadata )
 
 type HoleType
-  = ( holeId :: HoleId, weakening :: Weakening )
-
-type Weakening
-  = Set HoleId
+  = ( holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata )
 
 -- | Term
 data Term
@@ -40,45 +39,56 @@ data Term
   | HoleTerm (Record HoleTerm)
 
 type Lam
-  = ( name :: Name, body :: Term )
+  = ( name :: Name, body :: Term, meta :: LamMetadata )
 
 type App
-  = ( app :: Term, arg :: Term )
+  = ( app :: Term, arg :: Term, meta :: AppMetadata )
 
 type Var
-  = ( name :: Name )
+  = ( name :: Name, meta :: VarMetadata )
 
 type Let
-  = ( name :: Name, type_ :: Type, arg :: Term, body :: Term )
+  = ( name :: Name, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata )
 
 type Buf
-  = ( type_ :: Type, buf :: Term, body :: Term )
+  = ( type_ :: Type, buf :: Term, body :: Term, meta :: BufMetadata )
 
 type Data
-  = ( name :: Name, sum :: Sum, body :: Term )
+  = ( name :: Name, sum :: Sum, body :: Term, meta :: DataMetadata )
 
 type Match
-  = ( type_ :: Type, arg :: Term, cases :: Cases )
+  = ( type_ :: Type, arg :: Term, cases :: DestructSum, meta :: MatchMetadata )
 
 type HoleTerm
-  = ( type_ :: Type )
+  = ( type_ :: Type, meta :: HoleTermMetadata )
 
--- Sum 
+-- | Sum, Prod
+data Sum
+  = Zero
+  | Sum { name :: Name, prod :: Prod, sum :: Sum, meta :: SumMetadata }
 
-data Sum = Zero | Sum Prod Sum 
+data Prod
+  = One
+  | Prod { name :: Name, type_ :: Type, prod :: Prod, meta :: ProdMetadata }
 
--- Prod
+-- | DestructSum, DestructProd
+data DestructSum
+  = DestructSumLeft { name :: Name, prod :: DestructProd, meta :: DestructSumMetadata }
+  | DestructSumRight DestructSum
 
-data Prod = One | Prod Type Prod
+data DestructProd
+  = DestructOne
+  | DestructProd { name :: Name, prod :: DestructProd, meta :: DestructProdMetadata }
 
--- Cases
+-- | HoleId
+newtype HoleId
+  = HoleId UUID
 
-data Cases = Cases
+-- | Name 
+newtype Name
+  = Name (Maybe String /\ UUID)
 
--- HoleId
+derive instance newTypeName :: Newtype Name _
 
-newtype HoleId = HoleId UUID
-
--- Name 
-
-newtype Name = Name (Maybe String /\ UUID)
+instance eqName :: Eq Name where
+  eq (Name (_ /\ uuid1)) ((Name (_ /\ uuid2))) = uuid1 == uuid2
