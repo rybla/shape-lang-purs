@@ -16,6 +16,11 @@ instance defaultArrowTypeMetadata :: Default ArrowTypeMetadata where
 
 derive newtype instance showArrowTypeMetadata :: Show ArrowTypeMetadata
 
+-- newtype ParamMetadata
+--   = ParamMetadata {}
+-- instance defaultParamMetadata :: Default ParamMetadata where
+--   default = ParamMetadata {}
+-- derive newtype instance showParamMetadata :: Show ParamMetadata
 newtype DataTypeMetadata
   = DataTypeMetadata {}
 

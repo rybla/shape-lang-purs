@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Recursion.Syntax where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+import Prim as Prim
 import Prim.Row
 import Record
 import Type.Proxy (Proxy(..))
@@ -12,6 +13,7 @@ import Language.Shape.Stlc.Recursor.Record
 type ProtoArgs r1 r2
   = ( argsSyn :: Record r1 | r2 )
 
+type ProtoRec :: (Row Prim.Type -> Row Prim.Type) -> Row Prim.Type -> Prim.Type -> Prim.Type
 type ProtoRec args r a
   = Record (args r) -> a
 

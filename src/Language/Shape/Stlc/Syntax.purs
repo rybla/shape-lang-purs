@@ -55,16 +55,16 @@ type Arg
   = { term :: Term, meta :: ArgMetadata }
 
 type Let
-  = { id :: Id, type_ :: Type, arg :: Term, body :: Term, meta :: LetMetadata }
+  = { id :: Id, type_ :: Type, term :: Term, body :: Term, meta :: LetMetadata }
 
 type Buf
-  = { type_ :: Type, buf :: Term, body :: Term, meta :: BufMetadata }
+  = { type_ :: Type, term :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
   = { id :: Id, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, arg :: Term, cases :: SumCase, meta :: MatchMetadata }
+  = { type_ :: Type, term :: Term, cases :: SumCase, meta :: MatchMetadata }
 
 type Hole
   = { meta :: HoleMetadata }
