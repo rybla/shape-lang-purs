@@ -12,62 +12,80 @@ import Language.Shape.Stlc.Recursor.Record
 type ProtoArgs r1 r2
   = ( argsSyn :: Record r1 | r2 )
 
-type ProtoRec r1 r2 a
-  = Record (ProtoArgs r1 r2) -> a
+type ProtoRec args r a
+  = Record (args r) -> a
 
 _argsSyn = Proxy :: Proxy "argsSyn"
 
--- | RecType
-type ProtoRecType r1 r2 a
-  = ProtoRec ( type_ :: Type | r1 ) r2 a
+-- | recType
+type ProtoArgsType r1 r2
+  = ProtoArgs ( type_ :: Type | r1 ) r2
 
-type RecType r a
-  = ProtoRecType () r a
+type ArgsType r
+  = ProtoArgsType () r
 
-type RecArrowType r a
-  = ProtoRecType ( arrow :: ArrowType ) r a
+type ArgsArrowType r
+  = ProtoArgsType ( arrow :: ArrowType ) r
 
-type RecDataType r a
-  = ProtoRecType ( data_ :: DataType ) r a
+type ArgsDataType r
+  = ProtoArgsType ( data_ :: DataType ) r
 
-type RecHoleType r a
-  = ProtoRecType ( hole :: HoleType ) r a
+type ArgsHoleType r
+  = ProtoArgsType ( hole :: HoleType ) r
 
-recType :: forall r a. Lacks "argsSyn" r => { arrow :: RecArrowType r a, data_ :: RecDataType r a, hole :: RecHoleType r a } -> RecType r a
+recType ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { arrow :: ProtoRec ArgsArrowType r a
+  , data_ :: ProtoRec ArgsDataType r a
+  , hole :: ProtoRec ArgsHoleType r a
+  } ->
+  ProtoRec ArgsType r a
 recType rec args@{ argsSyn } = case argsSyn.type_ of
   ArrowType arrow -> rec.arrow $ modifyHetero _argsSyn (union { arrow }) args
   DataType data_ -> rec.data_ $ modifyHetero _argsSyn (union { data_ }) args
   HoleType hole -> rec.hole $ modifyHetero _argsSyn (union { hole }) args
 
--- | RecTerm
-type ProtoRecTerm r1 r2 a
-  = ProtoRec ( term :: Term | r1 ) r2 a
+-- | recTerm
+type ProtoArgsTerm r1 r2
+  = ProtoArgs ( term :: Term | r1 ) r2
 
-type RecTerm r a
-  = ProtoRecTerm () r a
+type ArgsTerm r
+  = ProtoArgsTerm () r
 
-type RecLam r a
-  = ProtoRecTerm ( lam :: Lam ) r a
+type ArgsLam r
+  = ProtoArgsTerm ( lam :: Lam ) r
 
-type RecNeu r a
-  = ProtoRecTerm ( neu :: Neu ) r a
+type ArgsNeu r
+  = ProtoArgsTerm ( neu :: Neu ) r
 
-type RecLet r a
-  = ProtoRecTerm ( let_ :: Let ) r a
+type ArgsLet r
+  = ProtoArgsTerm ( let_ :: Let ) r
 
-type RecBuf r a
-  = ProtoRecTerm ( buf :: Buf ) r a
+type ArgsBuf r
+  = ProtoArgsTerm ( buf :: Buf ) r
 
-type RecData r a
-  = ProtoRecTerm ( data_ :: Data ) r a
+type ArgsData r
+  = ProtoArgsTerm ( data_ :: Data ) r
 
-type RecMatch r a
-  = ProtoRecTerm ( match :: Match ) r a
+type ArgsMatch r
+  = ProtoArgsTerm ( match :: Match ) r
 
-type RecHole r a
-  = ProtoRecTerm ( hole :: Hole ) r a
+type ArgsHole r
+  = ProtoArgsTerm ( hole :: Hole ) r
 
-recTerm :: forall r a. Lacks "argsSyn" r => { lam :: RecLam r a, neu :: RecNeu r a, let_ :: RecLet r a, buf :: RecBuf r a, data_ :: RecData r a, match :: RecMatch r a, hole :: RecHole r a } -> RecTerm r a
+recTerm ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { lam :: ProtoRec ArgsLam r a
+  , neu :: ProtoRec ArgsNeu r a
+  , let_ :: ProtoRec ArgsLet r a
+  , buf :: ProtoRec ArgsBuf r a
+  , data_ :: ProtoRec ArgsData r a
+  , match :: ProtoRec ArgsMatch r a
+  , hole :: ProtoRec ArgsHole r a
+  } ->
+  ProtoRec ArgsTerm r a
 recTerm rec args@{ argsSyn } = case argsSyn.term of
   Lam lam -> rec.lam $ modifyHetero _argsSyn (union { lam }) args
   Neu neu -> rec.neu $ modifyHetero _argsSyn (union { neu }) args
