@@ -1,5 +1,8 @@
 module Data.Default where
 
-class Default :: Type -> Type -> Constraint
-class Default a b | b -> a where
-  default :: a -> b
+class Default a where
+  default :: a
+
+class DefaultF :: Type -> Type -> Constraint
+class DefaultF a b | b -> a where
+  defaultF :: a -> b
