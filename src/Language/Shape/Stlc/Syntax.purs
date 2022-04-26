@@ -48,10 +48,6 @@ data Term
 type Lam
   = { id :: Id, body :: Term, meta :: LamMetadata }
 
--- type App
---   = { app :: Term, arg :: Term, meta :: AppMetadata }
--- type Var
---   = { id :: Id, meta :: VarMetadata }
 type Neu
   = { id :: Id, args :: List Arg, meta :: NeuMetadata }
 
