@@ -3,70 +3,118 @@ module Language.Shape.Stlc.Metadata where
 import Data.Tuple
 import Data.Tuple.Nested
 import Prelude
-import Data.Maybe (Maybe)
+import Data.Default (class Default, default)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 
 -- | Type Metadata
-type ArrowTypeMetadata
-  = {}
+newtype ArrowTypeMetadata
+  = ArrowTypeMetadata {}
 
-type DataTypeMetadata
-  = {}
+instance defaultArrowTypeMetadata :: Default ArrowTypeMetadata where
+  default = ArrowTypeMetadata {}
 
-type HoleTypeMetadata
-  = {}
+derive newtype instance showArrowTypeMetadata :: Show ArrowTypeMetadata
+
+newtype DataTypeMetadata
+  = DataTypeMetadata {}
+
+instance defaultDataTypeMetadata :: Default DataTypeMetadata where
+  default = DataTypeMetadata {}
+
+derive newtype instance showDataTypeMetadata :: Show DataTypeMetadata
+
+newtype HoleTypeMetadata
+  = HoleTypeMetadata {}
+
+instance defaultHoleTypeMetadata :: Default HoleTypeMetadata where
+  default = HoleTypeMetadata {}
+
+derive newtype instance showHoleTypeMetadata :: Show HoleTypeMetadata
 
 -- | Term Metadata
-type LamMetadata
-  = { name :: Name, indentBody :: Boolean }
+newtype LamMetadata
+  = LamMetadata { name :: Name, indentBody :: Boolean }
 
-type AppMetadata
-  = { indentArg :: Boolean }
+instance defaultLamMetadata :: Default LamMetadata where
+  default = LamMetadata { name: default, indentBody: false }
 
-type VarMetadata
-  = {}
+derive newtype instance showLamMetadata :: Show LamMetadata
 
-type LetMetadata
-  = { indentArg :: Boolean, indentBody :: Boolean }
+newtype NeuMetadata
+  = NeuMetadata {}
 
-type BufMetadata
-  = {}
+derive newtype instance showNeuMetadata :: Show NeuMetadata
 
-type DataMetadata
-  = { name :: Name, indentSum :: Boolean }
+instance defaultNeuMetadata :: Default NeuMetadata where
+  default = NeuMetadata {}
 
-type MatchMetadata
-  = { indentCases :: Boolean }
+newtype ArgMetadata
+  = ArgMetadata {}
 
-type HoleMetadata
-  = {}
+derive newtype instance showArgMetadata :: Show ArgMetadata
 
--- | Sum and Prod Metadata
-type ZeroMetadata
-  = {}
+instance defaultArgMetadata :: Default ArgMetadata where
+  default = ArgMetadata {}
 
-type AddMetadata
-  = { indentSum :: Boolean }
+newtype LetMetadata
+  = LetMetadata { indentArg :: Boolean, indentBody :: Boolean }
 
-type OneMetadata
-  = {}
+instance defaultLetMetadata :: Default LetMetadata where
+  default = LetMetadata { indentArg: false, indentBody: true }
 
-type MulMetadata
-  = { indentProd :: Boolean }
+derive newtype instance showLetMetadata :: Show LetMetadata
 
--- Case Sum and Prod Metadata
-type ZeroCaseMetadata
-  = {}
+newtype BufMetadata
+  = BufMetadata {}
 
-type AddCaseMetadata
-  = { indentProd :: Boolean, indentSum :: Boolean }
+instance defaultBufMetadata :: Default BufMetadata where
+  default = BufMetadata {}
 
-type OneCaseMetadata
-  = {}
+derive newtype instance showBufMetadata :: Show BufMetadata
 
-type MulCaseMetadata
-  = { indentProd :: Boolean }
+newtype DataMetadata
+  = DataMetadata { name :: Name, indentSum :: Boolean }
 
+instance defaultDataMetadata :: Default DataMetadata where
+  default = DataMetadata { name: default, indentSum: false }
+
+derive newtype instance showDataMetadata :: Show DataMetadata
+
+newtype MatchMetadata
+  = MatchMetadata { indentCases :: Boolean }
+
+instance defaultMatchMetadata :: Default MatchMetadata where
+  default = MatchMetadata { indentCases: true }
+
+derive newtype instance showMatchMetadata :: Show MatchMetadata
+
+newtype HoleMetadata
+  = HoleMetadata {}
+
+instance defaultHoleMetadata :: Default HoleMetadata where
+  default = HoleMetadata {}
+
+derive newtype instance showHoleMetadata :: Show HoleMetadata
+
+-- -- | Sum and Prod Metadata
+-- type ZeroMetadata
+--   = {}
+-- type AddMetadata
+--   = { indentSum :: Boolean }
+-- type OneMetadata
+--   = {}
+-- type MulMetadata
+--   = { indentProd :: Boolean }
+-- -- Case Sum and Prod Metadata
+-- type ZeroCaseMetadata
+--   = {}
+-- type AddCaseMetadata
+--   = { indentProd :: Boolean, indentSum :: Boolean }
+-- type OneCaseMetadata
+--   = {}
+-- type MulCaseMetadata
+--   = { indentProd :: Boolean }
 -- | Name 
 newtype Name
   = Name (Maybe String)
@@ -74,3 +122,8 @@ newtype Name
 derive instance newTypeName :: Newtype Name _
 
 derive newtype instance eqName :: Eq Name
+
+derive newtype instance showName :: Show Name
+
+instance defaultName :: Default Name where
+  default = Name Nothing
