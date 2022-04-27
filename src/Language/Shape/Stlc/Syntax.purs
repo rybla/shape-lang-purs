@@ -64,7 +64,7 @@ type Data
   = { id :: Id, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, term :: Term, cases :: SumCase, meta :: MatchMetadata }
+  = { type_ :: Type, term :: Term, cases :: SumCases, meta :: MatchMetadata }
 
 type Hole
   = { meta :: HoleMetadata }
@@ -78,7 +78,7 @@ instance showTerm :: Show Term where
 type Sum
   = Unit
 
-type SumCase
+type SumCases
   = Unit
 
 --
@@ -106,7 +106,7 @@ type SumCase
 --   = { meta :: OneMetadata }
 -- type Mul
 --   = { id :: Id, type_ :: Type, prod :: Prod, meta :: MulMetadata }
--- -- | SumCase, ProdCase.
+-- -- | SumCases, ProdCase.
 -- -- | A pattern matching on a datatype is defined in correspondence to `Sum` and
 -- -- | `Prod` above. For example, a pattern matching on `Nat` as given as an 
 -- -- | example in the section for "Sum, Prod", can be defined along the lines of 
@@ -118,11 +118,11 @@ type SumCase
 -- -- |     AddCase { prod: CasePair { name: "n", prod: One { body: <false> } } } }
 -- -- |   }
 -- -- | ```
--- data SumCase
+-- data SumCases
 --   = ZeroCase ZeroCase
 --   | AddCase AddCase
 -- type AddCase
---   = { prod :: ProdCase, sum :: SumCase, meta :: AddCaseMetadata }
+--   = { prod :: ProdCase, sum :: SumCases, meta :: AddCaseMetadata }
 -- type ZeroCase
 --   = { meta :: ZeroCaseMetadata } -- no body, since this case is impossible
 -- data ProdCase

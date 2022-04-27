@@ -1,8 +1,5 @@
 module Language.Shape.Stlc.Recursor.MetaContext where
 
-import Data.Tuple
-import Data.Tuple.Nested
-import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.MetaContext
 import Language.Shape.Stlc.Syntax
 import Prelude
@@ -15,12 +12,9 @@ import Data.List (List)
 import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
-import Language.Shape.Stlc.Metadata (Name(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
-import Partial.Unsafe (unsafeCrashWith)
 import Prim as Prim
-import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 

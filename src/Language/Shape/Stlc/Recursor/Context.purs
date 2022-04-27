@@ -1,6 +1,5 @@
 module Language.Shape.Stlc.Recursor.Context where
 
-import Data.Tuple
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Syntax
