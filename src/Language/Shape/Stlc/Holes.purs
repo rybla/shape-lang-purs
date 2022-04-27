@@ -65,47 +65,26 @@ unifyTypeRestricted _ _ = Nothing
 
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (Lam {termBind, body, meta}) = Lam {termBind, body:(subTerm sub body), meta}
-subTerm sub (Neu {termId, args, meta}) = Neu {termId, args: subArgs sub args, meta}
-subTerm sub (Let {termBind, type_, term}) = ?h
-subTerm sub (Buf {type_, term, body, meta}) = ?h
-subTerm sub (Data {typeBind, sum, body, meta}) = ?h
-subTerm sub (Match {type_, term, case_, meta})
-  = Match {type_, term: subTerm sub term, case_: map (subCase sub) case_, meta}
+subTerm sub (Neu {termId, argItems, meta}) = Neu {termId, argItems: map (subArgItem sub) argItems, meta}
+subTerm sub (Let {termBind, type_, term, body, meta})
+  = Let {termBind, type_: subType sub type_, term: subTerm sub term,
+          body: subTerm sub body, meta}
+subTerm sub (Buf {type_, term, body, meta}) =
+  Buf {type_: subType sub type_, term: subTerm sub term, body: subTerm sub body, meta}
+subTerm sub (Data {typeBind, sumItems, body, meta}) =
+  Data {typeBind, sumItems: map (subSumItem sub) sumItems, body: subTerm sub body, meta}
+subTerm sub (Match {type_, term, caseItems, meta})
+  = Match {type_, term: subTerm sub term, caseItems: map (subCase sub) caseItems, meta}
 subTerm sub (Hole {meta}) = Hole {meta}
 
-subArgs :: HoleSub -> List ArgItem -> List ArgItem
-subArgs = undefined
+subArgItem :: HoleSub -> ArgItem -> ArgItem
+subArgItem sub {term, meta} = {term: subTerm sub term, meta}
 
-subCase :: HoleSub -> Case -> Case
-subCase = undefined
+subCase :: HoleSub -> CaseItem -> CaseItem
+subCase sub {termBinds, body, meta} = {termBinds, body: subTerm sub body, meta}
 
-{-
-subTerm :: HoleSub -> Term -> Term
-subTerm sub (LambdaTerm bind block md) = LambdaTerm bind (subBlock sub block) md
-subTerm sub (HoleTerm md) = HoleTerm md
-subTerm sub (MatchTerm id t cases md)
-  = MatchTerm id (subTerm sub t) (map (\(Tuple cas md) -> Tuple (subCase sub cas) md) cases) md
-subTerm sub (NeutralTerm x args md) = NeutralTerm x (subArgs sub args) md
+subSumItem :: HoleSub -> SumItem -> SumItem
+subSumItem sub {termBind, params, meta} = {termBind, params: map (subParam sub) params, meta}
 
-subArgs :: HoleSub -> List ArgItem -> List ArgItem
-subArgs sub Nil = Nil
-subArgs sub (Cons (Tuple t md) rst) = Cons (Tuple (subTerm sub t) md) (subArgs sub rst)
-
-subBlock :: HoleSub -> Block -> Block
-subBlock sub (Block defs t md)
-  = Block (map (\(Tuple def md) -> Tuple (subDefinition sub def) md) defs) (subTerm sub t) md
-
-subDefinition :: HoleSub -> Definition -> Definition
-subDefinition sub (TermDefinition binds ty t md) = TermDefinition binds (subType sub ty) (subTerm sub t) md
-
-subDefinition sub (DataDefinition bind ctrs md)
-  = DataDefinition bind (map (\(Tuple ctr md) -> Tuple (subConstructor sub ctr) md) ctrs) md
-
-subConstructor :: HoleSub -> Constructor -> Constructor
-subConstructor sub (Constructor bind paramItems md)
-  = Constructor bind (map (\(Tuple param md) -> Tuple (subParameter sub param) md) paramItems) md
-
-subCase :: HoleSub -> Case -> Case
-subCase sub (Case binds t md) = Case binds (subBlock sub t) md
-
--}
+subParam :: HoleSub -> Param -> Param
+subParam sub {type_, meta} = {type_: subType sub type_, meta}
