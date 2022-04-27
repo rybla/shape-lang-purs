@@ -47,10 +47,7 @@ type Neu
   = { termId :: TermId, argItems :: List ArgItem, meta :: NeuMetadata }
 
 type ArgItem
-  = { arg :: Arg, meta :: ArgItemMetadata }
-
-type Arg
-  = { term :: Term, meta :: ArgMetadata }
+  = { term :: Term, meta :: ArgItemMetadata }
 
 type Let
   = { termBind :: TermBind, type_ :: Type, term :: Term, body :: Term, meta :: LetMetadata }
