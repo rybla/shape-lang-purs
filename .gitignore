@@ -16,3 +16,5 @@ dist/*.js
 dist/*.js.map
 */.DS_Store
 src/App/State.purs
+**/*.agdai
+**/*.*~
