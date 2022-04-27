@@ -44,10 +44,7 @@ recType ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { arrow :: ProtoRec ArgsArrowType r a
-  , data_ :: ProtoRec ArgsDataType r a
-  , hole :: ProtoRec ArgsHoleType r a
-  } ->
+  { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
 recType rec =
   Rec.recType
@@ -64,7 +61,7 @@ type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
 
 type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm ( type_arg :: Type, ctx_body :: Context, type_body :: Type ) r)
+  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, ctx_body :: Context, type_body :: Type ) r)
 
 type ArgsNeu r
   = Rec.ArgsNeu (ProtoArgsTerm ( type_id :: Type, types_args :: List Type ) r)
@@ -88,32 +85,25 @@ recTerm ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { lam :: ProtoRec ArgsLam r a
-  , neu :: ProtoRec ArgsNeu r a
-  , let_ :: ProtoRec ArgsLet r a
-  , buf :: ProtoRec ArgsBuf r a
-  , data_ :: ProtoRec ArgsData r a
-  , match :: ProtoRec ArgsMatch r a
-  , hole :: ProtoRec ArgsHole r a
-  } ->
+  { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
 recTerm rec =
   Rec.recTerm
     { lam:
         \args@{ argsSyn: { lam }, argsCtx: { ctx, type_ } } -> case type_ of
-          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_arg: dom, ctx_body: insertVarType lam.id dom ctx, type_body: cod }) args
+          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_dom: dom, ctx_body: insertVarType lam.termBind.termId dom ctx, type_body: cod }) args
           _ -> unsafeCrashWith "badly typed lambda"
     , neu:
         \args@{ argsSyn: { neu }, argsCtx: { ctx } } ->
           let
-            type_id = lookupVarType neu.id ctx
+            type_id = lookupVarType neu.termId ctx
 
             (types_args /\ _) = flattenType type_id
           in
             rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
     , let_:
         \args@{ argsSyn: { let_ }, argsCtx: { ctx } } ->
-          rec.let_ $ modifyHetero _argsCtx (union { type_arg: let_.type_, ctx_body: insertVarType let_.id let_.type_ ctx }) args
+          rec.let_ $ modifyHetero _argsCtx (union { type_arg: let_.type_, ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
     , buf: rec.buf
     , data_:
         \args@{ argsSyn: { data_ }, argsCtx: { ctx } } ->

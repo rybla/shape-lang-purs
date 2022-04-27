@@ -25,7 +25,7 @@ type ArrowType
   = { dom :: Type, cod :: Type, meta :: ArrowTypeMetadata }
 
 type DataType
-  = { id :: Id, meta :: DataTypeMetadata }
+  = { typeId :: TypeId, meta :: DataTypeMetadata }
 
 type HoleType
   = { holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata }
@@ -46,92 +46,75 @@ data Term
   | Hole Hole
 
 type Lam
-  = { id :: Id, body :: Term, meta :: LamMetadata }
+  = { termBind :: TermBind, body :: Term, meta :: LamMetadata }
 
 type Neu
-  = { id :: Id, args :: List Arg, meta :: NeuMetadata }
+  = { termId :: TermId, args :: List ArgItem, meta :: NeuMetadata }
+
+type ArgItem
+  = { arg :: Arg, meta :: ArgItemMetadata }
 
 type Arg
   = { term :: Term, meta :: ArgMetadata }
 
 type Let
-  = { id :: Id, type_ :: Type, term :: Term, body :: Term, meta :: LetMetadata }
+  = { termBind :: TermBind, type_ :: Type, term :: Term, body :: Term, meta :: LetMetadata }
 
 type Buf
   = { type_ :: Type, term :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
-  = { id :: Id, sum :: Sum, body :: Term, meta :: DataMetadata }
+  = { typeBind :: TypeBind, sum :: Sum, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, term :: Term, cases :: SumCases, meta :: MatchMetadata }
+  = { type_ :: Type, term :: Term, case_ :: Case, meta :: MatchMetadata }
 
 type Hole
   = { meta :: HoleMetadata }
+
+type TypeBind
+  = { typeId :: TypeId, meta :: TypeBindMetadata }
+
+type TermBind
+  = { termId :: TermId, meta :: TermBindMetadata }
 
 derive instance genericTerm :: Generic Term _
 
 instance showTerm :: Show Term where
   show x = genericShow x
 
--- TODO
 type Sum
-  = Unit
+  = List { termBind :: TermBind, termBinds :: List TermBind, meta :: SumItemMetadata }
 
-type SumCases
-  = Unit
+type Case
+  = List { termBinds :: List TermBind, body :: Term, meta :: CaseItemMetadata }
 
---
--- -- TODO: probably will change these to just lists of lists, but I want to make sure I understand how its setup first
--- -- | Sum, Prod.
--- -- | A datatype is defined as a sum of products (SoP). For example, the natural
--- -- | numbers can be defined in a way similar to the syntax defined below as
--- -- | ```purescript
--- -- | Nat =
--- -- |   Add { name: "zero", prod: One, sum: 
--- -- |   Add { name: "suc" , prod: Mul { name: "n", type_: Nat, prod: One }, sum: 
--- -- |   Zero } }
--- -- | ```
--- data Sum
---   = Zero Zero
---   | Add Add
--- type Zero
---   = { meta :: ZeroMetadata }
--- type Add
---   = { id :: Id, prod :: Prod, sum :: Sum, meta :: AddMetadata }
--- data Prod
---   = One One
---   | Mul Mul
--- type One
---   = { meta :: OneMetadata }
--- type Mul
---   = { id :: Id, type_ :: Type, prod :: Prod, meta :: MulMetadata }
--- -- | SumCases, ProdCase.
--- -- | A pattern matching on a datatype is defined in correspondence to `Sum` and
--- -- | `Prod` above. For example, a pattern matching on `Nat` as given as an 
--- -- | example in the section for "Sum, Prod", can be defined along the lines of 
--- -- | the syntax given below as
--- -- | ```purescript
--- -- | isZero n =
--- -- |   Match { type_: N, arg: n, cases:
--- -- |     AddCase { prod: OneCase { body: <true> }, sum:
--- -- |     AddCase { prod: CasePair { name: "n", prod: One { body: <false> } } } }
--- -- |   }
--- -- | ```
--- data SumCases
---   = ZeroCase ZeroCase
---   | AddCase AddCase
--- type AddCase
---   = { prod :: ProdCase, sum :: SumCases, meta :: AddCaseMetadata }
--- type ZeroCase
---   = { meta :: ZeroCaseMetadata } -- no body, since this case is impossible
--- data ProdCase
---   = OneCase OneCase
---   | MulCase MulCase
--- type OneCase
---   = { body :: Term, meta :: OneCaseMetadata }
--- type MulCase
---   = { id :: Id, prod :: ProdCase, meta :: MulCaseMetadata }
+-- | TypeId
+newtype TypeId
+  = TypeId UUID
+
+derive newtype instance eqTypeId :: Eq TypeId
+
+derive newtype instance ordTypeId :: Ord TypeId
+
+derive newtype instance showTypeId :: Show TypeId
+
+freshTypeId :: Unit -> TypeId
+freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
+
+-- | TermId
+newtype TermId
+  = TermId UUID
+
+derive newtype instance eqTermId :: Eq TermId
+
+derive newtype instance ordTermId :: Ord TermId
+
+derive newtype instance showTermId :: Show TermId
+
+freshTermId :: Unit -> TermId
+freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
+
 -- | HoleId
 newtype HoleId
   = HoleId UUID
@@ -144,16 +127,3 @@ derive newtype instance showHoleId :: Show HoleId
 
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
-
--- | Id
-newtype Id
-  = Id UUID
-
-derive newtype instance eqId :: Eq Id
-
-derive newtype instance ordId :: Ord Id
-
-derive newtype instance showId :: Show Id
-
-freshId :: Unit -> Id
-freshId _ = unsafePerformEffect $ Id <$> genUUID
