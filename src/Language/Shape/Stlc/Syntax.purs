@@ -1,15 +1,10 @@
 module Language.Shape.Stlc.Syntax where
 
-import Data.Tuple
-import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
-import Record
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, over, under)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
@@ -127,3 +122,27 @@ derive newtype instance showHoleId :: Show HoleId
 
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
+
+-- | Syntax
+data Syntax
+  = Syntax_ArrowType ArrowType
+  | Syntax_DataType DataType
+  | Syntax_HoleType HoleType
+  | Syntax_Lam Lam
+  | Syntax_Neu Neu
+  | Syntax_Let Let
+  | Syntax_Buf Buf
+  | Syntax_Data Data
+  | Syntax_Match Match
+  | Syntax_Hole Hole
+  | Syntax_ArgItem ArgItem
+  | Syntax_TypeBind TypeBind
+  | Syntax_TermBind TermBind
+  | Syntax_Sum Sum
+  | Syntax_Case Case
+  | Syntax_List (List Syntax)
+
+derive instance genericSyntax :: Generic Syntax _
+
+instance showSyntax :: Show Syntax where
+  show x = genericShow x
