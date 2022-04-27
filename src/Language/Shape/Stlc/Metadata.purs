@@ -59,6 +59,16 @@ derive newtype instance showNeuMetadata :: Show NeuMetadata
 instance defaultNeuMetadata :: Default NeuMetadata where
   default = NeuMetadata {}
 
+newtype ArgItemMetadata
+  = ArgItemMetadata {}
+
+derive instance newTypeArgItemMetadata :: Newtype ArgItemMetadata _
+
+derive newtype instance showArgItemMetadata :: Show ArgItemMetadata
+
+instance defaultArgItemMetadata :: Default ArgItemMetadata where
+  default = ArgItemMetadata {}
+
 newtype ArgMetadata
   = ArgMetadata {}
 
@@ -119,24 +129,46 @@ instance defaultHoleMetadata :: Default HoleMetadata where
 
 derive newtype instance showHoleMetadata :: Show HoleMetadata
 
--- -- | Sum and Prod Metadata
--- type ZeroMetadata
---   = {}
--- type AddMetadata
---   = { indentSum :: Boolean }
--- type OneMetadata
---   = {}
--- type MulMetadata
---   = { indentProd :: Boolean }
--- -- Case Sum and Prod Metadata
--- type ZeroCaseMetadata
---   = {}
--- type AddCaseMetadata
---   = { indentProd :: Boolean, indentSum :: Boolean }
--- type OneCaseMetadata
---   = {}
--- type MulCaseMetadata
---   = { indentProd :: Boolean }
+newtype TypeBindMetadata
+  = TypeBindMetadata {}
+
+derive instance newTypeTypeBindMetadata :: Newtype TypeBindMetadata _
+
+instance defaultTypeBindMetadata :: Default TypeBindMetadata where
+  default = TypeBindMetadata {}
+
+derive newtype instance showTypeBindMetadata :: Show TypeBindMetadata
+
+newtype TermBindMetadata
+  = TermBindMetadata {}
+
+derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
+
+instance defaultTermBindMetadata :: Default TermBindMetadata where
+  default = TermBindMetadata {}
+
+derive newtype instance showTermBindMetadata :: Show TermBindMetadata
+
+newtype SumItemMetadata
+  = SumItemMetadata {}
+
+derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
+
+instance defaultSumItemMetadata :: Default SumItemMetadata where
+  default = SumItemMetadata {}
+
+derive newtype instance showSumItemMetadata :: Show SumItemMetadata
+
+newtype CaseItemMetadata
+  = CaseItemMetadata {}
+
+derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
+
+instance defaultCaseItemMetadata :: Default CaseItemMetadata where
+  default = CaseItemMetadata {}
+
+derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
+
 -- | Name 
 newtype Name
   = Name (Maybe String)

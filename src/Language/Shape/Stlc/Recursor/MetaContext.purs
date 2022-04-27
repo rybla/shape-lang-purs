@@ -105,7 +105,7 @@ recTerm rec =
         \args@{ argsSyn: { lam }, argsMeta: { meta } } ->
           rec.lam
             $ modifyHetero _argsMeta
-                (union { meta_body: insertVarName lam.id (unwrap lam.meta).name meta })
+                (union { meta_body: insertVarName lam.termBind.termId (unwrap lam.meta).name meta })
                 args
     , neu:
         \args@{ argsSyn: { neu }, argsMeta: { meta } } ->
@@ -123,7 +123,7 @@ recTerm rec =
                     union
                       { meta_type: meta'
                       , meta_term: meta'
-                      , meta_body: insertVarName let_.id (unwrap let_.meta).name meta'
+                      , meta_body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
                       }
                 )
                 args
@@ -149,7 +149,7 @@ recTerm rec =
                   in
                     union
                       { meta_sum: meta'
-                      , meta_body: insertDataName data_.id (unwrap data_.meta).name meta'
+                      , meta_body: insertDataName data_.typeBind.typeId (unwrap data_.meta).name meta'
                       }
                 )
                 args

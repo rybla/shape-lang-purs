@@ -18,9 +18,9 @@ import Type.Proxy (Proxy(..))
 -- | Context
 newtype Context
   = Context
-  { datas :: Map Id Data -- typeId => data
-  , varTypes :: Map Id Type -- varId => type
-  , constrDataTypes :: Map Id DataType -- constrId => dataType
+  { datas :: Map TypeId Data -- typeId => data
+  , varTypes :: Map TermId Type -- varId => type
+  , constrDataTypes :: Map TermId DataType -- constrId => dataType
   }
 
 derive instance newTypeContext :: Newtype Context _
@@ -34,18 +34,18 @@ _varTypes = Proxy :: Proxy "varTypes"
 _constrDataTypes = Proxy :: Proxy "constrDataTypes"
 
 insertData :: Data -> Context -> Context
-insertData data_ = over Context $ modify _datas (Map.insert data_.id data_)
+insertData data_ = over Context $ modify _datas (Map.insert data_.typeBind.typeId data_)
 
-insertVarType :: Id -> Type -> Context -> Context
+insertVarType :: TermId -> Type -> Context -> Context
 insertVarType id type_ = over Context $ modify _varTypes (Map.insert id type_)
 
-lookupVarType :: Id -> Context -> Type
+lookupVarType :: TermId -> Context -> Type
 lookupVarType id ctx = case Map.lookup id (unwrap ctx).varTypes of
   Just type_ -> type_
   Nothing -> unsafeCrashWith $ "could not find " <> show id <> " in context " <> show ctx
 
-insertConstrDataType :: Id -> DataType -> Context -> Context
-insertConstrDataType id dataType = over Context $ modify _constrDataTypes (Map.insert id dataType)
+insertConstrDataType :: TermId -> DataType -> Context -> Context
+insertConstrDataType termId dataType = over Context $ modify _constrDataTypes (Map.insert termId dataType)
 
 flattenType :: Type -> (List Type /\ Type)
 flattenType type_ = case type_ of

@@ -15,8 +15,8 @@ import Undefined (undefined)
 
 newtype MetaContext
   = MetaContext
-  { varNames :: Map Id Name -- varId => varName
-  , dataNames :: Map Id Name -- dataId => dataName
+  { varNames :: Map TermId Name -- varId => varName
+  , dataNames :: Map TypeId Name -- dataId => dataName
   , indentation :: Int
   }
 
@@ -28,10 +28,10 @@ _dataNames = Proxy :: Proxy "dataNames"
 
 _indentation = Proxy :: Proxy "indentation"
 
-insertVarName :: Id -> Name -> MetaContext -> MetaContext
+insertVarName :: TermId -> Name -> MetaContext -> MetaContext
 insertVarName id name = over MetaContext $ Record.modify _varNames (Map.insert id name)
 
-insertDataName :: Id -> Name -> MetaContext -> MetaContext
+insertDataName :: TypeId -> Name -> MetaContext -> MetaContext
 insertDataName id name = over MetaContext $ Record.modify _dataNames (Map.insert id name)
 
 incrementIndentation :: MetaContext -> MetaContext
