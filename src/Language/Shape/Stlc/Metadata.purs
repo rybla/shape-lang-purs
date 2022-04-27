@@ -11,18 +11,17 @@ import Data.Newtype (class Newtype)
 newtype ArrowTypeMetadata
   = ArrowTypeMetadata {}
 
+derive instance newTypeArrowTypeMetadata :: Newtype ArrowTypeMetadata _
+
 instance defaultArrowTypeMetadata :: Default ArrowTypeMetadata where
   default = ArrowTypeMetadata {}
 
 derive newtype instance showArrowTypeMetadata :: Show ArrowTypeMetadata
 
--- newtype ParamMetadata
---   = ParamMetadata {}
--- instance defaultParamMetadata :: Default ParamMetadata where
---   default = ParamMetadata {}
--- derive newtype instance showParamMetadata :: Show ParamMetadata
 newtype DataTypeMetadata
   = DataTypeMetadata {}
+
+derive instance newTypeDataTypeMetadata :: Newtype DataTypeMetadata _
 
 instance defaultDataTypeMetadata :: Default DataTypeMetadata where
   default = DataTypeMetadata {}
@@ -31,6 +30,8 @@ derive newtype instance showDataTypeMetadata :: Show DataTypeMetadata
 
 newtype HoleTypeMetadata
   = HoleTypeMetadata {}
+
+derive instance newTypeHoleTypeMetadata :: Newtype HoleTypeMetadata _
 
 instance defaultHoleTypeMetadata :: Default HoleTypeMetadata where
   default = HoleTypeMetadata {}
@@ -41,6 +42,8 @@ derive newtype instance showHoleTypeMetadata :: Show HoleTypeMetadata
 newtype LamMetadata
   = LamMetadata { name :: Name, indentBody :: Boolean }
 
+derive instance newTypeLamMetadata :: Newtype LamMetadata _
+
 instance defaultLamMetadata :: Default LamMetadata where
   default = LamMetadata { name: default, indentBody: false }
 
@@ -48,6 +51,8 @@ derive newtype instance showLamMetadata :: Show LamMetadata
 
 newtype NeuMetadata
   = NeuMetadata {}
+
+derive instance newTypeNeuMetadata :: Newtype NeuMetadata _
 
 derive newtype instance showNeuMetadata :: Show NeuMetadata
 
@@ -57,21 +62,27 @@ instance defaultNeuMetadata :: Default NeuMetadata where
 newtype ArgMetadata
   = ArgMetadata {}
 
+derive instance newTypeArgMetadata :: Newtype ArgMetadata _
+
 derive newtype instance showArgMetadata :: Show ArgMetadata
 
 instance defaultArgMetadata :: Default ArgMetadata where
   default = ArgMetadata {}
 
 newtype LetMetadata
-  = LetMetadata { indentArg :: Boolean, indentBody :: Boolean }
+  = LetMetadata { name :: Name, indentArg :: Boolean, indentBody :: Boolean }
+
+derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
 instance defaultLetMetadata :: Default LetMetadata where
-  default = LetMetadata { indentArg: false, indentBody: true }
+  default = LetMetadata { name: default, indentArg: false, indentBody: true }
 
 derive newtype instance showLetMetadata :: Show LetMetadata
 
 newtype BufMetadata
   = BufMetadata {}
+
+derive instance newTypeBufMetadata :: Newtype BufMetadata _
 
 instance defaultBufMetadata :: Default BufMetadata where
   default = BufMetadata {}
@@ -81,6 +92,8 @@ derive newtype instance showBufMetadata :: Show BufMetadata
 newtype DataMetadata
   = DataMetadata { name :: Name, indentSum :: Boolean }
 
+derive instance newTypeDataMetadata :: Newtype DataMetadata _
+
 instance defaultDataMetadata :: Default DataMetadata where
   default = DataMetadata { name: default, indentSum: false }
 
@@ -89,6 +102,8 @@ derive newtype instance showDataMetadata :: Show DataMetadata
 newtype MatchMetadata
   = MatchMetadata { indentCases :: Boolean }
 
+derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
+
 instance defaultMatchMetadata :: Default MatchMetadata where
   default = MatchMetadata { indentCases: true }
 
@@ -96,6 +111,8 @@ derive newtype instance showMatchMetadata :: Show MatchMetadata
 
 newtype HoleMetadata
   = HoleMetadata {}
+
+derive instance newTypeHoleMetadata :: Newtype HoleMetadata _
 
 instance defaultHoleMetadata :: Default HoleMetadata where
   default = HoleMetadata {}

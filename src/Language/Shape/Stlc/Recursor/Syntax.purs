@@ -38,10 +38,7 @@ type ArgsHoleType r
 recType ::
   forall r a.
   Lacks "argsSyn" r =>
-  { arrow :: ProtoRec ArgsArrowType r a
-  , data_ :: ProtoRec ArgsDataType r a
-  , hole :: ProtoRec ArgsHoleType r a
-  } ->
+  { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
 recType rec args@{ argsSyn } = case argsSyn.type_ of
   ArrowType arrow -> rec.arrow $ modifyHetero _argsSyn (union { arrow }) args
@@ -79,14 +76,7 @@ type ArgsHole r
 recTerm ::
   forall r a.
   Lacks "argsSyn" r =>
-  { lam :: ProtoRec ArgsLam r a
-  , neu :: ProtoRec ArgsNeu r a
-  , let_ :: ProtoRec ArgsLet r a
-  , buf :: ProtoRec ArgsBuf r a
-  , data_ :: ProtoRec ArgsData r a
-  , match :: ProtoRec ArgsMatch r a
-  , hole :: ProtoRec ArgsHole r a
-  } ->
+  { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
 recTerm rec args@{ argsSyn } = case argsSyn.term of
   Lam lam -> rec.lam $ modifyHetero _argsSyn (union { lam }) args

@@ -3,20 +3,12 @@ module Language.Shape.Stlc.Recursor.Context where
 import Data.Tuple
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Context
-import Language.Shape.Stlc.Hole
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
-import Control.Monad.Except (runExceptT)
-import Control.Monad.State (StateT)
-import Control.Monad.State as State
-import Data.Default (default)
-import Data.Either (Either(..))
 import Data.List (List)
-import Data.Set as Set
-import Data.String (joinWith)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Partial.Unsafe (unsafeCrashWith)
