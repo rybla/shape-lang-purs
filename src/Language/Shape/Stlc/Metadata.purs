@@ -169,6 +169,16 @@ instance defaultCaseItemMetadata :: Default CaseItemMetadata where
 
 derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
 
+newtype ParamMetadata
+  = ParamMetadata {}
+
+derive instance newTypeParamMetadata :: Newtype ParamMetadata _
+
+instance defaultParamMetadata :: Default ParamMetadata where
+  default = ParamMetadata {}
+
+derive newtype instance showParamMetadata :: Show ParamMetadata
+
 -- | Name 
 newtype Name
   = Name (Maybe String)
