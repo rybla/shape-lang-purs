@@ -10,6 +10,7 @@ import Prelude
 import Prim hiding (Type)
 
 import Control.Monad.Except as Except
+import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Undefined (undefined)
 
@@ -35,13 +36,8 @@ subType sub (HoleType {holeId, weakening, meta}) = case lookup holeId sub of
   Nothing -> HoleType {holeId, weakening, meta}
   Just t -> t
 
-subTypeRestricted :: HoleEq -> Type -> Type
-subTypeRestricted sub (ArrowType {dom, cod, meta})
-  = ArrowType {dom: subTypeRestricted sub dom, cod: subTypeRestricted sub cod, meta}
-subTypeRestricted sub (DataType data_) = DataType data_
-subTypeRestricted sub (HoleType {holeId, weakening, meta}) = case lookup holeId sub of
-  Nothing -> HoleType {holeId, weakening, meta}
-  Just t -> HoleType t
+restrictToFull :: HoleEq -> HoleSub
+restrictToFull sub = map HoleType sub
 
 unifyType :: Type -> Type -> Maybe HoleSub
 unifyType (HoleType {holeId}) t2 = Just $ singleton holeId t2
@@ -51,7 +47,7 @@ unifyType (ArrowType {dom:dom1, cod: cod1, meta: meta1})
   a <- unifyType dom1 dom2
   b <- unifyType (subType a cod1) (subType a cod2)
   pure $ union a b
-unifyType (DataType {id:id1}) (DataType {id:id2}) = if id1 == id2 then Just empty else Nothing
+unifyType (DataType {typeId:id1}) (DataType {typeId:id2}) = if id1 == id2 then Just empty else Nothing
 unifyType _ _ = Nothing
 
 unifyTypeRestricted :: Type -> Type -> Maybe HoleEq
@@ -62,10 +58,26 @@ unifyTypeRestricted t1 (HoleType hole) = unifyTypeRestricted (HoleType hole) t1
 unifyTypeRestricted (ArrowType {dom:dom1, cod: cod1, meta: meta1})
                     (ArrowType {dom:dom2, cod: cod2, meta: meta2}) = do
   a <- unifyTypeRestricted dom1 dom2
-  b <- unifyTypeRestricted (subTypeRestricted a cod1) (subTypeRestricted a cod2)
+  b <- unifyTypeRestricted (subType (restrictToFull a) cod1) (subType (restrictToFull a) cod2)
   pure $ union a b
-unifyTypeRestricted (DataType {id:id1}) (DataType {id:id2}) = if id1 == id2 then Just empty else Nothing
+unifyTypeRestricted (DataType {typeId:id1}) (DataType {typeId:id2}) = if id1 == id2 then Just empty else Nothing
 unifyTypeRestricted _ _ = Nothing
+
+subTerm :: HoleSub -> Term -> Term
+subTerm sub (Lam {termBind, body, meta}) = Lam {termBind, body:(subTerm sub body), meta}
+subTerm sub (Neu {termId, args, meta}) = Neu {termId, args: subArgs sub args, meta}
+subTerm sub (Let {termBind, type_, term}) = ?h
+subTerm sub (Buf {type_, term, body, meta}) = ?h
+subTerm sub (Data {typeBind, sum, body, meta}) = ?h
+subTerm sub (Match {type_, term, case_, meta})
+  = Match {type_, term: subTerm sub term, case_: map (subCase sub) case_, meta}
+subTerm sub (Hole {meta}) = Hole {meta}
+
+subArgs :: HoleSub -> List ArgItem -> List ArgItem
+subArgs = undefined
+
+subCase :: HoleSub -> Case -> Case
+subCase = undefined
 
 {-
 subTerm :: HoleSub -> Term -> Term
