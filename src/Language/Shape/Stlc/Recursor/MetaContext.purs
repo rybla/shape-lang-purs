@@ -56,8 +56,11 @@ recType ::
   ProtoRec ArgsType r a
 recType rec =
   Rec.recType
-    { arrow: \args@{ argsMeta: { meta } } -> rec.arrow $ modifyHetero _argsMeta (union { meta_cod: incrementIndentation meta }) args
-    , data_: \args -> rec.data_ args
+    { arrow:
+        \args@{ argsMeta: { meta } } ->
+          rec.arrow
+            $ modifyHetero _argsMeta (union { meta_cod: incrementIndentation meta }) args
+    , data_: rec.data_
     , hole:
         \args@{ argsSyn: { hole } } -> do
           State.modify_ $ Set.insert hole.holeId
@@ -111,7 +114,7 @@ recTerm rec =
         \args@{ argsSyn: { neu }, argsMeta: { meta } } ->
           rec.neu
             $ modifyHetero _argsMeta
-                (union { meta_args: map (\_ -> incrementIndentation meta) neu.args })
+                (union { meta_args: map (\_ -> incrementIndentation meta) neu.argItems })
                 args
     , let_:
         \args@{ argsSyn: { let_ }, argsMeta: { meta } } ->

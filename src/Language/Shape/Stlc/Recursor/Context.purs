@@ -67,7 +67,7 @@ type ArgsNeu r
   = Rec.ArgsNeu (ProtoArgsTerm ( type_id :: Type, types_args :: List Type ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( type_arg :: Type, ctx_body :: Context ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( ctx_body :: Context ) r)
 
 type ArgsBuf r
   = Rec.ArgsBuf (ProtoArgsTerm () r)
@@ -103,7 +103,7 @@ recTerm rec =
             rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
     , let_:
         \args@{ argsSyn: { let_ }, argsCtx: { ctx } } ->
-          rec.let_ $ modifyHetero _argsCtx (union { type_arg: let_.type_, ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
+          rec.let_ $ modifyHetero _argsCtx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
     , buf: rec.buf
     , data_:
         \args@{ argsSyn: { data_ }, argsCtx: { ctx } } ->
