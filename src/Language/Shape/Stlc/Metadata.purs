@@ -169,6 +169,16 @@ instance defaultCaseItemMetadata :: Default CaseItemMetadata where
 
 derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
 
+newtype ParamMetadata
+  = ParamMetadata {}
+
+derive instance newTypeParamMetadata :: Newtype ParamMetadata _
+
+instance defaultParamMetadata :: Default ParamMetadata where
+  default = ParamMetadata {}
+
+derive newtype instance showParamMetadata :: Show ParamMetadata
+
 -- | Name 
 newtype Name
   = Name (Maybe String)
@@ -177,7 +187,26 @@ derive instance newTypeName :: Newtype Name _
 
 derive newtype instance eqName :: Eq Name
 
+derive newtype instance ordName :: Ord Name
+
 derive newtype instance showName :: Show Name
 
 instance defaultName :: Default Name where
   default = Name Nothing
+
+-- -- | TypeName 
+-- newtype TypeName
+--   = TypeName (Maybe String)
+-- derive instance newTypeTypeName :: Newtype TypeName _
+-- derive newtype instance eqTypeName :: Eq TypeName
+-- derive newtype instance showTypeName :: Show TypeName
+-- instance defaultTypeName :: Default TypeName where
+--   default = TypeName Nothing
+-- -- | TermName 
+-- newtype TermName
+--   = TermName (Maybe String)
+-- derive instance newTypeTermName :: Newtype TermName _
+-- derive newtype instance eqTermName :: Eq TermName
+-- derive newtype instance showTermName :: Show TermName
+-- instance defaultTermName :: Default TermName where
+--   default = TermName Nothing

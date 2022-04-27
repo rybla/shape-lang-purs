@@ -1,15 +1,10 @@
 module Language.Shape.Stlc.Syntax where
 
-import Data.Tuple
-import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
-import Record
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, over, under)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
@@ -49,7 +44,7 @@ type Lam
   = { termBind :: TermBind, body :: Term, meta :: LamMetadata }
 
 type Neu
-  = { termId :: TermId, args :: List ArgItem, meta :: NeuMetadata }
+  = { termId :: TermId, argItems :: List ArgItem, meta :: NeuMetadata }
 
 type ArgItem
   = { arg :: Arg, meta :: ArgItemMetadata }
@@ -64,10 +59,10 @@ type Buf
   = { type_ :: Type, term :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
-  = { typeBind :: TypeBind, sum :: Sum, body :: Term, meta :: DataMetadata }
+  = { typeBind :: TypeBind, sumItems :: List SumItem, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, term :: Term, case_ :: Case, meta :: MatchMetadata }
+  = { type_ :: Type, term :: Term, caseItems :: List CaseItem, meta :: MatchMetadata }
 
 type Hole
   = { meta :: HoleMetadata }
@@ -83,11 +78,14 @@ derive instance genericTerm :: Generic Term _
 instance showTerm :: Show Term where
   show x = genericShow x
 
-type Sum
-  = List { termBind :: TermBind, termBinds :: List TermBind, meta :: SumItemMetadata }
+type SumItem
+  = { termBind :: TermBind, params :: List Param, meta :: SumItemMetadata }
 
-type Case
-  = List { termBinds :: List TermBind, body :: Term, meta :: CaseItemMetadata }
+type CaseItem
+  = { termBinds :: List TermBind, body :: Term, meta :: CaseItemMetadata }
+
+type Param
+  = { type_ :: Type, meta :: ParamMetadata }
 
 -- | TypeId
 newtype TypeId
@@ -127,3 +125,28 @@ derive newtype instance showHoleId :: Show HoleId
 
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
+
+-- | Syntax
+data Syntax
+  = Syntax_ArrowType ArrowType
+  | Syntax_DataType DataType
+  | Syntax_HoleType HoleType
+  | Syntax_Lam Lam
+  | Syntax_Neu Neu
+  | Syntax_Let Let
+  | Syntax_Buf Buf
+  | Syntax_Data Data
+  | Syntax_Match Match
+  | Syntax_Hole Hole
+  | Syntax_ArgItem ArgItem
+  | Syntax_TypeBind TypeBind
+  | Syntax_TermBind TermBind
+  | Syntax_SumItem SumItem
+  | Syntax_CaseItem CaseItem
+  | Syntax_Param Param
+  | Syntax_List (List Syntax)
+
+derive instance genericSyntax :: Generic Syntax _
+
+instance showSyntax :: Show Syntax where
+  show x = genericShow x
