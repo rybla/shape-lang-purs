@@ -23,7 +23,7 @@ type DataType
   = { typeId :: TypeId, meta :: DataTypeMetadata }
 
 type HoleType
-  = { holeId :: HoleId, weakening :: Set HoleId, meta :: HoleTypeMetadata }
+  = { holeId :: HoleId, weakening :: Set TypeId, meta :: HoleTypeMetadata }
 
 derive instance genericType :: Generic Type _
 
