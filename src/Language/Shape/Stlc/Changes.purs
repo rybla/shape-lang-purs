@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
 
+import Control.Monad.State (State)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
@@ -13,7 +14,11 @@ import Data.Map as Map
 import Data.Set (Set, difference, member)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
-import Language.Shape.Stlc.Syntax (HoleId(..), TermId(..), Type(..), TypeId(..), freshHoleId)
+import Language.Shape.Stlc.Context (Context(..), insertVarType)
+import Language.Shape.Stlc.Hole (HoleEq)
+import Language.Shape.Stlc.Recursor.Context (ProtoArgsTerm, ArgsTerm)
+import Language.Shape.Stlc.Recursor.Context as Rec
+import Language.Shape.Stlc.Syntax (HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -78,3 +83,48 @@ chType chs (DataType {typeId, meta}) = if member typeId chs
     then let holeId = (freshHoleId unit)
         in (HoleType {holeId, weakening: Set.empty, meta: default}) /\ (Dig holeId)
     else (DataType {typeId, meta}) /\ NoChange
+
+combineSubs :: HoleEq -> HoleEq -> HoleEq
+combineSubs _ _ = Map.empty -- TODO: fix this later!!!
+
+{-Ideally, chTerm would be written with the Context recursor. However, some of the cases are easier to
+write with advanced pattern matching rather than merely simple recursion. Therefore, I write those cases
+manually, and then use the Context recursor for the remaining cases in chTermAux.-}
+chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State HoleEq Term
+chTerm ctx (ArrowType {dom, cod, meta:m1}) chs (ArrowCh c1 c2) (Lam {termBind, body, meta:m2})
+    = do let (_ /\ change) = chType chs.dataTypeDeletions dom
+        -- TODO TODO TODO TODO TODO TODO: this is the point where I need to figure out when to use
+        -- change vs when to use c1!!!!! I think this shouldn't come up in practice though.
+        -- Also, this applies to all the other cases with ArrowType.
+         body' <- chTerm (insertVarType termBind.termId dom ctx) cod (varChange chs termBind.termId c1) c2 body
+         pure $ Lam {termBind, body: body', meta: m2}
+chTerm ctx (ArrowType {dom, cod, meta:m1}) chs NoChange (Lam {termBind, body, meta:m2})
+    = do let (_ /\ change) = chType chs.dataTypeDeletions dom
+         body' <- chTerm (insertVarType termBind.termId dom ctx) cod (varChange chs termBind.termId change) NoChange body
+         pure $ Lam {termBind, body: body', meta:m2}
+chTerm ctx ty chs (InsertArg a) t
+    = do t' <- chTerm ctx ty chs NoChange t
+         pure $ Lam {termBind: {termId: freshTermId unit, meta: default}, body: t, meta: default}
+chTerm ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
+    (Lam {termBind: i1, body: Lam {termBind: i2, body: t, meta: m2}, meta:m1})
+    = do let (a' /\ change1) = chType chs.dataTypeDeletions a
+             (b' /\ change2) = chType chs.dataTypeDeletions b
+             ctx' = insertVarType i2.termId b' (insertVarType i1.termId a' ctx)
+             chs' = varChange (varChange chs i1.termId change1) i2.termId change2
+         body' <- chTerm ctx' c chs' NoChange t
+         pure $ Lam {termBind: i2, body: Lam {termBind: i1, body: body', meta: m2}, meta: m1}
+chTerm ctx (ArrowType {dom, cod, meta:m1}) chs RemoveArg (Lam {termBind, body, meta:m2})
+    = chTerm (insertVarType termBind.termId dom ctx) cod (deleteVar chs termBind.termId) NoChange body
+chTerm ctx ty chs tc t
+    = chTermAux { argsCtx :{ ctx , type_ : ty} , argsSyn :{term: t}} chs tc
+
+chTermAux :: Rec.ProtoRec Rec.ArgsTerm () (Changes -> TypeChange -> State HoleEq Term)
+chTermAux args chs tc = Rec.recTerm {
+    lam : error "shouldn't get here"
+    , neu : undefined
+    , let_ : undefined
+    , buf : undefined
+    , data_ : undefined
+    , match : undefined
+    , hole : undefined
+} args chs tc
