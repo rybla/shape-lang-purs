@@ -119,30 +119,27 @@ chTerm ctx ty chs tc t
     = chTermAux { argsCtx :{ ctx , type_ : ty} , argsSyn :{term: t}} chs tc
 
 chTermAux :: Rec.ProtoRec Rec.ArgsTerm () (Changes -> TypeChange -> State HoleEq Term)
-chTermAux args chs sbjto
-    = let ctx = args.argsCtx.ctx in
-      let ty = args.argsCtx.type_ in
-     Rec.recTerm {
+chTermAux args chs sbjto = Rec.recTerm {
     lam : error "shouldn't get here"
     , neu : undefined -- depends on chargs
     , let_ : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.let_.type_
-        term' <- chTerm ctx ty chs tc args.argsSyn.let_.term
-        body' <- chTerm ctx ty (varChange chs args.argsSyn.let_.termBind.termId tc) sbjto args.argsSyn.let_.body
+        term' <- chTerm args.argsCtx.ctx args.argsSyn.let_.type_ chs tc args.argsSyn.let_.term
+        body' <- chTerm args.argsCtx.ctx_body args.argsCtx.type_ (varChange chs args.argsSyn.let_.termBind.termId tc) sbjto args.argsSyn.let_.body
         pure $ Let $ args.argsSyn.let_ {term = term', body = body'}
     , buf : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.buf.type_
-        term' <- chTerm ctx ty chs sbjto args.argsSyn.buf.term
-        body' <- chTerm ctx ty chs tc args.argsSyn.buf.body
+        term' <- chTerm args.argsCtx.ctx args.argsSyn.buf.type_ chs sbjto args.argsSyn.buf.term
+        body' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs tc args.argsSyn.buf.body
         pure $ Buf $ args.argsSyn.buf {term = term', body = body'}
     , data_ : \args chs sbjto -> do
         let sumItems' = chSum args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
-        body' <- chTerm ctx ty chs sbjto args.argsSyn.data_.body
+        body' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs sbjto args.argsSyn.data_.body
         pure $ Data $ args.argsSyn.data_ {sumItems= sumItems', body = body'}
     , match : \args chs sbjto -> do
         -- TODO: TODO: apply data type changes to the match cases
-        term' <- chTerm ctx ty chs sbjto args.argsSyn.match.term
+        term' <- chTerm args.argsCtx.ctx args.argsSyn.match.type_ chs sbjto args.argsSyn.match.term
         pure $ Match $ args.argsSyn.match {term = term'}
         
     , hole : \args chs sbjto -> pure $ Hole args.argsSyn.hole
