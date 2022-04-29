@@ -73,8 +73,8 @@ subTerm sub (Buf {type_, term, body, meta}) =
   Buf {type_: subType sub type_, term: subTerm sub term, body: subTerm sub body, meta}
 subTerm sub (Data {typeBind, sumItems, body, meta}) =
   Data {typeBind, sumItems: map (subSumItem sub) sumItems, body: subTerm sub body, meta}
-subTerm sub (Match {type_, term, caseItems, meta})
-  = Match {type_, term: subTerm sub term, caseItems: map (subCase sub) caseItems, meta}
+subTerm sub (Match {typeId, term, caseItems, meta})
+  = Match {typeId, term: subTerm sub term, caseItems: map (subCase sub) caseItems, meta}
 subTerm sub (Hole {meta}) = Hole {meta}
 
 subArgItem :: HoleSub -> ArgItem -> ArgItem
