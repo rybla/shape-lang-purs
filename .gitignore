@@ -18,3 +18,4 @@ dist/*.js.map
 src/App/State.purs
 **/*.agdai
 **/*.*~
+.vscode/settings.json
