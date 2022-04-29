@@ -6,7 +6,7 @@ import Prim.Row
 import Data.Maybe (Maybe(..))
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Key (keys)
-import Language.Shape.Stlc.Recursor.Index as Rec
+import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Record (insert, set)
 import Type.Proxy (Proxy(..))
@@ -43,8 +43,8 @@ recType ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  Lacks "argsMeta" r =>
   Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
   Lacks "argsAct" r =>
   { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
@@ -101,7 +101,7 @@ recType rec =
         , triggers: [ ActionTrigger_Keypress { keys: keys.copy } ]
         , effect: undefined
         }
-    , toggleIndentation_Action args.argsIx.visit.ix
+    -- , toggleIndentation_Action args.argsIx.visit.ix
     ]
 
 -- | recTerm
@@ -136,8 +136,8 @@ recTerm ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  Lacks "argsMeta" r =>
   Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
   Lacks "argsAct" r =>
   { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
@@ -275,7 +275,7 @@ recTerm rec =
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
         , effect: undefined
         }
-    , toggleIndentation_Action args.argsIx.visit.ix
+    -- , toggleIndentation_Action args.argsIx.visit.ix
     ]
 
 -- | Generic Array Action

@@ -9,8 +9,8 @@ import Record
 import Control.Monad.State (State, modify_)
 import Data.List (List)
 import Data.Newtype (unwrap)
-import Data.Set (Set)
-import Data.Set as Set
+import Data.OrderedSet (OrderedSet)
+import Data.OrderedSet as OrderedSet
 import Language.Shape.Stlc.Recursor.Index as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Prim as Prim
@@ -21,10 +21,10 @@ import Undefined (undefined)
 type ProtoArgs r1 r2
   = ( argsMeta :: Record ( meta :: Metacontext | r1 ) | r2 )
 
--- | the State (Set HoleId) gathers the HoleIds of HoleTypes in the program, 
+-- | the State (OrderedSet HoleId) gathers the HoleIds of HoleTypes in the program, 
 -- | statefully.
 type ProtoRec args r a
-  = Rec.ProtoRec args r (State (Set HoleId) a)
+  = Rec.ProtoRec args r (State (OrderedSet HoleId) a)
 
 _argsMeta = Proxy :: Proxy "argsMeta"
 
@@ -63,7 +63,7 @@ recType rec =
     , data_: rec.data_
     , hole:
         \args@{ argsSyn: { hole } } -> do
-          modify_ $ Set.insert hole.holeId
+          modify_ $ OrderedSet.insert hole.holeId
           rec.hole args
     }
 

@@ -7,9 +7,9 @@ import React.DOM (text)
 import React.DOM.Dynamic (span)
 import React.DOM.Props (className)
 
-keyword :: _
-keyword =
-  fromHomogeneous $ pure (span [ className "keyword" ] <<< singleton)
+token :: _
+token =
+  fromHomogeneous $ pure (span [ className "token" ] <<< singleton)
     <*> homogeneous
         { arrowType1: text "->"
         , lam1: text "fun"
