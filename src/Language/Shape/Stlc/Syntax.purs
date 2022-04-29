@@ -125,23 +125,15 @@ freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
 
 -- | Syntax
 data Syntax
-  = Syntax_ArrowType ArrowType
-  | Syntax_DataType DataType
-  | Syntax_HoleType HoleType
-  | Syntax_Lam Lam
-  | Syntax_Neu Neu
-  | Syntax_Let Let
-  | Syntax_Buf Buf
-  | Syntax_Data Data
-  | Syntax_Match Match
-  | Syntax_Hole Hole
-  | Syntax_ArgItem ArgItem
-  | Syntax_TypeBind TypeBind
-  | Syntax_TermBind TermBind
-  | Syntax_SumItem SumItem
-  | Syntax_CaseItem CaseItem
-  | Syntax_Param Param
-  | Syntax_List (List Syntax)
+  = SyntaxType Type 
+  | SyntaxTerm Term 
+  | SyntaxArgItem ArgItem
+  | SyntaxSumItem SumItem 
+  | SyntaxCaseItem CaseItem 
+  | SyntaxParam Param 
+  | SyntaxTypeBind Param 
+  | SyntaxTermBind Param 
+  | SyntaxList (List Syntax)
 
 derive instance genericSyntax :: Generic Syntax _
 

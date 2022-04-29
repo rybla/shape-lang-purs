@@ -1,7 +1,7 @@
 module Language.Shape.Stlc.Recursor.Context where
 
-import Data.Tuple.Nested
 import Data.Function.Utility
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Syntax
 import Prelude
@@ -178,3 +178,74 @@ recArgItems rec =
         rec.nil
     }
 
+-- | recSumItems
+type ProtoArgsSumItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsSumItems r
+  = Rec.ArgsSumItems (ProtoArgsSumItems () r)
+
+type ArgsSumItem r
+  = Rec.ArgsSumItem (ProtoArgsSumItems () r)
+
+recSumItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { sumItem :: ProtoRec ArgsSumItem r a } ->
+  ProtoRec ArgsSumItems r (List a)
+recSumItems = Rec.recSumItems
+
+-- | recCaseItem
+type ProtoArgsCaseItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
+
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems () r)
+
+recCaseItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
+recCaseItems = Rec.recCaseItems
+
+-- | recParams
+type ProtoArgsParams r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsParams r
+  = Rec.ArgsParams (ProtoArgsParams () r)
+
+type ArgsParam r
+  = Rec.ArgsParam (ProtoArgsParams () r)
+
+recParams ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { param :: ProtoRec ArgsParam r a } ->
+  ProtoRec ArgsParams r (List a)
+recParams rec = Rec.recParams undefined
+
+-- | recTermBinds
+type ProtoArgsTermBinds r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsTermBinds r
+  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+
+type ArgsTermBind r
+  = Rec.ArgsTermBind (ProtoArgsTermBinds () r)
+
+recTermBinds ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { termBind :: ProtoRec ArgsTermBind r a } ->
+  ProtoRec ArgsTermBinds r (List a)
+recTermBinds = Rec.recTermBinds
