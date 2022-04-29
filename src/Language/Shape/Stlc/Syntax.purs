@@ -59,7 +59,7 @@ type Data
   = { typeBind :: TypeBind, sumItems :: List SumItem, body :: Term, meta :: DataMetadata }
 
 type Match
-  = { type_ :: Type, term :: Term, caseItems :: List CaseItem, meta :: MatchMetadata }
+  = { typeId :: TypeId, term :: Term, caseItems :: List CaseItem, meta :: MatchMetadata }
 
 type Hole
   = { meta :: HoleMetadata }

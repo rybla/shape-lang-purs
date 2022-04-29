@@ -6,7 +6,7 @@ import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
-import Data.List (List(..))
+import Data.List (List(..), mapWithIndex)
 import Prim as Prim
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -109,3 +109,83 @@ recArgItems ::
 recArgItems rec args@{ argsSyn } = case argsSyn.argItems of
   Nil -> rec.nil args
   Cons argItem argItems -> rec.cons $ modifyHetero _argsSyn (union { argItem, argItems }) args
+
+-- | recSumItems
+type ProtoArgsSumItems r1 r2
+  = ProtoArgs ( sumItems :: List SumItem | r1 ) r2
+
+type ArgsSumItems r
+  = ProtoArgsSumItems () r
+
+type ArgsSumItem r
+  = ProtoArgsSumItems ( i :: Int, sumItem :: SumItem ) r
+
+recSumItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { sumItem :: ProtoRec ArgsSumItem r a } ->
+  ProtoRec ArgsSumItems r (List a)
+recSumItems rec args@{ argsSyn } =
+  mapWithIndex
+    (\i sumItem -> rec.sumItem $ modifyHetero _argsSyn (union { i, sumItem }) args)
+    argsSyn.sumItems
+
+-- | recCaseItem
+type ProtoArgsCaseItems r1 r2
+  = ProtoArgs ( caseItems :: List CaseItem | r1 ) r2
+
+type ArgsCaseItems r
+  = ProtoArgsCaseItems () r
+
+type ArgsCaseItem r
+  = ProtoArgsCaseItems ( i :: Int, caseItem :: CaseItem ) r
+
+recCaseItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
+recCaseItems rec args@{ argsSyn } =
+  mapWithIndex
+    (\i caseItem -> rec.caseItem $ modifyHetero _argsSyn (union { i, caseItem }) args)
+    argsSyn.caseItems
+
+-- | recParams
+type ProtoArgsParams r1 r2
+  = ProtoArgs ( params :: List Param | r1 ) r2
+
+type ArgsParams r
+  = ProtoArgsParams () r
+
+type ArgsParam r
+  = ProtoArgsParams ( i :: Int, param :: Param ) r
+
+recParams ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { param :: ProtoRec ArgsParam r a } ->
+  ProtoRec ArgsParams r (List a)
+recParams rec args@{ argsSyn } =
+  mapWithIndex
+    (\i param -> rec.param $ modifyHetero _argsSyn (union { i, param }) args)
+    argsSyn.params
+
+-- | recTermBinds
+type ProtoArgsTermBinds r1 r2
+  = ProtoArgs ( termBinds :: List TermBind | r1 ) r2
+
+type ArgsTermBinds r
+  = ProtoArgsTermBinds () r
+
+type ArgsTermBind r
+  = ProtoArgsTermBinds ( i :: Int, termBind :: TermBind ) r
+
+recTermBinds ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { termBind :: ProtoRec ArgsTermBind r a } ->
+  ProtoRec ArgsTermBinds r (List a)
+recTermBinds rec args@{ argsSyn } =
+  mapWithIndex
+    (\i termBind -> rec.termBind $ modifyHetero _argsSyn (union { i, termBind }) args)
+    argsSyn.termBinds

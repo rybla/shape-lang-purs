@@ -7,7 +7,9 @@ import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
-import Data.List (List)
+import Data.Default (default)
+import Data.Foldable (class Foldable)
+import Data.List (List, foldl, zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Partial.Unsafe (unsafeCrashWith)
@@ -76,7 +78,7 @@ type ArgsData r
   = Rec.ArgsData (ProtoArgsTerm ( ctx_body :: Context ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm () r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( ctx_caseItems :: List Context ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -107,8 +109,41 @@ recTerm rec =
     , buf: rec.buf
     , data_:
         \args@{ argsSyn: { data_ }, argsCtx: { ctx } } ->
-          rec.data_ $ modifyHetero _argsCtx (union { ctx_body: insertData data_ ctx }) args
-    , match: rec.match
+          rec.data_
+            $ modifyHetero _argsCtx
+                ( union
+                    { ctx_body:
+                        flipfoldl
+                          ( \sumItem ->
+                              insertVarType sumItem.termBind.termId (typeOfConstructor data_.typeBind.typeId sumItem)
+                                <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
+                          )
+                          data_.sumItems
+                          $ insertData data_
+                          $ ctx
+                    }
+                )
+                args
+    , match:
+        \args@{ argsSyn: { match }, argsCtx: { ctx, type_ } } ->
+          let
+            data_ = lookupData match.typeId ctx
+          in
+            rec.match
+              $ modifyHetero _argsCtx
+                  ( union
+                      { ctx_caseItems:
+                          map
+                            ( \(caseItem /\ sumItem) ->
+                                foldl
+                                  (flip \(termBind /\ param) -> insertVarType termBind.termId param.type_)
+                                  ctx
+                                  (zip caseItem.termBinds sumItem.params)
+                            )
+                            (zip match.caseItems (data_.sumItems))
+                      }
+                  )
+                  args
     , hole: rec.hole
     }
 
@@ -143,3 +178,6 @@ recArgItems rec =
     , nil:
         rec.nil
     }
+
+flipfoldl :: forall f a b. Foldable f ⇒ (a → b → b) → f a → b → b
+flipfoldl f a = flip (foldl (flip f)) a
