@@ -17,7 +17,7 @@ import Undefined (undefined)
 
 -- | ProtoRec
 type ProtoArgs r1 r2
-  = ( argsCtx :: Record r1 | r2 )
+  = ( argsCtx :: Record ( ctx :: Context | r1 ) | r2 )
 
 type ProtoRec args r a
   = Rec.ProtoRec args r a
@@ -53,9 +53,9 @@ recType rec =
     , hole: \args -> rec.hole args
     }
 
--- -- | recTerm
+-- | recTerm
 type ProtoArgsTerm r1 r2
-  = ProtoArgs ( ctx :: Context, type_ :: Type | r1 ) r2
+  = ProtoArgs ( type_ :: Type | r1 ) r2
 
 type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
@@ -110,4 +110,36 @@ recTerm rec =
           rec.data_ $ modifyHetero _argsCtx (union { ctx_body: insertData data_ ctx }) args
     , match: rec.match
     , hole: rec.hole
+    }
+
+-- | recArgItems
+type ProtoArgsArgItems r1 r2
+  = ProtoArgs (r1) r2
+
+type ArgsArgItems r
+  = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
+
+type ArgsArgItemsCons r
+  = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
+
+type ArgsArgItemsNil r
+  = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
+
+recArgItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+  ProtoRec ArgsArgItems r a
+recArgItems rec =
+  Rec.recArgItems
+    { cons:
+        rec.cons
+          <<< modifyHetero _argsCtx
+              ( \{ ctx, type_ } -> case type_ of
+                  ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
+                  _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
+              )
+    , nil:
+        rec.nil
     }

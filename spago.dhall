@@ -24,6 +24,7 @@
   , "uuid"
   , "web-dom"
   , "web-html"
+  , "homogeneous"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

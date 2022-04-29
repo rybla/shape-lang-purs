@@ -1,14 +1,15 @@
 module Language.Shape.Stlc.Recursion.Syntax where
 
+import Language.Shape.Stlc.Recursor.Record
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Prim as Prim
 import Prim.Row
 import Record
+import Data.List (List(..))
+import Prim as Prim
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
-import Language.Shape.Stlc.Recursor.Record
 
 type ProtoArgs r1 r2
   = ( argsSyn :: Record r1 | r2 )
@@ -86,3 +87,25 @@ recTerm rec args@{ argsSyn } = case argsSyn.term of
   Data data_ -> rec.data_ $ modifyHetero _argsSyn (union { data_ }) args
   Match match -> rec.match $ modifyHetero _argsSyn (union { match }) args
   Hole hole -> rec.hole $ modifyHetero _argsSyn (union { hole }) args
+
+-- | recArgItems
+type ProtoArgsArgItems r1 r2
+  = ProtoArgs ( argItems :: List ArgItem | r1 ) r2
+
+type ArgsArgItems r
+  = ProtoArgsArgItems () r
+
+type ArgsArgItemsNil r
+  = ProtoArgsArgItems () r
+
+type ArgsArgItemsCons r
+  = ProtoArgsArgItems ( argItem :: ArgItem, argItems :: List ArgItem ) r
+
+recArgItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+  ProtoRec ArgsArgItems r a
+recArgItems rec args@{ argsSyn } = case argsSyn.argItems of
+  Nil -> rec.nil args
+  Cons argItem argItems -> rec.cons $ modifyHetero _argsSyn (union { argItem, argItems }) args
