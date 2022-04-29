@@ -58,6 +58,9 @@ type Buf
 type Data
   = { typeBind :: TypeBind, sumItems :: List SumItem, body :: Term, meta :: DataMetadata }
 
+-- TODO: put this inside of Data since its useful to have Context map TypeId => DataDef
+type DataDef = {typeBind :: TypeBind, sumItems :: List SumItem}
+
 type Match
   = { typeId :: TypeId, term :: Term, caseItems :: List CaseItem, meta :: MatchMetadata }
 

@@ -88,6 +88,23 @@ recTerm rec args@{ argsSyn } = case argsSyn.term of
   Match match -> rec.match $ modifyHetero _argsSyn (union { match }) args
   Hole hole -> rec.hole $ modifyHetero _argsSyn (union { hole }) args
 
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs ( argItems :: List ArgItem | r1 ) r2
+-- type ArgsArgItems r
+--   = ProtoArgsArgItems () r
+-- type ArgsArgItemsNil r
+--   = ProtoArgsArgItems () r
+-- type ArgsArgItemsCons r
+--   = ProtoArgsArgItems ( argItem :: ArgItem, argItems :: List ArgItem ) r
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec args@{ argsSyn } = case argsSyn.argItems of
+--   Nil -> rec.nil args
+--   Cons argItem argItems -> rec.cons $ modifyHetero _argsSyn (union { argItem, argItems }) args
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
   = ProtoArgs ( argItems :: List ArgItem | r1 ) r2
@@ -95,20 +112,15 @@ type ProtoArgsArgItems r1 r2
 type ArgsArgItems r
   = ProtoArgsArgItems () r
 
-type ArgsArgItemsNil r
-  = ProtoArgsArgItems () r
-
-type ArgsArgItemsCons r
-  = ProtoArgsArgItems ( argItem :: ArgItem, argItems :: List ArgItem ) r
+type ArgsArgItem r
+  = ProtoArgsArgItems ( i :: Int, argItem :: ArgItem ) r
 
 recArgItems ::
   forall r a.
   Lacks "argsSyn" r =>
-  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
-  ProtoRec ArgsArgItems r a
-recArgItems rec args@{ argsSyn } = case argsSyn.argItems of
-  Nil -> rec.nil args
-  Cons argItem argItems -> rec.cons $ modifyHetero _argsSyn (union { argItem, argItems }) args
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec args@{ argsSyn } = mapWithIndex (\i argItem -> rec.argItem $ modifyHetero _argsSyn (union { i, argItem }) args) argsSyn.argItems
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2

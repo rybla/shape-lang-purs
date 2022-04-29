@@ -8,8 +8,9 @@ import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
+
 import Data.Default (default)
-import Data.List (List, foldl, zip)
+import Data.List.Unsafe (List, foldl, index', zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Partial.Unsafe (unsafeCrashWith)
@@ -100,7 +101,7 @@ recTerm rec =
           let
             type_id = lookupVarType neu.termId ctx
 
-            (types_args /\ _) = flattenType type_id
+            {doms: types_args} = flattenType type_id
           in
             rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
     , let_:
@@ -115,7 +116,7 @@ recTerm rec =
                     { ctx_body:
                         flipfoldr data_.sumItems
                           ( \sumItem ->
-                              insertVarType sumItem.termBind.termId (typeOfConstructor data_.typeBind.typeId sumItem)
+                              insertVarType sumItem.termBind.termId (typeOfSumItem data_.typeBind.typeId sumItem)
                                 <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
                           )
                           $ insertData data_
@@ -146,37 +147,50 @@ recTerm rec =
     , hole: rec.hole
     }
 
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs r1 r2
+-- type ArgsArgItems r
+--   = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
+-- type ArgsArgItemsCons r
+--   = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
+-- type ArgsArgItemsNil r
+--   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   Lacks "argsCtx" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec =
+--   Rec.recArgItems
+--     { cons:
+--         rec.cons
+--           <<< modifyHetero _argsCtx
+--               ( \{ ctx, type_ } -> case type_ of
+--                   ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
+--                   _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
+--               )
+--     , nil:
+--         rec.nil
+--     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
-  = ProtoArgs r1 r2
+  = ProtoArgs ( doms :: List Type, cod :: Type | r1 ) r2
 
 type ArgsArgItems r
-  = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
+  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
-type ArgsArgItemsCons r
-  = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
-
-type ArgsArgItemsNil r
-  = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
+type ArgsArgItem r
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( type_argItem :: Type ) r)
 
 recArgItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
-  ProtoRec ArgsArgItems r a
-recArgItems rec =
-  Rec.recArgItems
-    { cons:
-        rec.cons
-          <<< modifyHetero _argsCtx
-              ( \{ ctx, type_ } -> case type_ of
-                  ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
-                  _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
-              )
-    , nil:
-        rec.nil
-    }
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec = Rec.recArgItems { argItem: \args@{ argsSyn, argsCtx } -> rec.argItem $ modifyHetero _argsCtx (union { type_argItem: index' argsCtx.doms argsSyn.i }) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -198,7 +212,7 @@ recSumItems = Rec.recSumItems
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( typeId :: TypeId | r1 ) r2
 
 type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
@@ -212,7 +226,16 @@ recCaseItems ::
   Lacks "argsCtx" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems = Rec.recCaseItems
+-- TODO: for each caseItem, add termBinds into context for body
+recCaseItems rec =
+  Rec.recCaseItems
+    { caseItem:
+        \args@{ argsSyn, argsCtx } ->
+          rec.caseItem
+            $ modifyHetero _argsCtx
+                (flipfoldr (zip argsSyn.caseItem.termBinds (lookupData argsCtx.typeId argsCtx.ctx).sumItems) (\({termId} /\ sumItem) -> modify (Proxy :: Proxy "ctx") (insertVarType termId (typeOfSumItem argsCtx.typeId sumItem)))) 
+                args
+    }
 
 -- | recParams
 type ProtoArgsParams r1 r2

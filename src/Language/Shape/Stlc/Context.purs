@@ -63,14 +63,11 @@ lookupVarType termId ctx = case OrderedMap.lookup termId (unwrap ctx).varTypes o
 insertConstrDataType :: TermId -> DataType -> Context -> Context
 insertConstrDataType termId dataType = over Context $ modify _constrDataTypes (OrderedMap.insert termId dataType)
 
-flattenType :: Type -> (List Type /\ Type)
+flattenType :: Type -> {doms::List Type, cod:: Type}
 flattenType type_ = case type_ of
   ArrowType { dom, cod } ->
-    let
-      doms /\ out = flattenType cod
-    in
-      (dom : doms) /\ out
-  _ -> Nil /\ type_
+    modify (Proxy :: Proxy "doms") (dom : _) (flattenType cod)
+  _ -> {doms: Nil, cod: type_}
 
-typeOfConstructor :: TypeId -> SumItem -> Type 
-typeOfConstructor = undefined
+typeOfSumItem :: TypeId -> SumItem -> Type 
+typeOfSumItem = undefined

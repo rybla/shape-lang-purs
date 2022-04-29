@@ -220,6 +220,7 @@ recTermBinds ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
   ProtoRec ArgsTermBinds r (List a)
 recTermBinds = Rec.recTermBinds
