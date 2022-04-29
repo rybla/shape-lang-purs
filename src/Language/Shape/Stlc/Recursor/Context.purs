@@ -9,7 +9,6 @@ import Prim hiding (Type)
 import Prim.Row
 import Record
 import Data.Default (default)
-import Data.Foldable (class Foldable, foldr)
 import Data.List (List, foldl, zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
