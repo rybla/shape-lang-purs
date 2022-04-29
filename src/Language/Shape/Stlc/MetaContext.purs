@@ -1,9 +1,10 @@
-module Language.Shape.Stlc.MetaContext where
+module Language.Shape.Stlc.Metacontext where
 
 import Data.Newtype
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
+import Data.Default (class Default)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -14,8 +15,8 @@ import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
-newtype MetaContext
-  = MetaContext
+newtype Metacontext
+  = Metacontext
   { varNames :: Map TermId Name -- varId => varName
   , varShadows :: Map Name Int -- varName => shadowDepth
   , dataNames :: Map TypeId Name -- dataId => dataName
@@ -23,7 +24,17 @@ newtype MetaContext
   , indentation :: Int
   }
 
-derive instance newTypeMetaContext :: Newtype MetaContext _
+derive instance newTypeMetacontext :: Newtype Metacontext _
+
+instance defaultMetacontext :: Default Metacontext where
+  default =
+    Metacontext
+      { varNames: Map.empty
+      , varShadows: Map.empty
+      , dataNames: Map.empty
+      , dataShadows: Map.empty
+      , indentation: 0
+      }
 
 _varNames = Proxy :: Proxy "varNames"
 
@@ -35,17 +46,17 @@ _dataShadows = Proxy :: Proxy "dataShadows"
 
 _indentation = Proxy :: Proxy "indentation"
 
-insertVarName :: TermId -> Name -> MetaContext -> MetaContext
+insertVarName :: TermId -> Name -> Metacontext -> Metacontext
 insertVarName termId name =
-  over MetaContext
+  over Metacontext
     $ Record.modify _varNames (Map.insert termId name)
     <<< Record.modify _varShadows (Map.alter (maybe (Just 0) (Just <<< (1 + _))) name)
 
-insertDataName :: TypeId -> Name -> MetaContext -> MetaContext
+insertDataName :: TypeId -> Name -> Metacontext -> Metacontext
 insertDataName id name =
-  over MetaContext
+  over Metacontext
     $ Record.modify _dataNames (Map.insert id name)
     <<< Record.modify _dataShadows (Map.alter (maybe (Just 0) (Just <<< (1 + _))) name)
 
-incrementIndentation :: MetaContext -> MetaContext
-incrementIndentation = over MetaContext $ Record.modify _indentation (_ + 1)
+incrementIndentation :: Metacontext -> Metacontext
+incrementIndentation = over Metacontext $ Record.modify _indentation (_ + 1)

@@ -11,7 +11,7 @@ import Record
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), isJust)
 import Data.Newtype (over, unwrap, wrap)
-import Language.Shape.Stlc.Recursor.MetaContext as Rec
+import Language.Shape.Stlc.Recursor.Context as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim as Prim
@@ -67,7 +67,6 @@ recType ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  Lacks "argsMeta" r =>
   Lacks "argsIx" r =>
   { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
@@ -110,7 +109,6 @@ recTerm ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  Lacks "argsMeta" r =>
   Lacks "argsIx" r =>
   { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
