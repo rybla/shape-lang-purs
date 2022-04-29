@@ -114,7 +114,7 @@ recTerm rec =
 
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
-  = ProtoArgs (r1) r2
+  = ProtoArgs r1 r2
 
 type ArgsArgItems r
   = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
