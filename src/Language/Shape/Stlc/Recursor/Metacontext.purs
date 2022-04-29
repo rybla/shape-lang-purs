@@ -6,6 +6,7 @@ import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
+import Control.Monad.State (State, modify_)
 import Data.List (List)
 import Data.Newtype (unwrap)
 import Data.Set (Set)
@@ -23,7 +24,7 @@ type ProtoArgs r1 r2
 -- | the State (Set HoleId) gathers the HoleIds of HoleTypes in the program, 
 -- | statefully.
 type ProtoRec args r a
-  = Rec.ProtoRec args r a
+  = Rec.ProtoRec args r (State (Set HoleId) a)
 
 _argsMeta = Proxy :: Proxy "argsMeta"
 
@@ -60,7 +61,10 @@ recType rec =
           rec.arrow
             $ modifyHetero _argsMeta (union { meta_cod: incrementIndentation meta }) args
     , data_: rec.data_
-    , hole: rec.hole
+    , hole:
+        \args@{ argsSyn: { hole } } -> do
+          modify_ $ Set.insert hole.holeId
+          rec.hole args
     }
 
 -- -- | recTerm
