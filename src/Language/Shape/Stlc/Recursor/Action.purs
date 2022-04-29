@@ -8,13 +8,13 @@ import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Key (keys)
 import Language.Shape.Stlc.Recursor.Index as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
-import Record (set)
+import Record (insert, set)
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 -- | ProtoRec
 type ProtoArgs r1 r2
-  = ( argsAct :: Record ( actions :: Actions | r1 ) | r2 )
+  = ( argsAct :: Record ( | r1 ) | r2 )
 
 type ProtoRec args r a
   = Rec.ProtoRec args r a
@@ -31,13 +31,13 @@ type ArgsType r
   = Rec.ArgsType (ProtoArgsType () r)
 
 type ArgsArrowType r
-  = Rec.ArgsArrowType (ProtoArgsType () r)
+  = Rec.ArgsArrowType (ProtoArgsType ( actions :: Array Action ) r)
 
 type ArgsDataType r
-  = Rec.ArgsDataType (ProtoArgsType () r)
+  = Rec.ArgsDataType (ProtoArgsType ( actions :: Array Action ) r)
 
 type ArgsHoleType r
-  = Rec.ArgsHoleType (ProtoArgsType () r)
+  = Rec.ArgsHoleType (ProtoArgsType ( actions :: Array Action ) r)
 
 recType ::
   forall r a.
@@ -54,7 +54,7 @@ recType rec =
         \args ->
           rec.arrow
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "delete"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.delete } ]
@@ -68,7 +68,7 @@ recType rec =
         \args ->
           rec.data_
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ []
                     <> common args
                 )
@@ -77,14 +77,14 @@ recType rec =
         \args ->
           rec.hole
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ []
                     <> common args
                 )
                 args
     }
   where
-  common :: forall r1 r2. Record (Rec.ProtoArgsType r1 r2) -> Actions
+  common :: forall r1 r2. Record (Rec.ProtoArgsType r1 r2) -> Array Action
   common args =
     [ Action
         { label: Just "dig"
@@ -112,25 +112,25 @@ type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
 
 type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm () r)
+  = Rec.ArgsLam (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm () r)
+  = Rec.ArgsNeu (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm () r)
+  = Rec.ArgsLet (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm () r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm () r)
+  = Rec.ArgsData (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm () r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( actions :: Array Action ) r)
 
 type ArgsHole r
-  = Rec.ArgsHole (ProtoArgsTerm () r)
+  = Rec.ArgsHole (ProtoArgsTerm ( actions :: Array Action ) r)
 
 recTerm ::
   forall r a.
@@ -147,7 +147,7 @@ recTerm rec =
         \args ->
           rec.lam
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "unlambda"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.unlambda } ]
@@ -166,7 +166,7 @@ recTerm rec =
         \args ->
           rec.neu
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "eta"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.eta } ]
@@ -180,7 +180,7 @@ recTerm rec =
         \args ->
           rec.let_
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "unlet"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.unlet } ]
@@ -194,7 +194,7 @@ recTerm rec =
         \args ->
           rec.buf
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "unbuf"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.unbuf } ]
@@ -208,7 +208,7 @@ recTerm rec =
         \args ->
           rec.data_
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "undata"
                           , triggers: [ ActionTrigger_Keypress { keys: keys.undata } ]
@@ -222,7 +222,7 @@ recTerm rec =
         \args ->
           rec.match
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ []
                     <> common args
                 )
@@ -231,7 +231,7 @@ recTerm rec =
         \args ->
           rec.hole
             $ modifyHetero _argsAct
-                ( set _actions
+                ( insert _actions
                     $ [ Action
                           { label: Just "fill"
                           , triggers: [] -- TODO
@@ -243,7 +243,7 @@ recTerm rec =
                 args
     }
   where
-  common :: forall r1 r2. Record (Rec.ProtoArgsTerm r1 r2) -> Actions
+  common :: forall r1 r2. Record (Rec.ProtoArgsTerm r1 r2) -> Array Action
   common args =
     [ Action
         { label: Just "dig"
@@ -278,7 +278,7 @@ recTerm rec =
     , toggleIndentation_Action args.argsIx.visit.ix
     ]
 
--- | Generic Actions
+-- | Generic Array Action
 toggleIndentation_Action :: IxUp -> Action
 toggleIndentation_Action ixUp =
   Action

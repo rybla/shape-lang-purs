@@ -5,24 +5,25 @@ import Prelude
 import Prim hiding (Type)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Index (IxDown(..))
 import Language.Shape.Stlc.Key (Key(..))
-import Language.Shape.Stlc.MetaContext (MetaContext(..))
-import React (ReactElement, ReactThis)
+import Language.Shape.Stlc.Metacontext (Metacontext(..))
+import React (ReactElement, ReactThis, getState)
 
 type Props
   = {}
 
 type State
   = { term :: Term
-    , csr :: IxDown
+    , ix :: IxDown
     , actions :: Array Action
     , environment :: Environment
     }
 
 type Environment
-  = { meta :: Maybe MetaContext
+  = { meta :: Maybe Metacontext
     , ctx :: Maybe Context
     , goal :: Maybe Type
     }
@@ -35,6 +36,9 @@ type Given
 
 type This
   = ReactThis Props State
+
+getState' :: This -> State
+getState' this = unsafePerformEffect $ getState this
 
 newtype Action
   = Action
@@ -54,6 +58,3 @@ data ActionTrigger
   | ActionTrigger_Keypress { keys :: Array Key }
 
 derive instance eqActionTrigger :: Eq ActionTrigger
-
-type Actions
-  = Array Action
