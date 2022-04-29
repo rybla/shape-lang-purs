@@ -122,3 +122,29 @@ recTerm rec =
     , match: rec.match <<< modifyHetero _argsIx (\argsIx@{ visit } -> union { visit_term: visitIxStep visit ixStepMatch.term, visit_caseItems: visitIxStep visit ixStepMatch.caseItems } argsIx)
     , hole: rec.hole
     }
+
+-- | recArgItems
+type ProtoArgsArgItems r1 r2
+  = ProtoArgs r1 r2
+
+type ArgsArgItems r
+  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+
+type ArgsArgItemsCons r
+  = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( visit_argItem :: Visit, visit_argItems :: Visit ) r)
+
+type ArgsArgItemsNil r
+  = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
+
+recArgItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+  ProtoRec ArgsArgItems r a
+recArgItems rec =
+  Rec.recArgItems
+    { cons: rec.cons <<< modifyHetero _argsIx (\argsIx@{ visit } -> union { visit_argItem: visitIxStep visit ixStepArgItems.argItem, visit_argItems: visitIxStep visit ixStepArgItems.argItems } argsIx)
+    , nil: rec.nil
+    }

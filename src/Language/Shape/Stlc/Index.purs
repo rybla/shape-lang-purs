@@ -116,6 +116,11 @@ ixStepMatch =
   , caseItems: IxStep IxStepMatch 1
   }
 
+ixStepArgItems =
+  { argItem: IxStep IxStepList 0
+  , argItems: IxStep IxStepList 1
+  }
+
 ixStepList =
   { head: IxStep IxStepList 0
   , tail: IxStep IxStepList 1
