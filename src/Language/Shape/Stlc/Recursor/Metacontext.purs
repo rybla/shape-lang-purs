@@ -229,7 +229,7 @@ type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
 
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems () r)
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( meta_body :: Metacontext ) r)
 
 recCaseItems ::
   forall r a.
@@ -239,7 +239,10 @@ recCaseItems ::
   Lacks "argsMeta" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec = sequence <<< Rec.recCaseItems rec
+recCaseItems rec =
+  sequence
+    <<< Rec.recCaseItems
+        { caseItem: rec.caseItem <<< modifyHetero _argsMeta (\argsMeta -> union { meta_body: incrementIndentation argsMeta.meta } argsMeta) }
 
 -- | recParams
 type ProtoArgsParams r1 r2
@@ -249,7 +252,7 @@ type ArgsParams r
   = Rec.ArgsParams (ProtoArgsParams () r)
 
 type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams () r)
+  = Rec.ArgsParam (ProtoArgsParams ( meta_param :: Metacontext ) r)
 
 recParams ::
   forall r a.
@@ -259,7 +262,10 @@ recParams ::
   Lacks "argsMeta" r =>
   { param :: ProtoRec ArgsParam r a } ->
   ProtoRec ArgsParams r (List a)
-recParams rec = sequence <<< Rec.recParams rec
+recParams rec =
+  sequence
+    <<< Rec.recParams
+        { param: rec.param <<< modifyHetero _argsMeta (\argsMeta -> union { meta_param: incrementIndentation argsMeta.meta } argsMeta) }
 
 -- | recTermBinds
 type ProtoArgsTermBinds r1 r2
