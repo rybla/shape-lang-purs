@@ -139,7 +139,7 @@ chTermAux args chs sbjto = Rec.recTerm {
         pure $ Data $ args.argsSyn.data_ {sumItems= sumItems', body = body'}
     , match : \args chs sbjto -> do
         -- TODO: TODO: apply data type changes to the match cases
-        term' <- chTerm args.argsCtx.ctx args.argsSyn.match.type_ chs sbjto args.argsSyn.match.term
+        term' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs sbjto args.argsSyn.match.term
         pure $ Match $ args.argsSyn.match {term = term'}
         
     , hole : \args chs sbjto -> pure $ Hole args.argsSyn.hole
