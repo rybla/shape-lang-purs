@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Recursor.Context where
 
 import Data.Tuple.Nested
+import Data.Function.Utility
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Syntax
 import Prelude
@@ -8,7 +9,7 @@ import Prim hiding (Type)
 import Prim.Row
 import Record
 import Data.Default (default)
-import Data.Foldable (class Foldable)
+import Data.Foldable (class Foldable, foldr)
 import Data.List (List, foldl, zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
@@ -113,12 +114,11 @@ recTerm rec =
             $ modifyHetero _argsCtx
                 ( union
                     { ctx_body:
-                        flipfoldl
+                        flipfoldr data_.sumItems
                           ( \sumItem ->
                               insertVarType sumItem.termBind.termId (typeOfConstructor data_.typeBind.typeId sumItem)
                                 <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
                           )
-                          data_.sumItems
                           $ insertData data_
                           $ ctx
                     }
@@ -179,5 +179,3 @@ recArgItems rec =
         rec.nil
     }
 
-flipfoldl :: forall f a b. Foldable f ⇒ (a → b → b) → f a → b → b
-flipfoldl f a = flip (foldl (flip f)) a
