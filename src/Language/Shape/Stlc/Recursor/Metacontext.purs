@@ -174,18 +174,37 @@ recTerm rec =
     , hole: \args -> rec.hole args
     }
 
--- | recArgItems
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs r1 r2
+-- type ArgsArgItems r
+--   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+-- type ArgsArgItemsCons r
+--   = Rec.ArgsArgItemsCons (ProtoArgsArgItems () r)
+-- type ArgsArgItemsNil r
+--   = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   Lacks "argsCtx" r =>
+--   Lacks "argsIx" r =>
+--   Lacks "argsMeta" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec =
+--   Rec.recArgItems
+--     { cons: rec.cons
+--     , nil: rec.nil
+--     }
+
 type ProtoArgsArgItems r1 r2
-  = ProtoArgs r1 r2
+  = ProtoArgs (  | r1 ) r2
 
 type ArgsArgItems r
   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
-type ArgsArgItemsCons r
-  = Rec.ArgsArgItemsCons (ProtoArgsArgItems () r)
-
-type ArgsArgItemsNil r
-  = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
+type ArgsArgItem r
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( ) r)
 
 recArgItems ::
   forall r a.
@@ -193,13 +212,30 @@ recArgItems ::
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
-  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
-  ProtoRec ArgsArgItems r a
-recArgItems rec =
-  Rec.recArgItems
-    { cons: rec.cons
-    , nil: rec.nil
-    }
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec = Rec.recArgItems { argItem: \args@{ argsSyn, argsCtx } -> rec.argItem $ modifyHetero _argsCtx (union { type_argItem: index' argsCtx.doms argsSyn.i }) args }
+
+
+-- | recCaseItem
+type ProtoArgsCaseItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
+
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( meta_body :: Metacontext ) r)
+
+recCaseItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
+recCaseItems rec = undefined -- Rec.recCaseItems { caseItem: rec.caseItem }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -220,29 +256,6 @@ recSumItems ::
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
 recSumItems rec = sequence <<< Rec.recSumItems rec
-
--- | recCaseItem
-type ProtoArgsCaseItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
-
-type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( meta_body :: Metacontext ) r)
-
-recCaseItems ::
-  forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  { caseItem :: ProtoRec ArgsCaseItem r a } ->
-  ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec =
-  sequence
-    <<< Rec.recCaseItems
-        { caseItem: rec.caseItem <<< modifyHetero _argsMeta (\argsMeta -> union { meta_body: incrementIndentation argsMeta.meta } argsMeta) }
 
 -- | recParams
 type ProtoArgsParams r1 r2
