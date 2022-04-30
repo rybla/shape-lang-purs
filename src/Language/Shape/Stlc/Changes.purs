@@ -8,6 +8,7 @@ import Prim hiding (Type)
 import Control.Monad.State (State)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
+import Data.Int.Bits ((.&.))
 import Data.List (List)
 import Data.Map (Map, insert)
 import Data.Map as Map
@@ -149,3 +150,38 @@ chTermAux args chs sbjto = Rec.recTerm {
 -- Need to wait for henry to make args recursor
 
 chSum = undefined
+
+-- inferChTerm :: Context -> Type -> Changes -> Term -> State HoleEq (Term /\ TypeChange)
+
+{-
+
+The problem, so I don't forget again:
+In the program:
+
+let f : A -> A -> A
+    f = ...
+
+buf f 
+...
+
+Changing the type of f shouldn't displace f from in it's buffer below.
+The type of the buffer should merely update to reflect the change in it's value.
+
+
+
+
+Proposed plan to fix the problem:
+Have a function called inferChTerm, which doesn't input a TypeChange but instead outputs one
+(in addition to the term that it outputs).
+
+Questions:
+- does regular chTerm still need to input Changes? Maybe only inferChTerm inputs Changes.
+- can chAtIndex be implemented using inferChTerm?
+- can/should we replace NeutralTerm with App and Var? In any case, it is probably easy to
+    do so now.
+
+Plan:
+- Implement inferChTerm with index recursor
+- Implement chTerm with context recursor
+- If inferChTerm calls chTerm and then index isn't Nothing, then that's an error?
+-}
