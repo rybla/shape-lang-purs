@@ -1,12 +1,14 @@
 { name = "shape-lang-purs"
 , dependencies =
-  [ "arrays"
+  [ "ansi"
+  , "arrays"
   , "console"
   , "debug"
   , "effect"
   , "either"
   , "foldable-traversable"
   , "free"
+  , "homogeneous"
   , "lists"
   , "maybe"
   , "newtype"
@@ -23,8 +25,8 @@
   , "unsafe-coerce"
   , "uuid"
   , "web-dom"
+  , "web-events"
   , "web-html"
-  , "homogeneous"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

@@ -6,15 +6,17 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Record
+
 import Control.Monad.Free (wrap)
 import Data.Default (class Default)
 import Data.List (List(..), (:))
-import Data.OrderedMap (OrderedMap)
-import Data.OrderedMap as OrderedMap
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
+import Data.OrderedMap (OrderedMap)
+import Data.OrderedMap as OrderedMap
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
+import Undefined (undefined)
 
 -- | Context
 newtype Context
@@ -45,13 +47,18 @@ _constrDataTypes = Proxy :: Proxy "constrDataTypes"
 insertData :: Data -> Context -> Context
 insertData data_ = over Context $ modify _datas (OrderedMap.insert data_.typeBind.typeId data_)
 
+lookupData :: TypeId -> Context -> Data 
+lookupData typeId ctx = case OrderedMap.lookup typeId (unwrap ctx).datas of 
+  Just data_ -> data_ 
+  Nothing -> unsafeCrashWith $ "could not find TypeId " <> show typeId <> " in context " <> show ctx 
+
 insertVarType :: TermId -> Type -> Context -> Context
-insertVarType id type_ = over Context $ modify _varTypes (OrderedMap.insert id type_)
+insertVarType termId type_ = over Context $ modify _varTypes (OrderedMap.insert termId type_)
 
 lookupVarType :: TermId -> Context -> Type
-lookupVarType id ctx = case OrderedMap.lookup id (unwrap ctx).varTypes of
+lookupVarType termId ctx = case OrderedMap.lookup termId (unwrap ctx).varTypes of
   Just type_ -> type_
-  Nothing -> unsafeCrashWith $ "could not find " <> show id <> " in context " <> show ctx
+  Nothing -> unsafeCrashWith $ "could not find TermId " <> show termId <> " in context " <> show ctx
 
 insertConstrDataType :: TermId -> DataType -> Context -> Context
 insertConstrDataType termId dataType = over Context $ modify _constrDataTypes (OrderedMap.insert termId dataType)
@@ -64,3 +71,6 @@ flattenType type_ = case type_ of
     in
       (dom : doms) /\ out
   _ -> Nil /\ type_
+
+typeOfConstructor :: TypeId -> SumItem -> Type 
+typeOfConstructor = undefined

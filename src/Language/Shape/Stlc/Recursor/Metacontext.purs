@@ -11,6 +11,7 @@ import Data.List (List)
 import Data.Newtype (unwrap)
 import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
+import Data.Traversable (sequence)
 import Language.Shape.Stlc.Recursor.Index as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Prim as Prim
@@ -21,8 +22,8 @@ import Undefined (undefined)
 type ProtoArgs r1 r2
   = ( argsMeta :: Record ( meta :: Metacontext | r1 ) | r2 )
 
--- | the State (OrderedSet HoleId) gathers the HoleIds of HoleTypes in the program, 
--- | statefully.
+-- | The `State (OrderedSet HoleId)` gathers the HoleIds of `HoleTypes` in the 
+-- | program, statefully.
 type ProtoRec args r a
   = Rec.ProtoRec args r (State (OrderedSet HoleId) a)
 
@@ -172,3 +173,116 @@ recTerm rec =
                 args
     , hole: \args -> rec.hole args
     }
+
+-- | recArgItems
+type ProtoArgsArgItems r1 r2
+  = ProtoArgs r1 r2
+
+type ArgsArgItems r
+  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+
+type ArgsArgItemsCons r
+  = Rec.ArgsArgItemsCons (ProtoArgsArgItems () r)
+
+type ArgsArgItemsNil r
+  = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
+
+recArgItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+  ProtoRec ArgsArgItems r a
+recArgItems rec =
+  Rec.recArgItems
+    { cons: rec.cons
+    , nil: rec.nil
+    }
+
+-- | recSumItems
+type ProtoArgsSumItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsSumItems r
+  = Rec.ArgsSumItems (ProtoArgsSumItems () r)
+
+type ArgsSumItem r
+  = Rec.ArgsSumItem (ProtoArgsSumItems () r)
+
+recSumItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { sumItem :: ProtoRec ArgsSumItem r a } ->
+  ProtoRec ArgsSumItems r (List a)
+recSumItems rec = sequence <<< Rec.recSumItems rec
+
+-- | recCaseItem
+type ProtoArgsCaseItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
+
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( meta_body :: Metacontext ) r)
+
+recCaseItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
+recCaseItems rec =
+  sequence
+    <<< Rec.recCaseItems
+        { caseItem: rec.caseItem <<< modifyHetero _argsMeta (\argsMeta -> union { meta_body: incrementIndentation argsMeta.meta } argsMeta) }
+
+-- | recParams
+type ProtoArgsParams r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsParams r
+  = Rec.ArgsParams (ProtoArgsParams () r)
+
+type ArgsParam r
+  = Rec.ArgsParam (ProtoArgsParams ( meta_param :: Metacontext ) r)
+
+recParams ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { param :: ProtoRec ArgsParam r a } ->
+  ProtoRec ArgsParams r (List a)
+recParams rec =
+  sequence
+    <<< Rec.recParams
+        { param: rec.param <<< modifyHetero _argsMeta (\argsMeta -> union { meta_param: incrementIndentation argsMeta.meta } argsMeta) }
+
+-- | recTermBinds
+type ProtoArgsTermBinds r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsTermBinds r
+  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+
+type ArgsTermBind r
+  = Rec.ArgsTermBind (ProtoArgsTermBinds () r)
+
+recTermBinds ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { termBind :: ProtoRec ArgsTermBind r a } ->
+  ProtoRec ArgsTermBinds r (List a)
+recTermBinds rec = sequence <<< Rec.recTermBinds rec
