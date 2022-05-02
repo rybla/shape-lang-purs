@@ -79,6 +79,18 @@ renderType =
 renderTerm :: RecAct.ProtoRec RecAct.ArgsTerm () (Array ReactElement)
 renderTerm = undefined
 
+renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
+renderSumItems = undefined
+
+renderCaseItems :: RecAct.ProtoRec RecAct.ArgsCaseItems () (Array ReactElement)
+renderCaseItems = undefined
+
+renderParams :: RecAct.ProtoRec RecAct.ArgsParams () (Array ReactElement)
+renderParams = undefined
+
+renderTermBinds :: RecAct.ProtoRec RecAct.ArgsTermBinds () (Array ReactElement)
+renderTermBinds = undefined
+
 type NodeProps
   = { label :: Maybe String
     , visit :: Maybe Visit
