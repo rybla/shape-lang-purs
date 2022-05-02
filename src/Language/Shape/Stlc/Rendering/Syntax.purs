@@ -85,13 +85,52 @@ renderTerm =
                 { label = Just "Lam" }
             )
             [ pure [ token.lam1 ]
+            , renderTermBind { argsSyn: { termBind: args.argsSyn.lam.termBind }, argsCtx: { ctx: args.argsCtx.ctx }, argsIx: { visit: args.argsIx.termBind }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            , pure [ token.lam2 ]
+            , renderTerm { argsSyn: { term: args.argsSyn.lam.body }, argsCtx: args.argsCtx.body, argsIx: { visit: args.argsIx.body }, argsMeta: { meta: args.argsMeta.body }, argsAct: {} }
             ]
-    , neu: \args -> pure []
-    , let_: \args -> pure []
-    , buf: \args -> pure []
-    , data_: \args -> pure []
-    , match: \args -> pure []
-    , hole: \args -> pure []
+    , neu:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Neu" }
+            )
+            []
+    , let_:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Let" }
+            )
+            []
+    , buf:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Buf" }
+            )
+            []
+    , data_:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Data" }
+            )
+            []
+    , match:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Match" }
+            )
+            []
+    , hole:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Hole" }
+            )
+            []
     }
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
@@ -106,10 +145,10 @@ renderParamItems = undefined
 renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () (Array ReactElement)
 renderTermBindItems = undefined
 
-renderTermBind :: TermBind -> Array ReactElement
+renderTermBind :: RecAct.ProtoRec RecAct.ArgsTermBind () (Array ReactElement)
 renderTermBind = undefined
 
-renderTypeBind :: TypeBind -> Array ReactElement
+renderTypeBind :: RecAct.ProtoRec RecAct.ArgsTypeBind () (Array ReactElement)
 renderTypeBind = undefined
 
 type NodeProps

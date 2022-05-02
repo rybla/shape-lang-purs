@@ -64,23 +64,23 @@ type ArgsTerm r
 
 type ArgsLam r
   -- = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, ctx_body :: Context, type_body :: Type ) r)
-  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, termId :: Context, body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsNeu r
   -- = Rec.ArgsNeu (ProtoArgsTerm ( type_id :: Type, types_args :: List Type ) r)
   = Rec.ArgsNeu (ProtoArgsTerm ( termId :: Context, argItems :: List { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( ctx_body :: Context ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm () r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( ctx_body :: Context ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( ctx_caseItems :: List Context ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( caseItems :: List { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -95,7 +95,7 @@ recTerm rec =
   Rec.recTerm
     { lam:
         \args@{ argsSyn: { lam }, argsCtx: { ctx, type_ } } -> case type_ of
-          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_dom: dom, termId: ctx, body: { ctx: insertVarType lam.termBind.termId dom ctx, type_: cod } }) args
+          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_dom: dom, body: { ctx: insertVarType lam.termBind.termId dom ctx, type_: cod } }) args
           _ -> unsafeCrashWith "badly typed lambda"
     , neu:
         \args@{ argsSyn: { neu }, argsCtx: { ctx } } ->
@@ -108,26 +108,30 @@ recTerm rec =
 
             argItems = map (\type_ -> { ctx, type_ }) types_args
           in
-            -- rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
             rec.neu $ modifyHetero _argsCtx (union { termId, argItems }) args
     , let_:
-        \args@{ argsSyn: { let_ }, argsCtx: { ctx } } ->
-          rec.let_ $ modifyHetero _argsCtx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
+        \args@{ argsSyn: { let_ }, argsCtx: { ctx, type_ } } ->
+          -- rec.let_ $ modifyHetero _argsCtx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
+          rec.let_ $ modifyHetero _argsCtx (union { body: { ctx: insertVarType let_.termBind.termId let_.type_ ctx, type_ } }) args
     , buf:
-        rec.buf
+        \args@{ argsSyn: { buf }, argsCtx: { ctx, type_ } } ->
+          rec.buf $ modifyHetero _argsCtx (union { term: { ctx, type_: buf.type_ }, body: { ctx, type_ } }) args
     , data_:
-        \args@{ argsSyn: { data_ }, argsCtx: { ctx } } ->
+        \args@{ argsSyn: { data_ }, argsCtx: { ctx, type_ } } ->
           rec.data_
             $ modifyHetero _argsCtx
                 ( union
-                    { ctx_body:
-                        flipfoldr data_.sumItems
-                          ( \sumItem ->
-                              insertVarType sumItem.termBind.termId (typeOfSumItem data_.typeBind.typeId sumItem)
-                                <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
-                          )
-                          $ insertData data_
-                          $ ctx
+                    { body:
+                        { ctx:
+                            flipfoldr data_.sumItems
+                              ( \sumItem ->
+                                  insertVarType sumItem.termBind.termId (typeOfSumItem data_.typeBind.typeId sumItem)
+                                    <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
+                              )
+                              $ insertData data_
+                              $ ctx
+                        , type_: type_
+                        }
                     }
                 )
                 args
@@ -139,13 +143,16 @@ recTerm rec =
             rec.match
               $ modifyHetero _argsCtx
                   ( union
-                      { ctx_caseItems:
+                      { caseItems:
                           map
                             ( \(caseItem /\ sumItem) ->
-                                foldl
-                                  (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
-                                  ctx
-                                  (zip caseItem.termBindItems sumItem.paramItems)
+                                { ctx:
+                                    foldl
+                                      (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
+                                      ctx
+                                      (zip caseItem.termBindItems sumItem.paramItems)
+                                , type_
+                                }
                             )
                             (zip match.caseItems (data_.sumItems))
                       }

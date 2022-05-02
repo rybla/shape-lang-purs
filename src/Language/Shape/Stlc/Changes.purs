@@ -125,7 +125,7 @@ chTermAux args chs sbjto = Rec.recTerm {
     , let_ : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.let_.type_
         term' <- chTerm args.argsCtx.ctx args.argsSyn.let_.type_ chs tc args.argsSyn.let_.term
-        body' <- chTerm args.argsCtx.ctx_body args.argsCtx.type_ (varChange chs args.argsSyn.let_.termBind.termId tc) sbjto args.argsSyn.let_.body
+        body' <- chTerm args.argsCtx.body.ctx args.argsCtx.type_ (varChange chs args.argsSyn.let_.termBind.termId tc) sbjto args.argsSyn.let_.body
         pure $ Let $ args.argsSyn.let_ {term = term', body = body'}
     , buf : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.buf.type_
