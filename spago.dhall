@@ -9,6 +9,7 @@
   , "foldable-traversable"
   , "free"
   , "homogeneous"
+  , "integers"
   , "lists"
   , "maybe"
   , "newtype"
