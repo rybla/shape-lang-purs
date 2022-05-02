@@ -95,13 +95,13 @@ type ArgsNeu r
   = Rec.ArgsNeu (ProtoArgsTerm ( termId :: Visit, argItems :: Visit ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( termBind :: Visit, type :: Visit, term :: Visit, body :: Visit ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( termBind :: Visit, type_ :: Visit, term :: Visit, body :: Visit ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm ( term :: Visit, body :: Visit ) r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( type_ :: Visit, term :: Visit, body :: Visit ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( typeBind :: Visit, sum :: Visit, body :: Visit ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( typeBind :: Visit, sumItems :: Visit, body :: Visit ) r)
 
 type ArgsMatch r
   = Rec.ArgsMatch (ProtoArgsTerm ( term :: Visit, caseItems :: Visit ) r)
@@ -120,9 +120,9 @@ recTerm rec =
   Rec.recTerm
     { lam: rec.lam <<< modifyHetero _ix (\ix@{ visit } -> union { termBind: visitIxStep visit ixStepLam.termBind, body: visitIxStep visit ixStepLam.body } ix)
     , neu: rec.neu <<< modifyHetero _ix (\ix@{ visit } -> union { termId: visitIxStep visit ixStepNeu.termId, argItems: visitIxStep visit ixStepNeu.argItems } ix)
-    , let_: rec.let_ <<< modifyHetero _ix (\ix@{ visit } -> union { termBind: visitIxStep visit ixStepLet.termBind, type: visitIxStep visit ixStepLet.type_, term: visitIxStep visit ixStepLet.term, body: visitIxStep visit ixStepLet.body } ix)
-    , buf: rec.buf <<< modifyHetero _ix (\ix@{ visit } -> union { term: visitIxStep visit ixStepBuf.term, body: visitIxStep visit ixStepBuf.body } ix)
-    , data_: rec.data_ <<< modifyHetero _ix (\ix@{ visit } -> union { typeBind: visitIxStep visit ixStepData.typeBind, sum: visitIxStep visit ixStepData.sum, body: visitIxStep visit ixStepData.body } ix)
+    , let_: rec.let_ <<< modifyHetero _ix (\ix@{ visit } -> union { termBind: visitIxStep visit ixStepLet.termBind, type_: visitIxStep visit ixStepLet.type_, term: visitIxStep visit ixStepLet.term, body: visitIxStep visit ixStepLet.body } ix)
+    , buf: rec.buf <<< modifyHetero _ix (\ix@{ visit } -> union { type_: visitIxStep visit ixStepBuf.type_, term: visitIxStep visit ixStepBuf.term, body: visitIxStep visit ixStepBuf.body } ix)
+    , data_: rec.data_ <<< modifyHetero _ix (\ix@{ visit } -> union { typeBind: visitIxStep visit ixStepData.typeBind, sumItems: visitIxStep visit ixStepData.sum, body: visitIxStep visit ixStepData.body } ix)
     , match: rec.match <<< modifyHetero _ix (\ix@{ visit } -> union { term: visitIxStep visit ixStepMatch.term, caseItems: visitIxStep visit ixStepMatch.caseItems } ix)
     , hole: rec.hole
     }

@@ -80,7 +80,7 @@ ixStepLabelChildren ixStepLabel = case ixStepLabel of
   IxStepLam -> 2
   IxStepNeu -> 2
   IxStepLet -> 4
-  IxStepBuf -> 2
+  IxStepBuf -> 3
   IxStepData -> 3
   IxStepMatch -> 2
   IxStepArgItem -> 1
@@ -114,8 +114,9 @@ ixStepLet =
   }
 
 ixStepBuf =
-  { term: IxStep IxStepBuf 0
-  , body: IxStep IxStepBuf 1
+  { type_: IxStep IxStepBuf 1
+  , term: IxStep IxStepBuf 0
+  , body: IxStep IxStepBuf 2
   }
 
 ixStepData =

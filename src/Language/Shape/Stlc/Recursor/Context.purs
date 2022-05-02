@@ -69,7 +69,7 @@ type ArgsNeu r
   = Rec.ArgsNeu (ProtoArgsTerm ( termId :: Context, argItems :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsBuf r
   = Rec.ArgsBuf (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
@@ -78,7 +78,7 @@ type ArgsData r
   = Rec.ArgsData (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( caseItems :: List { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, caseItems :: { typeId :: TypeId, ctx :: Context, type_ :: Type } ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -107,8 +107,10 @@ recTerm rec =
             rec.neu $ modifyHetero _ctx (union { termId, argItems }) args
     , let_:
         \args@{ syn: { let_ }, ctx: { ctx, type_ } } ->
-          -- rec.let_ $ modifyHetero _ctx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
-          rec.let_ $ modifyHetero _ctx (union { body: { ctx: insertVarType let_.termBind.termId let_.type_ ctx, type_ } }) args
+          let
+            ctx' = insertVarType let_.termBind.termId let_.type_ ctx
+          in
+            rec.let_ $ modifyHetero _ctx (union { term: { ctx: ctx', type_: let_.type_ }, body: { ctx: ctx', type_ } }) args
     , buf:
         \args@{ syn: { buf }, ctx: { ctx, type_ } } ->
           rec.buf $ modifyHetero _ctx (union { term: { ctx, type_: buf.type_ }, body: { ctx, type_ } }) args
@@ -133,27 +135,28 @@ recTerm rec =
                 args
     , match:
         \args@{ syn: { match }, ctx: { ctx, type_ } } ->
-          let
-            data_ = lookupData match.typeId ctx
-          in
-            rec.match
-              $ modifyHetero _ctx
-                  ( union
-                      { caseItems:
-                          map
-                            ( \(caseItem /\ sumItem) ->
-                                { ctx:
-                                    foldl
-                                      (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
-                                      ctx
-                                      (zip caseItem.termBindItems sumItem.paramItems)
-                                , type_
-                                }
-                            )
-                            (zip match.caseItems (data_.sumItems))
-                      }
-                  )
-                  args
+          -- let
+          --   data_ = lookupData match.typeId ctx
+          -- in
+          rec.match
+            $ modifyHetero _ctx
+                ( union
+                    { term: { ctx, type_: DataType { typeId: match.typeId, meta: default } }
+                    -- map
+                    --   ( \(caseItem /\ sumItem) ->
+                    --       { ctx:
+                    --           foldl
+                    --             (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
+                    --             ctx
+                    --             (zip caseItem.termBindItems sumItem.paramItems)
+                    --       , type_
+                    --       }
+                    --   )
+                    --   (zip match.caseItems (data_.sumItems))
+                    , caseItems: { typeId: match.typeId, ctx, type_ }
+                    }
+                )
+                args
     , hole:
         rec.hole
     }
@@ -240,7 +243,6 @@ recCaseItems ::
   Lacks "ctx" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
--- TODO: for each caseItem, add termBindItems into context for body
 recCaseItems rec =
   Rec.recCaseItems
     { caseItem:

@@ -78,19 +78,19 @@ type ArgsLam r
   = Rec.ArgsLam (ProtoArgsTerm ( body :: Metacontext ) r)
 
 type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm ( args :: List Metacontext ) r)
+  = Rec.ArgsNeu (ProtoArgsTerm ( argItems :: Metacontext ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( type :: Metacontext, term :: Metacontext, body :: Metacontext ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( type_ :: Metacontext, term :: Metacontext, body :: Metacontext ) r)
 
 type ArgsBuf r
   = Rec.ArgsBuf (ProtoArgsTerm ( term :: Metacontext, body :: Metacontext ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( sum :: Metacontext, body :: Metacontext ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( sumItems :: Metacontext, body :: Metacontext ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( term :: Metacontext, cases :: Metacontext ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( term :: Metacontext, caseItems :: Metacontext ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -115,7 +115,7 @@ recTerm rec =
         \args@{ syn: { neu }, meta: { meta } } ->
           rec.neu
             $ modifyHetero _meta
-                (union { args: map (\_ -> incrementIndentation meta) neu.argItems })
+                (union { argItems: meta })
                 args
     , let_:
         \args@{ syn: { let_ }, meta: { meta } } ->
@@ -125,7 +125,7 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { type: meta'
+                      { type_: meta'
                       , term: meta'
                       , body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
                       }
@@ -152,7 +152,7 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { sum: meta'
+                      { sumItems: meta'
                       , body: insertDataName data_.typeBind.typeId (unwrap data_.meta).name meta'
                       }
                 )
@@ -166,7 +166,7 @@ recTerm rec =
                   in
                     union
                       { term: meta'
-                      , cases: meta'
+                      , caseItems: meta'
                       }
                 )
                 args

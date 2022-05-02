@@ -3,10 +3,10 @@ module Language.Shape.Stlc.Rendering.Syntax where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-
 import Control.Monad.State (State, evalState, get)
 import Data.Array (concat)
 import Data.Default (default)
+import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
@@ -96,49 +96,78 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Neu" }
             )
-            [ undefined -- renderTermId
-            , renderArgItems {syn: {argItems: args.syn.neu.argItems}, ctx: ?a, ix: ?a, meta: ?a, act: {}}
-            ]
+            if List.length args.syn.neu.argItems == 0 then
+              [ undefined -- renderTermId
+              ]
+            else
+              [ undefined -- renderTermId
+              , pure [ token.neu1 ]
+              , renderArgItems { syn: { argItems: args.syn.neu.argItems }, ctx: args.ctx.argItems, ix: { visit: args.ix.argItems }, meta: { meta: args.meta.argItems }, act: {} }
+              ]
     , let_:
         \args ->
           renderNode
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Let" }
             )
-            []
+            [ pure [ token.let1 ]
+            , renderTermBind { syn: { termBind: args.syn.let_.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
+            , pure [ token.let2 ]
+            , renderType { syn: { type_: args.syn.let_.type_ }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.type_ }, act: {} }
+            , pure [ token.let3 ]
+            , renderTerm { syn: { term: args.syn.let_.term }, ctx: args.ctx.term, ix: { visit: args.ix.term }, meta: { meta: args.meta.term }, act: {} }
+            , pure [ token.let4 ]
+            , renderTerm { syn: { term: args.syn.let_.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
+            ]
     , buf:
         \args ->
           renderNode
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Buf" }
             )
-            []
+            [ pure [ token.buf1 ]
+            , renderTerm { syn: { term: args.syn.buf.term }, ctx: args.ctx.term, ix: { visit: args.ix.term }, meta: { meta: args.meta.term }, act: {} }
+            , pure [ token.buf2 ]
+            , renderType { syn: { type_: args.syn.buf.type_ }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.meta }, act: {} }
+            , pure [ token.buf3 ]
+            , renderTerm { syn: { term: args.syn.buf.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
+            ]
     , data_:
         \args ->
           renderNode
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Data" }
             )
-            []
+            [ pure [ token.data1 ]
+            , undefined -- renderTypeId
+            , pure [ token.data2 ]
+            , renderSumItems { syn: { sumItems: args.syn.data_.sumItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.sumItems }, meta: { meta: args.meta.sumItems }, act: {} }
+            , pure [ token.data3 ]
+            , renderTerm { syn: { term: args.syn.data_.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
+            ]
     , match:
         \args ->
           renderNode
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Match" }
             )
-            []
+            [ pure [token.match1 ]
+            , renderTerm {syn: { term: args.syn.match.term }, ctx: args.ctx.term, ix: {visit: args.ix.term}, meta: {meta: args.meta.term}, act: {} }
+            , pure [token.match2 ]
+            , renderCaseItems { syn: {caseItems: args.syn.match.caseItems}, ctx: args.ctx.caseItems, ix: {visit: args.ix.caseItems}, meta: {meta: args.meta.caseItems}, act: {} }
+            ]
     , hole:
         \args ->
           renderNode
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Hole" }
             )
-            []
+            [ undefined -- renderHoleId
+            ]
     }
 
 renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () (Array ReactElement)
 renderArgItems = undefined
-
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
 renderSumItems = undefined
