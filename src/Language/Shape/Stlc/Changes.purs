@@ -9,16 +9,19 @@ import Control.Monad.State (State)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.Int.Bits ((.&.))
-import Data.List (List)
+import Data.List (List(..))
 import Data.Map (Map, insert)
 import Data.Map as Map
+import Data.Maybe (Maybe(..))
 import Data.Set (Set, difference, member)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Language.Shape.Stlc.Context (Context(..), insertVarType)
 import Language.Shape.Stlc.Hole (HoleEq)
+import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context (ProtoArgsTerm, ArgsTerm)
 import Language.Shape.Stlc.Recursor.Context as Rec
+import Language.Shape.Stlc.Recursor.Index as IRec
 import Language.Shape.Stlc.Syntax (HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
@@ -73,6 +76,7 @@ applyTC RemoveArg (ArrowType {cod: b}) = b
 applyTC (Dig id) t = HoleType {holeId: (freshHoleId unit), weakening: Set.empty, meta: default}
 applyTC tc ty = error $ "Shouldn't get ehre. tc is: " <> show tc <> " ty is: " <> show ty
 
+-- this is like infer
 chType :: KindChanges -> Type -> Type /\ TypeChange
 chType chs (ArrowType {dom, cod, meta})
     = let (dom' /\ ca) = chType chs dom in
@@ -149,9 +153,35 @@ chTermAux args chs sbjto = Rec.recTerm {
 -- chArgs :: 
 -- Need to wait for henry to make args recursor
 
-chSum = undefined
+data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
 
--- inferChTerm :: Context -> Type -> Changes -> Term -> State HoleEq (Term /\ TypeChange)
+chSum = undefined
+type Indices = { csr :: Maybe IxDown , ix :: IxUp}
+inferChTerm :: Context -> Type -> Indices -> Term -> Changes -> ToReplace -> State HoleEq (Term /\ TypeChange)
+inferChTerm _ _ {csr : Just (IxDown Nil)} _ _ (ReplaceTerm term tc) = pure $ term /\ tc
+inferChTerm ctx ty ix term chs toReplace = inferChTermAux {argsCtx: {ctx, type_: ty}, argsIx: {visit: ix} , argsSyn: {term}} chs toReplace
+
+inferChTermAux :: IRec.ProtoRec IRec.ArgsTerm () (Changes -> ToReplace -> State HoleEq (Term /\ TypeChange))
+inferChTermAux = IRec.recTerm {
+    lam : \args chs toReplace -> do
+        -- TODO: is it really right that chs isn't updated from the input to the lambda?
+        -- body <- inferChTermAux {argsCtx: ?h, argsIx: ?h, argsSyn: ?h} chs toReplace
+        (body' /\ tc) <- inferChTerm args.argsCtx.ctx_body args.argsCtx.type_body args.argsIx.visit_body args.argsSyn.lam.body chs toReplace
+        pure $ Lam (args.argsSyn.lam {body=body'}) /\ ArrowCh NoChange tc
+    , neu : undefined
+    , let_ : \args chs toReplace -> do
+        let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.let_.type_
+        term' <- chTerm args.argsCtx.ctx args.argsSyn.let_.type_ chs tc args.argsSyn.let_.term
+        (body' /\ tc) <- inferChTerm args.argsCtx.ctx_body args.argsCtx.type_ args.argsIx.visit_body args.argsSyn.let_.body
+            (varChange chs args.argsSyn.let_.termBind.termId tc) toReplace
+        pure $ Let (args.argsSyn.let_ {term = term', body = body'}) /\ tc
+        -- TODO: big problem: what if the index to be changed is in the definition of the let!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        -- one solution: make Changes the sum of what it is now and a Term to replace at index.
+    , buf : undefined
+    , data_ : undefined
+    , match : undefined
+    , hole : undefined
+}
 
 {-
 
@@ -181,7 +211,8 @@ Questions:
     do so now.
 
 Plan:
-- Implement inferChTerm with index recursor
+- Implement inferChTerm with index recursor. Make case for when index is here, and have that return the Syntax input.
+- chType is like inferChType, and also needs the thing with the index?
 - Implement chTerm with context recursor
 - If inferChTerm calls chTerm and then index isn't Nothing, then that's an error?
 -}
