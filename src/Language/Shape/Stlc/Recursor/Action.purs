@@ -288,6 +288,29 @@ toggleIndentation_Action ixUp =
     , effect: undefined
     }
 
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs r1 r2
+-- type ArgsArgItems r
+--   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+-- type ArgsArgItemsCons r
+--   = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( actions :: Array Action ) r)
+-- type ArgsArgItemsNil r
+--   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   Lacks "argsCtx" r =>
+--   Lacks "argsIx" r =>
+--   Lacks "argsMeta" r =>
+--   Lacks "argsAct" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec =
+--   Rec.recArgItems
+--     { cons: \args -> rec.cons $ modifyHetero _argsAct (insert _actions []) args
+--     , nil: \args -> rec.nil $ modifyHetero _argsAct (insert _actions []) args
+--     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
   = ProtoArgs r1 r2
@@ -295,11 +318,8 @@ type ProtoArgsArgItems r1 r2
 type ArgsArgItems r
   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
-type ArgsArgItemsCons r
-  = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( actions :: Array Action ) r)
-
-type ArgsArgItemsNil r
-  = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
+type ArgsArgItem r
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( actions :: Array Action ) r)
 
 recArgItems ::
   forall r a.
@@ -308,13 +328,9 @@ recArgItems ::
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
   Lacks "argsAct" r =>
-  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
-  ProtoRec ArgsArgItems r a
-recArgItems rec =
-  Rec.recArgItems
-    { cons: \args -> rec.cons $ modifyHetero _argsAct (insert _actions []) args
-    , nil: \args -> rec.nil $ modifyHetero _argsAct (insert _actions []) args
-    }
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec = Rec.recArgItems { argItem: \args -> rec.argItem $ modifyHetero _argsAct (insert _actions []) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
