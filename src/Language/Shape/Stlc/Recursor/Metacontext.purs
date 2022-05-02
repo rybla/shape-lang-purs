@@ -40,7 +40,7 @@ type ArgsType r
   = Rec.ArgsType (ProtoArgsType () r)
 
 type ArgsArrowType r
-  = Rec.ArgsArrowType (ProtoArgsType ( meta_cod :: Metacontext ) r)
+  = Rec.ArgsArrowType (ProtoArgsType ( dom::Metacontext, cod :: Metacontext ) r)
 
 type ArgsDataType r
   = Rec.ArgsDataType (ProtoArgsType () r)
@@ -61,7 +61,7 @@ recType rec =
     { arrow:
         \args@{ argsMeta: { meta } } ->
           rec.arrow
-            $ modifyHetero _argsMeta (union { meta_cod: incrementIndentation meta }) args
+            $ modifyHetero _argsMeta (union { dom: meta, cod: incrementIndentation meta }) args
     , data_: rec.data_
     , hole:
         \args@{ argsSyn: { hole } } -> do
@@ -77,22 +77,22 @@ type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
 
 type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm ( meta_body :: Metacontext ) r)
+  = Rec.ArgsLam (ProtoArgsTerm ( body :: Metacontext ) r)
 
 type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm ( meta_args :: List Metacontext ) r)
+  = Rec.ArgsNeu (ProtoArgsTerm ( args :: List Metacontext ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( meta_type :: Metacontext, meta_term :: Metacontext, meta_body :: Metacontext ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( type :: Metacontext, term :: Metacontext, body :: Metacontext ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm ( meta_term :: Metacontext, meta_body :: Metacontext ) r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( term :: Metacontext, body :: Metacontext ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( meta_sum :: Metacontext, meta_body :: Metacontext ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( sum :: Metacontext, body :: Metacontext ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( meta_term :: Metacontext, meta_cases :: Metacontext ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( term :: Metacontext, cases :: Metacontext ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -111,13 +111,13 @@ recTerm rec =
         \args@{ argsSyn: { lam }, argsMeta: { meta } } ->
           rec.lam
             $ modifyHetero _argsMeta
-                (union { meta_body: insertVarName lam.termBind.termId (unwrap lam.meta).name meta })
+                (union { body: insertVarName lam.termBind.termId (unwrap lam.meta).name meta })
                 args
     , neu:
         \args@{ argsSyn: { neu }, argsMeta: { meta } } ->
           rec.neu
             $ modifyHetero _argsMeta
-                (union { meta_args: map (\_ -> incrementIndentation meta) neu.argItems })
+                (union { args: map (\_ -> incrementIndentation meta) neu.argItems })
                 args
     , let_:
         \args@{ argsSyn: { let_ }, argsMeta: { meta } } ->
@@ -127,9 +127,9 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { meta_type: meta'
-                      , meta_term: meta'
-                      , meta_body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
+                      { type: meta'
+                      , term: meta'
+                      , body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
                       }
                 )
                 args
@@ -141,8 +141,8 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { meta_term: meta'
-                      , meta_body: meta'
+                      { term: meta'
+                      , body: meta'
                       }
                 )
                 args
@@ -154,8 +154,8 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { meta_sum: meta'
-                      , meta_body: insertDataName data_.typeBind.typeId (unwrap data_.meta).name meta'
+                      { sum: meta'
+                      , body: insertDataName data_.typeBind.typeId (unwrap data_.meta).name meta'
                       }
                 )
                 args
@@ -167,8 +167,8 @@ recTerm rec =
                     meta' = incrementIndentation meta
                   in
                     union
-                      { meta_term: meta'
-                      , meta_cases: meta'
+                      { term: meta'
+                      , cases: meta'
                       }
                 )
                 args
@@ -224,7 +224,7 @@ type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
 
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( meta_body :: Metacontext ) r)
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( body :: Metacontext ) r)
 
 recCaseItems ::
   forall r a.
@@ -234,7 +234,7 @@ recCaseItems ::
   Lacks "argsMeta" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec = sequence <<< Rec.recCaseItems { caseItem: \args@{ argsMeta } -> rec.caseItem $ modifyHetero _argsMeta (union { meta_body: incrementIndentation argsMeta.meta }) args }
+recCaseItems rec = sequence <<< Rec.recCaseItems { caseItem: \args@{ argsMeta } -> rec.caseItem $ modifyHetero _argsMeta (union { body: incrementIndentation argsMeta.meta }) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -244,7 +244,7 @@ type ArgsSumItems r
   = Rec.ArgsSumItems (ProtoArgsSumItems () r)
 
 type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems ( meta_params :: Metacontext ) r)
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( sumItem :: Metacontext, paramItems :: Metacontext ) r)
 
 recSumItems ::
   forall r a.
@@ -254,7 +254,7 @@ recSumItems ::
   Lacks "argsMeta" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ argsMeta } -> rec.sumItem $ modifyHetero _argsMeta (union { meta_params: incrementIndentation argsMeta.meta }) args }
+recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ argsMeta } -> let meta = incrementIndentation argsMeta.meta in rec.sumItem $ modifyHetero _argsMeta (union { sumItem: meta, paramItems: meta }) args }
 
 -- | recParamItems
 type ProtoArgsParamItems r1 r2
@@ -264,7 +264,7 @@ type ArgsParamItems r
   = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
 type ArgsParamItem r
-  = Rec.ArgsParamItem (ProtoArgsParamItems () r)
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItem :: Metacontext, type_ :: Metacontext ) r)
 
 recParamItems ::
   forall r a.
@@ -274,7 +274,7 @@ recParamItems ::
   Lacks "argsMeta" r =>
   { paramItem :: ProtoRec ArgsParamItem r a } ->
   ProtoRec ArgsParamItems r (List a)
-recParamItems rec = sequence <<< Rec.recParamItems rec
+recParamItems rec = sequence <<< Rec.recParamItems { paramItem: \args@{ argsMeta: { meta } } -> rec.paramItem $ modifyHetero _argsMeta (union { paramItem: meta, type_: meta }) args }
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2

@@ -58,11 +58,12 @@ data IxStepLabel
   | IxStepBuf
   | IxStepData
   | IxStepMatch
+  | IxStepTermBind
   | IxStepArgItem
   | IxStepSumItem
   | IxStepCaseItem
-  | IxStepParam
-  | IxStepTermBind
+  | IxStepParamItem
+  | IxStepTermBindItem
   | IxStepList
 
 derive instance genericIxStepLabel :: Generic IxStepLabel _
@@ -85,7 +86,8 @@ ixStepLabelChildren ixStepLabel = case ixStepLabel of
   IxStepArgItem -> 1
   IxStepSumItem -> 2
   IxStepCaseItem -> 2
-  IxStepParam -> 1
+  IxStepParamItem -> 1
+  IxStepTermBindItem -> 1
   IxStepTermBind -> 1
   IxStepList -> 2
 
@@ -137,9 +139,13 @@ ixStepCaseItem =
   , body: IxStep IxStepCaseItem 1
   }
 
-ixStepParam =
-  { type_: IxStep IxStepParam 0
+ixStepParamItem =
+  { type_: IxStep IxStepParamItem 0
   }
+
+ixStepTermBindItem = {
+  termBind: IxStep IxStepTermBindItem 0 
+}
 
 ixStepTermBind =
   { termId: IxStep IxStepTermBind 0

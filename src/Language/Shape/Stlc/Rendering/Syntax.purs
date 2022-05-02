@@ -51,9 +51,9 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "ArrowType" }
             )
-            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.visit_dom }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.dom }, argsMeta: { meta: args.argsMeta.dom }, argsAct: {} }
             , pure [ token.arrowType1 ]
-            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.visit_cod }, argsMeta: { meta: args.argsMeta.meta_cod }, argsAct: {} }
+            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.cod }, argsMeta: { meta: args.argsMeta.cod }, argsAct: {} }
             ]
     , data_:
         \args ->
@@ -84,7 +84,7 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Lam" }
             )
-            [ pure [token.lam1]
+            [ pure [ token.lam1 ]
             ]
     , neu: \args -> pure []
     , let_: \args -> pure []
@@ -107,10 +107,10 @@ renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () (Array ReactE
 renderTermBindItems = undefined
 
 renderTermBind :: TermBind -> Array ReactElement
-renderTermBind = undefined 
+renderTermBind = undefined
 
 renderTypeBind :: TypeBind -> Array ReactElement
-renderTypeBind = undefined 
+renderTypeBind = undefined
 
 type NodeProps
   = { label :: Maybe String
