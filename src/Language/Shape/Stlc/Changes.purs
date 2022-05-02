@@ -116,7 +116,7 @@ chTerm ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
 chTerm ctx (ArrowType {dom, cod, meta:m1}) chs RemoveArg (Lam {termBind, body, meta:m2})
     = chTerm (insertVarType termBind.termId dom ctx) cod (deleteVar chs termBind.termId) NoChange body
 chTerm ctx ty chs tc t
-    = chTermAux { argsCtx :{ ctx , type_ : ty} , syn :{term: t}} chs tc
+    = chTermAux { ctx :{ ctx , type_ : ty} , syn :{term: t}} chs tc
 
 chTermAux :: Rec.ProtoRec Rec.ArgsTerm () (Changes -> TypeChange -> State HoleEq Term)
 chTermAux args chs sbjto = Rec.recTerm {
@@ -124,22 +124,22 @@ chTermAux args chs sbjto = Rec.recTerm {
     , neu : undefined -- depends on chargs
     , let_ : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.syn.let_.type_
-        term' <- chTerm args.argsCtx.ctx args.syn.let_.type_ chs tc args.syn.let_.term
-        body' <- chTerm args.argsCtx.body.ctx args.argsCtx.type_ (varChange chs args.syn.let_.termBind.termId tc) sbjto args.syn.let_.body
+        term' <- chTerm args.ctx.ctx args.syn.let_.type_ chs tc args.syn.let_.term
+        body' <- chTerm args.ctx.body.ctx args.ctx.type_ (varChange chs args.syn.let_.termBind.termId tc) sbjto args.syn.let_.body
         pure $ Let $ args.syn.let_ {term = term', body = body'}
     , buf : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.syn.buf.type_
-        term' <- chTerm args.argsCtx.ctx args.syn.buf.type_ chs sbjto args.syn.buf.term
-        body' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs tc args.syn.buf.body
+        term' <- chTerm args.ctx.ctx args.syn.buf.type_ chs sbjto args.syn.buf.term
+        body' <- chTerm args.ctx.ctx args.ctx.type_ chs tc args.syn.buf.body
         pure $ Buf $ args.syn.buf {term = term', body = body'}
     , data_ : \args chs sbjto -> do
         let sumItems' = chSum args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
-        body' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs sbjto args.syn.data_.body
+        body' <- chTerm args.ctx.ctx args.ctx.type_ chs sbjto args.syn.data_.body
         pure $ Data $ args.syn.data_ {sumItems= sumItems', body = body'}
     , match : \args chs sbjto -> do
         -- TODO: TODO: apply data type changes to the match cases
-        term' <- chTerm args.argsCtx.ctx args.argsCtx.type_ chs sbjto args.syn.match.term
+        term' <- chTerm args.ctx.ctx args.ctx.type_ chs sbjto args.syn.match.term
         pure $ Match $ args.syn.match {term = term'}
         
     , hole : \args chs sbjto -> pure $ Hole args.syn.hole
