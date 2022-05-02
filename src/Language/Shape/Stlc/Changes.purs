@@ -21,7 +21,6 @@ import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context (ProtoArgsTerm, ArgsTerm)
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Recursor.Index as IRec
 import Language.Shape.Stlc.Syntax (HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
@@ -133,10 +132,12 @@ chTermAux args chs sbjto = Rec.recTerm {
         body' <- chTerm args.ctx.body.ctx args.ctx.type_ (varChange chs args.syn.let_.termBind.termId tc) sbjto args.syn.let_.body
         pure $ Let $ args.syn.let_ {term = term', body = body'}
     , buf : \args chs sbjto -> do
-        let (ty' /\ tc) = chType chs.dataTypeDeletions args.syn.buf.type_
-        term' <- chTerm args.ctx.ctx args.syn.buf.type_ chs sbjto args.syn.buf.term
-        body' <- chTerm args.ctx.ctx args.ctx.type_ chs tc args.syn.buf.body
-        pure $ Buf $ args.syn.buf {term = term', body = body'}
+        (term' /\ changedBy) <- inferChTerm {ctx: args.ctx.term, syn: {term : args.syn.buf.term}} chs
+        -- TODO: are datatypedeletions and inference of buffer in correct order? Does this always work?
+        let type' = applyTC changedBy args.syn.buf.type_
+        let (type'' /\ tc) = chType chs.dataTypeDeletions type'
+        body' <- chTerm args.ctx.ctx args.ctx.type_ chs sbjto args.syn.buf.body
+        pure $ Buf $ args.syn.buf {term = term', body = body', type_ = type''}
     , data_ : \args chs sbjto -> do
         let sumItems' = chSum args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
@@ -153,28 +154,25 @@ chTermAux args chs sbjto = Rec.recTerm {
 -- chArgs :: 
 -- Need to wait for henry to make args recursor
 
-data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
+-- data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
 
 chSum = undefined
-type Indices = { csr :: Maybe IxDown , ix :: IxUp}
-inferChTerm :: Context -> Type -> Indices -> Term -> Changes -> ToReplace -> State HoleEq (Term /\ TypeChange)
-inferChTerm _ _ {csr : Just (IxDown Nil)} _ _ (ReplaceTerm term tc) = pure $ term /\ tc
-inferChTerm ctx ty ix term chs toReplace = inferChTermAux {argsCtx: {ctx, type_: ty}, argsIx: {visit: ix} , argsSyn: {term}} chs toReplace
 
-inferChTermAux :: IRec.ProtoRec IRec.ArgsTerm () (Changes -> ToReplace -> State HoleEq (Term /\ TypeChange))
-inferChTermAux = IRec.recTerm {
-    lam : \args chs toReplace -> do
+inferChTerm :: Rec.ProtoRec Rec.ArgsTerm () (Changes -> State HoleEq (Term /\ TypeChange))
+inferChTerm = Rec.recTerm {
+    lam : \args chs -> do
         -- TODO: is it really right that chs isn't updated from the input to the lambda?
-        -- body <- inferChTermAux {argsCtx: ?h, argsIx: ?h, argsSyn: ?h} chs toReplace
-        (body' /\ tc) <- inferChTerm args.argsCtx.ctx_body args.argsCtx.type_body args.argsIx.visit_body args.argsSyn.lam.body chs toReplace
-        pure $ Lam (args.argsSyn.lam {body=body'}) /\ ArrowCh NoChange tc
+        -- body <- inferChTerm {ctx: ?h, argsIx: ?h, syn: ?h} chs toReplace
+        -- (body' /\ tc) <- inferChTerm args.ctx.body.ctx args.ctx.body.type_ args.syn.lam.body chs
+        (body' /\ tc) <- inferChTerm {ctx: args.ctx.body, syn: {term : args.syn.lam.body}} chs
+        pure $ Lam (args.syn.lam {body=body'}) /\ ArrowCh NoChange tc
     , neu : undefined
-    , let_ : \args chs toReplace -> do
-        let (ty' /\ tc) = chType chs.dataTypeDeletions args.argsSyn.let_.type_
-        term' <- chTerm args.argsCtx.ctx args.argsSyn.let_.type_ chs tc args.argsSyn.let_.term
-        (body' /\ tc) <- inferChTerm args.argsCtx.ctx_body args.argsCtx.type_ args.argsIx.visit_body args.argsSyn.let_.body
-            (varChange chs args.argsSyn.let_.termBind.termId tc) toReplace
-        pure $ Let (args.argsSyn.let_ {term = term', body = body'}) /\ tc
+    , let_ : \args chs -> do
+        let (ty' /\ tc) = chType chs.dataTypeDeletions args.syn.let_.type_
+        term' <- chTerm args.ctx.ctx args.syn.let_.type_ chs tc args.syn.let_.term
+        (body' /\ tc) <- inferChTerm {ctx: args.ctx.body, syn: {term: args.syn.let_.body}}
+            (varChange chs args.syn.let_.termBind.termId tc)
+        pure $ Let (args.syn.let_ {term = term', body = body'}) /\ tc
         -- TODO: big problem: what if the index to be changed is in the definition of the let!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         -- one solution: make Changes the sum of what it is now and a Term to replace at index.
     , buf : undefined
