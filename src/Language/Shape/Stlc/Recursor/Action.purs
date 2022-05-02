@@ -42,7 +42,7 @@ type ArgsHoleType r
 
 recType ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -135,7 +135,7 @@ type ArgsHole r
 
 recTerm ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -299,7 +299,7 @@ toggleIndentation_Action ixUp =
 --   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
 -- recArgItems ::
 --   forall r a.
---   Lacks "argsSyn" r =>
+--   Lacks "syn" r =>
 --   Lacks "argsCtx" r =>
 --   Lacks "argsIx" r =>
 --   Lacks "argsMeta" r =>
@@ -323,7 +323,7 @@ type ArgsArgItem r
 
 recArgItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -344,7 +344,7 @@ type ArgsSumItem r
 
 recSumItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -365,7 +365,7 @@ type ArgsCaseItem r
 
 recCaseItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -386,7 +386,7 @@ type ArgsParamItem r
 
 recParamItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -407,7 +407,7 @@ type ArgsTermBindItem r
 
 recTermBindItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -425,7 +425,7 @@ type ArgsTermBind_TermBind r
 
 recTermBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argMeta" r =>
@@ -443,7 +443,7 @@ type ArgsTypeBind_TypeBind r
 
 recTypeBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>

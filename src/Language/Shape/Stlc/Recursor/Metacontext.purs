@@ -50,7 +50,7 @@ type ArgsHoleType r
 
 recType ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -64,7 +64,7 @@ recType rec =
             $ modifyHetero _argsMeta (union { dom: meta, cod: incrementIndentation meta }) args
     , data_: rec.data_
     , hole:
-        \args@{ argsSyn: { hole } } -> do
+        \args@{ syn: { hole } } -> do
           modify_ $ OrderedSet.insert hole.holeId
           rec.hole args
     }
@@ -99,7 +99,7 @@ type ArgsHole r
 
 recTerm ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -108,19 +108,19 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lam:
-        \args@{ argsSyn: { lam }, argsMeta: { meta } } ->
+        \args@{ syn: { lam }, argsMeta: { meta } } ->
           rec.lam
             $ modifyHetero _argsMeta
                 (union { body: insertVarName lam.termBind.termId (unwrap lam.meta).name meta })
                 args
     , neu:
-        \args@{ argsSyn: { neu }, argsMeta: { meta } } ->
+        \args@{ syn: { neu }, argsMeta: { meta } } ->
           rec.neu
             $ modifyHetero _argsMeta
                 (union { args: map (\_ -> incrementIndentation meta) neu.argItems })
                 args
     , let_:
-        \args@{ argsSyn: { let_ }, argsMeta: { meta } } ->
+        \args@{ syn: { let_ }, argsMeta: { meta } } ->
           rec.let_
             $ modifyHetero _argsMeta
                 ( let
@@ -147,7 +147,7 @@ recTerm rec =
                 )
                 args
     , data_:
-        \args@{ argsSyn: { data_ }, argsMeta: { meta } } ->
+        \args@{ syn: { data_ }, argsMeta: { meta } } ->
           rec.data_
             $ modifyHetero _argsMeta
                 ( let
@@ -186,7 +186,7 @@ recTerm rec =
 --   = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
 -- recArgItems ::
 --   forall r a.
---   Lacks "argsSyn" r =>
+--   Lacks "syn" r =>
 --   Lacks "argsCtx" r =>
 --   Lacks "argsIx" r =>
 --   Lacks "argsMeta" r =>
@@ -208,7 +208,7 @@ type ArgsArgItem r
 
 recArgItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -228,7 +228,7 @@ type ArgsCaseItem r
 
 recCaseItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -248,7 +248,7 @@ type ArgsSumItem r
 
 recSumItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -268,7 +268,7 @@ type ArgsParamItem r
 
 recParamItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -288,7 +288,7 @@ type ArgsTermBindItem r
 
 recTermBindItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
@@ -302,7 +302,7 @@ type ArgsTermBind r
 
 recTermBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argMeta" r =>
@@ -316,7 +316,7 @@ type ArgsTypeBind r
 
 recTypeBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>

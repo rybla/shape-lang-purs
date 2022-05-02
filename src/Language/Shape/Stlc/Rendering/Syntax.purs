@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Rendering.Syntax where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Control.Monad.State (State, evalState, get)
 import Data.Array (concat)
 import Data.Default (default)
@@ -37,7 +38,7 @@ renderProgram this =
         , argsCtx: { ctx: default, type_: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default } }
         , argsMeta: { meta: default }
         , argsIx: { visit: { csr: Just st.ix, ix: mempty } }
-        , argsSyn: { term: st.term }
+        , syn: { term: st.term }
         }
   where
   st = getState' this
@@ -51,9 +52,9 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "ArrowType" }
             )
-            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.dom }, argsMeta: { meta: args.argsMeta.dom }, argsAct: {} }
+            [ renderType { syn: { type_: args.syn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.dom }, argsMeta: { meta: args.argsMeta.dom }, argsAct: {} }
             , pure [ token.arrowType1 ]
-            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.cod }, argsMeta: { meta: args.argsMeta.cod }, argsAct: {} }
+            , renderType { syn: { type_: args.syn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.cod }, argsMeta: { meta: args.argsMeta.cod }, argsAct: {} }
             ]
     , data_:
         \args ->
@@ -61,7 +62,8 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "DataType" }
             )
-            []
+            [ undefined -- renderTypeId
+            ]
     , hole:
         \args ->
           renderNode
@@ -69,9 +71,8 @@ renderType =
                 { label = Just "HoleType" }
             )
             [ do
-                i <- OrderedSet.findIndex (args.argsSyn.hole.holeId == _) <$> get
-                pure
-                  [ span [ className "holeId" ] [ text $ show i ] ]
+                i <- OrderedSet.findIndex (args.syn.hole.holeId == _) <$> get
+                pure [ span [ className "holeId" ] [ text $ show i ] ]
             ]
     }
 
@@ -85,9 +86,9 @@ renderTerm =
                 { label = Just "Lam" }
             )
             [ pure [ token.lam1 ]
-            , renderTermBind { argsSyn: { termBind: args.argsSyn.lam.termBind }, argsCtx: { ctx: args.argsCtx.ctx }, argsIx: { visit: args.argsIx.termBind }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            , renderTermBind { syn: { termBind: args.syn.lam.termBind }, argsCtx: { ctx: args.argsCtx.ctx }, argsIx: { visit: args.argsIx.termBind }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
             , pure [ token.lam2 ]
-            , renderTerm { argsSyn: { term: args.argsSyn.lam.body }, argsCtx: args.argsCtx.body, argsIx: { visit: args.argsIx.body }, argsMeta: { meta: args.argsMeta.body }, argsAct: {} }
+            , renderTerm { syn: { term: args.syn.lam.body }, argsCtx: args.argsCtx.body, argsIx: { visit: args.argsIx.body }, argsMeta: { meta: args.argsMeta.body }, argsAct: {} }
             ]
     , neu:
         \args ->
@@ -95,7 +96,9 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Neu" }
             )
-            []
+            [ undefined -- renderTermId
+            -- , renderArgItems {syn: {argItems: args.syn.}}
+            ]
     , let_:
         \args ->
           renderNode
@@ -132,6 +135,10 @@ renderTerm =
             )
             []
     }
+
+renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () (Array ReactElement)
+renderArgItems = undefined
+
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
 renderSumItems = undefined
