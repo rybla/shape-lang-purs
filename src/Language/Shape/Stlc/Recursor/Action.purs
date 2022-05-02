@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Recursor.Action where
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim.Row
+import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Key (keys)
@@ -286,3 +287,167 @@ toggleIndentation_Action ixUp =
     , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
     , effect: undefined
     }
+
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs r1 r2
+-- type ArgsArgItems r
+--   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+-- type ArgsArgItemsCons r
+--   = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( actions :: Array Action ) r)
+-- type ArgsArgItemsNil r
+--   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   Lacks "argsCtx" r =>
+--   Lacks "argsIx" r =>
+--   Lacks "argsMeta" r =>
+--   Lacks "argsAct" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec =
+--   Rec.recArgItems
+--     { cons: \args -> rec.cons $ modifyHetero _argsAct (insert _actions []) args
+--     , nil: \args -> rec.nil $ modifyHetero _argsAct (insert _actions []) args
+--     }
+-- | recArgItems
+type ProtoArgsArgItems r1 r2
+  = ProtoArgs r1 r2
+
+type ArgsArgItems r
+  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+
+type ArgsArgItem r
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( actions :: Array Action ) r)
+
+recArgItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec = Rec.recArgItems { argItem: \args -> rec.argItem $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recSumItems
+type ProtoArgsSumItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsSumItems r
+  = Rec.ArgsSumItems (ProtoArgsSumItems () r)
+
+type ArgsSumItem r
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( actions :: Array Action ) r)
+
+recSumItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { sumItem :: ProtoRec ArgsSumItem r a } ->
+  ProtoRec ArgsSumItems r (List a)
+recSumItems rec = Rec.recSumItems { sumItem: \args -> rec.sumItem $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recCaseItem
+type ProtoArgsCaseItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
+
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( actions :: Array Action ) r)
+
+recCaseItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
+recCaseItems rec = Rec.recCaseItems { caseItem: \args -> rec.caseItem $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
+
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( actions :: Array Action ) r)
+
+recParamItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { param :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec = Rec.recParamItems { paramItem: \args -> rec.param $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
+  = ProtoArgs ( | r1 ) r2
+
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
+
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( actions :: Array Action ) r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { termBind :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recTermBind
+type ArgsTermBind r
+  = Rec.ArgsTermBind (ProtoArgs () r)
+
+type ArgsTermBind_TermBind r
+  = Rec.ArgsTermBind (ProtoArgs ( actions :: Array Action ) r)
+
+recTermBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argMeta" r =>
+  Lacks "argsAct" r =>
+  { termBind :: ProtoRec ArgsTermBind_TermBind r a } ->
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+type ArgsTypeBind_TypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs ( actions :: Array Action ) r)
+
+recTypeBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { typeBind :: ProtoRec ArgsTypeBind_TypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ modifyHetero _argsAct (insert _actions []) args }

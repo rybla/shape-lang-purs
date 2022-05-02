@@ -9,7 +9,7 @@ import Prim hiding (Type)
 import Prim.Row
 import Record
 import Data.Default (default)
-import Data.List (List, foldl, zip)
+import Data.List.Unsafe (List, foldl, index', zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Partial.Unsafe (unsafeCrashWith)
@@ -63,22 +63,24 @@ type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
 
 type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, ctx_body :: Context, type_body :: Type ) r)
+  -- = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, ctx_body :: Context, type_body :: Type ) r)
+  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm ( type_id :: Type, types_args :: List Type ) r)
+  -- = Rec.ArgsNeu (ProtoArgsTerm ( type_id :: Type, types_args :: List Type ) r)
+  = Rec.ArgsNeu (ProtoArgsTerm ( termId :: Context, argItems :: List { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( ctx_body :: Context ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm () r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( ctx_body :: Context ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( ctx_caseItems :: List Context ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( caseItems :: List { ctx :: Context, type_ :: Type } ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -93,33 +95,43 @@ recTerm rec =
   Rec.recTerm
     { lam:
         \args@{ argsSyn: { lam }, argsCtx: { ctx, type_ } } -> case type_ of
-          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_dom: dom, ctx_body: insertVarType lam.termBind.termId dom ctx, type_body: cod }) args
+          ArrowType { dom, cod } -> rec.lam $ modifyHetero _argsCtx (union { type_dom: dom, body: { ctx: insertVarType lam.termBind.termId dom ctx, type_: cod } }) args
           _ -> unsafeCrashWith "badly typed lambda"
     , neu:
         \args@{ argsSyn: { neu }, argsCtx: { ctx } } ->
           let
-            type_id = lookupVarType neu.termId ctx
+            termId = ctx
 
-            (types_args /\ _) = flattenType type_id
+            typeId = lookupVarType neu.termId ctx
+
+            { doms: types_args } = flattenType typeId
+
+            argItems = map (\type_ -> { ctx, type_ }) types_args
           in
-            rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
+            rec.neu $ modifyHetero _argsCtx (union { termId, argItems }) args
     , let_:
-        \args@{ argsSyn: { let_ }, argsCtx: { ctx } } ->
-          rec.let_ $ modifyHetero _argsCtx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
-    , buf: rec.buf
+        \args@{ argsSyn: { let_ }, argsCtx: { ctx, type_ } } ->
+          -- rec.let_ $ modifyHetero _argsCtx (union { ctx_body: insertVarType let_.termBind.termId let_.type_ ctx }) args
+          rec.let_ $ modifyHetero _argsCtx (union { body: { ctx: insertVarType let_.termBind.termId let_.type_ ctx, type_ } }) args
+    , buf:
+        \args@{ argsSyn: { buf }, argsCtx: { ctx, type_ } } ->
+          rec.buf $ modifyHetero _argsCtx (union { term: { ctx, type_: buf.type_ }, body: { ctx, type_ } }) args
     , data_:
-        \args@{ argsSyn: { data_ }, argsCtx: { ctx } } ->
+        \args@{ argsSyn: { data_ }, argsCtx: { ctx, type_ } } ->
           rec.data_
             $ modifyHetero _argsCtx
                 ( union
-                    { ctx_body:
-                        flipfoldr data_.sumItems
-                          ( \sumItem ->
-                              insertVarType sumItem.termBind.termId (typeOfConstructor data_.typeBind.typeId sumItem)
-                                <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
-                          )
-                          $ insertData data_
-                          $ ctx
+                    { body:
+                        { ctx:
+                            flipfoldr data_.sumItems
+                              ( \sumItem ->
+                                  insertVarType sumItem.termBind.termId (typeOfSumItem data_.typeBind.typeId sumItem)
+                                    <<< insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default }
+                              )
+                              $ insertData data_
+                              $ ctx
+                        , type_: type_
+                        }
                     }
                 )
                 args
@@ -131,52 +143,69 @@ recTerm rec =
             rec.match
               $ modifyHetero _argsCtx
                   ( union
-                      { ctx_caseItems:
+                      { caseItems:
                           map
                             ( \(caseItem /\ sumItem) ->
-                                foldl
-                                  (flip \(termBind /\ param) -> insertVarType termBind.termId param.type_)
-                                  ctx
-                                  (zip caseItem.termBinds sumItem.params)
+                                { ctx:
+                                    foldl
+                                      (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
+                                      ctx
+                                      (zip caseItem.termBindItems sumItem.paramItems)
+                                , type_
+                                }
                             )
                             (zip match.caseItems (data_.sumItems))
                       }
                   )
                   args
-    , hole: rec.hole
+    , hole:
+        rec.hole
     }
 
+-- -- | recArgItems
+-- type ProtoArgsArgItems r1 r2
+--   = ProtoArgs r1 r2
+-- type ArgsArgItems r
+--   = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
+-- type ArgsArgItemsCons r
+--   = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
+-- type ArgsArgItemsNil r
+--   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
+-- recArgItems ::
+--   forall r a.
+--   Lacks "argsSyn" r =>
+--   Lacks "argsCtx" r =>
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
+-- recArgItems rec =
+--   Rec.recArgItems
+--     { cons:
+--         rec.cons
+--           <<< modifyHetero _argsCtx
+--               ( \{ ctx, type_ } -> case type_ of
+--                   ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
+--                   _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
+--               )
+--     , nil:
+--         rec.nil
+--     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
-  = ProtoArgs r1 r2
+  = ProtoArgs ( doms :: List Type, cod :: Type | r1 ) r2
 
 type ArgsArgItems r
-  = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
+  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
-type ArgsArgItemsCons r
-  = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
-
-type ArgsArgItemsNil r
-  = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
+type ArgsArgItem r
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( argItem :: { ctx :: Context, type_ :: Type } ) r)
 
 recArgItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
-  ProtoRec ArgsArgItems r a
-recArgItems rec =
-  Rec.recArgItems
-    { cons:
-        rec.cons
-          <<< modifyHetero _argsCtx
-              ( \{ ctx, type_ } -> case type_ of
-                  ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
-                  _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
-              )
-    , nil:
-        rec.nil
-    }
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
+recArgItems rec = Rec.recArgItems { argItem: \args@{ argsSyn, argsCtx } -> rec.argItem $ modifyHetero _argsCtx (union { argItem: { ctx: argsCtx.ctx, type_: index' argsCtx.doms argsSyn.i } }) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -186,7 +215,7 @@ type ArgsSumItems r
   = Rec.ArgsSumItems (ProtoArgsSumItems () r)
 
 type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems () r)
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( sumItem :: Context, termBind :: Context, paramItems :: Context ) r)
 
 recSumItems ::
   forall r a.
@@ -194,17 +223,17 @@ recSumItems ::
   Lacks "argsCtx" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems = Rec.recSumItems
+recSumItems rec = Rec.recSumItems { sumItem: \args@{ argsCtx: { ctx } } -> rec.sumItem $ modifyHetero _argsCtx (union { sumItem: ctx, termBind: ctx, paramItems: ctx }) args }
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( type_ :: Type, typeId :: TypeId | r1 ) r2
 
 type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
 
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems () r)
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( ctxs :: List Context, caseItem :: { ctx :: Context, type_ :: Type }, termBindItems :: Context, body :: { ctx :: Context, type_ :: Type } ) r)
 
 recCaseItems ::
   forall r a.
@@ -212,40 +241,84 @@ recCaseItems ::
   Lacks "argsCtx" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems = Rec.recCaseItems
+-- TODO: for each caseItem, add termBindItems into context for body
+recCaseItems rec =
+  Rec.recCaseItems
+    { caseItem:
+        \args@{ argsSyn: { i }, argsCtx: { ctxs, type_ } } ->
+          let
+            ctx = index' ctxs i
+          in
+            rec.caseItem $ modifyHetero _argsCtx (union { caseItem: { ctx, type_ }, termBindItems: ctx, body: { ctx, type_ } }) args
+    }
+    <<< ( \args@{ argsSyn: { caseItems }, argsCtx: { ctx, typeId } } ->
+          modifyHetero _argsCtx
+            ( union
+                { ctxs:
+                    map
+                      (\({ termBindItems } /\ { paramItems }) -> flipfoldr (zip termBindItems paramItems) (\({ termBind } /\ { type_ }) -> insertVarType termBind.termId type_) ctx)
+                      (caseItems `zip` (lookupData typeId ctx).sumItems)
+                }
+            )
+            args
+      )
 
--- | recParams
-type ProtoArgsParams r1 r2
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsParams r
-  = Rec.ArgsParams (ProtoArgsParams () r)
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
-type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams () r)
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItem :: Context ) r)
 
-recParams ::
+recParamItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { param :: ProtoRec ArgsParam r a } ->
-  ProtoRec ArgsParams r (List a)
-recParams rec = Rec.recParams undefined
+  { paramItem :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec = Rec.recParamItems { paramItem: \args@{ argsCtx: { ctx } } -> rec.paramItem $ modifyHetero _argsCtx (union { paramItem: ctx }) args }
 
--- | recTermBinds
-type ProtoArgsTermBinds r1 r2
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsTermBinds r
-  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( termBindItem :: Context, termBind :: Context ) r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args@{ argsCtx: { ctx } } -> rec.termBindItem $ modifyHetero _argsCtx (union { termBindItem: ctx, termBind: ctx }) args }
+
+-- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgsTermBinds () r)
+  = Rec.ArgsTermBind (ProtoArgs () r)
 
-recTermBinds ::
+recTermBind ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBinds r (List a)
-recTermBinds = Rec.recTermBinds
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+recTypeBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { typeBind :: ProtoRec ArgsTypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }

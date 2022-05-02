@@ -3,8 +3,8 @@ module Language.Shape.Stlc.Index where
 import Prelude
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..))
-import Data.Newtype (class Newtype, wrap)
+import Data.List (List(..), singleton, (:))
+import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
 
@@ -18,7 +18,8 @@ derive newtype instance showIxUp :: Show IxUp
 derive newtype instance eqIxUp :: Eq IxUp
 
 instance semigroupIxUp :: Semigroup IxUp where
-  append = undefined -- TODO
+  -- appends in reverse order
+  append = over2 wrap (flip append)
 
 instance monoidIxUp :: Monoid IxUp where
   mempty = wrap Nil
@@ -33,7 +34,7 @@ derive newtype instance showIxDown :: Show IxDown
 derive newtype instance eqIxDown :: Eq IxDown
 
 instance semigroupIxDown :: Semigroup IxDown where
-  append = undefined -- TODO
+  append = over2 wrap append
 
 instance monoidIxDown :: Monoid IxDown where
   mempty = wrap Nil
@@ -57,6 +58,12 @@ data IxStepLabel
   | IxStepBuf
   | IxStepData
   | IxStepMatch
+  | IxStepTermBind
+  | IxStepArgItem
+  | IxStepSumItem
+  | IxStepCaseItem
+  | IxStepParamItem
+  | IxStepTermBindItem
   | IxStepList
 
 derive instance genericIxStepLabel :: Generic IxStepLabel _
@@ -76,6 +83,12 @@ ixStepLabelChildren ixStepLabel = case ixStepLabel of
   IxStepBuf -> 2
   IxStepData -> 3
   IxStepMatch -> 2
+  IxStepArgItem -> 1
+  IxStepSumItem -> 2
+  IxStepCaseItem -> 2
+  IxStepParamItem -> 1
+  IxStepTermBindItem -> 1
+  IxStepTermBind -> 1
   IxStepList -> 2
 
 ixStepArrowType =
@@ -116,12 +129,37 @@ ixStepMatch =
   , caseItems: IxStep IxStepMatch 1
   }
 
-ixStepArgItems =
-  { argItem: IxStep IxStepList 0
-  , argItems: IxStep IxStepList 1
+ixStepSumItem =
+  { termBind: IxStep IxStepSumItem 0
+  , paramItems: IxStep IxStepSumItem 1
+  }
+
+ixStepCaseItem =
+  { termBindItems: IxStep IxStepCaseItem 0
+  , body: IxStep IxStepCaseItem 1
+  }
+
+ixStepParamItem =
+  { type_: IxStep IxStepParamItem 0
+  }
+
+ixStepTermBindItem = {
+  termBind: IxStep IxStepTermBindItem 0 
+}
+
+ixStepTermBind =
+  { termId: IxStep IxStepTermBind 0
   }
 
 ixStepList =
   { head: IxStep IxStepList 0
   , tail: IxStep IxStepList 1
   }
+
+ixUpListItem :: Int -> IxUp
+ixUpListItem i = undefined
+
+ixDownListItem :: Int -> IxDown
+ixDownListItem 0 = wrap (singleton ixStepList.head)
+
+ixDownListItem i = over wrap (ixStepList.tail : _) (ixDownListItem (i - 1))

@@ -58,6 +58,10 @@ type Buf
 type Data
   = { typeBind :: TypeBind, sumItems :: List SumItem, body :: Term, meta :: DataMetadata }
 
+-- TODO: put this inside of Data since its useful to have Context map TypeId => DataDef
+type DataDef
+  = { typeBind :: TypeBind, sumItems :: List SumItem }
+
 type Match
   = { typeId :: TypeId, term :: Term, caseItems :: List CaseItem, meta :: MatchMetadata }
 
@@ -76,13 +80,16 @@ instance showTerm :: Show Term where
   show x = genericShow x
 
 type SumItem
-  = { termBind :: TermBind, params :: List Param, meta :: SumItemMetadata }
+  = { termBind :: TermBind, paramItems :: List ParamItem, meta :: SumItemMetadata }
 
 type CaseItem
-  = { termBinds :: List TermBind, body :: Term, meta :: CaseItemMetadata }
+  = { termBindItems :: List TermBindItem, body :: Term, meta :: CaseItemMetadata }
 
-type Param
-  = { type_ :: Type, meta :: ParamMetadata }
+type ParamItem
+  = { type_ :: Type, meta :: ParamItemMetadata }
+
+type TermBindItem
+  = { termBind :: TermBind, meta :: TermBindItemMetadata }
 
 -- | TypeId
 newtype TypeId
@@ -125,14 +132,13 @@ freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
 
 -- | Syntax
 data Syntax
-  = SyntaxType Type 
-  | SyntaxTerm Term 
+  = SyntaxType Type
+  | SyntaxTerm Term
   | SyntaxArgItem ArgItem
-  | SyntaxSumItem SumItem 
-  | SyntaxCaseItem CaseItem 
-  | SyntaxParam Param 
-  | SyntaxTypeBind Param 
-  | SyntaxTermBind Param 
+  | SyntaxSumItem SumItem
+  | SyntaxCaseItem CaseItem
+  | SyntaxParamItem ParamItem
+  | SyntaxTermBindItem TermBindItem
   | SyntaxList (List Syntax)
 
 derive instance genericSyntax :: Generic Syntax _

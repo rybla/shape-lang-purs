@@ -18,9 +18,9 @@ chAtTerm args _ _ = Rec.recTerm {
     , neu : undefined
     , let_ : undefined
     , buf : \args _ _ ->
-        if isJust (args.argsIx.visit_term).csr then 
+        if isJust args.argsIx.term.csr then 
             undefined
-        else if isJust (args.argsIx.visit_body).csr then
+        else if isJust args.argsIx.body.csr then
             undefined
         else
         error "no"

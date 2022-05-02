@@ -51,9 +51,9 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "ArrowType" }
             )
-            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.visit_dom }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.dom }, argsMeta: { meta: args.argsMeta.dom }, argsAct: {} }
             , pure [ token.arrowType1 ]
-            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.visit_cod }, argsMeta: { meta: args.argsMeta.meta_cod }, argsAct: {} }
+            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.cod }, argsMeta: { meta: args.argsMeta.cod }, argsAct: {} }
             ]
     , data_:
         \args ->
@@ -71,13 +71,85 @@ renderType =
             [ do
                 i <- OrderedSet.findIndex (args.argsSyn.hole.holeId == _) <$> get
                 pure
-                  [ span [ className "holeId" ] [ text $ show i ]
-                  ]
+                  [ span [ className "holeId" ] [ text $ show i ] ]
             ]
     }
 
 renderTerm :: RecAct.ProtoRec RecAct.ArgsTerm () (Array ReactElement)
-renderTerm = undefined
+renderTerm =
+  RecAct.recTerm
+    { lam:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Lam" }
+            )
+            [ pure [ token.lam1 ]
+            , renderTermBind { argsSyn: { termBind: args.argsSyn.lam.termBind }, argsCtx: { ctx: args.argsCtx.ctx }, argsIx: { visit: args.argsIx.termBind }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            , pure [ token.lam2 ]
+            , renderTerm { argsSyn: { term: args.argsSyn.lam.body }, argsCtx: args.argsCtx.body, argsIx: { visit: args.argsIx.body }, argsMeta: { meta: args.argsMeta.body }, argsAct: {} }
+            ]
+    , neu:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Neu" }
+            )
+            []
+    , let_:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Let" }
+            )
+            []
+    , buf:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Buf" }
+            )
+            []
+    , data_:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Data" }
+            )
+            []
+    , match:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Match" }
+            )
+            []
+    , hole:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Hole" }
+            )
+            []
+    }
+
+renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
+renderSumItems = undefined
+
+renderCaseItems :: RecAct.ProtoRec RecAct.ArgsCaseItems () (Array ReactElement)
+renderCaseItems = undefined
+
+renderParamItems :: RecAct.ProtoRec RecAct.ArgsParamItems () (Array ReactElement)
+renderParamItems = undefined
+
+renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () (Array ReactElement)
+renderTermBindItems = undefined
+
+renderTermBind :: RecAct.ProtoRec RecAct.ArgsTermBind () (Array ReactElement)
+renderTermBind = undefined
+
+renderTypeBind :: RecAct.ProtoRec RecAct.ArgsTypeBind () (Array ReactElement)
+renderTypeBind = undefined
 
 type NodeProps
   = { label :: Maybe String
