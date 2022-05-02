@@ -21,14 +21,12 @@ import Undefined (undefined)
 
 -- | ProtoRec
 type ProtoArgs r1 r2
-  = ( argsMeta :: Record ( meta :: Metacontext | r1 ) | r2 )
+  = ( meta :: Record ( meta :: Metacontext | r1 ) | r2 )
 
 -- | The `State (OrderedSet HoleId)` gathers the HoleIds of `HoleTypes` in the 
 -- | program, statefully.
 type ProtoRec args r a
   = Rec.ProtoRec args r (State (OrderedSet HoleId) a)
-
-_argsMeta = Proxy :: Proxy "argsMeta"
 
 _meta = Proxy :: Proxy "meta"
 
@@ -50,21 +48,21 @@ type ArgsHoleType r
 
 recType ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
 recType rec =
   Rec.recType
     { arrow:
-        \args@{ argsMeta: { meta } } ->
+        \args@{ meta: { meta } } ->
           rec.arrow
-            $ modifyHetero _argsMeta (union { dom: meta, cod: incrementIndentation meta }) args
+            $ modifyHetero _meta (union { dom: meta, cod: incrementIndentation meta }) args
     , data_: rec.data_
     , hole:
-        \args@{ argsSyn: { hole } } -> do
+        \args@{ syn: { hole } } -> do
           modify_ $ OrderedSet.insert hole.holeId
           rec.hole args
     }
@@ -99,30 +97,30 @@ type ArgsHole r
 
 recTerm ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
 recTerm rec =
   Rec.recTerm
     { lam:
-        \args@{ argsSyn: { lam }, argsMeta: { meta } } ->
+        \args@{ syn: { lam }, meta: { meta } } ->
           rec.lam
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 (union { body: insertVarName lam.termBind.termId (unwrap lam.meta).name meta })
                 args
     , neu:
-        \args@{ argsSyn: { neu }, argsMeta: { meta } } ->
+        \args@{ syn: { neu }, meta: { meta } } ->
           rec.neu
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 (union { args: map (\_ -> incrementIndentation meta) neu.argItems })
                 args
     , let_:
-        \args@{ argsSyn: { let_ }, argsMeta: { meta } } ->
+        \args@{ syn: { let_ }, meta: { meta } } ->
           rec.let_
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 ( let
                     meta' = incrementIndentation meta
                   in
@@ -134,9 +132,9 @@ recTerm rec =
                 )
                 args
     , buf:
-        \args@{ argsMeta: { meta } } ->
+        \args@{ meta: { meta } } ->
           rec.buf
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 ( let
                     meta' = incrementIndentation meta
                   in
@@ -147,9 +145,9 @@ recTerm rec =
                 )
                 args
     , data_:
-        \args@{ argsSyn: { data_ }, argsMeta: { meta } } ->
+        \args@{ syn: { data_ }, meta: { meta } } ->
           rec.data_
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 ( let
                     meta' = incrementIndentation meta
                   in
@@ -160,9 +158,9 @@ recTerm rec =
                 )
                 args
     , match:
-        \args@{ argsMeta: { meta } } ->
+        \args@{ meta: { meta } } ->
           rec.match
-            $ modifyHetero _argsMeta
+            $ modifyHetero _meta
                 ( let
                     meta' = incrementIndentation meta
                   in
@@ -186,10 +184,10 @@ recTerm rec =
 --   = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
 -- recArgItems ::
 --   forall r a.
---   Lacks "argsSyn" r =>
---   Lacks "argsCtx" r =>
---   Lacks "argsIx" r =>
---   Lacks "argsMeta" r =>
+--   Lacks "syn" r =>
+--   Lacks "ctx" r =>
+--   Lacks "ix" r =>
+--   Lacks "meta" r =>
 --   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
 --   ProtoRec ArgsArgItems r a
 -- recArgItems rec =
@@ -208,10 +206,10 @@ type ArgsArgItem r
 
 recArgItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { argItem :: ProtoRec ArgsArgItem r a } ->
   ProtoRec ArgsArgItems r (List a)
 recArgItems rec = sequence <<< Rec.recArgItems rec
@@ -228,13 +226,13 @@ type ArgsCaseItem r
 
 recCaseItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec = sequence <<< Rec.recCaseItems { caseItem: \args@{ argsMeta } -> rec.caseItem $ modifyHetero _argsMeta (union { body: incrementIndentation argsMeta.meta }) args }
+recCaseItems rec = sequence <<< Rec.recCaseItems { caseItem: \args@{ meta } -> rec.caseItem $ modifyHetero _meta (union { body: incrementIndentation meta.meta }) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -248,13 +246,13 @@ type ArgsSumItem r
 
 recSumItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ argsMeta } -> let meta = incrementIndentation argsMeta.meta in rec.sumItem $ modifyHetero _argsMeta (union { sumItem: meta, paramItems: meta }) args }
+recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ meta } -> let meta' = incrementIndentation meta.meta in rec.sumItem $ modifyHetero _meta (union { sumItem: meta', paramItems: meta' }) args }
 
 -- | recParamItems
 type ProtoArgsParamItems r1 r2
@@ -268,13 +266,13 @@ type ArgsParamItem r
 
 recParamItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { paramItem :: ProtoRec ArgsParamItem r a } ->
   ProtoRec ArgsParamItems r (List a)
-recParamItems rec = sequence <<< Rec.recParamItems { paramItem: \args@{ argsMeta: { meta } } -> rec.paramItem $ modifyHetero _argsMeta (union { paramItem: meta, type_: meta }) args }
+recParamItems rec = sequence <<< Rec.recParamItems { paramItem: \args@{ meta: { meta } } -> rec.paramItem $ modifyHetero _meta (union { paramItem: meta, type_: meta }) args }
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2
@@ -288,10 +286,10 @@ type ArgsTermBindItem r
 
 recTermBindItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
   ProtoRec ArgsTermBindItems r (List a)
 recTermBindItems rec = sequence <<< Rec.recTermBindItems rec
@@ -302,9 +300,9 @@ type ArgsTermBind r
 
 recTermBind ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
   Lacks "argMeta" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
   ProtoRec ArgsTermBind r a
@@ -316,10 +314,10 @@ type ArgsTypeBind r
 
 recTypeBind ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
   { typeBind :: ProtoRec ArgsTypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }

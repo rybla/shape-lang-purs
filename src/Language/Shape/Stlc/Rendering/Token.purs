@@ -14,4 +14,7 @@ token =
         { arrowType1: text "->"
         , lam1: text "fun"
         , lam2: text "=>"
+        , data1: text "data"
+        , data2: text "="
+        , data3: text "in"
         }

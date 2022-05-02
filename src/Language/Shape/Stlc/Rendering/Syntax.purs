@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Rendering.Syntax where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Control.Monad.State (State, evalState, get)
 import Data.Array (concat)
 import Data.Default (default)
@@ -33,11 +34,11 @@ renderProgram this =
   flip evalState mempty
     $ renderTerm
         -- TODO: maybe pull this out into multiple files or at least somewhere else?
-        { argsAct: {}
-        , argsCtx: { ctx: default, type_: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default } }
-        , argsMeta: { meta: default }
-        , argsIx: { visit: { csr: Just st.ix, ix: mempty } }
-        , argsSyn: { term: st.term }
+        { act: {}
+        , ctx: { ctx: default, type_: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default } }
+        , meta: { meta: default }
+        , ix: { visit: { csr: Just st.ix, ix: mempty } }
+        , syn: { term: st.term }
         }
   where
   st = getState' this
@@ -51,9 +52,9 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "ArrowType" }
             )
-            [ renderType { argsSyn: { type_: args.argsSyn.arrow.dom }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.dom }, argsMeta: { meta: args.argsMeta.dom }, argsAct: {} }
+            [ renderType { syn: { type_: args.syn.arrow.dom }, ctx: args.ctx, ix: { visit: args.ix.dom }, meta: { meta: args.meta.dom }, act: {} }
             , pure [ token.arrowType1 ]
-            , renderType { argsSyn: { type_: args.argsSyn.arrow.cod }, argsCtx: args.argsCtx, argsIx: { visit: args.argsIx.cod }, argsMeta: { meta: args.argsMeta.cod }, argsAct: {} }
+            , renderType { syn: { type_: args.syn.arrow.cod }, ctx: args.ctx, ix: { visit: args.ix.cod }, meta: { meta: args.meta.cod }, act: {} }
             ]
     , data_:
         \args ->
@@ -61,7 +62,8 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "DataType" }
             )
-            []
+            [ undefined -- renderTypeId
+            ]
     , hole:
         \args ->
           renderNode
@@ -69,9 +71,8 @@ renderType =
                 { label = Just "HoleType" }
             )
             [ do
-                i <- OrderedSet.findIndex (args.argsSyn.hole.holeId == _) <$> get
-                pure
-                  [ span [ className "holeId" ] [ text $ show i ] ]
+                i <- OrderedSet.findIndex (args.syn.hole.holeId == _) <$> get
+                pure [ span [ className "holeId" ] [ text $ show i ] ]
             ]
     }
 
@@ -85,9 +86,9 @@ renderTerm =
                 { label = Just "Lam" }
             )
             [ pure [ token.lam1 ]
-            , renderTermBind { argsSyn: { termBind: args.argsSyn.lam.termBind }, argsCtx: { ctx: args.argsCtx.ctx }, argsIx: { visit: args.argsIx.termBind }, argsMeta: { meta: args.argsMeta.meta }, argsAct: {} }
+            , renderTermBind { syn: { termBind: args.syn.lam.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
             , pure [ token.lam2 ]
-            , renderTerm { argsSyn: { term: args.argsSyn.lam.body }, argsCtx: args.argsCtx.body, argsIx: { visit: args.argsIx.body }, argsMeta: { meta: args.argsMeta.body }, argsAct: {} }
+            , renderTerm { syn: { term: args.syn.lam.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
             ]
     , neu:
         \args ->
@@ -95,7 +96,9 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Neu" }
             )
-            []
+            [ undefined -- renderTermId
+            , renderArgItems {syn: {argItems: args.syn.neu.argItems}, ctx: ?a, ix: ?a, meta: ?a, act: {}}
+            ]
     , let_:
         \args ->
           renderNode
@@ -132,6 +135,10 @@ renderTerm =
             )
             []
     }
+
+renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () (Array ReactElement)
+renderArgItems = undefined
+
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
 renderSumItems = undefined
@@ -176,19 +183,19 @@ maybeArray ma f = case ma of
   Nothing -> []
 
 useArgsCtx_Type :: forall r1 r2. Record (RecCtx.ProtoArgsType r1 r2) -> NodeProps -> NodeProps
-useArgsCtx_Type { argsCtx } = _ { ctx = Just argsCtx.ctx }
+useArgsCtx_Type { ctx } = _ { ctx = Just ctx.ctx }
 
 useArgsCtx_Term :: forall r1 r2. Record (RecCtx.ProtoArgsTerm r1 r2) -> NodeProps -> NodeProps
-useArgsCtx_Term { argsCtx } = _ { ctx = Just argsCtx.ctx, type_ = Just argsCtx.type_ }
+useArgsCtx_Term { ctx } = _ { ctx = Just ctx.ctx, type_ = Just ctx.type_ }
 
 useArgsMeta :: forall r1 r2. Record (RecMeta.ProtoArgs r1 r2) -> NodeProps -> NodeProps
-useArgsMeta { argsMeta } = _ { meta = Just argsMeta.meta }
+useArgsMeta { meta } = _ { meta = Just meta.meta }
 
 useArgsIx :: forall r1 r2. Record (RecIx.ProtoArgs r1 r2) -> NodeProps -> NodeProps
-useArgsIx { argsIx } = _ { visit = Just (argsIx.visit) }
+useArgsIx { ix } = _ { visit = Just (ix.visit) }
 
 useArgsAct :: forall r1 r2. Record (RecAct.ProtoArgs ( actions :: Array Action | r1 ) r2) -> NodeProps -> NodeProps
-useArgsAct { argsAct } = _ { actions = argsAct.actions }
+useArgsAct { act } = _ { actions = act.actions }
 
 renderNode :: NodeProps -> Array (State (OrderedSet HoleId) (Array ReactElement)) -> State (OrderedSet HoleId) (Array ReactElement)
 renderNode props elemsM = do

@@ -12,15 +12,15 @@ import Undefined (undefined)
 import Unsafe (error)
 
 chAtTerm :: Rec.ProtoRec Rec.ArgsTerm () (Unit -> Unit -> Maybe Unit)
-chAtTerm {argsIx: {visit: {csr: Just (IxDown Nil)}}} _ _ = undefined -- pure unit
+chAtTerm {ix: {visit: {csr: Just (IxDown Nil)}}} _ _ = undefined -- pure unit
 chAtTerm args _ _ = Rec.recTerm {
     lam : \args _ _ -> undefined
     , neu : undefined
     , let_ : undefined
     , buf : \args _ _ ->
-        if isJust args.argsIx.term.csr then 
+        if isJust args.ix.term.csr then 
             undefined
-        else if isJust args.argsIx.body.csr then
+        else if isJust args.ix.body.csr then
             undefined
         else
         error "no"

@@ -15,12 +15,12 @@ import Undefined (undefined)
 
 -- | ProtoRec
 type ProtoArgs r1 r2
-  = ( argsAct :: Record ( | r1 ) | r2 )
+  = ( act :: Record ( | r1 ) | r2 )
 
 type ProtoRec args r a
   = Rec.ProtoRec args r a
 
-_argsAct = Proxy :: Proxy "argsAct"
+_act = Proxy :: Proxy "act"
 
 _actions = Proxy :: Proxy "actions"
 
@@ -42,11 +42,11 @@ type ArgsHoleType r
 
 recType ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
 recType rec =
@@ -54,7 +54,7 @@ recType rec =
     { arrow:
         \args ->
           rec.arrow
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "delete"
@@ -68,7 +68,7 @@ recType rec =
     , data_:
         \args ->
           rec.data_
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ []
                     <> common args
@@ -77,7 +77,7 @@ recType rec =
     , hole:
         \args ->
           rec.hole
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ []
                     <> common args
@@ -102,7 +102,7 @@ recType rec =
         , triggers: [ ActionTrigger_Keypress { keys: keys.copy } ]
         , effect: undefined
         }
-    -- , toggleIndentation_Action args.argsIx.visit.ix
+    -- , toggleIndentation_Action args.ix.visit.ix
     ]
 
 -- | recTerm
@@ -135,11 +135,11 @@ type ArgsHole r
 
 recTerm ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
 recTerm rec =
@@ -147,7 +147,7 @@ recTerm rec =
     { lam:
         \args ->
           rec.lam
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "unlambda"
@@ -166,7 +166,7 @@ recTerm rec =
     , neu:
         \args ->
           rec.neu
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "eta"
@@ -180,7 +180,7 @@ recTerm rec =
     , let_:
         \args ->
           rec.let_
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "unlet"
@@ -194,7 +194,7 @@ recTerm rec =
     , buf:
         \args ->
           rec.buf
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "unbuf"
@@ -208,7 +208,7 @@ recTerm rec =
     , data_:
         \args ->
           rec.data_
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "undata"
@@ -222,7 +222,7 @@ recTerm rec =
     , match:
         \args ->
           rec.match
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ []
                     <> common args
@@ -231,7 +231,7 @@ recTerm rec =
     , hole:
         \args ->
           rec.hole
-            $ modifyHetero _argsAct
+            $ modifyHetero _act
                 ( insert _actions
                     $ [ Action
                           { label: Just "fill"
@@ -276,7 +276,7 @@ recTerm rec =
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
         , effect: undefined
         }
-    -- , toggleIndentation_Action args.argsIx.visit.ix
+    -- , toggleIndentation_Action args.ix.visit.ix
     ]
 
 -- | Generic Array Action
@@ -299,17 +299,17 @@ toggleIndentation_Action ixUp =
 --   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
 -- recArgItems ::
 --   forall r a.
---   Lacks "argsSyn" r =>
---   Lacks "argsCtx" r =>
---   Lacks "argsIx" r =>
---   Lacks "argsMeta" r =>
---   Lacks "argsAct" r =>
+--   Lacks "syn" r =>
+--   Lacks "ctx" r =>
+--   Lacks "ix" r =>
+--   Lacks "meta" r =>
+--   Lacks "act" r =>
 --   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
 --   ProtoRec ArgsArgItems r a
 -- recArgItems rec =
 --   Rec.recArgItems
---     { cons: \args -> rec.cons $ modifyHetero _argsAct (insert _actions []) args
---     , nil: \args -> rec.nil $ modifyHetero _argsAct (insert _actions []) args
+--     { cons: \args -> rec.cons $ modifyHetero _act (insert _actions []) args
+--     , nil: \args -> rec.nil $ modifyHetero _act (insert _actions []) args
 --     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
@@ -323,14 +323,14 @@ type ArgsArgItem r
 
 recArgItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { argItem :: ProtoRec ArgsArgItem r a } ->
   ProtoRec ArgsArgItems r (List a)
-recArgItems rec = Rec.recArgItems { argItem: \args -> rec.argItem $ modifyHetero _argsAct (insert _actions []) args }
+recArgItems rec = Rec.recArgItems { argItem: \args -> rec.argItem $ modifyHetero _act (insert _actions []) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -344,14 +344,14 @@ type ArgsSumItem r
 
 recSumItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems rec = Rec.recSumItems { sumItem: \args -> rec.sumItem $ modifyHetero _argsAct (insert _actions []) args }
+recSumItems rec = Rec.recSumItems { sumItem: \args -> rec.sumItem $ modifyHetero _act (insert _actions []) args }
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
@@ -365,14 +365,14 @@ type ArgsCaseItem r
 
 recCaseItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec = Rec.recCaseItems { caseItem: \args -> rec.caseItem $ modifyHetero _argsAct (insert _actions []) args }
+recCaseItems rec = Rec.recCaseItems { caseItem: \args -> rec.caseItem $ modifyHetero _act (insert _actions []) args }
 
 -- | recParamItems
 type ProtoArgsParamItems r1 r2
@@ -386,14 +386,14 @@ type ArgsParamItem r
 
 recParamItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { param :: ProtoRec ArgsParamItem r a } ->
   ProtoRec ArgsParamItems r (List a)
-recParamItems rec = Rec.recParamItems { paramItem: \args -> rec.param $ modifyHetero _argsAct (insert _actions []) args }
+recParamItems rec = Rec.recParamItems { paramItem: \args -> rec.param $ modifyHetero _act (insert _actions []) args }
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2
@@ -407,14 +407,14 @@ type ArgsTermBindItem r
 
 recTermBindItems ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { termBind :: ProtoRec ArgsTermBindItem r a } ->
   ProtoRec ArgsTermBindItems r (List a)
-recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args -> rec.termBind $ modifyHetero _act (insert _actions []) args }
 
 -- | recTermBind
 type ArgsTermBind r
@@ -425,14 +425,14 @@ type ArgsTermBind_TermBind r
 
 recTermBind ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
   Lacks "argMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "act" r =>
   { termBind :: ProtoRec ArgsTermBind_TermBind r a } ->
   ProtoRec ArgsTermBind r a
-recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ modifyHetero _act (insert _actions []) args }
 
 -- | recTypeBind
 type ArgsTypeBind r
@@ -443,11 +443,11 @@ type ArgsTypeBind_TypeBind r
 
 recTypeBind ::
   forall r a.
-  Lacks "argsSyn" r =>
-  Lacks "argsCtx" r =>
-  Lacks "argsIx" r =>
-  Lacks "argsMeta" r =>
-  Lacks "argsAct" r =>
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
   { typeBind :: ProtoRec ArgsTypeBind_TypeBind r a } ->
   ProtoRec ArgsTypeBind r a
-recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ modifyHetero _argsAct (insert _actions []) args }
+recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ modifyHetero _act (insert _actions []) args }

@@ -12,13 +12,13 @@ import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 type ProtoArgs r1 r2
-  = ( argsSyn :: Record r1 | r2 )
+  = ( syn :: Record r1 | r2 )
 
 type ProtoRec :: (Row Prim.Type -> Row Prim.Type) -> Row Prim.Type -> Prim.Type -> Prim.Type
 type ProtoRec args r a
   = Record (args r) -> a
 
-_argsSyn = Proxy :: Proxy "argsSyn"
+_syn = Proxy :: Proxy "syn"
 
 -- | recType
 type ProtoArgsType r1 r2
@@ -38,13 +38,13 @@ type ArgsHoleType r
 
 recType ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
   ProtoRec ArgsType r a
-recType rec args@{ argsSyn } = case argsSyn.type_ of
-  ArrowType arrow -> rec.arrow $ modifyHetero _argsSyn (union { arrow }) args
-  DataType data_ -> rec.data_ $ modifyHetero _argsSyn (union { data_ }) args
-  HoleType hole -> rec.hole $ modifyHetero _argsSyn (union { hole }) args
+recType rec args@{ syn } = case syn.type_ of
+  ArrowType arrow -> rec.arrow $ modifyHetero _syn (union { arrow }) args
+  DataType data_ -> rec.data_ $ modifyHetero _syn (union { data_ }) args
+  HoleType hole -> rec.hole $ modifyHetero _syn (union { hole }) args
 
 -- | recTerm
 type ProtoArgsTerm r1 r2
@@ -76,17 +76,17 @@ type ArgsHole r
 
 recTerm ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
   ProtoRec ArgsTerm r a
-recTerm rec args@{ argsSyn } = case argsSyn.term of
-  Lam lam -> rec.lam $ modifyHetero _argsSyn (union { lam }) args
-  Neu neu -> rec.neu $ modifyHetero _argsSyn (union { neu }) args
-  Let let_ -> rec.let_ $ modifyHetero _argsSyn (union { let_ }) args
-  Buf buf -> rec.buf $ modifyHetero _argsSyn (union { buf }) args
-  Data data_ -> rec.data_ $ modifyHetero _argsSyn (union { data_ }) args
-  Match match -> rec.match $ modifyHetero _argsSyn (union { match }) args
-  Hole hole -> rec.hole $ modifyHetero _argsSyn (union { hole }) args
+recTerm rec args@{ syn } = case syn.term of
+  Lam lam -> rec.lam $ modifyHetero _syn (union { lam }) args
+  Neu neu -> rec.neu $ modifyHetero _syn (union { neu }) args
+  Let let_ -> rec.let_ $ modifyHetero _syn (union { let_ }) args
+  Buf buf -> rec.buf $ modifyHetero _syn (union { buf }) args
+  Data data_ -> rec.data_ $ modifyHetero _syn (union { data_ }) args
+  Match match -> rec.match $ modifyHetero _syn (union { match }) args
+  Hole hole -> rec.hole $ modifyHetero _syn (union { hole }) args
 
 -- -- | recArgItems
 -- type ProtoArgsArgItems r1 r2
@@ -99,12 +99,12 @@ recTerm rec args@{ argsSyn } = case argsSyn.term of
 --   = ProtoArgsArgItems ( argItem :: ArgItem, argItems :: List ArgItem ) r
 -- recArgItems ::
 --   forall r a.
---   Lacks "argsSyn" r =>
+--   Lacks "syn" r =>
 --   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
 --   ProtoRec ArgsArgItems r a
--- recArgItems rec args@{ argsSyn } = case argsSyn.argItems of
+-- recArgItems rec args@{ syn } = case syn.argItems of
 --   Nil -> rec.nil args
---   Cons argItem argItems -> rec.cons $ modifyHetero _argsSyn (union { argItem, argItems }) args
+--   Cons argItem argItems -> rec.cons $ modifyHetero _syn (union { argItem, argItems }) args
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
   = ProtoArgs ( argItems :: List ArgItem | r1 ) r2
@@ -117,10 +117,10 @@ type ArgsArgItem r
 
 recArgItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { argItem :: ProtoRec ArgsArgItem r a } ->
   ProtoRec ArgsArgItems r (List a)
-recArgItems rec args@{ argsSyn } = mapWithIndex (\i argItem -> rec.argItem $ modifyHetero _argsSyn (union { i, argItem }) args) argsSyn.argItems
+recArgItems rec args@{ syn } = mapWithIndex (\i argItem -> rec.argItem $ modifyHetero _syn (union { i, argItem }) args) syn.argItems
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -134,13 +134,13 @@ type ArgsSumItem r
 
 recSumItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems rec args@{ argsSyn } =
+recSumItems rec args@{ syn } =
   mapWithIndex
-    (\i sumItem -> rec.sumItem $ modifyHetero _argsSyn (union { i, sumItem }) args)
-    argsSyn.sumItems
+    (\i sumItem -> rec.sumItem $ modifyHetero _syn (union { i, sumItem }) args)
+    syn.sumItems
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
@@ -154,13 +154,13 @@ type ArgsCaseItem r
 
 recCaseItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec args@{ argsSyn } =
+recCaseItems rec args@{ syn } =
   mapWithIndex
-    (\i caseItem -> rec.caseItem $ modifyHetero _argsSyn (union { i, caseItem }) args)
-    argsSyn.caseItems
+    (\i caseItem -> rec.caseItem $ modifyHetero _syn (union { i, caseItem }) args)
+    syn.caseItems
 
 -- | recParamItems
 type ProtoArgsParamItems r1 r2
@@ -174,13 +174,13 @@ type ArgsParamItem r
 
 recParamItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { paramItem :: ProtoRec ArgsParamItem r a } ->
   ProtoRec ArgsParamItems r (List a)
-recParamItems rec args@{ argsSyn } =
+recParamItems rec args@{ syn } =
   mapWithIndex
-    (\i paramItem -> rec.paramItem $ modifyHetero _argsSyn (union { i, paramItem }) args)
-    argsSyn.paramItems
+    (\i paramItem -> rec.paramItem $ modifyHetero _syn (union { i, paramItem }) args)
+    syn.paramItems
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2
@@ -194,13 +194,13 @@ type ArgsTermBindItem r
 
 recTermBindItems ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
   ProtoRec ArgsTermBindItems r (List a)
-recTermBindItems rec args@{ argsSyn } =
+recTermBindItems rec args@{ syn } =
   mapWithIndex
-    (\i termBind -> rec.termBindItem $ modifyHetero _argsSyn (union { i, termBind }) args)
-    argsSyn.termBindItems
+    (\i termBind -> rec.termBindItem $ modifyHetero _syn (union { i, termBind }) args)
+    syn.termBindItems
 
 -- | recTermBind
 type ArgsTermBind r
@@ -208,7 +208,7 @@ type ArgsTermBind r
 
 recTermBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
   ProtoRec ArgsTermBind r a
 recTermBind rec = rec.termBind
@@ -219,7 +219,7 @@ type ArgsTypeBind r
 
 recTypeBind ::
   forall r a.
-  Lacks "argsSyn" r =>
+  Lacks "syn" r =>
   { typeBind :: ProtoRec ArgsTypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = rec.typeBind
