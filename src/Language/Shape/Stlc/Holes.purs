@@ -81,10 +81,10 @@ subArgItem :: HoleSub -> ArgItem -> ArgItem
 subArgItem sub {term, meta} = {term: subTerm sub term, meta}
 
 subCase :: HoleSub -> CaseItem -> CaseItem
-subCase sub {termBinds, body, meta} = {termBinds, body: subTerm sub body, meta}
+subCase sub {termBindItems, body, meta} = {termBindItems, body: subTerm sub body, meta}
 
 subSumItem :: HoleSub -> SumItem -> SumItem
-subSumItem sub {termBind, params, meta} = {termBind, params: map (subParam sub) params, meta}
+subSumItem sub {termBind, paramItems, meta} = {termBind, paramItems: map (subParamItem sub) paramItems, meta}
 
-subParam :: HoleSub -> Param -> Param
-subParam sub {type_, meta} = {type_: subType sub type_, meta}
+subParamItem :: HoleSub -> ParamItem -> ParamItem
+subParamItem sub {type_, meta} = {type_: subType sub type_, meta}

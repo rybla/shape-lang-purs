@@ -256,42 +256,70 @@ recSumItems ::
   ProtoRec ArgsSumItems r (List a)
 recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ argsMeta } -> rec.sumItem $ modifyHetero _argsMeta (union { meta_params: incrementIndentation argsMeta.meta }) args }
 
--- | recParams
-type ProtoArgsParams r1 r2
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsParams r
-  = Rec.ArgsParams (ProtoArgsParams () r)
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
-type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams () r)
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems () r)
 
-recParams ::
+recParamItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
-  { param :: ProtoRec ArgsParam r a } ->
-  ProtoRec ArgsParams r (List a)
-recParams rec = sequence <<< Rec.recParams rec
+  { paramItem :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec = sequence <<< Rec.recParamItems rec
 
--- | recTermBinds
-type ProtoArgsTermBinds r1 r2
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsTermBinds r
-  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems () r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems rec = sequence <<< Rec.recTermBindItems rec
+
+-- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgsTermBinds () r)
+  = Rec.ArgsTermBind (ProtoArgs () r)
 
-recTermBinds ::
+recTermBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argMeta" r =>
+  { termBind :: ProtoRec ArgsTermBind r a } ->
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+recTypeBind ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
-  { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBinds r (List a)
-recTermBinds rec = sequence <<< Rec.recTermBinds rec
+  { typeBind :: ProtoRec ArgsTypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }

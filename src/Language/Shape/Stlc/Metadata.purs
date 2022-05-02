@@ -169,15 +169,25 @@ instance defaultCaseItemMetadata :: Default CaseItemMetadata where
 
 derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
 
-newtype ParamMetadata
-  = ParamMetadata {}
+newtype ParamItemMetadata
+  = ParamItemMetadata {}
 
-derive instance newTypeParamMetadata :: Newtype ParamMetadata _
+derive instance newTypeParamItemMetadata :: Newtype ParamItemMetadata _
 
-instance defaultParamMetadata :: Default ParamMetadata where
-  default = ParamMetadata {}
+instance defaultParamItemMetadata :: Default ParamItemMetadata where
+  default = ParamItemMetadata {}
 
-derive newtype instance showParamMetadata :: Show ParamMetadata
+derive newtype instance showParamItemMetadata :: Show ParamItemMetadata
+
+newtype TermBindItemMetadata
+  = TermBindItemMetadata {}
+
+derive instance newTypeTermBindItemMetadata :: Newtype TermBindItemMetadata _
+
+instance defaultTermBindItemMetadata :: Default TermBindItemMetadata where
+  default = TermBindItemMetadata {}
+
+derive newtype instance showTermBindItemMetadata :: Show TermBindItemMetadata
 
 -- | Name 
 newtype Name

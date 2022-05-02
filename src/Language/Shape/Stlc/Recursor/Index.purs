@@ -189,7 +189,7 @@ type ArgsSumItems r
   = Rec.ArgsSumItems (ProtoArgsSumItems () r)
 
 type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems ( visits_sumItems :: List Visit, visit_sumItem :: Visit, visit_termBind :: Visit, visit_params :: Visit ) r)
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( visits_sumItems :: List Visit, visit_sumItem :: Visit, visit_termBind :: Visit, visit_paramItems :: Visit ) r)
 
 recSumItems ::
   forall r a.
@@ -207,9 +207,9 @@ recSumItems rec =
 
             visit_termBind = visitIxStep visit_sumItem ixStepSumItem.termBind
 
-            visit_params = visitIxStep visit_sumItem ixStepSumItem.params
+            visit_paramItems = visitIxStep visit_sumItem ixStepSumItem.paramItems
           in
-            rec.sumItem $ modifyHetero _argsIx (union { visit_sumItem, visit_termBind, visit_params }) args
+            rec.sumItem $ modifyHetero _argsIx (union { visit_sumItem, visit_termBind, visit_paramItems }) args
     }
     <<< \args@{ argsSyn, argsIx } ->
         modifyHetero _argsIx
@@ -233,7 +233,7 @@ type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
 
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( visits_caseItems :: List Visit, visit_caseItem :: Visit, visit_termBinds :: Visit, visit_body :: Visit ) r)
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( visits_caseItems :: List Visit, visit_caseItem :: Visit, visit_termBindItems :: Visit, visit_body :: Visit ) r)
 
 recCaseItems ::
   forall r a.
@@ -249,11 +249,11 @@ recCaseItems rec =
           let
             visit_caseItem = index' argsIx.visits_caseItems argsSyn.i
 
-            visit_termBinds = visitIxStep visit_caseItem ixStepCaseItem.termBinds
+            visit_termBindItems = visitIxStep visit_caseItem ixStepCaseItem.termBindItems
 
             visit_body = visitIxStep visit_caseItem ixStepCaseItem.body
           in
-            rec.caseItem $ modifyHetero _argsIx (union { visit_caseItem, visit_termBinds, visit_body }) args
+            rec.caseItem $ modifyHetero _argsIx (union { visit_caseItem, visit_termBindItems, visit_body }) args
     }
     <<< \args@{ argsSyn, argsIx } ->
         modifyHetero _argsIx
@@ -269,79 +269,105 @@ recCaseItems rec =
           )
           args
 
--- | recParams
-type ProtoArgsParams r1 r2
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsParams r
-  = Rec.ArgsParams (ProtoArgsParams () r)
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
-type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams ( visits_params :: List Visit, visit_param :: Visit, visit_type :: Visit ) r)
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( visits_paramItems :: List Visit, visit_param :: Visit, visit_type :: Visit ) r)
 
-recParams ::
+recParamItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
-  { param :: ProtoRec ArgsParam r a } ->
-  ProtoRec ArgsParams r (List a)
-recParams rec =
-  -- Rec.recParams { param: \args@{ argsSyn, argsIx } -> rec.param $ modifyHetero _argsIx (union { visit_param: index' argsIx.visits_params argsSyn.i }) args }
-  Rec.recParams
-    { param:
+  { paramItem :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec =
+  -- Rec.recParamItems { paramItem:\args@{ argsSyn, argsIx } -> rec.param $ modifyHetero _argsIx (union { visit_paramItem:index' argsIx.visits_paramItems argsSyn.i }) args }
+  Rec.recParamItems
+    { paramItem:
         \args@{ argsSyn, argsIx } ->
           let
-            visit_param = index' argsIx.visits_params argsSyn.i
+            visit_param = index' argsIx.visits_paramItems argsSyn.i
 
             visit_type = visitIxStep visit_param ixStepParam.type_
           in
-            rec.param $ modifyHetero _argsIx (union { visit_param, visit_type }) args
+            rec.paramItem $ modifyHetero _argsIx (union { visit_param, visit_type }) args
     }
     <<< \args@{ argsSyn, argsIx } ->
         modifyHetero _argsIx
           -- TODO: same fixes as to recCaseItems
           ( union
-              { visits_params:
+              { visits_paramItems:
                   ( foldl
-                        (\{ visit, visits_params } _ -> { visit: visitIxStep visit ixStepList.head, visits_params: snoc visits_params (visitIxStep visit ixStepList.tail) })
-                        { visit: argsIx.visit, visits_params: mempty }
-                        argsSyn.params
+                        (\{ visit, visits_paramItems } _ -> { visit: visitIxStep visit ixStepList.head, visits_paramItems: snoc visits_paramItems (visitIxStep visit ixStepList.tail) })
+                        { visit: argsIx.visit, visits_paramItems: mempty }
+                        argsSyn.paramItems
                     )
-                    .visits_params
+                    .visits_paramItems
               }
           )
           args
 
--- | recTermBinds
-type ProtoArgsTermBinds r1 r2
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsTermBinds r
-  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( visits_termBindItems :: List Visit, visit_termBindItem :: Visit ) r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems rec =
+  Rec.recTermBindItems { termBindItem: \args@{ argsSyn, argsIx } -> rec.termBindItem $ modifyHetero _argsIx (union { visit_termBindItem: index' argsIx.visits_termBindItems argsSyn.i }) args }
+    <<< \args@{ argsSyn, argsIx } ->
+        modifyHetero _argsIx
+          ( union
+              { visits_termBindItems:
+                  ( foldl
+                        (\{ visit, visits_termBindItems } _ -> { visit: visitIxStep visit ixStepList.head, visits_termBindItems: snoc visits_termBindItems (visitIxStep visit ixStepList.tail) })
+                        { visit: argsIx.visit, visits_termBindItems: mempty }
+                        argsSyn.termBindItems
+                    )
+                    .visits_termBindItems
+              }
+          )
+          args
+
+-- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgsTermBinds ( visits_termBinds :: List Visit, visit_termBind :: Visit ) r)
+  = Rec.ArgsTermBind (ProtoArgs () r)
 
-recTermBinds ::
+recTermBind ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBinds r (List a)
-recTermBinds rec =
-  Rec.recTermBinds { termBind: \args@{ argsSyn, argsIx } -> rec.termBind $ modifyHetero _argsIx (union { visit_termBind: index' argsIx.visits_termBinds argsSyn.i }) args }
-    <<< \args@{ argsSyn, argsIx } ->
-        modifyHetero _argsIx
-          ( union
-              { visits_termBinds:
-                  ( foldl
-                        (\{ visit, visits_termBinds } _ -> { visit: visitIxStep visit ixStepList.head, visits_termBinds: snoc visits_termBinds (visitIxStep visit ixStepList.tail) })
-                        { visit: argsIx.visit, visits_termBinds: mempty }
-                        argsSyn.termBinds
-                    )
-                    .visits_termBinds
-              }
-          )
-          args
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+recTypeBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  { typeBind :: ProtoRec ArgsTypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }

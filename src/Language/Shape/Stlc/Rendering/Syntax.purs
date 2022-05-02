@@ -71,13 +71,28 @@ renderType =
             [ do
                 i <- OrderedSet.findIndex (args.argsSyn.hole.holeId == _) <$> get
                 pure
-                  [ span [ className "holeId" ] [ text $ show i ]
-                  ]
+                  [ span [ className "holeId" ] [ text $ show i ] ]
             ]
     }
 
 renderTerm :: RecAct.ProtoRec RecAct.ArgsTerm () (Array ReactElement)
-renderTerm = undefined
+renderTerm =
+  RecAct.recTerm
+    { lam:
+        \args ->
+          renderNode
+            ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "Lam" }
+            )
+            [ pure [token.lam1]
+            ]
+    , neu: \args -> pure []
+    , let_: \args -> pure []
+    , buf: \args -> pure []
+    , data_: \args -> pure []
+    , match: \args -> pure []
+    , hole: \args -> pure []
+    }
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
 renderSumItems = undefined
@@ -85,11 +100,17 @@ renderSumItems = undefined
 renderCaseItems :: RecAct.ProtoRec RecAct.ArgsCaseItems () (Array ReactElement)
 renderCaseItems = undefined
 
-renderParams :: RecAct.ProtoRec RecAct.ArgsParams () (Array ReactElement)
-renderParams = undefined
+renderParamItems :: RecAct.ProtoRec RecAct.ArgsParamItems () (Array ReactElement)
+renderParamItems = undefined
 
-renderTermBinds :: RecAct.ProtoRec RecAct.ArgsTermBinds () (Array ReactElement)
-renderTermBinds = undefined
+renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () (Array ReactElement)
+renderTermBindItems = undefined
+
+renderTermBind :: TermBind -> Array ReactElement
+renderTermBind = undefined 
+
+renderTypeBind :: TypeBind -> Array ReactElement
+renderTypeBind = undefined 
 
 type NodeProps
   = { label :: Maybe String

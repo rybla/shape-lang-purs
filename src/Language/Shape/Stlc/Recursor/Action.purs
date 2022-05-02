@@ -374,44 +374,80 @@ recCaseItems ::
   ProtoRec ArgsCaseItems r (List a)
 recCaseItems rec = Rec.recCaseItems { caseItem: \args -> rec.caseItem $ modifyHetero _argsAct (insert _actions []) args }
 
--- | recParams
-type ProtoArgsParams r1 r2
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsParams r
-  = Rec.ArgsParams (ProtoArgsParams () r)
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
-type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams ( actions :: Array Action ) r)
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( actions :: Array Action ) r)
 
-recParams ::
+recParamItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
   Lacks "argsAct" r =>
-  { param :: ProtoRec ArgsParam r a } ->
-  ProtoRec ArgsParams r (List a)
-recParams rec = Rec.recParams { param: \args -> rec.param $ modifyHetero _argsAct (insert _actions []) args }
+  { param :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec = Rec.recParamItems { paramItem: \args -> rec.param $ modifyHetero _argsAct (insert _actions []) args }
 
--- | recTermBinds
-type ProtoArgsTermBinds r1 r2
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsTermBinds r
-  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( actions :: Array Action ) r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argsMeta" r =>
+  Lacks "argsAct" r =>
+  { termBind :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgsTermBinds ( actions :: Array Action ) r)
+  = Rec.ArgsTermBind (ProtoArgs () r)
 
-recTermBinds ::
+type ArgsTermBind_TermBind r
+  = Rec.ArgsTermBind (ProtoArgs ( actions :: Array Action ) r)
+
+recTermBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  Lacks "argsIx" r =>
+  Lacks "argMeta" r =>
+  Lacks "argsAct" r =>
+  { termBind :: ProtoRec ArgsTermBind_TermBind r a } ->
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+type ArgsTypeBind_TypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs ( actions :: Array Action ) r)
+
+recTypeBind ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   Lacks "argsIx" r =>
   Lacks "argsMeta" r =>
   Lacks "argsAct" r =>
-  { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBinds r (List a)
-recTermBinds rec = Rec.recTermBinds { termBind: \args -> rec.termBind $ modifyHetero _argsAct (insert _actions []) args }
+  { typeBind :: ProtoRec ArgsTypeBind_TypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ modifyHetero _argsAct (insert _actions []) args }

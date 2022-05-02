@@ -8,7 +8,6 @@ import Prelude
 import Prim hiding (Type)
 import Prim.Row
 import Record
-
 import Data.Default (default)
 import Data.List.Unsafe (List, foldl, index', zip)
 import Language.Shape.Stlc.Recursion.Syntax as Rec
@@ -101,7 +100,7 @@ recTerm rec =
           let
             type_id = lookupVarType neu.termId ctx
 
-            {doms: types_args} = flattenType type_id
+            { doms: types_args } = flattenType type_id
           in
             rec.neu $ modifyHetero _argsCtx (union { type_id, types_args }) args
     , let_:
@@ -136,9 +135,9 @@ recTerm rec =
                           map
                             ( \(caseItem /\ sumItem) ->
                                 foldl
-                                  (flip \(termBind /\ param) -> insertVarType termBind.termId param.type_)
+                                  (flip \(termBindItem /\ paramItem) -> insertVarType termBindItem.termBind.termId paramItem.type_)
                                   ctx
-                                  (zip caseItem.termBinds sumItem.params)
+                                  (zip caseItem.termBindItems sumItem.paramItems)
                             )
                             (zip match.caseItems (data_.sumItems))
                       }
@@ -226,49 +225,73 @@ recCaseItems ::
   Lacks "argsCtx" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
--- TODO: for each caseItem, add termBinds into context for body
+-- TODO: for each caseItem, add termBindItems into context for body
 recCaseItems rec =
   Rec.recCaseItems
     { caseItem:
         \args@{ argsSyn, argsCtx } ->
           rec.caseItem
             $ modifyHetero _argsCtx
-                (flipfoldr (zip argsSyn.caseItem.termBinds (lookupData argsCtx.typeId argsCtx.ctx).sumItems) (\({termId} /\ sumItem) -> modify (Proxy :: Proxy "ctx") (insertVarType termId (typeOfSumItem argsCtx.typeId sumItem)))) 
+                (flipfoldr (zip argsSyn.caseItem.termBindItems (lookupData argsCtx.typeId argsCtx.ctx).sumItems) (\({ termBind } /\ sumItem) -> modify (Proxy :: Proxy "ctx") (insertVarType termBind.termId (typeOfSumItem argsCtx.typeId sumItem))))
                 args
     }
 
--- | recParams
-type ProtoArgsParams r1 r2
+-- | recParamItems
+type ProtoArgsParamItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsParams r
-  = Rec.ArgsParams (ProtoArgsParams () r)
+type ArgsParamItems r
+  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
-type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams () r)
+type ArgsParamItem r
+  = Rec.ArgsParamItem (ProtoArgsParamItems () r)
 
-recParams ::
+recParamItems ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
-  { param :: ProtoRec ArgsParam r a } ->
-  ProtoRec ArgsParams r (List a)
-recParams rec = Rec.recParams undefined
+  { paramItem :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
+recParamItems rec = Rec.recParamItems undefined
 
--- | recTermBinds
-type ProtoArgsTermBinds r1 r2
+-- | recTermBindItems
+type ProtoArgsTermBindItems r1 r2
   = ProtoArgs ( | r1 ) r2
 
-type ArgsTermBinds r
-  = Rec.ArgsTermBinds (ProtoArgsTermBinds () r)
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems () r)
+
+recTermBindItems ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
+recTermBindItems = Rec.recTermBindItems
+
+-- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgsTermBinds () r)
+  = Rec.ArgsTermBind (ProtoArgs () r)
 
-recTermBinds ::
+recTermBind ::
   forall r a.
   Lacks "argsSyn" r =>
   Lacks "argsCtx" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBinds r (List a)
-recTermBinds = Rec.recTermBinds
+  ProtoRec ArgsTermBind r a
+recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind (ProtoArgs () r)
+
+recTypeBind ::
+  forall r a.
+  Lacks "argsSyn" r =>
+  Lacks "argsCtx" r =>
+  { typeBind :: ProtoRec ArgsTypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
+recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }

@@ -104,15 +104,15 @@ chTerm ctx (ArrowType {dom, cod, meta:m1}) chs NoChange (Lam {termBind, body, me
          pure $ Lam {termBind, body: body', meta:m2}
 chTerm ctx ty chs (InsertArg a) t
     = do t' <- chTerm ctx ty chs NoChange t
-         pure $ Lam {termBind: {termId: freshTermId unit, meta: default}, body: t, meta: default}
+         pure $ Lam {termBind:{termId: freshTermId unit, meta: default}, body: t, meta: default}
 chTerm ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
-    (Lam {termBind: i1, body: Lam {termBind: i2, body: t, meta: m2}, meta:m1})
+    (Lam {termBind:i1, body: Lam {termBind:i2, body: t, meta: m2}, meta:m1})
     = do let (a' /\ change1) = chType chs.dataTypeDeletions a
              (b' /\ change2) = chType chs.dataTypeDeletions b
              ctx' = insertVarType i2.termId b' (insertVarType i1.termId a' ctx)
              chs' = varChange (varChange chs i1.termId change1) i2.termId change2
          body' <- chTerm ctx' c chs' NoChange t
-         pure $ Lam {termBind: i2, body: Lam {termBind: i1, body: body', meta: m2}, meta: m1}
+         pure $ Lam {termBind:i2, body: Lam {termBind:i1, body: body', meta: m2}, meta: m1}
 chTerm ctx (ArrowType {dom, cod, meta:m1}) chs RemoveArg (Lam {termBind, body, meta:m2})
     = chTerm (insertVarType termBind.termId dom ctx) cod (deleteVar chs termBind.termId) NoChange body
 chTerm ctx ty chs tc t

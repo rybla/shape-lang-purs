@@ -129,11 +129,11 @@ ixStepMatch =
 
 ixStepSumItem =
   { termBind: IxStep IxStepSumItem 0
-  , params: IxStep IxStepSumItem 1
+  , paramItems: IxStep IxStepSumItem 1
   }
 
 ixStepCaseItem =
-  { termBinds: IxStep IxStepCaseItem 0
+  { termBindItems: IxStep IxStepCaseItem 0
   , body: IxStep IxStepCaseItem 1
   }
 
