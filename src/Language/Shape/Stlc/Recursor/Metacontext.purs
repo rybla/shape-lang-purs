@@ -8,6 +8,7 @@ import Prim.Row
 import Record
 import Control.Monad.State (State, modify_)
 import Data.List (List)
+import Data.List.Unsafe (index')
 import Data.Newtype (unwrap)
 import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
@@ -196,15 +197,14 @@ recTerm rec =
 --     { cons: rec.cons
 --     , nil: rec.nil
 --     }
-
 type ProtoArgsArgItems r1 r2
-  = ProtoArgs (  | r1 ) r2
+  = ProtoArgs ( | r1 ) r2
 
 type ArgsArgItems r
   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
 type ArgsArgItem r
-  = Rec.ArgsArgItem (ProtoArgsArgItems ( ) r)
+  = Rec.ArgsArgItem (ProtoArgsArgItems () r)
 
 recArgItems ::
   forall r a.
@@ -214,8 +214,7 @@ recArgItems ::
   Lacks "argsMeta" r =>
   { argItem :: ProtoRec ArgsArgItem r a } ->
   ProtoRec ArgsArgItems r (List a)
-recArgItems rec = Rec.recArgItems { argItem: \args@{ argsSyn, argsCtx } -> rec.argItem $ modifyHetero _argsCtx (union { type_argItem: index' argsCtx.doms argsSyn.i }) args }
-
+recArgItems rec = sequence <<< Rec.recArgItems rec
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
@@ -235,7 +234,7 @@ recCaseItems ::
   Lacks "argsMeta" r =>
   { caseItem :: ProtoRec ArgsCaseItem r a } ->
   ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec = undefined -- Rec.recCaseItems { caseItem: rec.caseItem }
+recCaseItems rec = sequence <<< Rec.recCaseItems { caseItem: \args@{ argsMeta } -> rec.caseItem $ modifyHetero _argsMeta (union { meta_body: incrementIndentation argsMeta.meta }) args }
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
@@ -245,7 +244,7 @@ type ArgsSumItems r
   = Rec.ArgsSumItems (ProtoArgsSumItems () r)
 
 type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems () r)
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( meta_params :: Metacontext ) r)
 
 recSumItems ::
   forall r a.
@@ -255,7 +254,7 @@ recSumItems ::
   Lacks "argsMeta" r =>
   { sumItem :: ProtoRec ArgsSumItem r a } ->
   ProtoRec ArgsSumItems r (List a)
-recSumItems rec = sequence <<< Rec.recSumItems rec
+recSumItems rec = sequence <<< Rec.recSumItems { sumItem: \args@{ argsMeta } -> rec.sumItem $ modifyHetero _argsMeta (union { meta_params: incrementIndentation argsMeta.meta }) args }
 
 -- | recParams
 type ProtoArgsParams r1 r2
@@ -265,7 +264,7 @@ type ArgsParams r
   = Rec.ArgsParams (ProtoArgsParams () r)
 
 type ArgsParam r
-  = Rec.ArgsParam (ProtoArgsParams ( meta_param :: Metacontext ) r)
+  = Rec.ArgsParam (ProtoArgsParams () r)
 
 recParams ::
   forall r a.
@@ -275,10 +274,7 @@ recParams ::
   Lacks "argsMeta" r =>
   { param :: ProtoRec ArgsParam r a } ->
   ProtoRec ArgsParams r (List a)
-recParams rec =
-  sequence
-    <<< Rec.recParams
-        { param: rec.param <<< modifyHetero _argsMeta (\argsMeta -> union { meta_param: incrementIndentation argsMeta.meta } argsMeta) }
+recParams rec = sequence <<< Rec.recParams rec
 
 -- | recTermBinds
 type ProtoArgsTermBinds r1 r2
