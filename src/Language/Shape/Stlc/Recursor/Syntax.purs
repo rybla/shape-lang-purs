@@ -215,7 +215,7 @@ recTermBind rec = rec.termBind
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = ProtoArgs ( termBind :: TypeBind ) r
+  = ProtoArgs ( typeBind :: TypeBind ) r
 
 recTypeBind ::
   forall r a.
@@ -223,3 +223,25 @@ recTypeBind ::
   { typeBind :: ProtoRec ArgsTypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = rec.typeBind
+
+-- | recTypeId
+type ArgsTypeId r
+  = ProtoArgs ( typeId :: TypeId ) r
+
+recTypeId ::
+  forall r a.
+  Lacks "syn" r =>
+  { typeId :: ProtoRec ArgsTypeId r a } ->
+  ProtoRec ArgsTypeId r a
+recTypeId rec = rec.typeId
+
+-- | recTermId
+type ArgsTermId r
+  = ProtoArgs ( termId :: TermId ) r
+
+recTermId ::
+  forall r a.
+  Lacks "syn" r =>
+  { termId :: ProtoRec ArgsTermId r a } ->
+  ProtoRec ArgsTermId r a
+recTermId rec = rec.termId

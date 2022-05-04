@@ -3,11 +3,14 @@ module Language.Shape.Stlc.Rendering.Syntax where
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (State, evalState, get)
+import Control.Monad.State (State)
+import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Default (default)
+import Data.List (List)
 import Data.List as List
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
 import Data.Set (Set)
@@ -31,7 +34,7 @@ import Undefined (undefined)
 
 renderProgram :: This -> Array ReactElement
 renderProgram this =
-  flip evalState mempty
+  flip State.evalState mempty
     $ renderTerm
         -- TODO: maybe pull this out into multiple files or at least somewhere else?
         { act: {}
@@ -62,7 +65,7 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "DataType" }
             )
-            [ undefined -- renderTypeId
+            [ pure $ printTypeId { typeId: args.syn.data_.typeId, meta: args.meta.meta }
             ]
     , hole:
         \args ->
@@ -70,9 +73,7 @@ renderType =
             ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "HoleType" }
             )
-            [ do
-                i <- OrderedSet.findIndex (args.syn.hole.holeId == _) <$> get
-                pure [ span [ className "holeId" ] [ text $ show i ] ]
+            [ printHoleId { holeId: args.syn.hole.holeId, meta: args.meta.meta }
             ]
     }
 
@@ -97,10 +98,10 @@ renderTerm =
                 { label = Just "Neu" }
             )
             if List.length args.syn.neu.argItems == 0 then
-              [ undefined -- renderTermId
+              [ renderTermId { syn: { termId: args.syn.neu.termId }, ctx: { ctx: args.ctx.termId }, ix: { visit: args.ix.termId }, meta: { meta: args.meta.meta }, act: {} }
               ]
             else
-              [ undefined -- renderTermId
+              [ renderTermId { syn: { termId: args.syn.neu.termId }, ctx: { ctx: args.ctx.termId }, ix: { visit: args.ix.termId }, meta: { meta: args.meta.meta }, act: {} }
               , pure [ token.neu1 ]
               , renderArgItems { syn: { argItems: args.syn.neu.argItems }, ctx: args.ctx.argItems, ix: { visit: args.ix.argItems }, meta: { meta: args.meta.argItems }, act: {} }
               ]
@@ -139,7 +140,7 @@ renderTerm =
                 { label = Just "Data" }
             )
             [ pure [ token.data1 ]
-            , undefined -- renderTypeId
+            , renderTypeBind { syn: { typeBind: args.syn.data_.typeBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.typeBind }, meta: { meta: args.meta.meta }, act: {} }
             , pure [ token.data2 ]
             , renderSumItems { syn: { sumItems: args.syn.data_.sumItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.sumItems }, meta: { meta: args.meta.sumItems }, act: {} }
             , pure [ token.data3 ]
@@ -151,10 +152,10 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Match" }
             )
-            [ pure [token.match1 ]
-            , renderTerm {syn: { term: args.syn.match.term }, ctx: args.ctx.term, ix: {visit: args.ix.term}, meta: {meta: args.meta.term}, act: {} }
-            , pure [token.match2 ]
-            , renderCaseItems { syn: {caseItems: args.syn.match.caseItems}, ctx: args.ctx.caseItems, ix: {visit: args.ix.caseItems}, meta: {meta: args.meta.caseItems}, act: {} }
+            [ pure [ token.match1 ]
+            , renderTerm { syn: { term: args.syn.match.term }, ctx: args.ctx.term, ix: { visit: args.ix.term }, meta: { meta: args.meta.term }, act: {} }
+            , pure [ token.match2 ]
+            , renderCaseItems { syn: { caseItems: args.syn.match.caseItems }, ctx: args.ctx.caseItems, ix: { visit: args.ix.caseItems }, meta: { meta: args.meta.caseItems }, act: {} }
             ]
     , hole:
         \args ->
@@ -162,12 +163,25 @@ renderTerm =
             ( (useArgsCtx_Term args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "Hole" }
             )
-            [ undefined -- renderHoleId
+            [ renderType { syn: { type_: args.ctx.type_ }, ctx: { ctx: args.ctx.ctx }, ix: { visit: { csr: Nothing, ix: Nothing } }, meta: { meta: args.meta.meta }, act: {} }
             ]
     }
 
 renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () (Array ReactElement)
-renderArgItems = undefined
+renderArgItems =
+  (List.foldl append [] <$> _)
+    <<< RecAct.recArgItems
+        { argItem:
+            \args ->
+              renderNode
+                ( (useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "ArgItem"
+                    , ctx = Just args.ctx.ctx
+                    }
+                )
+                -- TODO: indent con item.indent
+                []
+        }
 
 renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
 renderSumItems = undefined
@@ -186,6 +200,23 @@ renderTermBind = undefined
 
 renderTypeBind :: RecAct.ProtoRec RecAct.ArgsTypeBind () (Array ReactElement)
 renderTypeBind = undefined
+
+renderTypeId :: RecAct.ProtoRec RecAct.ArgsTypeId () (Array ReactElement)
+renderTypeId = undefined
+
+renderTermId :: RecAct.ProtoRec RecAct.ArgsTermId () (Array ReactElement)
+renderTermId = undefined
+
+printTypeId :: { typeId :: TypeId, meta :: Metacontext } -> Array ReactElement
+printTypeId = undefined
+
+printTermId :: { termId :: TermId, meta :: Metacontext } -> Array ReactElement
+printTermId = undefined
+
+printHoleId :: { holeId :: HoleId, meta :: Metacontext } -> State (OrderedSet HoleId) (Array ReactElement)
+printHoleId args = do
+  i <- OrderedSet.findIndex (args.holeId == _) <$> State.get
+  pure [ span [ className "holeId" ] [ text $ show i ] ]
 
 type NodeProps
   = { label :: Maybe String
@@ -217,7 +248,7 @@ useArgsCtx_Type { ctx } = _ { ctx = Just ctx.ctx }
 useArgsCtx_Term :: forall r1 r2. Record (RecCtx.ProtoArgsTerm r1 r2) -> NodeProps -> NodeProps
 useArgsCtx_Term { ctx } = _ { ctx = Just ctx.ctx, type_ = Just ctx.type_ }
 
-useArgsMeta :: forall r1 r2. Record (RecMeta.ProtoArgs r1 r2) -> NodeProps -> NodeProps
+useArgsMeta :: forall r1 r2. { meta :: { meta :: Metacontext | r1 } | r2 } -> NodeProps -> NodeProps
 useArgsMeta { meta } = _ { meta = Just meta.meta }
 
 useArgsIx :: forall r1 r2. Record (RecIx.ProtoArgs r1 r2) -> NodeProps -> NodeProps

@@ -11,30 +11,30 @@ import Data.Newtype (class Newtype)
 newtype ArrowTypeMetadata
   = ArrowTypeMetadata {}
 
-derive instance newTypeArrowTypeMetadata :: Newtype ArrowTypeMetadata _
-
 instance defaultArrowTypeMetadata :: Default ArrowTypeMetadata where
   default = ArrowTypeMetadata {}
+
+derive instance newTypeArrowTypeMetadata :: Newtype ArrowTypeMetadata _
 
 derive newtype instance showArrowTypeMetadata :: Show ArrowTypeMetadata
 
 newtype DataTypeMetadata
   = DataTypeMetadata {}
 
-derive instance newTypeDataTypeMetadata :: Newtype DataTypeMetadata _
-
 instance defaultDataTypeMetadata :: Default DataTypeMetadata where
   default = DataTypeMetadata {}
+
+derive instance newTypeDataTypeMetadata :: Newtype DataTypeMetadata _
 
 derive newtype instance showDataTypeMetadata :: Show DataTypeMetadata
 
 newtype HoleTypeMetadata
   = HoleTypeMetadata {}
 
-derive instance newTypeHoleTypeMetadata :: Newtype HoleTypeMetadata _
-
 instance defaultHoleTypeMetadata :: Default HoleTypeMetadata where
   default = HoleTypeMetadata {}
+
+derive instance newTypeHoleTypeMetadata :: Newtype HoleTypeMetadata _
 
 derive newtype instance showHoleTypeMetadata :: Show HoleTypeMetadata
 
@@ -42,150 +42,150 @@ derive newtype instance showHoleTypeMetadata :: Show HoleTypeMetadata
 newtype LamMetadata
   = LamMetadata { name :: Name, indentBody :: Boolean }
 
-derive instance newTypeLamMetadata :: Newtype LamMetadata _
-
 instance defaultLamMetadata :: Default LamMetadata where
   default = LamMetadata { name: default, indentBody: false }
+
+derive instance newTypeLamMetadata :: Newtype LamMetadata _
 
 derive newtype instance showLamMetadata :: Show LamMetadata
 
 newtype NeuMetadata
   = NeuMetadata {}
 
+instance defaultNeuMetadata :: Default NeuMetadata where
+  default = NeuMetadata {}
+
 derive instance newTypeNeuMetadata :: Newtype NeuMetadata _
 
 derive newtype instance showNeuMetadata :: Show NeuMetadata
 
-instance defaultNeuMetadata :: Default NeuMetadata where
-  default = NeuMetadata {}
-
 newtype ArgItemMetadata
   = ArgItemMetadata {}
+
+instance defaultArgItemMetadata :: Default ArgItemMetadata where
+  default = ArgItemMetadata {}
 
 derive instance newTypeArgItemMetadata :: Newtype ArgItemMetadata _
 
 derive newtype instance showArgItemMetadata :: Show ArgItemMetadata
 
-instance defaultArgItemMetadata :: Default ArgItemMetadata where
-  default = ArgItemMetadata {}
-
 newtype ArgMetadata
-  = ArgMetadata {}
+  = ArgMetadata { indented :: Boolean }
+
+instance defaultArgMetadata :: Default ArgMetadata where
+  default = ArgMetadata { indented: false }
 
 derive instance newTypeArgMetadata :: Newtype ArgMetadata _
 
 derive newtype instance showArgMetadata :: Show ArgMetadata
 
-instance defaultArgMetadata :: Default ArgMetadata where
-  default = ArgMetadata {}
-
 newtype LetMetadata
   = LetMetadata { name :: Name, indentArg :: Boolean, indentBody :: Boolean }
 
-derive instance newTypeLetMetadata :: Newtype LetMetadata _
-
 instance defaultLetMetadata :: Default LetMetadata where
   default = LetMetadata { name: default, indentArg: false, indentBody: true }
+
+derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
 derive newtype instance showLetMetadata :: Show LetMetadata
 
 newtype BufMetadata
   = BufMetadata {}
 
-derive instance newTypeBufMetadata :: Newtype BufMetadata _
-
 instance defaultBufMetadata :: Default BufMetadata where
   default = BufMetadata {}
+
+derive instance newTypeBufMetadata :: Newtype BufMetadata _
 
 derive newtype instance showBufMetadata :: Show BufMetadata
 
 newtype DataMetadata
   = DataMetadata { name :: Name, indentSum :: Boolean }
 
-derive instance newTypeDataMetadata :: Newtype DataMetadata _
-
 instance defaultDataMetadata :: Default DataMetadata where
   default = DataMetadata { name: default, indentSum: false }
+
+derive instance newTypeDataMetadata :: Newtype DataMetadata _
 
 derive newtype instance showDataMetadata :: Show DataMetadata
 
 newtype MatchMetadata
   = MatchMetadata { indentCases :: Boolean }
 
-derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
-
 instance defaultMatchMetadata :: Default MatchMetadata where
   default = MatchMetadata { indentCases: true }
+
+derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 
 derive newtype instance showMatchMetadata :: Show MatchMetadata
 
 newtype HoleMetadata
   = HoleMetadata {}
 
-derive instance newTypeHoleMetadata :: Newtype HoleMetadata _
-
 instance defaultHoleMetadata :: Default HoleMetadata where
   default = HoleMetadata {}
+
+derive instance newTypeHoleMetadata :: Newtype HoleMetadata _
 
 derive newtype instance showHoleMetadata :: Show HoleMetadata
 
 newtype TypeBindMetadata
   = TypeBindMetadata {}
 
-derive instance newTypeTypeBindMetadata :: Newtype TypeBindMetadata _
-
 instance defaultTypeBindMetadata :: Default TypeBindMetadata where
   default = TypeBindMetadata {}
+
+derive instance newTypeTypeBindMetadata :: Newtype TypeBindMetadata _
 
 derive newtype instance showTypeBindMetadata :: Show TypeBindMetadata
 
 newtype TermBindMetadata
   = TermBindMetadata {}
 
-derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
-
 instance defaultTermBindMetadata :: Default TermBindMetadata where
   default = TermBindMetadata {}
+
+derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
 
 derive newtype instance showTermBindMetadata :: Show TermBindMetadata
 
 newtype SumItemMetadata
   = SumItemMetadata {}
 
-derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
-
 instance defaultSumItemMetadata :: Default SumItemMetadata where
   default = SumItemMetadata {}
+
+derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
 
 derive newtype instance showSumItemMetadata :: Show SumItemMetadata
 
 newtype CaseItemMetadata
   = CaseItemMetadata {}
 
-derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
-
 instance defaultCaseItemMetadata :: Default CaseItemMetadata where
   default = CaseItemMetadata {}
+
+derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
 
 derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
 
 newtype ParamItemMetadata
   = ParamItemMetadata {}
 
-derive instance newTypeParamItemMetadata :: Newtype ParamItemMetadata _
-
 instance defaultParamItemMetadata :: Default ParamItemMetadata where
   default = ParamItemMetadata {}
+
+derive instance newTypeParamItemMetadata :: Newtype ParamItemMetadata _
 
 derive newtype instance showParamItemMetadata :: Show ParamItemMetadata
 
 newtype TermBindItemMetadata
   = TermBindItemMetadata {}
 
-derive instance newTypeTermBindItemMetadata :: Newtype TermBindItemMetadata _
-
 instance defaultTermBindItemMetadata :: Default TermBindItemMetadata where
   default = TermBindItemMetadata {}
+
+derive instance newTypeTermBindItemMetadata :: Newtype TermBindItemMetadata _
 
 derive newtype instance showTermBindItemMetadata :: Show TermBindItemMetadata
 

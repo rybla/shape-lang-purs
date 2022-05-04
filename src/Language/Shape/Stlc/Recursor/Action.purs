@@ -428,7 +428,7 @@ recTermBind ::
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
-  Lacks "argMeta" r =>
+  Lacks "meta" r =>
   Lacks "act" r =>
   { termBind :: ProtoRec ArgsTermBind_TermBind r a } ->
   ProtoRec ArgsTermBind r a
@@ -451,3 +451,39 @@ recTypeBind ::
   { typeBind :: ProtoRec ArgsTypeBind_TypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ modifyHetero _act (insert _actions []) args }
+
+-- | recTypeId
+type ArgsTypeId r
+  = Rec.ArgsTypeId (ProtoArgs () r)
+
+type ArgsTypeId_TypeId r
+  = Rec.ArgsTypeId (ProtoArgs ( actions :: Array Action ) r)
+
+recTypeId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
+  { typeId :: ProtoRec ArgsTypeId_TypeId r a } ->
+  ProtoRec ArgsTypeId r a
+recTypeId rec = Rec.recTypeId { typeId: \args -> rec.typeId $ modifyHetero _act (insert _actions []) args }
+
+-- | recTermId
+type ArgsTermId r
+  = Rec.ArgsTermId (ProtoArgs () r)
+
+type ArgsTermId_TermId r
+  = Rec.ArgsTermId (ProtoArgs ( actions :: Array Action ) r)
+
+recTermId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  Lacks "act" r =>
+  { termId :: ProtoRec ArgsTermId_TermId r a } ->
+  ProtoRec ArgsTermId r a
+recTermId rec = Rec.recTermId { termId: \args -> rec.termId $ modifyHetero _act (insert _actions []) args }

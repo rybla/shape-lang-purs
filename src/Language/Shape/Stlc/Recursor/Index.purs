@@ -22,15 +22,17 @@ import Undefined (undefined)
 type Cursor
   = Maybe IxDown
 
+-- ix: Just iff this visit is indexable
+-- csr: Just iff the cursor is on this branch of AST traversal
 type Visit
-  = { ix :: IxUp, csr :: Cursor }
+  = { ix :: Maybe IxUp, csr :: Cursor }
 
 isHere :: Visit -> Boolean
 isHere { csr } = csr == Just (wrap Nil)
 
 visitIxStep :: Visit -> IxStep -> Visit
 visitIxStep { ix, csr } ixStep =
-  { ix: over wrap (Cons ixStep) ix
+  { ix: over wrap (Cons ixStep) <$> ix
   , csr:
       do
         ixSteps <- unwrap <$> csr
@@ -378,3 +380,29 @@ recTypeBind ::
   { typeBind :: ProtoRec ArgsTypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }
+
+-- | recTypeId
+type ArgsTypeId r
+  = Rec.ArgsTypeId (ProtoArgs () r)
+
+recTypeId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  { typeId :: ProtoRec ArgsTypeId r a } ->
+  ProtoRec ArgsTypeId r a
+recTypeId = Rec.recTypeId
+
+-- | recTermId
+type ArgsTermId r
+  = Rec.ArgsTermId (ProtoArgs () r)
+
+recTermId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  { termId :: ProtoRec ArgsTermId r a } ->
+  ProtoRec ArgsTermId r a
+recTermId = Rec.recTermId

@@ -303,7 +303,7 @@ recTermBind ::
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
-  Lacks "argMeta" r =>
+  Lacks "meta" r =>
   { termBind :: ProtoRec ArgsTermBind r a } ->
   ProtoRec ArgsTermBind r a
 recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
@@ -321,3 +321,31 @@ recTypeBind ::
   { typeBind :: ProtoRec ArgsTypeBind r a } ->
   ProtoRec ArgsTypeBind r a
 recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }
+
+-- | recTypeId
+type ArgsTypeId r
+  = Rec.ArgsTypeId (ProtoArgs () r)
+
+recTypeId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  { typeId :: ProtoRec ArgsTypeId r a } ->
+  ProtoRec ArgsTypeId r a
+recTypeId = Rec.recTypeId
+
+-- | recTermId
+type ArgsTermId r
+  = Rec.ArgsTermId (ProtoArgs () r)
+
+recTermId ::
+  forall r a.
+  Lacks "syn" r =>
+  Lacks "ctx" r =>
+  Lacks "ix" r =>
+  Lacks "meta" r =>
+  { termId :: ProtoRec ArgsTermId r a } ->
+  ProtoRec ArgsTermId r a
+recTermId = Rec.recTermId
