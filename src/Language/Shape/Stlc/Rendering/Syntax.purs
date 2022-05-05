@@ -1,19 +1,22 @@
 module Language.Shape.Stlc.Rendering.Syntax where
 
+import Data.Tuple
+import Data.Tuple.Nested
+import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (State)
+import Control.Monad.Reader (ask)
+import Control.Monad.State (StateT)
 import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Default (default)
-import Data.List (List)
-import Data.List as List
+import Data.Identity (Identity(..))
+import Data.List.Unsafe (List)
+import Data.List.Unsafe as List
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.OrderedSet (OrderedSet)
-import Data.OrderedSet as OrderedSet
-import Data.Set (Set)
 import Data.Set as Set
 import Data.Traversable (sequence)
 import Language.Shape.Stlc.Context (Context(..))
@@ -23,18 +26,23 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
-import Language.Shape.Stlc.Rendering.Keyword (token)
 import Language.Shape.Stlc.Types (Action(..), This, getState')
+import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement)
-import React.DOM (span, text)
-import React.DOM.Props (className)
+import React.DOM as DOM
+import React.DOM.Props as Props
 import Record (union)
 import Undefined (undefined)
 
-renderProgram :: This -> Array ReactElement
+type M a
+  = StateT (List HoleId) (StateT (Array Action) Identity) a
+
+renderProgram :: This -> (Array ReactElement /\ Array Action)
 renderProgram this =
-  flip State.evalState mempty
+  (\(Identity x) -> x)
+    $ flip State.runStateT []
+    $ flip State.evalStateT List.Nil
     $ renderTerm
         -- TODO: maybe pull this out into multiple files or at least somewhere else?
         { act: {}
@@ -46,13 +54,13 @@ renderProgram this =
   where
   st = getState' this
 
-renderType :: RecAct.ProtoRec RecAct.ArgsType () (Array ReactElement)
+renderType :: RecAct.ProtoRec RecAct.ArgsType () Identity (Array ReactElement)
 renderType =
   RecAct.recType
     { arrow:
         \args ->
           renderNode
-            ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "ArrowType" }
             )
             [ renderType { syn: { type_: args.syn.arrow.dom }, ctx: args.ctx, ix: { visit: args.ix.dom }, meta: { meta: args.meta.dom }, act: {} }
@@ -62,7 +70,7 @@ renderType =
     , data_:
         \args ->
           renderNode
-            ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "DataType" }
             )
             [ pure $ printTypeId { typeId: args.syn.data_.typeId, meta: args.meta.meta }
@@ -70,14 +78,14 @@ renderType =
     , hole:
         \args ->
           renderNode
-            ( (useArgsCtx_Type args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
                 { label = Just "HoleType" }
             )
             [ printHoleId { holeId: args.syn.hole.holeId, meta: args.meta.meta }
             ]
     }
 
-renderTerm :: RecAct.ProtoRec RecAct.ArgsTerm () (Array ReactElement)
+renderTerm :: RecAct.ProtoRec RecAct.ArgsTerm () Identity (Array ReactElement)
 renderTerm =
   RecAct.recTerm
     { lam:
@@ -167,56 +175,175 @@ renderTerm =
             ]
     }
 
-renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () (Array ReactElement)
+renderArgItems :: RecAct.ProtoRec RecAct.ArgsArgItems () Identity (Array ReactElement)
 renderArgItems =
   (List.foldl append [] <$> _)
     <<< RecAct.recArgItems
         { argItem:
             \args ->
               renderNode
-                ( (useArgsIx args $ useArgsAct args $ defaultNodeProps)
-                    { label = Just "ArgItem"
-                    , ctx = Just args.ctx.ctx
-                    }
+                ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "ArgItem" }
                 )
-                -- TODO: indent con item.indent
-                []
+                [ pure $ newline args.meta.meta (unwrap args.syn.argItem.meta).indented
+                , renderTerm { syn: { term: args.syn.argItem.term }, ctx: args.ctx.argItem, ix: { visit: args.ix.argItem }, meta: { meta: args.meta.meta }, act: {} }
+                ]
         }
 
-renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () (Array ReactElement)
-renderSumItems = undefined
+renderSumItems :: RecAct.ProtoRec RecAct.ArgsSumItems () Identity (Array ReactElement)
+renderSumItems =
+  (List.foldl append [] <$> _)
+    <<< RecAct.recSumItems
+        { sumItem:
+            \args ->
+              renderNode
+                ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "SumItem" }
+                )
+                [ pure $ newline args.meta.meta (unwrap args.syn.sumItem.meta).indented
+                , pure [ token.sumItem1 ]
+                , renderTermBind { syn: { termBind: args.syn.sumItem.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
+                , pure [ token.sumItem2 ]
+                , renderParamItems { syn: { paramItems: args.syn.sumItem.paramItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.paramItems }, meta: { meta: args.meta.paramItems }, act: {} }
+                ]
+        }
 
-renderCaseItems :: RecAct.ProtoRec RecAct.ArgsCaseItems () (Array ReactElement)
-renderCaseItems = undefined
+renderCaseItems :: RecAct.ProtoRec RecAct.ArgsCaseItems () Identity (Array ReactElement)
+renderCaseItems =
+  (List.foldl append [] <$> _)
+    <<< RecAct.recCaseItems
+        { caseItem:
+            \args ->
+              renderNode
+                ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "CaseItem" }
+                )
+                [ pure $ newline args.meta.meta (unwrap args.syn.caseItem.meta).indented
+                , pure [ token.caseItem1 ]
+                , renderTermBindItems { syn: { termBindItems: args.syn.caseItem.termBindItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBindItems }, meta: { meta: args.meta.meta }, act: {} }
+                , pure [ token.caseItem2 ]
+                , renderTerm { syn: { term: args.syn.caseItem.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
+                ]
+        }
 
-renderParamItems :: RecAct.ProtoRec RecAct.ArgsParamItems () (Array ReactElement)
-renderParamItems = undefined
+renderParamItems :: RecAct.ProtoRec RecAct.ArgsParamItems () Identity (Array ReactElement)
+renderParamItems =
+  (List.foldl append [] <$> _)
+    <<< RecAct.recParamItems
+        { paramItem:
+            \args ->
+              renderNode
+                ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "ParamItem" }
+                )
+                [ pure $ newline args.meta.meta (unwrap args.syn.paramItem.meta).indented
+                , renderType { syn: { type_: args.syn.paramItem.type_ }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.meta }, act: {} }
+                ]
+        }
 
-renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () (Array ReactElement)
-renderTermBindItems = undefined
+renderTermBindItems :: RecAct.ProtoRec RecAct.ArgsTermBindItems () Identity (Array ReactElement)
+renderTermBindItems =
+  (List.foldl append [] <$> _)
+    <<< RecAct.recTermBindItems
+        { termBindItem:
+            \args ->
+              renderNode
+                ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                    { label = Just "TermBindItem" }
+                )
+                [ pure $ newline args.meta.meta (unwrap args.syn.termBindItem.meta).indented
+                , renderTermBind { syn: { termBind: args.syn.termBindItem.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
+                ]
+        }
 
-renderTermBind :: RecAct.ProtoRec RecAct.ArgsTermBind () (Array ReactElement)
-renderTermBind = undefined
+renderTermBind :: RecAct.ProtoRec RecAct.ArgsTermBind () Identity (Array ReactElement)
+renderTermBind =
+  RecAct.recTermBind
+    { termBind:
+        \args ->
+          renderNode
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "TermBind" }
+            )
+            [ pure $ printTermId { termId: args.syn.termBind.termId, meta: args.meta.meta } ]
+    }
 
-renderTypeBind :: RecAct.ProtoRec RecAct.ArgsTypeBind () (Array ReactElement)
-renderTypeBind = undefined
+renderTypeBind :: RecAct.ProtoRec RecAct.ArgsTypeBind () Identity (Array ReactElement)
+renderTypeBind =
+  RecAct.recTypeBind
+    { typeBind:
+        \args ->
+          renderNode
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "TypeBind" }
+            )
+            [ pure $ printTypeId { typeId: args.syn.typeBind.typeId, meta: args.meta.meta } ]
+    }
 
-renderTypeId :: RecAct.ProtoRec RecAct.ArgsTypeId () (Array ReactElement)
-renderTypeId = undefined
+renderTypeId :: RecAct.ProtoRec RecAct.ArgsTypeId () Identity (Array ReactElement)
+renderTypeId =
+  RecAct.recTypeId
+    { typeId:
+        \args ->
+          renderNode
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "TypeId" }
+            )
+            [ pure $ printTypeId { typeId: args.syn.typeId, meta: args.meta.meta } ]
+    }
 
-renderTermId :: RecAct.ProtoRec RecAct.ArgsTermId () (Array ReactElement)
-renderTermId = undefined
+renderTermId :: RecAct.ProtoRec RecAct.ArgsTermId () Identity (Array ReactElement)
+renderTermId =
+  RecAct.recTermId
+    { termId:
+        \args ->
+          renderNode
+            ( (useArgsCtx args $ useArgsIx args $ useArgsAct args $ defaultNodeProps)
+                { label = Just "TermId" }
+            )
+            [ pure $ printTermId { termId: args.syn.termId, meta: args.meta.meta } ]
+    }
 
 printTypeId :: { typeId :: TypeId, meta :: Metacontext } -> Array ReactElement
-printTypeId = undefined
+printTypeId { typeId, meta } =
+  [ DOM.span [ Props.className "typeId" ]
+      $ [ DOM.span [ Props.className "name" ] [ DOM.text (show name) ] ]
+      <> if 0 < shadow_i then
+          [ DOM.span [ Props.className "shadow" ] [ DOM.text (show shadow_i) ] ]
+        else
+          []
+  ]
+  where
+  name = case Map.lookup typeId (unwrap meta).dataNames of
+    Just name -> name
+    Nothing -> unsafeCrashWith $ "could not find name of type id " <> show typeId <> " in metacontext " <> show meta
+
+  shadow_i = case Map.lookup name (unwrap meta).dataShadows of
+    Just i -> i
+    Nothing -> unsafeCrashWith $ "could not find shadow of data name " <> show name <> " in metacontext " <> show meta
 
 printTermId :: { termId :: TermId, meta :: Metacontext } -> Array ReactElement
-printTermId = undefined
+printTermId { termId, meta } =
+  [ DOM.span [ Props.className "termId" ]
+      $ [ DOM.span [ Props.className "name" ] [ DOM.text (show name) ] ]
+      <> if 0 < shadow_i then
+          [ DOM.span [ Props.className "shadow" ] [ DOM.text (show shadow_i) ] ]
+        else
+          []
+  ]
+  where
+  name = case Map.lookup termId (unwrap meta).varNames of
+    Just name -> name
+    Nothing -> unsafeCrashWith $ "could not find name of term id " <> show termId <> " in metacontext " <> show meta
 
-printHoleId :: { holeId :: HoleId, meta :: Metacontext } -> State (OrderedSet HoleId) (Array ReactElement)
+  shadow_i = case Map.lookup name (unwrap meta).varShadows of
+    Just i -> i
+    Nothing -> unsafeCrashWith $ "could not find shadow of var name " <> show name <> " in metacontext " <> show meta
+
+printHoleId :: { holeId :: HoleId, meta :: Metacontext } -> M (Array ReactElement)
 printHoleId args = do
-  i <- OrderedSet.findIndex (args.holeId == _) <$> State.get
-  pure [ span [ className "holeId" ] [ text $ show i ] ]
+  i <- List.findIndex (args.holeId == _) <$> State.get
+  pure [ DOM.span [ Props.className "holeId" ] [ DOM.text $ show i ] ]
 
 type NodeProps
   = { label :: Maybe String
@@ -242,8 +369,8 @@ maybeArray ma f = case ma of
   Just a -> [ f a ]
   Nothing -> []
 
-useArgsCtx_Type :: forall r1 r2. Record (RecCtx.ProtoArgsType r1 r2) -> NodeProps -> NodeProps
-useArgsCtx_Type { ctx } = _ { ctx = Just ctx.ctx }
+useArgsCtx :: forall r1 r2. Record (RecCtx.ProtoArgsType r1 r2) -> NodeProps -> NodeProps
+useArgsCtx { ctx } = _ { ctx = Just ctx.ctx }
 
 useArgsCtx_Term :: forall r1 r2. Record (RecCtx.ProtoArgsTerm r1 r2) -> NodeProps -> NodeProps
 useArgsCtx_Term { ctx } = _ { ctx = Just ctx.ctx, type_ = Just ctx.type_ }
@@ -257,11 +384,11 @@ useArgsIx { ix } = _ { visit = Just (ix.visit) }
 useArgsAct :: forall r1 r2. Record (RecAct.ProtoArgs ( actions :: Array Action | r1 ) r2) -> NodeProps -> NodeProps
 useArgsAct { act } = _ { actions = act.actions }
 
-renderNode :: NodeProps -> Array (State (OrderedSet HoleId) (Array ReactElement)) -> State (OrderedSet HoleId) (Array ReactElement)
+renderNode :: NodeProps -> Array (M (Array ReactElement)) -> M (Array ReactElement)
 renderNode props elemsM = do
   elems <- concat <$> sequence elemsM
   pure
-    $ [ span
-          (className # maybeArray props.label)
+    $ [ DOM.span
+          (Props.className # maybeArray props.label)
           elems
       ]

@@ -60,10 +60,10 @@ derive instance newTypeNeuMetadata :: Newtype NeuMetadata _
 derive newtype instance showNeuMetadata :: Show NeuMetadata
 
 newtype ArgItemMetadata
-  = ArgItemMetadata {}
+  = ArgItemMetadata { indented :: Boolean }
 
 instance defaultArgItemMetadata :: Default ArgItemMetadata where
-  default = ArgItemMetadata {}
+  default = ArgItemMetadata { indented: false }
 
 derive instance newTypeArgItemMetadata :: Newtype ArgItemMetadata _
 
@@ -150,40 +150,40 @@ derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
 derive newtype instance showTermBindMetadata :: Show TermBindMetadata
 
 newtype SumItemMetadata
-  = SumItemMetadata {}
+  = SumItemMetadata { indented :: Boolean }
 
 instance defaultSumItemMetadata :: Default SumItemMetadata where
-  default = SumItemMetadata {}
+  default = SumItemMetadata { indented: false }
 
 derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
 
 derive newtype instance showSumItemMetadata :: Show SumItemMetadata
 
 newtype CaseItemMetadata
-  = CaseItemMetadata {}
+  = CaseItemMetadata { indented :: Boolean }
 
 instance defaultCaseItemMetadata :: Default CaseItemMetadata where
-  default = CaseItemMetadata {}
+  default = CaseItemMetadata { indented: false }
 
 derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
 
 derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
 
 newtype ParamItemMetadata
-  = ParamItemMetadata {}
+  = ParamItemMetadata { indented :: Boolean }
 
 instance defaultParamItemMetadata :: Default ParamItemMetadata where
-  default = ParamItemMetadata {}
+  default = ParamItemMetadata { indented: false }
 
 derive instance newTypeParamItemMetadata :: Newtype ParamItemMetadata _
 
 derive newtype instance showParamItemMetadata :: Show ParamItemMetadata
 
 newtype TermBindItemMetadata
-  = TermBindItemMetadata {}
+  = TermBindItemMetadata { indented :: Boolean }
 
 instance defaultTermBindItemMetadata :: Default TermBindItemMetadata where
-  default = TermBindItemMetadata {}
+  default = TermBindItemMetadata { indented: false }
 
 derive instance newTypeTermBindItemMetadata :: Newtype TermBindItemMetadata _
 

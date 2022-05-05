@@ -26,6 +26,8 @@ newtype Metacontext
 
 derive instance newTypeMetacontext :: Newtype Metacontext _
 
+derive newtype instance showMetacontext :: Show Metacontext
+
 instance defaultMetacontext :: Default Metacontext where
   default =
     Metacontext

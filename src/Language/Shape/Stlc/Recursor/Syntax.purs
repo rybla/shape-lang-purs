@@ -184,13 +184,13 @@ recParamItems rec args@{ syn } =
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2
-  = ProtoArgs ( termBindItems :: List TermBind | r1 ) r2
+  = ProtoArgs ( termBindItems :: List TermBindItem | r1 ) r2
 
 type ArgsTermBindItems r
   = ProtoArgsTermBindItems () r
 
 type ArgsTermBindItem r
-  = ProtoArgsTermBindItems ( i :: Int, termBind :: TermBind ) r
+  = ProtoArgsTermBindItems ( i :: Int, termBindItem :: TermBindItem ) r
 
 recTermBindItems ::
   forall r a.
@@ -199,7 +199,7 @@ recTermBindItems ::
   ProtoRec ArgsTermBindItems r (List a)
 recTermBindItems rec args@{ syn } =
   mapWithIndex
-    (\i termBind -> rec.termBindItem $ modifyHetero _syn (union { i, termBind }) args)
+    (\i termBindItem -> rec.termBindItem $ modifyHetero _syn (union { i, termBindItem }) args)
     syn.termBindItems
 
 -- | recTermBind
