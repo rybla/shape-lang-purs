@@ -1,23 +1,27 @@
 module Language.Shape.Stlc.Rendering.Editor where
 
+import Data.Tuple.Nested
 import Prelude hiding (div)
+
+import Effect (Effect)
 import Language.Shape.Stlc.Rendering.Syntax (renderProgram)
-import Language.Shape.Stlc.Types (This)
+import Language.Shape.Stlc.Types (Action(..), This)
 import React (ReactElement)
 import React.DOM (div)
 import React.DOM.Props (className)
 import Undefined (undefined)
 
 -- | renderEditor
-renderEditor :: This -> ReactElement
-renderEditor this =
-  div [ className "editor" ]
-    $ renderPanel this
-    <> renderProgram this
+renderEditor :: This -> Effect ReactElement
+renderEditor this = do
+  elemsProgram /\ actions <- renderProgram this
+  pure $ div [ className "editor" ]
+    $ renderPanel this actions
+    <> elemsProgram
 
 -- | renderPanel
-renderPanel :: This -> Array ReactElement
-renderPanel this =
+renderPanel :: This -> Array Action -> Array ReactElement
+renderPanel this actions =
   [ div [ className "panel" ]
       []
   ]
@@ -28,8 +32,8 @@ renderEnvironment this =
       []
   ]
 
-renderPalette :: This -> Array ReactElement
-renderPalette this =
+renderPalette :: This -> Array Action -> Array ReactElement
+renderPalette this actions =
   [ div [ className "palette" ]
       []
   ]

@@ -130,20 +130,20 @@ derive instance newTypeHoleMetadata :: Newtype HoleMetadata _
 derive newtype instance showHoleMetadata :: Show HoleMetadata
 
 newtype TypeBindMetadata
-  = TypeBindMetadata {}
+  = TypeBindMetadata { name :: Name }
 
 instance defaultTypeBindMetadata :: Default TypeBindMetadata where
-  default = TypeBindMetadata {}
+  default = TypeBindMetadata { name: default }
 
 derive instance newTypeTypeBindMetadata :: Newtype TypeBindMetadata _
 
 derive newtype instance showTypeBindMetadata :: Show TypeBindMetadata
 
 newtype TermBindMetadata
-  = TermBindMetadata {}
+  = TermBindMetadata { name :: Name }
 
 instance defaultTermBindMetadata :: Default TermBindMetadata where
-  default = TermBindMetadata {}
+  default = TermBindMetadata { name: default }
 
 derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
 

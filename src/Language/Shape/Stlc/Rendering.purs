@@ -1,11 +1,13 @@
 module Language.Shape.Stlc.Rendering where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Types
 import Prelude hiding (div)
 import React
 import React.DOM
 import Effect (Effect)
 import Effect.Console as Console
+import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
 import Undefined (undefined)
 import Web.Event.Event (Event, EventType(..))
@@ -29,7 +31,11 @@ programComponent this =
     , componentDidMount
     }
   where
-  state = undefined
+  state =
+    let
+      term /\ type_ = init1
+    in
+      { ix: mempty, term, type_ }
 
   componentDidMount = do
     Console.log "componentDidMount"
@@ -43,4 +49,7 @@ programComponent this =
     Console.log $ "===[ keydown: " <> key <> " ]==============================="
     pure unit
 
-  render = pure $ renderEditor this
+  render = do
+    st <- getState this
+    Console.log $ "st = " <> show st
+    renderEditor this

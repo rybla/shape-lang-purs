@@ -56,58 +56,20 @@ html {
 
 /* syntax */
 
-.type, .typeId {
-  color: rgb(43, 80, 43);
-}
-
-.termId {
-  color: rgb(100, 55, 38);
-  /* font-style: italic; */
-}
-
-.hole.type > .liner {
-  color: white;
-  background-color: black;
-  border-radius: 8px;
-  padding: 0 4px;
-}
-
-.hole.term {
-  box-shadow: 0 0 0 1px red;
-  /* border-left: 4px solid red; */
-  border-left: 8px solid red;
-  /* border-right: 8px solid red; */
-  border-radius: 8px;
-  padding: 0 4px;
-}
-
-.hole.term > .token {
+.Hole {
   display: inline-block;
-  /* background-color: red; */
-  padding-right: 2px;
-  margin-left: -13px;
+  box-shadow: 0 0 0 1px red;
+}
+
+/* token */
+
+.token {
+  white-space: pre;
 }
 
 /* name */
 
-.name {
-  /* box-shadow: 0 -1px 0 0 black inset; */
-}
-
 /* separator */
-
-.separator,
-.argItems.nil {
-  color: gray;
-}
-
-/* .separator {
-  cursor: pointer;
-  color: white;
-}
-.separator:hover {
-  color: black;
-} */
 
 /* selected */
 

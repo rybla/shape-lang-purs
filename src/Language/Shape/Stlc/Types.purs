@@ -17,15 +17,8 @@ type Props
 
 type State
   = { term :: Term
+    , type_ :: Type
     , ix :: IxDown
-    , actions :: Array Action
-    , environment :: Environment
-    }
-
-type Environment
-  = { meta :: Maybe Metacontext
-    , ctx :: Maybe Context
-    , goal :: Maybe Type
     }
 
 type Given
@@ -36,9 +29,6 @@ type Given
 
 type This
   = ReactThis Props State
-
-getState' :: This -> State
-getState' this = unsafePerformEffect $ getState this
 
 newtype Action
   = Action

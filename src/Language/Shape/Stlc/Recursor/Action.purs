@@ -1,24 +1,28 @@
 module Language.Shape.Stlc.Recursor.Action where
 
+import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Key
+import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim.Row
-
 import Control.Monad.State (StateT)
 import Control.Monad.State as State
 import Control.Monad.Trans.Class (lift)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
-import Data.Traversable (sequence)
-import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
-import Language.Shape.Stlc.Key (keys)
+import Effect (Effect)
+import Effect.Class.Console as Console
 import Language.Shape.Stlc.Recursor.Index (Cursor)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
-import Language.Shape.Stlc.Syntax (HoleId(..))
-import Record (insert, set)
+import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+
+unimplementedEffect :: String -> This -> Effect Unit
+unimplementedEffect label _ = do
+  Console.log $ "undefined effect: " <> label
 
 -- | ProtoRec
 type ProtoArgs r1 r2
@@ -72,14 +76,14 @@ recType rec =
               [ Action
                   { label: Just "delete"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.delete } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "delete"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.arrow $ modifyHetero _act (insert _actions actions) args
+              rec.arrow $ modifyHetero _act (Record.insert _actions actions) args
     , data_:
         \args ->
           let
@@ -87,7 +91,7 @@ recType rec =
           in
             do
               checkActionsHere args actions
-              rec.data_ $ modifyHetero _act (insert _actions actions) args
+              rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
     , hole:
         \args ->
           let
@@ -95,7 +99,7 @@ recType rec =
           in
             do
               checkActionsHere args actions
-              rec.hole $ modifyHetero _act (insert _actions actions) args
+              rec.hole $ modifyHetero _act (Record.insert _actions actions) args
     }
   where
   common :: forall r1 r2. Record (Rec.ProtoArgsType r1 r2) -> Array Action
@@ -103,17 +107,17 @@ recType rec =
     [ Action
         { label: Just "dig"
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
-        , effect: undefined
+        , effect: unimplementedEffect "dig"
         }
     , Action
         { label: Just "enarrow"
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
-        , effect: undefined
+        , effect: unimplementedEffect "enarrow"
         }
     , Action
         { label: Just "copy"
         , triggers: [ ActionTrigger_Keypress { keys: keys.copy } ]
-        , effect: undefined
+        , effect: unimplementedEffect "copy"
         }
     -- , toggleIndentation_Action args.ix.visit.ix
     ]
@@ -165,19 +169,19 @@ recTerm rec =
               [ Action
                   { label: Just "unlambda"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.unlambda } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "unlambda"
                   }
               , Action
                   { label: Just "uneta"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.uneta } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "uneta"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.lam $ modifyHetero _act (insert _actions actions) args
+              rec.lam $ modifyHetero _act (Record.insert _actions actions) args
     , neu:
         \args ->
           let
@@ -185,14 +189,14 @@ recTerm rec =
               [ Action
                   { label: Just "eta"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.eta } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "eta"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.neu $ modifyHetero _act (insert _actions actions) args
+              rec.neu $ modifyHetero _act (Record.insert _actions actions) args
     , let_:
         \args ->
           let
@@ -200,14 +204,14 @@ recTerm rec =
               [ Action
                   { label: Just "unlet"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.unlet } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "unlet"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.let_ $ modifyHetero _act (insert _actions actions) args
+              rec.let_ $ modifyHetero _act (Record.insert _actions actions) args
     , buf:
         \args ->
           let
@@ -215,14 +219,14 @@ recTerm rec =
               [ Action
                   { label: Just "unbuf"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.unbuf } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "unbuf"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.buf $ modifyHetero _act (insert _actions actions) args
+              rec.buf $ modifyHetero _act (Record.insert _actions actions) args
     , data_:
         \args ->
           let
@@ -230,14 +234,14 @@ recTerm rec =
               [ Action
                   { label: Just "undata"
                   , triggers: [ ActionTrigger_Keypress { keys: keys.undata } ]
-                  , effect: undefined
+                  , effect: unimplementedEffect "undata"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.data_ $ modifyHetero _act (insert _actions actions) args
+              rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
     , match:
         \args ->
           let
@@ -245,7 +249,7 @@ recTerm rec =
           in
             do
               checkActionsHere args actions
-              rec.match $ modifyHetero _act (insert _actions actions) args
+              rec.match $ modifyHetero _act (Record.insert _actions actions) args
     , hole:
         \args ->
           let
@@ -253,14 +257,14 @@ recTerm rec =
               [ Action
                   { label: Just "fill"
                   , triggers: [] -- TODO
-                  , effect: undefined
+                  , effect: unimplementedEffect "fill"
                   }
               ]
                 <> common args
           in
             do
               checkActionsHere args actions
-              rec.hole $ modifyHetero _act (insert _actions actions) args
+              rec.hole $ modifyHetero _act (Record.insert _actions actions) args
     }
   where
   common :: forall r1 r2. Record (Rec.ProtoArgsTerm r1 r2) -> Array Action
@@ -268,32 +272,32 @@ recTerm rec =
     [ Action
         { label: Just "dig"
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
-        , effect: undefined
+        , effect: unimplementedEffect "dig"
         }
     , Action
         { label: Just "enlambda"
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
-        , effect: undefined
+        , effect: unimplementedEffect "enlambda"
         }
     , Action
         { label: Just "enlet"
         , triggers: [ ActionTrigger_Keypress { keys: keys.let_ } ]
-        , effect: undefined
+        , effect: unimplementedEffect "enlet"
         }
     , Action
         { label: Just "endata"
         , triggers: [ ActionTrigger_Keypress { keys: keys.data_ } ]
-        , effect: undefined
+        , effect: unimplementedEffect "endata"
         }
     , Action
         { label: Just "enbuffer"
         , triggers: [ ActionTrigger_Keypress { keys: keys.buf } ]
-        , effect: undefined
+        , effect: unimplementedEffect "enbuffer"
         }
     , Action
         { label: Just "copy"
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
-        , effect: undefined
+        , effect: unimplementedEffect "copy"
         }
     -- , toggleIndentation_Action args.ix.visit.ix
     ]
@@ -304,7 +308,7 @@ toggleIndentation_Action ixUp =
   Action
     { label: Just "toggle indentation"
     , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
-    , effect: undefined
+    , effect: unimplementedEffect "toggle indentation"
     }
 
 -- -- | recArgItems
@@ -327,8 +331,8 @@ toggleIndentation_Action ixUp =
 --   ProtoRec ArgsArgItems r m a
 -- recArgItems rec =
 --   Rec.recArgItems
---     { cons: \args -> rec.cons $ modifyHetero _act (insert _actions []) args
---     , nil: \args -> rec.nil $ modifyHetero _act (insert _actions []) args
+--     { cons: \args -> rec.cons $ modifyHetero _act (Record.insert _actions []) args
+--     , nil: \args -> rec.nil $ modifyHetero _act (Record.insert _actions []) args
 --     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
@@ -359,7 +363,7 @@ recArgItems rec =
           in
             do
               checkActionsHere args actions
-              rec.argItem $ modifyHetero _act (insert _actions []) args
+              rec.argItem $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recSumItems
@@ -391,7 +395,7 @@ recSumItems rec =
           in
             do
               checkActionsHere args actions
-              rec.sumItem $ modifyHetero _act (insert _actions []) args
+              rec.sumItem $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recCaseItem
@@ -423,7 +427,7 @@ recCaseItems rec =
           in
             do
               checkActionsHere args actions
-              rec.caseItem $ modifyHetero _act (insert _actions []) args
+              rec.caseItem $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recParamItems
@@ -455,7 +459,7 @@ recParamItems rec =
           in
             do
               checkActionsHere args actions
-              rec.paramItem $ modifyHetero _act (insert _actions []) args
+              rec.paramItem $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recTermBindItems
@@ -487,7 +491,7 @@ recTermBindItems rec =
           in
             do
               checkActionsHere args actions
-              rec.termBindItem $ modifyHetero _act (insert _actions []) args
+              rec.termBindItem $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recTermBind
@@ -516,7 +520,7 @@ recTermBind rec =
           in
             do
               checkActionsHere args actions
-              rec.termBind $ modifyHetero _act (insert _actions []) args
+              rec.termBind $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recTypeBind
@@ -545,7 +549,7 @@ recTypeBind rec =
           in
             do
               checkActionsHere args actions
-              rec.typeBind $ modifyHetero _act (insert _actions []) args
+              rec.typeBind $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recTypeId
@@ -574,7 +578,7 @@ recTypeId rec =
           in
             do
               checkActionsHere args actions
-              rec.typeId $ modifyHetero _act (insert _actions []) args
+              rec.typeId $ modifyHetero _act (Record.insert _actions []) args
     }
 
 -- | recTermId
@@ -603,5 +607,5 @@ recTermId rec =
           in
             do
               checkActionsHere args actions
-              rec.termId $ modifyHetero _act (insert _actions []) args
+              rec.termId $ modifyHetero _act (Record.insert _actions []) args
     }

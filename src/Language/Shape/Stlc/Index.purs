@@ -1,13 +1,15 @@
 module Language.Shape.Stlc.Index where
 
 import Prelude
+
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..), singleton, (:))
+import Data.List (List(..), reverse, singleton, snoc, (:))
 import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
 
+-- | IxUp
 newtype IxUp
   = IxUp (List IxStep)
 
@@ -24,6 +26,7 @@ instance semigroupIxUp :: Semigroup IxUp where
 instance monoidIxUp :: Monoid IxUp where
   mempty = wrap Nil
 
+-- | IxDown
 newtype IxDown
   = IxDown (List IxStep)
 
@@ -39,6 +42,19 @@ instance semigroupIxDown :: Semigroup IxDown where
 instance monoidIxDown :: Monoid IxDown where
   mempty = wrap Nil
 
+-- | utilities
+
+nilIxUp = IxUp Nil
+nilIxDown = IxDown Nil
+
+-- | conversions IxDown <-> IxUp
+toIxUp :: IxDown -> IxUp
+toIxUp (IxDown steps) = IxUp (reverse steps)
+
+toIxDown :: IxUp -> IxDown
+toIxDown (IxUp steps) = IxDown (reverse steps)
+
+-- | IxStep
 data IxStep
   = IxStep IxStepLabel Int
 
@@ -144,9 +160,9 @@ ixStepParamItem =
   { type_: IxStep IxStepParamItem 0
   }
 
-ixStepTermBindItem = {
-  termBind: IxStep IxStepTermBindItem 0 
-}
+ixStepTermBindItem =
+  { termBind: IxStep IxStepTermBindItem 0
+  }
 
 ixStepTermBind =
   { termId: IxStep IxStepTermBind 0
@@ -158,9 +174,11 @@ ixStepList =
   }
 
 ixUpListItem :: Int -> IxUp
-ixUpListItem i = undefined
+ixUpListItem i
+  | i == 0 = wrap (singleton ixStepList.head)
+  | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
 
 ixDownListItem :: Int -> IxDown
-ixDownListItem 0 = wrap (singleton ixStepList.head)
-
-ixDownListItem i = over wrap (ixStepList.tail : _) (ixDownListItem (i - 1))
+ixDownListItem i
+  | i == 0 = wrap (singleton ixStepList.head)
+  | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))

@@ -41,9 +41,6 @@ visitIxStep { ix, csr } ixStep =
           Nil -> Nothing
   }
 
-visitIxDown :: Visit -> IxDown -> Visit
-visitIxDown = undefined
-
 -- | ProtoRec
 type ProtoArgs r1 r2
   = ( ix :: Record ( visit :: Visit | r1 ) | r2 )
