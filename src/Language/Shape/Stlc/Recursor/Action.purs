@@ -6,14 +6,10 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim.Row
-import Control.Monad.State (StateT)
-import Control.Monad.State as State
-import Control.Monad.Trans.Class (lift)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Class.Console as Console
-import Language.Shape.Stlc.Recursor.Index (Cursor)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Language.Shape.Stlc.Recursor.Record (modifyHetero)
 import Record as Record
@@ -28,9 +24,9 @@ unimplementedEffect label _ = do
 type ProtoArgs r1 r2
   = ( act :: Record ( | r1 ) | r2 )
 
-type ProtoRec args r m a
-  -- = Rec.ProtoRec args r m a
-  = Rec.ProtoRec args r (StateT (Array Action) m) a
+type ProtoRec args r a
+  -- = Rec.ProtoRec args r a
+  = Rec.ProtoRec args r a
 
 _act = Proxy :: Proxy "act"
 
@@ -52,21 +48,15 @@ type ArgsDataType r
 type ArgsHoleType r
   = Rec.ArgsHoleType (ProtoArgsType ( actions :: Array Action ) r)
 
-checkActionsHere :: forall r1 r2 r3 m. Monad m => { ix :: { visit :: { csr :: Cursor | r1 } | r2 } | r3 } -> Array Action -> StateT (List HoleId) (StateT (Array Action) m) Unit
-checkActionsHere { ix: { visit: { csr } } } actions = case csr of
-  Just (IxDown Nil) -> lift $ State.put actions
-  _ -> pure unit
-
 recType ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { arrow :: ProtoRec ArgsArrowType r m a, data_ :: ProtoRec ArgsDataType r m a, hole :: ProtoRec ArgsHoleType r m a } ->
-  ProtoRec ArgsType r m a
+  { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
+  ProtoRec ArgsType r a
 recType rec =
   Rec.recType
     { arrow:
@@ -81,25 +71,19 @@ recType rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.arrow $ modifyHetero _act (Record.insert _actions actions) args
+            rec.arrow $ modifyHetero _act (Record.insert _actions actions) args
     , data_:
         \args ->
           let
             actions = [] <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
+            rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
     , hole:
         \args ->
           let
             actions = [] <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.hole $ modifyHetero _act (Record.insert _actions actions) args
+            rec.hole $ modifyHetero _act (Record.insert _actions actions) args
     }
   where
   common :: forall r1 r2. Record (Rec.ProtoArgsType r1 r2) -> Array Action
@@ -121,6 +105,12 @@ recType rec =
         }
     -- , toggleIndentation_Action args.ix.visit.ix
     ]
+
+argsArrowType_dom :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Lacks "meta" r => Lacks "act" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_dom = Rec.argsArrowType_dom >>> \args -> args { act = {} }
+
+argsArrowType_cod :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Lacks "meta" r => Lacks "act" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_cod = Rec.argsArrowType_cod >>> \args -> args { act = {} }
 
 -- | recTerm
 type ProtoArgsTerm r1 r2
@@ -151,15 +141,14 @@ type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm ( actions :: Array Action ) r)
 
 recTerm ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { lam :: ProtoRec ArgsLam r m a, neu :: ProtoRec ArgsNeu r m a, let_ :: ProtoRec ArgsLet r m a, buf :: ProtoRec ArgsBuf r m a, data_ :: ProtoRec ArgsData r m a, match :: ProtoRec ArgsMatch r m a, hole :: ProtoRec ArgsHole r m a } ->
-  ProtoRec ArgsTerm r m a
+  { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
+  ProtoRec ArgsTerm r a
 recTerm rec =
   Rec.recTerm
     { lam:
@@ -179,9 +168,7 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.lam $ modifyHetero _act (Record.insert _actions actions) args
+            rec.lam $ modifyHetero _act (Record.insert _actions actions) args
     , neu:
         \args ->
           let
@@ -194,9 +181,7 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.neu $ modifyHetero _act (Record.insert _actions actions) args
+            rec.neu $ modifyHetero _act (Record.insert _actions actions) args
     , let_:
         \args ->
           let
@@ -209,9 +194,7 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.let_ $ modifyHetero _act (Record.insert _actions actions) args
+            rec.let_ $ modifyHetero _act (Record.insert _actions actions) args
     , buf:
         \args ->
           let
@@ -224,9 +207,7 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.buf $ modifyHetero _act (Record.insert _actions actions) args
+            rec.buf $ modifyHetero _act (Record.insert _actions actions) args
     , data_:
         \args ->
           let
@@ -239,17 +220,13 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
+            rec.data_ $ modifyHetero _act (Record.insert _actions actions) args
     , match:
         \args ->
           let
             actions = [] <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.match $ modifyHetero _act (Record.insert _actions actions) args
+            rec.match $ modifyHetero _act (Record.insert _actions actions) args
     , hole:
         \args ->
           let
@@ -262,9 +239,7 @@ recTerm rec =
               ]
                 <> common args
           in
-            do
-              checkActionsHere args actions
-              rec.hole $ modifyHetero _act (Record.insert _actions actions) args
+            rec.hole $ modifyHetero _act (Record.insert _actions actions) args
     }
   where
   common :: forall r1 r2. Record (Rec.ProtoArgsTerm r1 r2) -> Array Action
@@ -321,18 +296,18 @@ toggleIndentation_Action ixUp =
 -- type ArgsArgItemsNil r
 --   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( actions :: Array Action ) r)
 -- recArgItems ::
---   forall r m a. Monad m =>
+--   forall r a. 
 --   Lacks "syn" r =>
 --   Lacks "ctx" r =>
 --   Lacks "ix" r =>
 --   Lacks "meta" r =>
 --   Lacks "act" r =>
---   { cons :: ProtoRec ArgsArgItemsCons r m a, nil :: ProtoRec ArgsArgItemsNil r m a } ->
---   ProtoRec ArgsArgItems r m a
+--   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
+--   ProtoRec ArgsArgItems r a
 -- recArgItems rec =
 --   Rec.recArgItems
---     { cons: \args -> rec.cons $ modifyHetero _act (Record.insert _actions []) args
---     , nil: \args -> rec.nil $ modifyHetero _act (Record.insert _actions []) args
+--     { cons: \args -> rec.cons $ modifyHetero _act (Record.insert _actions actions) args
+--     , nil: \args -> rec.nil $ modifyHetero _act (Record.insert _actions actions) args
 --     }
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
@@ -345,15 +320,14 @@ type ArgsArgItem r
   = Rec.ArgsArgItem (ProtoArgsArgItems ( actions :: Array Action ) r)
 
 recArgItems ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { argItem :: ProtoRec ArgsArgItem r m a } ->
-  ProtoRec ArgsArgItems r m (List a)
+  { argItem :: ProtoRec ArgsArgItem r a } ->
+  ProtoRec ArgsArgItems r (List a)
 recArgItems rec =
   Rec.recArgItems
     { argItem:
@@ -361,9 +335,7 @@ recArgItems rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.argItem $ modifyHetero _act (Record.insert _actions []) args
+            rec.argItem $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recSumItems
@@ -377,15 +349,14 @@ type ArgsSumItem r
   = Rec.ArgsSumItem (ProtoArgsSumItems ( actions :: Array Action ) r)
 
 recSumItems ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { sumItem :: ProtoRec ArgsSumItem r m a } ->
-  ProtoRec ArgsSumItems r m (List a)
+  { sumItem :: ProtoRec ArgsSumItem r a } ->
+  ProtoRec ArgsSumItems r (List a)
 recSumItems rec =
   Rec.recSumItems
     { sumItem:
@@ -393,9 +364,7 @@ recSumItems rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.sumItem $ modifyHetero _act (Record.insert _actions []) args
+            rec.sumItem $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recCaseItem
@@ -409,15 +378,14 @@ type ArgsCaseItem r
   = Rec.ArgsCaseItem (ProtoArgsCaseItems ( actions :: Array Action ) r)
 
 recCaseItems ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { caseItem :: ProtoRec ArgsCaseItem r m a } ->
-  ProtoRec ArgsCaseItems r m (List a)
+  { caseItem :: ProtoRec ArgsCaseItem r a } ->
+  ProtoRec ArgsCaseItems r (List a)
 recCaseItems rec =
   Rec.recCaseItems
     { caseItem:
@@ -425,9 +393,7 @@ recCaseItems rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.caseItem $ modifyHetero _act (Record.insert _actions []) args
+            rec.caseItem $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recParamItems
@@ -441,15 +407,14 @@ type ArgsParamItem r
   = Rec.ArgsParamItem (ProtoArgsParamItems ( actions :: Array Action ) r)
 
 recParamItems ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { paramItem :: ProtoRec ArgsParamItem r m a } ->
-  ProtoRec ArgsParamItems r m (List a)
+  { paramItem :: ProtoRec ArgsParamItem r a } ->
+  ProtoRec ArgsParamItems r (List a)
 recParamItems rec =
   Rec.recParamItems
     { paramItem:
@@ -457,9 +422,7 @@ recParamItems rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.paramItem $ modifyHetero _act (Record.insert _actions []) args
+            rec.paramItem $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recTermBindItems
@@ -473,15 +436,14 @@ type ArgsTermBindItem r
   = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( actions :: Array Action ) r)
 
 recTermBindItems ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { termBindItem :: ProtoRec ArgsTermBindItem r m a } ->
-  ProtoRec ArgsTermBindItems r m (List a)
+  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
+  ProtoRec ArgsTermBindItems r (List a)
 recTermBindItems rec =
   Rec.recTermBindItems
     { termBindItem:
@@ -489,9 +451,7 @@ recTermBindItems rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.termBindItem $ modifyHetero _act (Record.insert _actions []) args
+            rec.termBindItem $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recTermBind
@@ -502,15 +462,14 @@ type ArgsTermBind_TermBind r
   = Rec.ArgsTermBind (ProtoArgs ( actions :: Array Action ) r)
 
 recTermBind ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { termBind :: ProtoRec ArgsTermBind_TermBind r m a } ->
-  ProtoRec ArgsTermBind r m a
+  { termBind :: ProtoRec ArgsTermBind_TermBind r a } ->
+  ProtoRec ArgsTermBind r a
 recTermBind rec =
   Rec.recTermBind
     { termBind:
@@ -518,9 +477,7 @@ recTermBind rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.termBind $ modifyHetero _act (Record.insert _actions []) args
+            rec.termBind $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recTypeBind
@@ -531,15 +488,14 @@ type ArgsTypeBind_TypeBind r
   = Rec.ArgsTypeBind (ProtoArgs ( actions :: Array Action ) r)
 
 recTypeBind ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { typeBind :: ProtoRec ArgsTypeBind_TypeBind r m a } ->
-  ProtoRec ArgsTypeBind r m a
+  { typeBind :: ProtoRec ArgsTypeBind_TypeBind r a } ->
+  ProtoRec ArgsTypeBind r a
 recTypeBind rec =
   Rec.recTypeBind
     { typeBind:
@@ -547,9 +503,7 @@ recTypeBind rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.typeBind $ modifyHetero _act (Record.insert _actions []) args
+            rec.typeBind $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recTypeId
@@ -560,15 +514,14 @@ type ArgsTypeId_TypeId r
   = Rec.ArgsTypeId (ProtoArgs ( actions :: Array Action ) r)
 
 recTypeId ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { typeId :: ProtoRec ArgsTypeId_TypeId r m a } ->
-  ProtoRec ArgsTypeId r m a
+  { typeId :: ProtoRec ArgsTypeId_TypeId r a } ->
+  ProtoRec ArgsTypeId r a
 recTypeId rec =
   Rec.recTypeId
     { typeId:
@@ -576,9 +529,7 @@ recTypeId rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.typeId $ modifyHetero _act (Record.insert _actions []) args
+            rec.typeId $ modifyHetero _act (Record.insert _actions actions) args
     }
 
 -- | recTermId
@@ -589,15 +540,14 @@ type ArgsTermId_TermId r
   = Rec.ArgsTermId (ProtoArgs ( actions :: Array Action ) r)
 
 recTermId ::
-  forall r m a.
-  Monad m =>
+  forall r a.
   Lacks "syn" r =>
   Lacks "ctx" r =>
   Lacks "ix" r =>
   Lacks "meta" r =>
   Lacks "act" r =>
-  { termId :: ProtoRec ArgsTermId_TermId r m a } ->
-  ProtoRec ArgsTermId r m a
+  { termId :: ProtoRec ArgsTermId_TermId r a } ->
+  ProtoRec ArgsTermId r a
 recTermId rec =
   Rec.recTermId
     { termId:
@@ -605,7 +555,5 @@ recTermId rec =
           let
             actions = []
           in
-            do
-              checkActionsHere args actions
-              rec.termId $ modifyHetero _act (Record.insert _actions []) args
+            rec.termId $ modifyHetero _act (Record.insert _actions actions) args
     }

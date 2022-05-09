@@ -60,11 +60,16 @@ recType rec =
           rec.arrow
             $ modifyHetero _meta (union { dom: meta, cod: incrementIndentation meta }) args
     , data_: rec.data_
-    , hole:
-        \args@{ syn: { hole } } -> rec.hole args
+    , hole: rec.hole
     }
 
--- -- | recTerm
+argsArrowType_dom :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Lacks "meta" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_dom = Rec.argsArrowType_dom >>> \args -> args { meta = { meta: args.meta.dom } }
+
+argsArrowType_cod :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Lacks "meta" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_cod = Rec.argsArrowType_cod >>> \args -> args { meta = { meta: args.meta.cod } }
+
+-- | recTerm
 type ProtoArgsTerm r1 r2
   = ProtoArgs ( | r1 ) r2
 
@@ -105,7 +110,7 @@ recTerm rec =
     { lam:
         \args@{ syn: { lam }, meta: { meta } } ->
           let
-            meta' = insertVarName lam.termBind.termId (unwrap lam.meta).name meta
+            meta' = insertVar lam.termBind.termId (unwrap lam.meta).name meta
           in
             rec.lam
               $ modifyHetero _meta
@@ -128,7 +133,7 @@ recTerm rec =
                       { termBind: meta'
                       , type_: meta'
                       , term: meta'
-                      , body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
+                      , body: insertVar let_.termBind.termId (unwrap let_.meta).name meta'
                       }
                 )
                 args
@@ -151,7 +156,9 @@ recTerm rec =
             $ modifyHetero _meta
                 ( let
                     meta' =
-                      insertDataName data_.typeBind.typeId (unwrap data_.typeBind.meta).name
+                      -- * note that the data type needs to be in the metacontext before the constructors, since the constructors refernce the data type in their type
+                      List.foldl (\f sumItem -> f <<< insertVar sumItem.termBind.termId (unwrap sumItem.termBind.meta).name) identity data_.sumItems -- insert constructors into metacontext
+                        <<< insertData data_ -- insert data into metacontext
                         $ incrementIndentation meta
                   in
                     union
@@ -242,7 +249,7 @@ recCaseItems rec =
         \args@{ meta } ->
           let
             meta' =
-              foldl (\f termBindItem -> f <<< insertVarName termBindItem.termBind.termId (unwrap termBindItem.termBind.meta).name) identity
+              foldl (\f termBindItem -> f <<< insertVar termBindItem.termBind.termId (unwrap termBindItem.termBind.meta).name) identity
                 args.syn.caseItem.termBindItems
                 $ incrementIndentation meta.meta
           in
@@ -273,7 +280,7 @@ recSumItems rec =
         \args@{ meta } ->
           let
             meta' =
-              insertVarName args.syn.sumItem.termBind.termId (unwrap args.syn.sumItem.termBind.meta).name
+              insertVar args.syn.sumItem.termBind.termId (unwrap args.syn.sumItem.termBind.meta).name
                 $ incrementIndentation meta.meta
           in
             rec.sumItem $ modifyHetero _meta (union { sumItem: meta', termBind: meta', paramItems: meta' }) args

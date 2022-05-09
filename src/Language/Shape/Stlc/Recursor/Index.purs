@@ -80,7 +80,13 @@ recType rec =
     , hole: rec.hole
     }
 
--- -- | recTerm
+argsArrowType_dom :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_dom = Rec.argsArrowType_dom >>> \args -> args { ix = { visit: args.ix.dom } }
+
+argsArrowType_cod :: forall r. Lacks "syn" r => Lacks "ctx" r => Lacks "ix" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_cod = Rec.argsArrowType_cod >>> \args -> args { ix = { visit: args.ix.cod } }
+
+-- | recTerm
 type ProtoArgsTerm r1 r2
   = ProtoArgs ( | r1 ) r2
 
@@ -276,7 +282,7 @@ type ArgsParamItems r
   = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
 type ArgsParamItem r
-  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItems :: List Visit, param :: Visit, type_ :: Visit ) r)
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItems :: List Visit, paramItem :: Visit, type_ :: Visit ) r)
 
 recParamItems ::
   forall r a.
@@ -291,11 +297,11 @@ recParamItems rec =
     { paramItem:
         \args@{ syn, ix } ->
           let
-            param = index' ix.paramItems syn.i
+            paramItem = index' ix.paramItems syn.i
 
-            type_ = visitIxStep param ixStepParamItem.type_
+            type_ = visitIxStep paramItem ixStepParamItem.type_
           in
-            rec.paramItem $ modifyHetero _ix (union { param, type_ }) args
+            rec.paramItem $ modifyHetero _ix (union { paramItem, type_ }) args
     }
     <<< \args@{ syn, ix } ->
         modifyHetero _ix
