@@ -1,4 +1,4 @@
-module Data.Map.Unsafe (module Data.Map, lookup') where
+module Data.Map.Unsafe (module Data.Map, lookup', lookup'') where
 
 import Data.Map
 import Data.Tuple.Nested
@@ -16,3 +16,9 @@ lookup' :: forall k v. Show k => Show v => Ord k => k -> Map k v -> v
 lookup' k m = case lookup k m of
   Just v -> v
   Nothing -> unsafeCrashWith $ "fail lookup" <> "\nkey: " <> show k <> "\nmap: " <> show m
+
+lookup'' :: forall k v. Ord k => String -> k -> Map k v -> v
+lookup'' msg k m = case lookup k m of
+  Just v -> v
+  Nothing -> unsafeCrashWith $ msg
+
