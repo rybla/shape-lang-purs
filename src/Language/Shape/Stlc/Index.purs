@@ -1,10 +1,10 @@
 module Language.Shape.Stlc.Index where
 
 import Prelude
-
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), reverse, singleton, snoc, (:))
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
@@ -43,8 +43,8 @@ instance monoidIxDown :: Monoid IxDown where
   mempty = wrap Nil
 
 -- | utilities
-
 nilIxUp = IxUp Nil
+
 nilIxDown = IxDown Nil
 
 -- | conversions IxDown <-> IxUp

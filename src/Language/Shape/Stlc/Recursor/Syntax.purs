@@ -1,239 +1,204 @@
-module Language.Shape.Stlc.Recursion.Syntax where
+module Language.Shape.Stlc.Recursor.Syntax where
 
-import Language.Shape.Stlc.Recursor.Record
+import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Prim hiding (Type)
-import Prim.Row
-import Record
-import Data.List (List(..), mapWithIndex)
+import Data.List (List)
+import Language.Shape.Stlc.Recursor.Base (atHere)
+import Language.Shape.Stlc.Recursor.Base as Rec
+import Prim (Record, Row)
 import Prim as Prim
-import Type.Proxy (Proxy(..))
+import Prim.Row (class Lacks)
+import Record as R
 import Undefined (undefined)
 
-type ProtoArgs r
-  = ( | r )
-
-type ProtoRec :: (Row Prim.Type -> Row Prim.Type) -> Row Prim.Type -> Prim.Type -> Prim.Type
-type ProtoRec args r a
-  = Record (args r) -> a
-
-_syn = Proxy :: Proxy "syn"
-
 -- | recType
-type ProtoArgsType r1 r2
-  = ProtoArgs ( here :: (type_::Type | r1) | r2 )
+type ProtoArgsType r
+  = ( type_ :: Type | r )
 
 type ArgsType r
-  = ProtoArgsType () ( | r )
+  = Rec.ArgsType (ProtoArgsType r)
 
-type ArgsArrowType r
-  = ProtoArgsType ( here :: ArrowType, dom :: Record (ArgsType r), cod :: Record (ArgsType r) | r )
+type ArgsArrowType r rType
+  = Rec.ArgsArrowType (ProtoArgsType ( arrowType :: ArrowType | r )) rType
 
-type ArgsDataType r
-  = ProtoArgsType ( here :: DataType | r )
+type ArgsDataType r rTypeId
+  = Rec.ArgsDataType (ProtoArgsType ( dataType :: DataType | r )) rTypeId
 
-type ArgsHoleType r
-  = ProtoArgsType ( here :: HoleType | r )
+type ArgsHoleType r rHoleId
+  = Rec.ArgsHoleType (ProtoArgsType ( holeType :: HoleType | r )) rHoleId
 
 recType ::
   forall r a.
-  Lacks "syn" r =>
-  { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
-  ProtoRec ArgsType r a
-recType rec args = case args.type_ of
-  ArrowType arrow -> rec.arrow $ union { here: arrow, dom: argsArrowType_dom args, cod: ?args } args
-  DataType data_ -> rec.data_ $ union { data_ } args
-  HoleType hole -> rec.hole $ union { hole } args
-
-argsArrowType_dom :: forall r. Lacks "syn" r => Record (ArgsArrowType r) -> Record (ArgsType r)
-argsArrowType_dom args = 
-  ?a
-  -- delete (Proxy :: Proxy "arrow")
-  -- >>> delete (Proxy :: Proxy "dom")
-  -- >>> delete (Proxy :: Proxy "cod")
-  -- >>> insert (Proxy :: Proxy "type_") args.arrow.dom
-  -- $ args 
+  Lacks "typeId" r =>
+  Lacks "type_" r =>
+  { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
+  , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
+  , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
+  } ->
+  Record (ArgsType r) -> a
+recType rec args = case args.here.type_ of
+  ArrowType arrowType ->
+    rec.arrowType
+      { here: R.union { arrowType } $ args.here
+      , dom: { here: _ { type_ = arrowType.dom } $ args.here }
+      , cod: { here: _ { type_ = arrowType.cod } $ args.here }
+      }
+  DataType dataType ->
+    rec.dataType
+      { here: R.union { dataType } $ args.here
+      , typeId: { here: R.union { typeId: dataType.typeId } $ R.delete _type_ $ args.here }
+      }
+  HoleType holeType ->
+    rec.holeType
+      { here: R.union { holeType } $ args.here
+      , holeId: { here: R.union { holeId: holeType.holeId } $ R.delete _type_ $ args.here }
+      }
 
 -- | recTerm
 type ProtoArgsTerm r
-  = ProtoArgs ( term :: Term | r )
+  = ( term :: Term | r )
 
 type ArgsTerm r
-  = ProtoArgsTerm (| r )
+  = Rec.ArgsTerm (ProtoArgsTerm r)
 
-type ArgsLam r
-  = ProtoArgsTerm ( lam :: Lam | r )
+type ArgsLam r rTermBind rTerm
+  = Rec.ArgsLam (ProtoArgsTerm ( lam :: Lam | r )) rTermBind rTerm
 
-type ArgsNeu r
-  = ProtoArgsTerm ( neu :: Neu | r )
+type ArgsNeu r rTermId rArgItems
+  = Rec.ArgsNeu (ProtoArgsTerm ( neu :: Neu | r )) rTermId rArgItems
 
-type ArgsLet r
-  = ProtoArgsTerm ( let_ :: Let | r )
+type ArgsLet r termBind rType rTerm
+  = Rec.ArgsLet (ProtoArgsTerm ( let_ :: Let | r )) termBind rType rTerm
 
-type ArgsBuf r
-  = ProtoArgsTerm ( buf :: Buf | r )
+type ArgsBuf r rType rTerm
+  = Rec.ArgsBuf (ProtoArgsTerm ( buf :: Buf | r )) rType rTerm
 
-type ArgsData r
-  = ProtoArgsTerm ( data_ :: Data | r )
+type ArgsData r rTypeBind rTerm rSumItems
+  = Rec.ArgsData (ProtoArgsTerm ( data_ :: Data | r )) rTypeBind rTerm rSumItems
 
-type ArgsMatch r
-  = ProtoArgsTerm ( match :: Match | r )
+type ArgsMatch r rTypeId rTerm rCaseItems
+  = Rec.ArgsMatch (ProtoArgsTerm ( match :: Match | r )) rTypeId rTerm rCaseItems
 
 type ArgsHole r
-  = ProtoArgsTerm ( hole :: Hole | r )
+  = Rec.ArgsHole (ProtoArgsTerm ( hole :: Hole | r ))
 
 recTerm ::
   forall r a.
-  Lacks "syn" r =>
-  { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
-  ProtoRec ArgsTerm r a
-recTerm rec args = case args.term of
-  Lam lam -> rec.lam $ union { lam } args
-  Neu neu -> rec.neu $ union { neu } args
-  Let let_ -> rec.let_ $ union { let_ } args
-  Buf buf -> rec.buf $ union { buf } args
-  Data data_ -> rec.data_ $ union { data_ } args
-  Match match -> rec.match $ union { match } args
-  Hole hole -> rec.hole $ union { hole } args
+  Lacks "term" r =>
+  { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
+  , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , hole :: Record (ArgsHole r) -> a
+  } ->
+  Record (ArgsTerm r) -> a
+recTerm rec args = case args.here.term of
+  Lam lam ->
+    rec.lam
+      { here: { lam } `R.union` args.here
+      , termBind: (R.union { termBind: lam.termBind } <<< R.delete _term) `atHere` args
+      , body: (_ { term = lam.body }) `atHere` args
+      }
+  Neu neu ->
+    rec.neu
+      { here: { neu } `R.union` args.here
+      , termId: (R.union { termId: neu.termId } <<< R.delete _term) `atHere` args
+      , argItems: (R.union { argItems: neu.argItems } <<< R.delete _term) `atHere` args
+      }
+  Let let_ ->
+    rec.let_
+      { here: { let_ } `R.union` args.here
+      , termBind: (R.union { termBind: let_.termBind } <<< R.delete _term) `atHere` args
+      , type_: (R.union { type_: let_.type_ } <<< R.delete _term) `atHere` args
+      , term: (R.union { term: let_.term } <<< R.delete _term) `atHere` args
+      , body: (R.union { term: let_.body } <<< R.delete _term) `atHere` args
+      }
+  Buf buf ->
+    rec.buf
+      { here: { buf } `R.union` args.here
+      , type_: (R.union { type_: buf.type_ } <<< R.delete _term) `atHere` args
+      , term: (R.union { term: buf.term } <<< R.delete _term) `atHere` args
+      , body: (R.union { term: buf.body } <<< R.delete _term) `atHere` args
+      }
+  Data data_ ->
+    rec.data_
+      { here: { data_ } `R.union` args.here
+      , typeBind: (R.union { typeBind: data_.typeBind } <<< R.delete _term) `atHere` args
+      , sumItems: (R.union { sumItems: data_.sumItems } <<< R.delete _term) `atHere` args
+      , body: (R.union { term: data_.body } <<< R.delete _term) `atHere` args
+      }
+  Match match ->
+    rec.match
+      { here: { match } `R.union` args.here
+      , typeId: (R.union { typeId: match.typeId } <<< R.delete _term) `atHere` args
+      , term: (R.union { term: match.term } <<< R.delete _term) `atHere` args
+      , caseItems: (R.union { caseItems: match.caseItems } <<< R.delete _term) `atHere` args
+      }
+  Hole hole ->
+    rec.hole
+      { here: { hole } `R.union` args.here
+      }
 
-type ProtoArgsArgItems r
-  = ProtoArgs ( argItems :: List ArgItem | r )
-
+-- | recArgItems
 type ArgsArgItems r
-  = ProtoArgsArgItems (| r )
+  = Rec.ArgsArgItems ( argItems :: List ArgItem | r )
 
-type ArgsArgItem r
-  = ProtoArgsArgItems ( i :: Int, argItem :: ArgItem | r )
-
-recArgItems ::
-  forall r a.
-  Lacks "syn" r =>
-  { argItem :: ProtoRec ArgsArgItem r a } ->
-  ProtoRec ArgsArgItems r (List a)
-recArgItems rec args = mapWithIndex (\i argItem -> rec.argItem $ union {i, argItem} args) args.argItems
--- $ union { i, argItem } args) args.argItems
+type ArgsArgItem r rTerm
+  = Rec.ArgsArgItem ( argItems :: List ArgItem, argItem :: ArgItem | r ) rTerm
 
 -- | recSumItems
-type ProtoArgsSumItems r
-  = ProtoArgs ( sumItems :: List SumItem | r )
-
 type ArgsSumItems r
-  = ProtoArgsSumItems (| r )
+  = Rec.ArgsSumItems ( sumItems :: List SumItem | r )
 
-type ArgsSumItem r
-  = ProtoArgsSumItems ( i :: Int, sumItem :: SumItem | r )
+type ArgsSumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem ( sumItems :: List SumItem, sumItem :: SumItem | r ) rTermBind rParamItems
 
-recSumItems ::
-  forall r a.
-  Lacks "syn" r =>
-  { sumItem :: ProtoRec ArgsSumItem r a } ->
-  ProtoRec ArgsSumItems r (List a)
-recSumItems rec args =
-  mapWithIndex
-    (\i sumItem -> rec.sumItem $ union { i, sumItem } args)
-    args.sumItems
-
--- | recCaseItem
-type ProtoArgsCaseItems r
-  = ProtoArgs ( caseItems :: List CaseItem | r )
-
+-- | recCaseItems
 type ArgsCaseItems r
-  = ProtoArgsCaseItems (| r )
+  = Rec.ArgsCaseItems ( caseItems :: List CaseItem | r )
 
-type ArgsCaseItem r
-  = ProtoArgsCaseItems ( i :: Int, caseItem :: CaseItem | r )
-
-recCaseItems ::
-  forall r a.
-  Lacks "syn" r =>
-  { caseItem :: ProtoRec ArgsCaseItem r a } ->
-  ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec args =
-  mapWithIndex
-    (\i caseItem -> rec.caseItem $ union { i, caseItem } args)
-    args.caseItems
+type ArgsCaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem ( caseItems :: List CaseItem, caseItem :: CaseItem | r ) rTermBindItems rTerm
 
 -- | recParamItems
-type ProtoArgsParamItems r
-  = ProtoArgs ( paramItems :: List ParamItem | r )
-
 type ArgsParamItems r
-  = ProtoArgsParamItems (| r )
+  = Rec.ArgsParamItems ( paramItems :: List ParamItem | r )
 
-type ArgsParamItem r
-  = ProtoArgsParamItems ( i :: Int, paramItem :: ParamItem | r )
-
-recParamItems ::
-  forall r a.
-  Lacks "syn" r =>
-  { paramItem :: ProtoRec ArgsParamItem r a } ->
-  ProtoRec ArgsParamItems r (List a)
-recParamItems rec args =
-  mapWithIndex
-    (\i paramItem -> rec.paramItem $ union { i, paramItem } args)
-    args.paramItems
+type ArgsParamItem r rType
+  = Rec.ArgsParamItem ( paramItems :: List ParamItem, paramItem :: ParamItem | r ) rType
 
 -- | recTermBindItems
-type ProtoArgsTermBindItems r
-  = ProtoArgs ( termBindItems :: List TermBindItem | r )
-
 type ArgsTermBindItems r
-  = ProtoArgsTermBindItems (| r )
+  = Rec.ArgsTermBindItems ( termBindItems :: List TermBindItem | r )
 
-type ArgsTermBindItem r
-  = ProtoArgsTermBindItems ( i :: Int, termBindItem :: TermBindItem | r )
-
-recTermBindItems ::
-  forall r a.
-  Lacks "syn" r =>
-  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
-  ProtoRec ArgsTermBindItems r (List a)
-recTermBindItems rec args =
-  mapWithIndex
-    (\i termBindItem -> rec.termBindItem $ union { i, termBindItem } args)
-    args.termBindItems
-
--- | recTermBind
-type ArgsTermBind r
-  = ProtoArgs ( termBind :: TermBind | r )
-
-recTermBind ::
-  forall r a.
-  Lacks "syn" r =>
-  { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBind r a
-recTermBind rec = rec.termBind
+type ArgsTermBindItem r rTermBind
+  = Rec.ArgsTermBindItem ( termBindItems :: List TermBindItem, termBindItem :: TermBindItem | r ) rTermBind
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = ProtoArgs ( typeBind :: TypeBind | r)
+  = Rec.ArgsTypeBind ( typeBind :: TypeBind | r )
 
-recTypeBind ::
-  forall r a.
-  Lacks "syn" r =>
-  { typeBind :: ProtoRec ArgsTypeBind r a } ->
-  ProtoRec ArgsTypeBind r a
-recTypeBind rec = rec.typeBind
+type ArgsTypeBind_TypeBind r rTypeId
+  = Rec.ArgsTypeBind_TypeBind ( typeBind :: TypeBind | r ) rTypeId
+
+-- | recTermBind
+type ArgsTermBind r
+  = Rec.ArgsTermBind ( termBind :: TermBind | r )
+
+type ArgsTermBind_TermBind r rTermId
+  = Rec.ArgsTermBind_TermBind ( termBind :: TermBind | r ) rTermId
 
 -- | recTypeId
 type ArgsTypeId r
-  = ProtoArgs ( typeId :: TypeId | r) 
-
-recTypeId ::
-  forall r a.
-  Lacks "syn" r =>
-  { typeId :: ProtoRec ArgsTypeId r a } ->
-  ProtoRec ArgsTypeId r a
-recTypeId rec = rec.typeId
+  = Rec.ArgsTypeId ( typeId :: TypeId | r )
 
 -- | recTermId
 type ArgsTermId r
-  = ProtoArgs ( termId :: TermId | r )
+  = Rec.ArgsTermId ( termId :: TermId | r )
 
-recTermId ::
-  forall r a.
-  Lacks "syn" r =>
-  { termId :: ProtoRec ArgsTermId r a } ->
-  ProtoRec ArgsTermId r a
-recTermId rec = rec.termId
+-- | recHoleId 
+type ArgsHoleId r
+  = Rec.ArgsHoleId ( holeId :: HoleId | r )
