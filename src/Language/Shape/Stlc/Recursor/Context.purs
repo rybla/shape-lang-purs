@@ -19,16 +19,25 @@ import Undefined (undefined)
 
 -- | ProtoRec
 type ProtoArgs r1 r2
-  = ( ctx :: Record ( ctx :: Context | r1 ) | r2 )
+  = ( ctx :: Record (r1) | r2 )
 
 type ProtoRec args r a
   = Rec.ProtoRec args r a
 
 _ctx = Proxy :: Proxy "ctx"
 
+type CtxWithGoal r
+  = { context :: Context, type_ :: Type | r }
+
+type CtxWithoutGoal r
+  = { context :: Context | r }
+
+toCtxWithoutGoal :: forall r. CtxWithoutGoal r -> CtxWithoutGoal ()
+toCtxWithoutGoal { context } = { context }
+
 -- | recType
 type ProtoArgsType r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( here :: CtxWithoutGoal () | r1 ) r2
 
 type ArgsType r
   = Rec.ArgsType (ProtoArgsType () r)
@@ -55,30 +64,36 @@ recType rec =
     , hole: \args -> rec.hole args
     }
 
+argsArrowType_dom :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_dom = Rec.argsArrowType_dom
+
+argsArrowType_cod :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsArrowType r) -> Record (ArgsType r)
+argsArrowType_cod = Rec.argsArrowType_cod
+
 -- | recTerm
 type ProtoArgsTerm r1 r2
-  = ProtoArgs ( type_ :: Type | r1 ) r2
+  = ProtoArgs ( here :: CtxWithGoal () | r1 ) r2
 
 type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm () r)
 
 type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm ( type_dom :: Type, body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsLam (ProtoArgsTerm ( dom :: Type, body :: CtxWithGoal () ) r)
 
 type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm ( termId :: Context, argItems :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsNeu (ProtoArgsTerm ( termId :: CtxWithoutGoal (), argItems :: CtxWithGoal () ) r)
 
 type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsLet (ProtoArgsTerm ( term :: CtxWithGoal (), body :: CtxWithGoal () ) r)
 
 type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsBuf (ProtoArgsTerm ( term :: CtxWithGoal (), body :: CtxWithGoal () ) r)
 
 type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsData (ProtoArgsTerm ( body :: CtxWithGoal () ) r)
 
 type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( term :: { ctx :: Context, type_ :: Type }, caseItems :: { typeId :: TypeId, ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsMatch (ProtoArgsTerm ( term :: CtxWithGoal (), caseItems :: CtxWithGoal ( typeId :: TypeId ) ) r)
 
 type ArgsHole r
   = Rec.ArgsHole (ProtoArgsTerm () r)
@@ -161,43 +176,69 @@ recTerm rec =
         rec.hole
     }
 
--- -- | recArgItems
--- type ProtoArgsArgItems r1 r2
---   = ProtoArgs r1 r2
--- type ArgsArgItems r
---   = Rec.ArgsArgItems (ProtoArgsArgItems ( type_ :: Type ) r)
--- type ArgsArgItemsCons r
---   = Rec.ArgsArgItemsCons (ProtoArgsArgItems ( type_argItem :: Type, type_argItems :: Type ) r)
--- type ArgsArgItemsNil r
---   = Rec.ArgsArgItemsNil (ProtoArgsArgItems ( type_ :: Type ) r)
--- recArgItems ::
---   forall r a.
---   Lacks "syn" r =>
---   Lacks "ctx" r =>
---   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
---   ProtoRec ArgsArgItems r a
--- recArgItems rec =
---   Rec.recArgItems
---     { cons:
---         rec.cons
---           <<< modifyHetero _ctx
---               ( \{ ctx, type_ } -> case type_ of
---                   ArrowType arrow -> { ctx, type_argItem: arrow.dom, type_argItems: arrow.cod }
---                   _ -> unsafeCrashWith "term of non-arrow type applied as if it was a function"
---               )
---     , nil:
---         rec.nil
---     }
+argsLam_termBind :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLam r) -> Record (ArgsTermBind r)
+argsLam_termBind = Rec.argsLam_termBind >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsLam_body :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLam r) -> Record (ArgsTerm r)
+argsLam_body = Rec.argsLam_body >>> \args -> args { ctx = { here: args.ctx.body } }
+
+argsNeu_termId :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsNeu r) -> Record (ArgsTermId r)
+argsNeu_termId = Rec.argsNeu_termId >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsNeu_argItems :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsNeu r) -> Record (ArgsArgItems r)
+argsNeu_argItems = Rec.argsNeu_argItems >>> \args -> args { ctx = { here: args.ctx.here } }
+
+argsLet_termBind :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLet r) -> Record (ArgsTermBind r)
+argsLet_termBind = Rec.argsLet_termBind >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsLet_type :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLet r) -> Record (ArgsType r)
+argsLet_type = Rec.argsLet_type >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsLet_term :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLet r) -> Record (ArgsTerm r)
+argsLet_term = Rec.argsLet_term >>> \args -> args { ctx = { here: args.ctx.term } }
+
+argsLet_body :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsLet r) -> Record (ArgsTerm r)
+argsLet_body = Rec.argsLet_body >>> \args -> args { ctx = { here: args.ctx.body } }
+
+argsBuf_type :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsBuf r) -> Record (ArgsType r)
+argsBuf_type = Rec.argsBuf_type >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsBuf_term :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsBuf r) -> Record (ArgsTerm r)
+argsBuf_term = Rec.argsBuf_term >>> \args -> args { ctx = { here: args.ctx.term } }
+
+argsBuf_body :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsBuf r) -> Record (ArgsTerm r)
+argsBuf_body = Rec.argsBuf_body >>> \args -> args { ctx = { here: args.ctx.body } }
+
+argsData_typeBind :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsData r) -> Record (ArgsTypeBind r)
+argsData_typeBind = Rec.argsData_typeBind >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsData_sumItems :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsData r) -> Record (ArgsSumItems r)
+argsData_sumItems = Rec.argsData_sumItems >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsData_body :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsData r) -> Record (ArgsTerm r)
+argsData_body = Rec.argsData_body >>> \args -> args { ctx = { here: args.ctx.body } }
+
+argsMatch_typeId :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsMatch r) -> Record (ArgsTypeId r)
+argsMatch_typeId = Rec.argsMatch_typeId >>> \args -> args { ctx = { here: toCtxWithoutGoal args.ctx.here } }
+
+argsMatch_term :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsMatch r) -> Record (ArgsTerm r)
+argsMatch_term = Rec.argsMatch_term >>> \args -> args { ctx = { here: args.ctx.here } }
+
+argsMatch_caseItems :: forall r. Lacks "syn" r => Lacks "ctx" r => Record (ArgsMatch r) -> Record (ArgsCaseItems r)
+argsMatch_caseItems args = undefined
+-- Rec.argsMatch_caseItems ?a
+-- $ args {ctx = ?a}
+-- args { ctx = { here: union {typeId: args.syn.match.typeId} args.ctx.here } }
+
 -- | recArgItems
 type ProtoArgsArgItems r1 r2
-  -- = ProtoArgs ( doms :: List Type, cod :: Type | r1 ) r2
-  = ProtoArgs ( type_ :: Type | r1 ) r2
+  = ProtoArgs ( here :: CtxWithGoal () | r1 ) r2
 
 type ArgsArgItems r
   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
 
 type ArgsArgItem r
-  = Rec.ArgsArgItem (ProtoArgsArgItems ( doms :: List Type, cod :: Type, argItem :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsArgItem (ProtoArgsArgItems ( doms :: List Type, cod :: Type, argItem :: CtxWithGoal () ) r)
 
 recArgItems ::
   forall r a.
@@ -211,13 +252,13 @@ recArgItems rec =
 
 -- | recSumItems
 type ProtoArgsSumItems r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( here :: CtxWithoutGoal () | r1 ) r2
 
 type ArgsSumItems r
   = Rec.ArgsSumItems (ProtoArgsSumItems () r)
 
 type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems ( sumItem :: Context, termBind :: Context, paramItems :: Context ) r)
+  = Rec.ArgsSumItem (ProtoArgsSumItems ( sumItem :: CtxWithoutGoal (), termBind :: CtxWithoutGoal (), paramItems :: CtxWithoutGoal () ) r)
 
 recSumItems ::
   forall r a.
@@ -229,13 +270,13 @@ recSumItems rec = Rec.recSumItems { sumItem: \args@{ ctx: { ctx } } -> rec.sumIt
 
 -- | recCaseItem
 type ProtoArgsCaseItems r1 r2
-  = ProtoArgs ( type_ :: Type, typeId :: TypeId | r1 ) r2
+  = ProtoArgs ( here :: CtxWithGoal ( typeId :: TypeId ) | r1 ) r2
 
 type ArgsCaseItems r
   = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
 
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( ctxs :: List Context, caseItem :: { ctx :: Context, type_ :: Type }, termBindItems :: Context, body :: { ctx :: Context, type_ :: Type } ) r)
+  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( ctxs :: List Context, caseItem :: CtxWithGoal (), termBindItems :: CtxWithoutGoal (), body :: CtxWithGoal () ) r)
 
 recCaseItems ::
   forall r a.
@@ -266,13 +307,13 @@ recCaseItems rec =
 
 -- | recParamItems
 type ProtoArgsParamItems r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( here :: CtxWithoutGoal () | r1 ) r2
 
 type ArgsParamItems r
   = Rec.ArgsParamItems (ProtoArgsParamItems () r)
 
 type ArgsParamItem r
-  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItem :: Context ) r)
+  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItem :: CtxWithoutGoal () ) r)
 
 recParamItems ::
   forall r a.
@@ -284,13 +325,13 @@ recParamItems rec = Rec.recParamItems { paramItem: \args@{ ctx: { ctx } } -> rec
 
 -- | recTermBindItems
 type ProtoArgsTermBindItems r1 r2
-  = ProtoArgs ( | r1 ) r2
+  = ProtoArgs ( here :: CtxWithoutGoal () | r1 ) r2
 
 type ArgsTermBindItems r
   = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
 
 type ArgsTermBindItem r
-  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( termBindItem :: Context, termBind :: Context ) r)
+  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems ( termBindItem :: CtxWithoutGoal (), termBind :: CtxWithoutGoal () ) r)
 
 recTermBindItems ::
   forall r a.
@@ -302,7 +343,7 @@ recTermBindItems rec = Rec.recTermBindItems { termBindItem: \args@{ ctx: { ctx }
 
 -- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgs () r)
+  = Rec.ArgsTermBind (ProtoArgs ( here :: CtxWithoutGoal () ) r)
 
 recTermBind ::
   forall r a.
@@ -314,7 +355,7 @@ recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = Rec.ArgsTypeBind (ProtoArgs () r)
+  = Rec.ArgsTypeBind (ProtoArgs ( here :: CtxWithoutGoal () ) r)
 
 recTypeBind ::
   forall r a.
@@ -326,7 +367,7 @@ recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }
 
 -- | recTypeId
 type ArgsTypeId r
-  = Rec.ArgsTypeId (ProtoArgs () r)
+  = Rec.ArgsTypeId (ProtoArgs ( here :: CtxWithoutGoal () ) r)
 
 recTypeId ::
   forall r a.
@@ -338,7 +379,7 @@ recTypeId = Rec.recTypeId
 
 -- | recTermId
 type ArgsTermId r
-  = Rec.ArgsTermId (ProtoArgs () r)
+  = Rec.ArgsTermId (ProtoArgs ( here :: CtxWithoutGoal () ) r)
 
 recTermId ::
   forall r a.
