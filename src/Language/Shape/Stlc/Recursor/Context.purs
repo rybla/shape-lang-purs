@@ -193,6 +193,26 @@ type ArgsCaseItems r
 type ArgsCaseItem r rTermBindItems rTerm
   = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r ) rTermBindItems rTerm
 
+recArgsCaseItems ::
+  forall r a.
+  Lacks "caseItems" r =>
+  Lacks "gamma" r =>
+  Lacks "alpha" r =>
+  { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItems r) -> List a
+recArgsCaseItems rec =
+  Rec.recArgsCaseItems
+    { caseItem:
+        \args ->
+          rec.caseItem
+            args
+              { termBindItems = prune args.termBindItems
+              , body = args.body
+              }
+    }
+  where
+  prune = R.delete _alpha
+
 -- | recParamItems
 type ArgsParamItems r
   = Rec.ArgsParamItems ( gamma :: Context | r )

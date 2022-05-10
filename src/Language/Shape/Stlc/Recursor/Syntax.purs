@@ -222,6 +222,27 @@ type ArgsCaseItems r
 type ArgsCaseItem r rTermBindItems rTerm
   = Rec.ArgsCaseItem ( caseItems :: List CaseItem, caseItem :: CaseItem | r ) rTermBindItems rTerm
 
+recArgsCaseItems ::
+  forall r a.
+  Lacks "caseItems" r =>
+  { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItems r) -> List a
+recArgsCaseItems rec args =
+  map
+    ( \caseItem ->
+        rec.caseItem
+          $ R.union
+              { caseItem
+              , termBindItems: {termBindItems: caseItem.termBindItems} `R.union` prune args
+              , body: {term: caseItem.body} `R.union` prune args
+              }
+          $ args
+    )
+    args.caseItems
+  where
+  prune = R.delete _caseItems
+
+
 -- | recParamItems
 type ArgsParamItems r
   = Rec.ArgsParamItems ( paramItems :: List ParamItem | r )
