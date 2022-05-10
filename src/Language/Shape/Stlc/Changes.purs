@@ -5,22 +5,24 @@ import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
 
-import Control.Monad.State (State)
+import Control.Monad.State (State, get, put)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.Int.Bits ((.&.))
-import Data.List (List(..))
-import Data.Map (Map, insert)
+import Data.List (List(..), (:), concat)
+import Data.Map (Map, insert, lookup)
 import Data.Map as Map
+import Data.Map.Unsafe (lookup')
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, difference, member)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
-import Language.Shape.Stlc.Context (Context(..), insertVarType)
-import Language.Shape.Stlc.Hole (HoleEq)
+import Data.Traversable (sequence)
+import Language.Shape.Stlc.Context (Context(..), insertVarType, lookupVarType)
+import Language.Shape.Stlc.Hole (HoleEq, unifyTypeRestricted)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), freshHoleId, freshTermId)
+import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), CaseItem, freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -119,8 +121,7 @@ chTerm gamma (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
 chTerm gamma (ArrowType {dom, cod, meta:m1}) chs RemoveArg (Lam {termBind, body, meta:m2})
     = chTerm (insertVarType termBind.termId dom gamma) cod (deleteVar chs termBind.termId) NoChange body
 chTerm gamma ty chs tc t 
-    -- { gamma :{ gamma , type_ : ty} , syn :{term: t}} chs tc
-    = chTermAux undefined chs tc
+    = chTermAux {alpha: ty, gamma: gamma, term: t} chs tc
 
 chTerm' :: Record (Rec.ArgsTerm ()) -> Changes -> TypeChange -> State HoleEq Term 
 chTerm' args chs tc = chTerm args.gamma args.alpha chs tc args.term
@@ -128,7 +129,22 @@ chTerm' args chs tc = chTerm args.gamma args.alpha chs tc args.term
 chTermAux :: Record (Rec.ArgsTerm ()) -> (Changes -> TypeChange -> State HoleEq Term)
 chTermAux args chs sbjto = Rec.recTerm {
     lam : error "shouldn't get here"
-    , neu : undefined -- depends on chargs
+    , neu : \args chs sbjto ->
+        let varType = (lookupVarType args.neu.termId args.gamma) in
+        let ifChanged varTC = do
+                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs sbjto args.argItems.argItems
+                let maybeSub = unifyTypeRestricted (applyTC sbjto args.alpha) (applyTC tc args.alpha)
+                case maybeSub of
+                    Just holeSub -> do subHoles holeSub
+                                       pure $ wrapInDisplaced displaced1 (Neu $ args.neu{argItems = argItems'})
+                    Nothing -> do displaced2 <- displaceArgs args.gamma varType chs args.argItems.argItems
+                                  pure $ wrapInDisplaced (displaced1 <> displaced2) (Hole {meta: default})
+        in
+        case lookup args.neu.termId chs.termChanges of
+            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.argItems.argItems
+                                        pure $ wrapInDisplaced displaced (Hole {meta: default})
+            Just (VariableTypeChange varTC) -> ifChanged varTC
+            Nothing -> ifChanged NoChange
     , let_ : \args chs sbjto -> do
         let (ty' /\ tc) = chType chs.dataTypeDeletions args.let_.sign
         impl' <- chTerm' args.impl chs tc 
@@ -147,13 +163,75 @@ chTermAux args chs sbjto = Rec.recTerm {
         body' <- chTerm' args.body chs sbjto
         pure $ Data $ args.data_ {sumItems= sumItems', body = body'}
     , match : \args chs sbjto -> do
-        -- TODO: TODO: apply data type changes to the match cases
+        -- TODO: this doesn't do any reordering of cases in the match.
+        caseItems' <- sequence (map (\cas -> chCaseItem cas chs sbjto) args.caseItems)
         term' <- chTerm' args.term chs sbjto
-        pure $ Match $ args.match {term = term'}
+        pure $ Match $ args.match {term = term', caseItems = caseItems'}
     , hole : \args chs sbjto -> pure $ Hole args.hole
 } args chs sbjto
 
--- chArgs :: 
+wrapInDisplaced :: Displaced -> Term -> Term
+wrapInDisplaced = undefined
+
+subHoles :: HoleEq -> State HoleEq Unit
+subHoles sub = do
+    holeEq <- get
+    put $ combineSubs holeEq sub
+
+-- chCaseItems :: Record (Rec.ArgsCaseItems ()) -> Changes -> TypeChange -> State HoleEq (List CaseItem)
+-- chCaseItems args chs sbjto = map concat <<< sequence <<< Rec.recArgsCaseItems {
+--     caseItem : ?h
+-- } args
+
+chCaseItem :: Record (Rec.ArgsCaseItem ()) -> Changes -> TypeChange -> State HoleEq CaseItem
+chCaseItem = Rec.recCaseItem {
+    caseItem : \args chs sbjto -> do
+        -- TODO: completely missing changes to datatypes
+        body' <- chTerm' args.body chs sbjto
+        pure $ args.caseItem{body = body'}
+}
+
+type Displaced = List (Term /\ Type)
+chArgs :: Context -> Type -> Changes -> TypeChange -> List ArgItem -> State HoleEq (List ArgItem /\ TypeChange /\ Displaced)
+chArgs ctx (ArrowType {dom, cod}) chs RemoveArg (Cons {term} args) = do
+    (args' /\ chOut /\ displacements) <- chArgs ctx cod chs NoChange args
+    term' <- chTerm ctx dom chs NoChange term  -- TODO: this assumes that no dataTypeDeltions exist in the Changes.
+    pure $ args' /\ chOut /\ ((term' /\ dom) : displacements)
+chArgs ctx a chs (InsertArg t) args = do
+    (rest /\ chOut /\ displacements) <- chArgs ctx a chs NoChange args
+    pure $ (({meta: default, term: Hole {meta: default}} : rest) /\ chOut /\ displacements)
+chArgs ctx (ArrowType {dom, cod}) chs (ArrowCh c1 c2) ({term, meta} : args) = do
+    arg' <- chTerm ctx dom chs c1 term
+    (args' /\ tc /\ displacements) <- chArgs ctx dom chs c2 args
+    pure $ ({term: arg', meta} : args') /\ tc /\ displacements
+chArgs ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
+    ({term: arg1, meta: md1} : {term: arg2, meta: md2} : args) = do
+    arg1' <- chTerm ctx a chs NoChange arg1
+    arg2' <- chTerm ctx b chs NoChange arg2
+    (rest /\ chOut /\ displacements) <- chArgs ctx c chs NoChange args
+    pure $ ({term: arg2', meta: md1} : {term: arg1', meta: md2} : rest) /\ chOut /\ displacements
+chArgs ctx a chs ch Nil = pure $ Nil /\ ch /\ Nil
+chArgs ctx (ArrowType {dom, cod}) chs NoChange ({term, meta} : args) = do
+    arg' <- chTerm ctx dom chs NoChange term
+    args' /\ outCh /\ displacements <- chArgs ctx dom chs NoChange args
+    pure $ ({term: arg', meta} : args') /\ outCh /\ displacements -- of course, always outCh = NoChange and displacements = Nil
+chArgs ctx ty chs (Dig hId) args = do
+    displaced <- displaceArgs ctx ty chs args
+    pure $ Nil /\ (Dig hId) /\ displaced
+chArgs _ _ _ _ _ = error $ "shouldn't get here"
+
+displaceArgs :: Context -> Type -> Changes -> List ArgItem -> State HoleEq Displaced
+displaceArgs ctx _ chs Nil = pure Nil
+displaceArgs ctx (ArrowType {dom, cod}) chs ({term} : args) = do
+    term' <- chTerm ctx dom chs NoChange term
+    rest <- displaceArgs ctx cod chs args
+    pure $ (term' /\ dom) : rest
+displaceArgs _ _ _ _ = error "shouldn't get here"
+
+-- chArgsAux ::  Record (Rec.ArgsArgItems ()) -> (Changes -> TypeChange -> State HoleEq (List ArgItem /\ Displaced))
+-- chArgsAux = Rec.recArgsArgItems {
+--     argItem : \args chs sbjto -> ?h
+-- }
 -- Need to wait for henry to make args recursor
 
 -- data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
@@ -161,7 +239,36 @@ chTermAux args chs sbjto = Rec.recTerm {
 chSum = undefined
 
 inferChTerm :: Record (Rec.ArgsTerm ()) -> (Changes -> State HoleEq (Term /\ TypeChange))
-inferChTerm = undefined
+inferChTerm = Rec.recTerm {
+    lam : \args chs -> do
+        let (alpha' /\ tcIn) = chType chs.dataTypeDeletions args.alpha
+        (body' /\ tcOut) <- inferChTerm args.body (varChange chs args.termBind.termBind.termId tcIn)
+        pure $ (Lam args.lam{body=body'} /\ ArrowCh tcIn tcOut)
+    , neu : undefined -- depends on chargs
+    , let_ : \args chs -> do undefined
+        -- let (ty' /\ tc) = chType chs.dataTypeDeletions args.let_.sign
+        -- impl' <- chTerm' args.impl chs tc 
+        -- body' <- chTerm' args.body (varChange chs args.let_.termBind.termId tc) sbjto
+        -- pure $ Let $ args.let_ {impl = impl', body = body'}
+    , buf : \args chs -> do undefined
+        -- (impl' /\ changedBy) <- inferChTerm args.impl chs
+        -- -- TODO: are datatypedeletions and inference of buffer in correct order? Does this always work?
+        -- let type' = applyTC changedBy args.buf.sign
+        -- let (type'' /\ tc) = chType chs.dataTypeDeletions type'
+        -- body' <- chTerm' args.body chs sbjto
+        -- pure $ Buf $ args.buf {impl = impl', body = body', sign = type''}
+    , data_ : \args chs -> do undefined
+        -- let sumItems' = chSum args chs
+        -- -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
+        -- body' <- chTerm' args.body chs sbjto
+        -- pure $ Data $ args.data_ {sumItems= sumItems', body = body'}
+    , match : \args chs -> do undefined
+        -- -- TODO: TODO: apply data type changes to the match cases
+        -- term' <- chTerm' args.term chs sbjto
+        -- pure $ Match $ args.match {term = term'}
+    , hole : \args chs -> undefined -- pure $ Hole args.hole
+}
+-- inferChTerm = undefined
 -- inferChTerm = Rec.recTerm {
 --     lam : \args chs -> do
 --         -- TODO: is it really right that chs isn't updated from the input to the lambda?
