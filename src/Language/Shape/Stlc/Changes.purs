@@ -132,7 +132,7 @@ chTermAux args chs sbjto = Rec.recTerm {
     , neu : \args chs sbjto ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
-                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs sbjto args.argItems.argItems
+                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.argItems.argItems
                 let maybeSub = unifyTypeRestricted (applyTC sbjto args.alpha) (applyTC tc args.alpha)
                 case maybeSub of
                     Just holeSub -> do subHoles holeSub
@@ -165,13 +165,20 @@ chTermAux args chs sbjto = Rec.recTerm {
     , match : \args chs sbjto -> do
         -- TODO: this doesn't do any reordering of cases in the match.
         caseItems' <- sequence (map (\cas -> chCaseItem cas chs sbjto) args.caseItems)
-        term' <- chTerm' args.term chs sbjto
+        term' <- chTerm' args.term chs NoChange
         pure $ Match $ args.match {term = term', caseItems = caseItems'}
     , hole : \args chs sbjto -> pure $ Hole args.hole
 } args chs sbjto
 
 wrapInDisplaced :: Displaced -> Term -> Term
-wrapInDisplaced = undefined
+wrapInDisplaced Nil term = term
+wrapInDisplaced ((t /\ ty) : displaced) term
+    = Buf {
+            body: (wrapInDisplaced displaced term)
+            , meta: default
+            , sign : ty
+            , impl : t
+          }
 
 subHoles :: HoleEq -> State HoleEq Unit
 subHoles sub = do
@@ -244,52 +251,43 @@ inferChTerm = Rec.recTerm {
         let (alpha' /\ tcIn) = chType chs.dataTypeDeletions args.alpha
         (body' /\ tcOut) <- inferChTerm args.body (varChange chs args.termBind.termBind.termId tcIn)
         pure $ (Lam args.lam{body=body'} /\ ArrowCh tcIn tcOut)
-    , neu : undefined -- depends on chargs
-    , let_ : \args chs -> do undefined
-        -- let (ty' /\ tc) = chType chs.dataTypeDeletions args.let_.sign
-        -- impl' <- chTerm' args.impl chs tc 
-        -- body' <- chTerm' args.body (varChange chs args.let_.termBind.termId tc) sbjto
-        -- pure $ Let $ args.let_ {impl = impl', body = body'}
-    , buf : \args chs -> do undefined
-        -- (impl' /\ changedBy) <- inferChTerm args.impl chs
-        -- -- TODO: are datatypedeletions and inference of buffer in correct order? Does this always work?
-        -- let type' = applyTC changedBy args.buf.sign
-        -- let (type'' /\ tc) = chType chs.dataTypeDeletions type'
+    , neu : \args chs ->
+        let varType = (lookupVarType args.neu.termId args.gamma) in
+        let ifChanged varTC = do
+                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.argItems.argItems
+                pure $ wrapInDisplaced displaced1 (Neu $ args.neu{argItems = argItems'}) /\ tc
+        in
+        case lookup args.neu.termId chs.termChanges of
+            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.argItems.argItems
+                                        pure $ wrapInDisplaced displaced (Hole {meta: default}) /\ NoChange -- TODO: should this be NoChange?
+            Just (VariableTypeChange varTC) -> ifChanged varTC
+            Nothing -> ifChanged NoChange
+    , let_ : \args chs -> do
+        let (ty' /\ tc) = chType chs.dataTypeDeletions args.let_.sign
+        impl' <- chTerm' args.impl chs tc 
+        body' /\ bodyTc <- inferChTerm args.body (varChange chs args.let_.termBind.termId tc)
+        pure $ (Let (args.let_ {impl = impl', body = body'}) /\ bodyTc)
+    , buf : \args chs -> do
+        (impl' /\ changedBy) <- inferChTerm args.impl chs
+        -- TODO: are datatypedeletions and inference of buffer in correct order? Does this always work?
+        let type' = applyTC changedBy args.buf.sign
+        let (type'' /\ tc) = chType chs.dataTypeDeletions type'
         -- body' <- chTerm' args.body chs sbjto
-        -- pure $ Buf $ args.buf {impl = impl', body = body', sign = type''}
-    , data_ : \args chs -> do undefined
-        -- let sumItems' = chSum args chs
-        -- -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
+        body' /\ bodyTc <- inferChTerm args.body chs
+        pure $ Buf (args.buf {impl = impl', body = body', sign = type''}) /\ bodyTc
+    , data_ : \args chs -> do
+        let sumItems' = chSum args chs
+        -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
         -- body' <- chTerm' args.body chs sbjto
-        -- pure $ Data $ args.data_ {sumItems= sumItems', body = body'}
-    , match : \args chs -> do undefined
-        -- -- TODO: TODO: apply data type changes to the match cases
-        -- term' <- chTerm' args.term chs sbjto
-        -- pure $ Match $ args.match {term = term'}
-    , hole : \args chs -> undefined -- pure $ Hole args.hole
+        body' /\ bodyTc <- inferChTerm args.body chs
+        pure $ Data (args.data_ {sumItems= sumItems', body = body'}) /\ bodyTc
+    , match : \args chs -> do
+        -- TODO: this doesn't do any reordering of cases in the match.
+        caseItems' <- sequence (map (\cas -> chCaseItem cas chs NoChange) args.caseItems) -- TODO: what do we really want here?
+        term' <- chTerm' args.term chs NoChange
+        pure $ Match (args.match {term = term', caseItems = caseItems'}) /\ NoChange
+    , hole : \args chs -> pure $ Hole args.hole /\ NoChange -- TODO: is NoChange correct here?
 }
--- inferChTerm = undefined
--- inferChTerm = Rec.recTerm {
---     lam : \args chs -> do
---         -- TODO: is it really right that chs isn't updated from the input to the lambda?
---         -- body <- inferChTerm {gamma: ?h, argsIx: ?h, syn: ?h} chs toReplace
---         -- (body' /\ tc) <- inferChTerm args.body.gamma args.gamma.body.type_ args.lam.body chs
---         (body' /\ tc) <- inferChTerm ?a chs -- {gamma: args.body.gamma, syn: {term : args.lam.body}} chs
---         pure $ Lam (args.lam {body=body'}) /\ ArrowCh NoChange tc
---     , neu : undefined
---     , let_ : \args chs -> do
---         let (ty' /\ tc) = chType chs.dataTypeDeletions args.let_.type_
---         term' <- chTerm args.gamma args.let_.type_ chs tc args.let_.term
---         (body' /\ tc) <- inferChTerm ?a -- {gamma: args.gamma.body, syn: {term: args.let_.body}}
---             (varChange chs args.let_.termBind.termId tc)
---         pure $ Let (args.let_ {term = term', body = body'}) /\ tc
---         -- TODO: big problem: what if the index to be changed is in the definition of the let!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
---         -- one solution: make Changes the sum of what it is now and a Term to replace at index.
---     , buf : undefined
---     , data_ : undefined
---     , match : undefined
---     , hole : undefined
--- }
 
 {-
 
