@@ -190,8 +190,15 @@ renderTerm this =
                 ]
     }
   where
-  makeNodeProps :: forall r. { actions ∷ Array Action, gamma ∷ Context, meta ∷ Metacontext, alpha ∷ Type, visit ∷ Visit | r } -> NodeProps
-  makeNodeProps args = undefined
+  makeNodeProps :: forall r. { actions ∷ Array Action, gamma ∷ Context, alpha :: Type, meta ∷ Metacontext, visit ∷ Visit | r } -> NodeProps
+  makeNodeProps args = 
+    defaultNodeProps
+      { visit = Just args.visit
+      , gamma = args.gamma
+      , goal = Just args.alpha
+      , meta = args.meta
+      , actions = args.actions
+      }
 
 -- renderArgItems :: This -> Record Rec.ArgsArgItems -> M (Array ReactElement)
 -- renderArgItems this =

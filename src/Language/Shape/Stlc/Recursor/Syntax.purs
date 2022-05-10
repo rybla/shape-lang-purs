@@ -3,12 +3,15 @@ module Language.Shape.Stlc.Recursor.Syntax where
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.List (List)
+import Data.List as List
 import Language.Shape.Stlc.Recursor.Base as Rec
-import Prim (Record, Row)
+import Prim (Int, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
+import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 -- | recType
@@ -56,8 +59,7 @@ recType rec args = case args.type_ of
           }
       $ prune args
   where
-  prune :: forall r. Lacks "type_" r => Record ( type_ :: Type | r ) -> Record r
-  prune args = R.delete _type_ args
+  prune = R.delete _type_
 
 -- | recTerm
 type ArgsTerm r
@@ -155,15 +157,34 @@ recTerm rec args = case args.term of
       $ R.union { hole }
       $ prune args
   where
-  prune :: forall r. Lacks "term" r => Record ( term :: Term | r ) -> Record r
-  prune args = R.delete _term args
+  prune = R.delete _term
 
 -- | recArgItems
 type ArgsArgItems r
   = Rec.ArgsArgItems ( argItems :: List ArgItem | r )
 
 type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( argItems :: List ArgItem, argItem :: ArgItem | r ) rTerm
+  = Rec.ArgsArgItem ( argItems :: List ArgItem, i :: Int, argItem :: ArgItem | r ) rTerm
+
+recArgsArgItems ::
+  forall r a.
+  Lacks "argItems" r =>
+  { argItem :: Record (ArgsArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItems r) -> List a
+recArgsArgItems rec args =
+  List.mapWithIndex
+    ( \i argItem ->
+        rec.argItem
+          $ R.union
+              { argItem
+              , i
+              , term: { term: argItem.term } `R.union` prune args
+              }
+          $ args
+    )
+    args.argItems
+  where
+  prune = R.delete _argItems
 
 -- | recSumItems
 type ArgsSumItems r
@@ -171,6 +192,28 @@ type ArgsSumItems r
 
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( sumItems :: List SumItem, sumItem :: SumItem | r ) rTermBind rParamItems
+
+recArgsSumItems ::
+  forall r a.
+  Lacks "sumItems" r =>
+  { sumItem :: Record (ArgsSumItem r (ArgsTermBind r) (ArgsParamItems r)) -> a } ->
+  Record (ArgsSumItems r) -> List a
+recArgsSumItems rec args =
+  map
+    ( \sumItem ->
+        rec.sumItem
+          $ R.union
+              { sumItem
+              , termBind: {termBind: sumItem.termBind} `R.union` prune args
+              , paramItems: {paramItems: sumItem.paramItems} `R.union` prune args
+              }
+          $ args
+    )
+    args.sumItems
+  where
+  prune = R.delete _sumItems
+
+-- TODO: copy-paste this sort of form for all the *Items recursors
 
 -- | recCaseItems
 type ArgsCaseItems r
