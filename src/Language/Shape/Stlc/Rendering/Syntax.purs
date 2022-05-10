@@ -84,9 +84,7 @@ renderType this =
     { arrowType:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "ArrowType" }
-            )
+            ( (makeNodeProps args) { label = Just "ArrowType" })
             [ renderType this args.dom
             , pure [ token.arrowType1 ]
             , renderType this args.cod
@@ -94,17 +92,13 @@ renderType this =
     , dataType:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "DataType" }
-            )
+            ( (makeNodeProps args) { label = Just "DataType" })
             [ printTypeId { typeId: args.dataType.typeId, meta: args.typeId.meta } ]
     , holeType:
         \args -> do
           State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId))
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "HoleType" }
-            )
+            ( (makeNodeProps args) { label = Just "HoleType" })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
   where
@@ -123,9 +117,7 @@ renderTerm this =
     { lam:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Lam" }
-            )
+            ( (makeNodeProps args) { label = Just "Lam" })
             [ pure [ token.lam1 ]
             , pure [] -- renderTermBind this args.termBind
             , pure [ token.lam2 ]
@@ -134,9 +126,7 @@ renderTerm this =
     , neu:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Neu" }
-            )
+            ( (makeNodeProps args) { label = Just "Neu" })
             if List.length args.neu.argItems == 0 then
               [ pure [] -- renderTermId this args.termId
               ]
@@ -148,9 +138,7 @@ renderTerm this =
     , let_:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Let" }
-            )
+            ( (makeNodeProps args) { label = Just "Let" })
             [ pure [ token.let1 ]
             , pure [] -- renderTermBind this args.termBind
             , pure [ token.let2 ]
@@ -163,9 +151,7 @@ renderTerm this =
     , buf:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Buf" }
-            )
+            ( (makeNodeProps args) { label = Just "Buf" })
             [ pure [ token.buf1 ]
             , renderTerm this args.impl
             , pure [ token.buf2 ]
@@ -176,9 +162,7 @@ renderTerm this =
     , data_:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Data" }
-            )
+            ( (makeNodeProps args) { label = Just "Data" })
             [ pure [ token.data1 ]
             , pure [] -- renderTypeBind this args.typeBind
             , pure [ token.data2 ]
@@ -189,9 +173,7 @@ renderTerm this =
     , match:
         \args ->
           renderNode this
-            ( (makeNodeProps args)
-                { label = Just "Match" }
-            )
+            ( (makeNodeProps args) { label = Just "Match" })
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
