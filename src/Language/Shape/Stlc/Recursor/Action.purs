@@ -88,7 +88,7 @@ recTerm ::
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
   , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
-  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
@@ -121,9 +121,10 @@ recTerm rec =
                 args
     , match:
         \args ->
-          rec.match
-            $ R.union { actions: [] }
-                args
+          -- rec.match
+          --   $ R.union { actions: [] }
+          --       args
+          undefined
     , hole:
         \args ->
           rec.hole
@@ -145,12 +146,19 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( actions :: Array Action | r ) rTermBind rParamItems
 
--- | recCaseItems
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( | r )
+-- -- | recCaseItems
+-- type ArgsCaseItems r
+--   = Rec.ArgsCaseItems ( | r )
 
-type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
+-- type ArgsCaseItem r rTermBindItems rTerm
+--   = Rec.ArgsCaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
+
+-- | recCaseItem
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem ( | r )
+
+type ArgsCaseItem_CaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem_CaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
 
 -- | recParamItems
 type ArgsParamItems r

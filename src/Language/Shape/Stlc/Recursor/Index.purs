@@ -122,7 +122,7 @@ recTerm ::
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
   , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
-  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
@@ -173,7 +173,7 @@ recTerm rec =
             args
               { typeId = args.typeId { visit = nonVisit }
               , term = visitVia ixStepMatch.term args.term
-              , caseItems = visitVia ixStepMatch.caseItems args.caseItems
+              , caseItems = undefined -- visitVia ixStepMatch.caseItems args.caseItems
               }
     , hole: rec.hole
     }
@@ -192,12 +192,19 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( visit :: Visit | r ) rTermBind rParamItems
 
--- | recCaseItems
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( visit :: Visit | r )
+-- -- | recCaseItems
+-- type ArgsCaseItems r
+--   = Rec.ArgsCaseItems ( visit :: Visit | r )
 
-type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( visit :: Visit | r ) rTermBindItems rTerm
+-- type ArgsCaseItem r rTermBindItems rTerm
+--   = Rec.ArgsCaseItem ( visit :: Visit | r ) rTermBindItems rTerm
+
+-- | recCaseItems
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem ( visit :: Visit | r )
+
+type ArgsCaseItem_CaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem_CaseItem ( visit :: Visit | r ) rTermBindItems rTerm
 
 -- | recParamItems
 type ArgsParamItems r

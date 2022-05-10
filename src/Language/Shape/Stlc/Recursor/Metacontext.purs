@@ -92,7 +92,7 @@ recTerm ::
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
   , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
-  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
@@ -143,7 +143,7 @@ recTerm rec =
             args
               { typeId = args.typeId
               , term = incrementIndentation `mapArgsMeta` args.term
-              , caseItems = incrementIndentation `mapArgsMeta` args.caseItems
+              , caseItems = undefined -- incrementIndentation `mapArgsMeta` args.caseItems
               }
     , hole: rec.hole
     }
@@ -162,12 +162,12 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( meta :: Metacontext | r ) rTermBind rParamItems
 
--- | recCaseItems
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( meta :: Metacontext | r )
+-- | recCaseItem
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem ( meta :: Metacontext | r )
 
-type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( meta :: Metacontext | r ) rTermBindItems rTerm
+type ArgsCaseItem_CaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem_CaseItem ( meta :: Metacontext | r ) rTermBindItems rTerm
 
 -- | recParamItems
 type ArgsParamItems r
