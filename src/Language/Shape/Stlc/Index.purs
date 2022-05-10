@@ -124,14 +124,14 @@ ixStepNeu =
 
 ixStepLet =
   { termBind: IxStep IxStepLet 0
-  , type_: IxStep IxStepLet 1
-  , term: IxStep IxStepLet 2
+  , sign:  IxStep IxStepLet 1
+  , impl: IxStep IxStepLet 2
   , body: IxStep IxStepLet 3
   }
 
 ixStepBuf =
-  { type_: IxStep IxStepBuf 1
-  , term: IxStep IxStepBuf 0
+  { sign:  IxStep IxStepBuf 1
+  , impl: IxStep IxStepBuf 0
   , body: IxStep IxStepBuf 2
   }
 

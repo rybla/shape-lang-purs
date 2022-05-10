@@ -43,7 +43,7 @@ import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 type RenderEnvironment
-  = { ctx :: Maybe Context
+  = { gamma :: Context
     , meta :: Metacontext
     , goal :: Maybe Type
     , actions :: Array Action
@@ -54,7 +54,7 @@ _holeIds = Proxy :: Proxy "holeIds"
 
 emptyRenderEnvironment :: RenderEnvironment
 emptyRenderEnvironment =
-  { ctx: default
+  { gamma: default
   , meta: default
   , goal: default
   , actions: []
@@ -72,8 +72,8 @@ renderProgram this = do
     $ renderTerm this
         -- TODO: maybe pull this out into multiple files or at least somewhere else?
         { term: st.term
-        , ctx: default
-        , goal: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+        , gamma: default
+        , alpha: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
         , visit: nilVisit (Just st.ix)
         , meta: default
         }
@@ -87,9 +87,9 @@ renderType this =
             ( (makeNodeProps args)
                 { label = Just "ArrowType" }
             )
-            [ -- renderType this ?a -- args.dom
-            -- , pure [ token.arrowType1 ]
-            -- , renderType this ?a -- args.cod
+            [ renderType this args.dom
+            , pure [ token.arrowType1 ]
+            , renderType this args.cod
             ]
     , dataType:
         \args ->
@@ -97,8 +97,7 @@ renderType this =
             ( (makeNodeProps args)
                 { label = Just "DataType" }
             )
-            [ -- pure $ printTypeId { typeId: args.data_.typeId, meta: args.typeId.meta }
-            ]
+            [ printTypeId { typeId: args.dataType.typeId, meta: args.typeId.meta } ]
     , holeType:
         \args -> do
           State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId))
@@ -106,12 +105,17 @@ renderType this =
             ( (makeNodeProps args)
                 { label = Just "HoleType" }
             )
-            [ -- printHoleId { holeId: args.hole.holeId, meta: args.holeId.meta }
-            ]
+            [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
   where
-  makeNodeProps :: forall r. { | r } -> NodeProps
-  makeNodeProps args = undefined
+  makeNodeProps :: forall r. { visit :: Visit, gamma :: Context, meta :: Metacontext, actions :: Array Action | r } -> NodeProps
+  makeNodeProps args =
+    defaultNodeProps
+      { visit = Just args.visit
+      , gamma = args.gamma
+      , meta = args.meta
+      , actions = args.actions
+      }
 
 renderTerm :: This -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
 renderTerm this =
@@ -123,7 +127,7 @@ renderTerm this =
                 { label = Just "Lam" }
             )
             [ pure [ token.lam1 ]
-            , undefined -- renderTermBind this args.termBind
+            , pure [] -- renderTermBind this args.termBind
             , pure [ token.lam2 ]
             , renderTerm this args.body
             ]
@@ -134,12 +138,12 @@ renderTerm this =
                 { label = Just "Neu" }
             )
             if List.length args.neu.argItems == 0 then
-              [ undefined -- renderTermId this args.termId
+              [ pure [] -- renderTermId this args.termId
               ]
             else
-              [ undefined -- renderTermId this args.termId
+              [ pure [] -- renderTermId this args.termId
               , pure [ token.neu1 ]
-              , undefined -- renderArgItems this args.argItems
+              , pure [] -- renderArgItems this args.argItems
               ]
     , let_:
         \args ->
@@ -148,11 +152,11 @@ renderTerm this =
                 { label = Just "Let" }
             )
             [ pure [ token.let1 ]
-            , undefined -- renderTermBind this args.termBind
+            , pure [] -- renderTermBind this args.termBind
             , pure [ token.let2 ]
-            , renderType this args.type_
+            , renderType this args.sign
             , pure [ token.let3 ]
-            , renderTerm this args.term
+            , renderTerm this args.impl
             , pure [ token.let4 ]
             , renderTerm this args.body
             ]
@@ -163,9 +167,9 @@ renderTerm this =
                 { label = Just "Buf" }
             )
             [ pure [ token.buf1 ]
-            , renderTerm this args.term
+            , renderTerm this args.impl
             , pure [ token.buf2 ]
-            , renderType this args.type_
+            , renderType this args.sign
             , pure [ token.buf3 ]
             , renderTerm this args.body
             ]
@@ -176,9 +180,9 @@ renderTerm this =
                 { label = Just "Data" }
             )
             [ pure [ token.data1 ]
-            , undefined -- renderTypeBind this args.typeBind
+            , pure [] -- renderTypeBind this args.typeBind
             , pure [ token.data2 ]
-            , undefined -- renderSumItems this args.sumItems
+            , pure [] -- renderSumItems this args.sumItems
             , pure [ token.data3 ]
             , renderTerm this args.body
             ]
@@ -191,7 +195,7 @@ renderTerm this =
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
-            , undefined -- renderCaseItems this args.caseItems
+            , pure [] -- renderCaseItems this args.caseItems
             ]
     , hole:
         \args ->
@@ -200,11 +204,11 @@ renderTerm this =
                 ( (makeNodeProps args)
                     { label = Just "Hole" }
                 )
-                [ renderType this { type_: args.goal, ctx: args.ctx, visit: nonVisit, meta: args.meta }
+                [ renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
                 ]
     }
   where
-  makeNodeProps :: forall r. {|r} -> NodeProps
+  makeNodeProps :: forall r. { actions ∷ Array Action, gamma ∷ Context, meta ∷ Metacontext, alpha ∷ Type, visit ∷ Visit | r } -> NodeProps
   makeNodeProps args = undefined
 
 -- renderArgItems :: This -> Record Rec.ArgsArgItems -> M (Array ReactElement)
@@ -217,13 +221,13 @@ renderTerm this =
 --                 ( defaultNodeProps
 --                     { label = Just "ArgItem"
 --                     , visit = Just args.ix.argItem
---                     , ctx = Just args.ctx.argItem.ctx
+--                     , gamma = Just args.gamma.argItem.gamma
 --                     , meta = args.meta.meta
 --                     , actions = args.act.actions
 --                     }
 --                 )
 --                 [ pure $ newline args.meta.meta (unwrap args.argItem.meta).indented
---                 , renderTerm this { syn: { term: args.argItem.term }, ctx: args.ctx.argItem, ix: { visit: args.ix.argItem }, meta: { meta: args.meta.meta }, act: {} }
+--                 , renderTerm this { syn: { term: args.argItem.term }, gamma: args.gamma.argItem, ix: { visit: args.ix.argItem }, meta: { meta: args.meta.meta }, act: {} }
 --                 ]
 --         }
 -- renderSumItems :: This -> Record Rec.ArgsSumItems -> M (Array ReactElement)
@@ -236,16 +240,16 @@ renderTerm this =
 --                 ( defaultNodeProps
 --                     { label = Just "SumItem"
 --                     , visit = Just args.ix.sumItem
---                     , ctx = Just args.ctx.ctx
+--                     , gamma = Just args.gamma.gamma
 --                     , meta = args.meta.meta
 --                     , actions = args.act.actions
 --                     }
 --                 )
 --                 [ pure $ newline args.meta.meta (unwrap args.sumItem.meta).indented
 --                 , pure [ token.sumItem1 ]
---                 , renderTermBind this { syn: { termBind: args.sumItem.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.termBind }, act: {} }
+--                 , renderTermBind this { syn: { termBind: args.sumItem.termBind }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.termBind }, act: {} }
 --                 , pure [ token.sumItem2 ]
---                 , renderParamItems this { syn: { paramItems: args.sumItem.paramItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.paramItems }, meta: { meta: args.meta.paramItems }, act: {} }
+--                 , renderParamItems this { syn: { paramItems: args.sumItem.paramItems }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.paramItems }, meta: { meta: args.meta.paramItems }, act: {} }
 --                 ]
 --         }
 -- renderCaseItems :: This -> Record Rec.ArgsCaseItems -> M (Array ReactElement)
@@ -258,16 +262,16 @@ renderTerm this =
 --                 ( defaultNodeProps
 --                     { label = Just "CaseItem"
 --                     , visit = Just args.ix.caseItem
---                     , ctx = Just args.ctx.caseItem.ctx
+--                     , gamma = Just args.gamma.caseItem.gamma
 --                     , meta = args.meta.meta
 --                     , actions = args.act.actions
 --                     }
 --                 )
 --                 [ pure $ newline args.meta.meta (unwrap args.caseItem.meta).indented
 --                 , pure [ token.caseItem1 ]
---                 , renderTermBindItems this { syn: { termBindItems: args.caseItem.termBindItems }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBindItems }, meta: { meta: args.meta.termBindItems }, act: {} }
+--                 , renderTermBindItems this { syn: { termBindItems: args.caseItem.termBindItems }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBindItems }, meta: { meta: args.meta.termBindItems }, act: {} }
 --                 , pure [ token.caseItem2 ]
---                 , renderTerm this { syn: { term: args.caseItem.body }, ctx: args.ctx.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
+--                 , renderTerm this { syn: { term: args.caseItem.body }, gamma: args.gamma.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
 --                 ]
 --         }
 -- renderParamItems :: This -> Record Rec.ArgsParamItems -> M (Array ReactElement)
@@ -280,13 +284,13 @@ renderTerm this =
 --                 ( defaultNodeProps
 --                     { label = Just "ParamItem"
 --                     , visit = Just args.ix.paramItem
---                     , ctx = Just args.ctx.paramItem
+--                     , gamma = Just args.gamma.paramItem
 --                     , meta = args.meta.paramItem
 --                     , actions = args.act.actions
 --                     }
 --                 )
 --                 [ pure $ newline args.meta.meta (unwrap args.paramItem.meta).indented
---                 , renderType this { syn: { type_: args.paramItem.type_ }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.meta }, act: {} }
+--                 , renderType this { syn: { type_: args.paramItem.type_ }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.meta }, act: {} }
 --                 ]
 --         }
 -- renderTermBindItems :: This -> Record Rec.ArgsTermBindItems -> M (Array ReactElement)
@@ -299,13 +303,13 @@ renderTerm this =
 --                 ( defaultNodeProps
 --                     { label = Just "TermBindItem"
 --                     , visit = Just args.ix.termBindItem
---                     , ctx = Just args.ctx.termBindItem
+--                     , gamma = Just args.gamma.termBindItem
 --                     , meta = args.meta.meta
 --                     , actions = args.act.actions
 --                     }
 --                 )
 --                 [ pure $ newline args.meta.meta (unwrap args.termBindItem.meta).indented
---                 , renderTermBind this { syn: { termBind: args.termBindItem.termBind }, ctx: { ctx: args.ctx.ctx }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
+--                 , renderTermBind this { syn: { termBind: args.termBindItem.termBind }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
 --                 ]
 --         }
 -- renderTermBind :: This -> Record Rec.ArgsTermBind -> M (Array ReactElement)
@@ -352,12 +356,13 @@ renderTerm this =
 --             )
 --             [ pure $ printTermId { termId: args.termId, meta: args.meta.meta } ]
 --     }
-printTypeId :: { typeId :: TypeId, meta :: Metacontext } -> Array ReactElement
+printTypeId :: { typeId :: TypeId, meta :: Metacontext } -> M (Array ReactElement)
 printTypeId { typeId, meta } =
-  [ DOM.span [ Props.className "typeId" ]
-      $ printName name
-      <> printShadow shadow
-  ]
+  pure
+    [ DOM.span [ Props.className "typeId" ]
+        $ printName name
+        <> printShadow shadow
+    ]
   where
   name = case Map.lookup typeId (unwrap meta).dataNames of
     Just name -> name
@@ -402,9 +407,9 @@ printShadow shadow =
     []
 
 -- useArgsCtx :: forall r1 r2. Record (RecCtx.ProtoArgsType r1 r2) -> NodeProps -> NodeProps
--- useArgsCtx { ctx } = _ { ctx = Just ctx.ctx }
+-- useArgsCtx { gamma } = _ { gamma = Just gamma.gamma }
 -- useArgsCtx_Term :: forall r1 r2. Record (RecCtx.ProtoArgsTerm r1 r2) -> NodeProps -> NodeProps
--- useArgsCtx_Term { ctx } = _ { ctx = Just ctx.ctx, type_ = Just ctx.type_ }
+-- useArgsCtx_Term { gamma } = _ { gamma = Just gamma.gamma, type_ = Just gamma.type_ }
 -- useArgsMeta :: forall r1 r2. { meta :: { meta :: Metacontext | r1 } | r2 } -> NodeProps -> NodeProps
 -- useArgsMeta { meta: { meta: meta } } = _ { meta = meta }
 -- useArgsIx :: forall r1 r2. Record (RecIx.ProtoArgs r1 r2) -> NodeProps -> NodeProps
@@ -416,7 +421,7 @@ defaultNodeProps =
   { label: default
   , visit: default
   , type_: default
-  , ctx: default
+  , gamma: default
   , meta: default
   , actions: []
   }
@@ -425,7 +430,7 @@ type NodeProps
   = { label :: Maybe String
     , visit :: Maybe Visit
     , type_ :: Maybe Type
-    , ctx :: Maybe Context
+    , gamma :: Context
     , meta :: Metacontext
     , actions :: Array Action
     }
@@ -443,7 +448,7 @@ renderNode this props elemsM = do
     State.modify_
       ( _
           { goal = props.type_
-          , ctx = props.ctx
+          , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta
           }

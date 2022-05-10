@@ -50,10 +50,10 @@ type ArgItem
   = { term :: Term, meta :: ArgItemMetadata }
 
 type Let
-  = { termBind :: TermBind, type_ :: Type, term :: Term, body :: Term, meta :: LetMetadata }
+  = { termBind :: TermBind, sign :: Type, impl :: Term, body :: Term, meta :: LetMetadata }
 
 type Buf
-  = { type_ :: Type, term :: Term, body :: Term, meta :: BufMetadata }
+  = { sign :: Type, impl :: Term, body :: Term, meta :: BufMetadata }
 
 type Data
   = { typeBind :: TypeBind, sumItems :: List SumItem, body :: Term, meta :: DataMetadata }

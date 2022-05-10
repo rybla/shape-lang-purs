@@ -46,30 +46,28 @@ renderEnvironment :: This -> RenderEnvironment -> Array ReactElement
 renderEnvironment this env =
   [ DOM.div [ Props.className "environment" ]
       $ Array.concat
-      $ maybeArray env.ctx \ctx ->
-          Array.concat
-            [ [ DOM.div [ Props.className "header" ] [ DOM.text "Context" ] ]
-            , renderContext ctx
-            , Array.concat
-                $ maybeArray env.goal \goal ->
-                    Array.concat
-                      [ [ DOM.div [ Props.className "environment-divider" ] [] ]
-                      , flip State.evalState env $ undefined -- renderType this { syn: { type_: goal }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
-                      ]
-            ]
+          [ [ DOM.div [ Props.className "header" ] [ DOM.text "Context" ] ]
+          , renderContext env.gamma
+          , Array.concat
+              $ maybeArray env.goal \goal ->
+                  Array.concat
+                    [ [ DOM.div [ Props.className "environment-divider" ] [] ]
+                    , flip State.evalState env $ undefined -- renderType this { syn: { type_: goal }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
+                    ]
+          ]
   ]
   where
-  renderContext ctx =
+  renderContext gamma =
     [ DOM.div
         [ Props.className "context" ]
-        [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> OrderedMap.keys (unwrap ctx).datas
-        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable $ renderVarType <$> OrderedMap.keys (unwrap ctx).varTypes
+        [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> OrderedMap.keys (unwrap gamma).datas
+        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable $ renderVarType <$> OrderedMap.keys (unwrap gamma).varTypes
         ]
     ]
     where
     renderData typeId =
       let
-        data_ = OrderedMap.lookup'' "renderData.data_" typeId (unwrap ctx).datas
+        data_ = OrderedMap.lookup'' "renderData.data_" typeId (unwrap gamma).datas
 
         meta' = Map.lookup'' "renderData.meta'" typeId (unwrap env.meta).dataMetas
 
@@ -79,12 +77,12 @@ renderEnvironment this env =
           $ Array.concat
               [ [ token.data1 ]
               , flip State.evalState env' $ undefined -- renderTypeBind this ?a
-              -- { syn: { typeBind: data_.typeBind }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              -- { syn: { typeBind: data_.typeBind }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               ]
 
     renderVarType termId =
       let
-        type_ = OrderedMap.lookup'' "renderVarType.type_" termId (unwrap ctx).varTypes
+        type_ = OrderedMap.lookup'' "renderVarType.type_" termId (unwrap gamma).varTypes
 
         meta' = Map.lookup'' "renderVarType.meta'" termId (unwrap env.meta).varMetas
 
@@ -92,9 +90,9 @@ renderEnvironment this env =
       in
         DOM.span [ Props.className "context-varType" ]
           $ Array.concat
-              [ flip State.evalState env' $ undefined -- renderTermId this { syn: { termId }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              [ flip State.evalState env' $ undefined -- renderTermId this { syn: { termId }, gamma: { gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               , [ token.let2 ]
-              , flip State.evalState env' $ undefined -- renderType this { syn: { type_ }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              , flip State.evalState env' $ undefined -- renderType this { syn: { type_ }, gamma: { gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               ]
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement

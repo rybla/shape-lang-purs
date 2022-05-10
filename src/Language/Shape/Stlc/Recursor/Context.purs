@@ -15,28 +15,25 @@ import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
-mapArgsCtx :: forall r. (Context -> Context) -> { ctx :: Context | r } -> { ctx :: Context | r }
-mapArgsCtx f args = args { ctx = f args.ctx }
+mapArgsCtx :: forall r. (Context -> Context) -> { gamma :: Context | r } -> { gamma :: Context | r }
+mapArgsCtx f args = args { gamma = f args.gamma }
 
 -- | recType
-type ProtoArgsType r
-  = ( ctx :: Context | r )
 
 type ArgsType r
-  = Rec.ArgsType (ProtoArgsType r)
+  = Rec.ArgsType ( gamma :: Context | r )
 
 type ArgsArrowType r rType
-  = Rec.ArgsArrowType (ProtoArgsType r) rType
+  = Rec.ArgsArrowType ( gamma :: Context | r ) rType
 
 type ArgsDataType r rTypeId
-  = Rec.ArgsDataType (ProtoArgsType r) rTypeId
+  = Rec.ArgsDataType ( gamma :: Context | r ) rTypeId
 
 type ArgsHoleType r rHoleId
-  = Rec.ArgsHoleType (ProtoArgsType r) rHoleId
+  = Rec.ArgsHoleType ( gamma :: Context | r ) rHoleId
 
 recType ::
   forall r a.
-  Lacks "typeId" r =>
   Lacks "type_" r =>
   { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
   , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
@@ -46,37 +43,34 @@ recType ::
 recType = Rec.recType
 
 -- | recTerm
-type ProtoArgsTerm r
-  = ( ctx :: Context, goal :: Type | r )
-
 type ArgsTerm r
-  = Rec.ArgsTerm (ProtoArgsTerm r)
+  = Rec.ArgsTerm ( gamma :: Context, alpha :: Type | r )
 
 type ArgsLam r rTermBind rTerm
-  = Rec.ArgsLam (ProtoArgsTerm ( | r )) rTermBind rTerm
+  = Rec.ArgsLam ( gamma :: Context, alpha :: Type | r ) rTermBind rTerm
 
 type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu (ProtoArgsTerm ( | r )) rTermId rArgItems
+  = Rec.ArgsNeu ( gamma :: Context, alpha :: Type | r ) rTermId rArgItems
 
 type ArgsLet r termBind rType rTerm
-  = Rec.ArgsLet (ProtoArgsTerm ( | r )) termBind rType rTerm
+  = Rec.ArgsLet ( gamma :: Context, alpha :: Type | r ) termBind rType rTerm
 
 type ArgsBuf r rType rTerm
-  = Rec.ArgsBuf (ProtoArgsTerm ( | r )) rType rTerm
+  = Rec.ArgsBuf ( gamma :: Context, alpha :: Type | r ) rType rTerm
 
 type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData (ProtoArgsTerm ( | r )) rTypeBind rTerm rSumItems
+  = Rec.ArgsData ( gamma :: Context, alpha :: Type | r ) rTypeBind rTerm rSumItems
 
 type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch (ProtoArgsTerm ( | r )) rTypeId rTerm rCaseItems
+  = Rec.ArgsMatch ( gamma :: Context, alpha :: Type | r ) rTypeId rTerm rCaseItems
 
 type ArgsHole r
-  = Rec.ArgsHole (ProtoArgsTerm ( | r ))
+  = Rec.ArgsHole ( gamma :: Context, alpha :: Type | r )
 
 recTerm ::
   forall r a.
   Lacks "term" r =>
-  Lacks "goal" r =>
+  Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
   , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
@@ -94,7 +88,7 @@ recTerm rec =
             args
               { termBind = prune args.termBind
               , body =
-                case args.goal of
+                case args.alpha of
                   ArrowType arrowType -> insertVarType args.lam.termBind.termId arrowType.dom `mapArgsCtx` args.body
                   _ -> unsafeCrashWith "badly-typed lam"
               }
@@ -103,28 +97,28 @@ recTerm rec =
           rec.neu
             args
               { termId = prune args.termId
-              , argItems = R.union { appType: lookupVarType args.neu.termId args.ctx } $ prune args.argItems
+              , argItems = R.union { appType: lookupVarType args.neu.termId args.gamma } $ prune args.argItems
               }
     , let_:
         \args ->
           rec.let_
             args
               { termBind = prune args.termBind
-              , type_ = prune args.type_
-              , term =
-                args.term
-                  { ctx = insertVarType args.let_.termBind.termId args.let_.type_ args.ctx
-                  , goal = args.let_.type_
+              , sign = prune args.sign
+              , impl =
+                args.impl
+                  { gamma = insertVarType args.let_.termBind.termId args.let_.sign args.gamma
+                  , alpha = args.let_.sign
                   }
               , body =
-                args.body { ctx = insertVarType args.let_.termBind.termId args.let_.type_ args.ctx }
+                args.body { gamma = insertVarType args.let_.termBind.termId args.let_.sign args.gamma }
               }
     , buf:
         \args ->
           rec.buf
             args
-              { type_ = prune args.type_
-              , term = args.term { goal = args.buf.type_ }
+              { sign = prune args.sign
+              , impl = args.impl { alpha = args.buf.sign }
               }
     , data_:
         \args ->
@@ -132,79 +126,79 @@ recTerm rec =
             args
               { typeBind = prune args.typeBind
               , sumItems = prune args.sumItems
-              , body = args.body { ctx = insertData args.data_ args.body.ctx }
+              , body = args.body { gamma = insertData args.data_ args.body.gamma }
               }
     , match:
         \args ->
           rec.match
             args
               { typeId = prune args.typeId
-              , term = args.term { goal = DataType { typeId: args.match.typeId, meta: default } }
+              , term = args.term { alpha = DataType { typeId: args.match.typeId, meta: default } }
               , caseItems = args.caseItems
               }
     , hole: rec.hole
     }
   where
-  prune :: forall r. Lacks "goal" r => Record ( goal :: Type | r ) -> Record r
-  prune args = R.delete _goal args
+  prune :: forall r. Lacks "alpha" r => Record ( alpha :: Type | r ) -> Record r
+  prune args = R.delete _alpha args
 
 -- | recArgItems
 type ArgsArgItems r
-  = Rec.ArgsArgItems ( ctx :: Context, appType :: Type | r )
+  = Rec.ArgsArgItems ( gamma :: Context, appType :: Type | r )
 
 type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( ctx :: Context, goal :: Type | r ) rTerm
+  = Rec.ArgsArgItem ( gamma :: Context, alpha :: Type | r ) rTerm
 
 -- | recSumItems
 type ArgsSumItems r
-  = Rec.ArgsSumItems ( ctx :: Context | r )
+  = Rec.ArgsSumItems ( gamma :: Context | r )
 
 type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( ctx :: Context | r ) rTermBind rParamItems
+  = Rec.ArgsSumItem ( gamma :: Context | r ) rTermBind rParamItems
 
 -- | recCaseItems
 type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( ctx :: Context, goal :: Type | r )
+  = Rec.ArgsCaseItems ( gamma :: Context, alpha :: Type | r )
 
 type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( ctx :: Context, goal :: Type | r ) rTermBindItems rTerm
+  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r ) rTermBindItems rTerm
 
 -- | recParamItems
 type ArgsParamItems r
-  = Rec.ArgsParamItems ( ctx :: Context | r )
+  = Rec.ArgsParamItems ( gamma :: Context | r )
 
 type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( ctx :: Context | r ) rType
+  = Rec.ArgsParamItem ( gamma :: Context | r ) rType
 
 -- | recTermBindItems
 type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( ctx :: Context | r )
+  = Rec.ArgsTermBindItems ( gamma :: Context | r )
 
 type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( ctx :: Context | r ) rTermBind
+  = Rec.ArgsTermBindItem ( gamma :: Context | r ) rTermBind
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = Rec.ArgsTypeBind ( ctx :: Context | r )
+  = Rec.ArgsTypeBind ( gamma :: Context | r )
 
 type ArgsTypeBind_TypeBind r rTypeId
-  = Rec.ArgsTypeBind_TypeBind ( ctx :: Context | r ) rTypeId
+  = Rec.ArgsTypeBind_TypeBind ( gamma :: Context | r ) rTypeId
 
 -- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind ( ctx :: Context | r )
+  = Rec.ArgsTermBind ( gamma :: Context | r )
 
 type ArgsTermBind_TermBind r rTermId
-  = Rec.ArgsTermBind_TermBind ( ctx :: Context | r ) rTermId
+  = Rec.ArgsTermBind_TermBind ( gamma :: Context | r ) rTermId
 
 -- | recTypeId
 type ArgsTypeId r
-  = Rec.ArgsTypeId ( ctx :: Context | r )
+  = Rec.ArgsTypeId ( gamma :: Context | r )
 
 -- | recTermId
 type ArgsTermId r
-  = Rec.ArgsTermId ( ctx :: Context | r )
+  = Rec.ArgsTermId ( gamma :: Context | r )
 
 -- | recHoleId 
 type ArgsHoleId r
-  = Rec.ArgsHoleId ( ctx :: Context | r )
+  = Rec.ArgsHoleId ( gamma :: Context | r )

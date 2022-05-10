@@ -66,11 +66,11 @@ unifyTypeRestricted _ _ = Nothing
 subTerm :: HoleSub -> Term -> Term
 subTerm sub (Lam {termBind, body, meta}) = Lam {termBind, body:(subTerm sub body), meta}
 subTerm sub (Neu {termId, argItems, meta}) = Neu {termId, argItems: map (subArgItem sub) argItems, meta}
-subTerm sub (Let {termBind, type_, term, body, meta})
-  = Let {termBind, type_: subType sub type_, term: subTerm sub term,
+subTerm sub (Let {termBind, sign, impl, body, meta})
+  = Let {termBind, sign: subType sub sign, impl: subTerm sub impl,
           body: subTerm sub body, meta}
-subTerm sub (Buf {type_, term, body, meta}) =
-  Buf {type_: subType sub type_, term: subTerm sub term, body: subTerm sub body, meta}
+subTerm sub (Buf {sign, impl, body, meta}) =
+  Buf {sign: subType sub sign, impl: subTerm sub impl, body: subTerm sub body, meta}
 subTerm sub (Data {typeBind, sumItems, body, meta}) =
   Data {typeBind, sumItems: map (subSumItem sub) sumItems, body: subTerm sub body, meta}
 subTerm sub (Match {typeId, term, caseItems, meta})

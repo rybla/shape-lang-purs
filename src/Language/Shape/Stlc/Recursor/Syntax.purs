@@ -26,7 +26,6 @@ type ArgsHoleType r rHoleId
 
 recType ::
   forall r a.
-  Lacks "typeId" r =>
   Lacks "type_" r =>
   { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
   , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
@@ -119,8 +118,8 @@ recTerm rec args = case args.term of
       $ R.union
           { let_
           , termBind: { termBind: let_.termBind } `R.union` prune args
-          , type_: { type_: let_.type_ } `R.union` prune args
-          , term: { term: let_.term } `R.union` prune args
+          , sign: { type_: let_.sign } `R.union` prune args
+          , impl: { term: let_.impl } `R.union` prune args
           , body: { term: let_.body } `R.union` prune args
           }
       $ prune args
@@ -128,8 +127,8 @@ recTerm rec args = case args.term of
     rec.buf
       $ R.union
           { buf
-          , type_: { type_: buf.type_ } `R.union` prune args
-          , term: { term: buf.term } `R.union` prune args
+          , sign: { type_: buf.sign } `R.union` prune args
+          , impl: { term: buf.impl } `R.union` prune args
           , body: { term: buf.body } `R.union` prune args
           }
       $ prune args

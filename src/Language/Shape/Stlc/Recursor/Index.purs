@@ -61,9 +61,7 @@ type ArgsHoleType r rHoleId
 
 recType ::
   forall r a.
-  Lacks "typeId" r =>
   Lacks "type_" r =>
-  Lacks "visit" r =>
   { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
   , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
   , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
@@ -118,8 +116,7 @@ type ArgsHole r
 recTerm ::
   forall r a.
   Lacks "term" r =>
-  Lacks "goal" r =>
-  Lacks "visit" r =>
+  Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
   , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
@@ -150,16 +147,16 @@ recTerm rec =
           rec.let_
             args
               { termBind = visitVia ixStepLet.termBind args.termBind
-              , type_ = visitVia ixStepLet.type_ args.type_
-              , term = visitVia ixStepLet.term args.term
+              , sign = visitVia ixStepLet.sign args.sign
+              , impl = visitVia ixStepLet.impl args.impl
               , body = visitVia ixStepLet.body args.body
               }
     , buf:
         \args ->
           rec.buf
             args
-              { type_ = visitVia ixStepBuf.type_ args.type_
-              , term = visitVia ixStepBuf.term args.term
+              { sign = visitVia ixStepBuf.sign args.sign
+              , impl = visitVia ixStepBuf.impl args.impl
               , body = visitVia ixStepBuf.body args.body
               }
     , data_:

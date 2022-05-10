@@ -39,10 +39,10 @@ type ArgsNeu r rTermId rArgItems
   = ( termId :: Record rTermId, argItems :: Record rArgItems | r )
 
 type ArgsLet r rTermBind rType rTerm
-  = ( termBind :: Record rTermBind, type_ :: Record rType, term :: Record rTerm, body :: Record rTerm | r )
+  = ( termBind :: Record rTermBind, sign :: Record rType, impl :: Record rTerm, body :: Record rTerm | r )
 
 type ArgsBuf r rType rTerm
-  = ( type_ :: Record rType, term :: Record rTerm, body :: Record rTerm | r )
+  = ( sign :: Record rType, impl :: Record rTerm, body :: Record rTerm | r )
 
 type ArgsData r rTypeBind rSumItems rTerm
   = ( typeBind :: Record rTypeBind, sumItems :: Record rSumItems, body :: Record rTerm | r )

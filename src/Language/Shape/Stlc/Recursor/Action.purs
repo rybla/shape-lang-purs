@@ -29,10 +29,7 @@ type ArgsHoleType r rHoleId
 
 recType ::
   forall r a.
-  Lacks "typeId" r =>
   Lacks "type_" r =>
-  Lacks "visit" r =>
-  Lacks "meta" r =>
   { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
   , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
   , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
@@ -85,9 +82,7 @@ type ArgsHole r
 recTerm ::
   forall r a.
   Lacks "term" r =>
-  Lacks "goal" r =>
-  Lacks "visit" r =>
-  Lacks "meta" r =>
+  Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
   , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
