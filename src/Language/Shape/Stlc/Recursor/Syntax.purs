@@ -3,7 +3,6 @@ module Language.Shape.Stlc.Recursor.Syntax where
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.List (List)
 import Data.List as List
 import Language.Shape.Stlc.Recursor.Base as Rec
@@ -94,7 +93,7 @@ recTerm ::
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
   , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
-  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
@@ -149,7 +148,7 @@ recTerm rec args = case args.term of
           { match
           , typeId: { typeId: match.typeId } `R.union` prune args
           , term: { term: match.term } `R.union` prune args
-          , caseItems: { caseItems: match.caseItems } `R.union` prune args
+          , caseItems: map (\caseItem -> { caseItem } `R.union` prune args) match.caseItems
           }
       $ prune args
   Hole hole ->
@@ -166,12 +165,12 @@ type ArgsArgItems r
 type ArgsArgItem r rTerm
   = Rec.ArgsArgItem ( argItems :: List ArgItem, i :: Int, argItem :: ArgItem | r ) rTerm
 
-recArgsArgItems ::
+recArgItems ::
   forall r a.
   Lacks "argItems" r =>
   { argItem :: Record (ArgsArgItem r (ArgsTerm r)) -> a } ->
   Record (ArgsArgItems r) -> List a
-recArgsArgItems rec args =
+recArgItems rec args =
   List.mapWithIndex
     ( \i argItem ->
         rec.argItem
@@ -193,19 +192,19 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( sumItems :: List SumItem, sumItem :: SumItem | r ) rTermBind rParamItems
 
-recArgsSumItems ::
+recSumItems ::
   forall r a.
   Lacks "sumItems" r =>
   { sumItem :: Record (ArgsSumItem r (ArgsTermBind r) (ArgsParamItems r)) -> a } ->
   Record (ArgsSumItems r) -> List a
-recArgsSumItems rec args =
+recSumItems rec args =
   map
     ( \sumItem ->
         rec.sumItem
           $ R.union
               { sumItem
-              , termBind: {termBind: sumItem.termBind} `R.union` prune args
-              , paramItems: {paramItems: sumItem.paramItems} `R.union` prune args
+              , termBind: { termBind: sumItem.termBind } `R.union` prune args
+              , paramItems: { paramItems: sumItem.paramItems } `R.union` prune args
               }
           $ args
     )
@@ -213,35 +212,27 @@ recArgsSumItems rec args =
   where
   prune = R.delete _sumItems
 
--- TODO: copy-paste this sort of form for all the *Items recursors
+-- | recCaseItem
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem ( caseItem :: CaseItem | r )
 
--- | recCaseItems
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( caseItems :: List CaseItem | r )
+type ArgsCaseItem_CaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem_CaseItem ( caseItem :: CaseItem | r ) rTermBindItems rTerm
 
-type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( caseItems :: List CaseItem, caseItem :: CaseItem | r ) rTermBindItems rTerm
-
-recArgsCaseItems ::
+recCaseItem ::
   forall r a.
-  Lacks "caseItems" r =>
-  { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
-  Record (ArgsCaseItems r) -> List a
-recArgsCaseItems rec args =
-  map
-    ( \caseItem ->
-        rec.caseItem
-          $ R.union
-              { caseItem
-              , termBindItems: {termBindItems: caseItem.termBindItems} `R.union` prune args
-              , body: {term: caseItem.body} `R.union` prune args
-              }
-          $ args
-    )
-    args.caseItems
+  Lacks "caseItem" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItem r) -> a
+recCaseItem rec args =
+  rec.caseItem
+    $ R.union
+        { termBindItems: { termBindItems: args.caseItem.termBindItems } `R.union` prune args
+        , body: { term: args.caseItem.body } `R.union` prune args
+        }
+        args
   where
-  prune = R.delete _caseItems
-
+  prune = R.delete (Proxy :: Proxy "caseItem")
 
 -- | recParamItems
 type ArgsParamItems r
