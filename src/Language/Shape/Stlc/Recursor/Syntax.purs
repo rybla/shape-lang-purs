@@ -4,7 +4,6 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.List (List)
-import Language.Shape.Stlc.Recursor.Base (atHere)
 import Language.Shape.Stlc.Recursor.Base as Rec
 import Prim (Record, Row)
 import Prim as Prim
@@ -13,20 +12,17 @@ import Record as R
 import Undefined (undefined)
 
 -- | recType
-type ProtoArgsType r
-  = ( type_ :: Type | r )
-
 type ArgsType r
-  = Rec.ArgsType (ProtoArgsType r)
+  = Rec.ArgsType ( type_ :: Type | r )
 
 type ArgsArrowType r rType
-  = Rec.ArgsArrowType (ProtoArgsType ( arrowType :: ArrowType | r )) rType
+  = Rec.ArgsArrowType ( arrowType :: ArrowType | r ) rType
 
 type ArgsDataType r rTypeId
-  = Rec.ArgsDataType (ProtoArgsType ( dataType :: DataType | r )) rTypeId
+  = Rec.ArgsDataType ( dataType :: DataType | r ) rTypeId
 
 type ArgsHoleType r rHoleId
-  = Rec.ArgsHoleType (ProtoArgsType ( holeType :: HoleType | r )) rHoleId
+  = Rec.ArgsHoleType ( holeType :: HoleType | r ) rHoleId
 
 recType ::
   forall r a.
@@ -37,51 +33,57 @@ recType ::
   , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
   } ->
   Record (ArgsType r) -> a
-recType rec args = case args.here.type_ of
+recType rec args = case args.type_ of
   ArrowType arrowType ->
     rec.arrowType
-      { here: R.union { arrowType } $ args.here
-      , dom: { here: _ { type_ = arrowType.dom } $ args.here }
-      , cod: { here: _ { type_ = arrowType.cod } $ args.here }
-      }
+      $ R.union
+          { arrowType
+          , dom: R.union { type_: arrowType.dom } $ prune args
+          , cod: R.union { type_: arrowType.cod } $ prune args
+          }
+      $ prune args
   DataType dataType ->
     rec.dataType
-      { here: R.union { dataType } $ args.here
-      , typeId: { here: R.union { typeId: dataType.typeId } $ R.delete _type_ $ args.here }
-      }
+      $ R.union
+          { dataType
+          , typeId: R.union { typeId: dataType.typeId } $ prune args
+          }
+      $ prune args
   HoleType holeType ->
     rec.holeType
-      { here: R.union { holeType } $ args.here
-      , holeId: { here: R.union { holeId: holeType.holeId } $ R.delete _type_ $ args.here }
-      }
+      $ R.union
+          { holeType
+          , holeId: R.union { holeId: holeType.holeId } $ prune args
+          }
+      $ prune args
+  where
+  prune :: forall r. Lacks "type_" r => Record ( type_ :: Type | r ) -> Record r
+  prune args = R.delete _type_ args
 
 -- | recTerm
-type ProtoArgsTerm r
-  = ( term :: Term | r )
-
 type ArgsTerm r
-  = Rec.ArgsTerm (ProtoArgsTerm r)
+  = Rec.ArgsTerm ( term :: Term | r )
 
 type ArgsLam r rTermBind rTerm
-  = Rec.ArgsLam (ProtoArgsTerm ( lam :: Lam | r )) rTermBind rTerm
+  = Rec.ArgsLam ( lam :: Lam | r ) rTermBind rTerm
 
 type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu (ProtoArgsTerm ( neu :: Neu | r )) rTermId rArgItems
+  = Rec.ArgsNeu ( neu :: Neu | r ) rTermId rArgItems
 
 type ArgsLet r termBind rType rTerm
-  = Rec.ArgsLet (ProtoArgsTerm ( let_ :: Let | r )) termBind rType rTerm
+  = Rec.ArgsLet ( let_ :: Let | r ) termBind rType rTerm
 
 type ArgsBuf r rType rTerm
-  = Rec.ArgsBuf (ProtoArgsTerm ( buf :: Buf | r )) rType rTerm
+  = Rec.ArgsBuf ( buf :: Buf | r ) rType rTerm
 
 type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData (ProtoArgsTerm ( data_ :: Data | r )) rTypeBind rTerm rSumItems
+  = Rec.ArgsData ( data_ :: Data | r ) rTypeBind rTerm rSumItems
 
 type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch (ProtoArgsTerm ( match :: Match | r )) rTypeId rTerm rCaseItems
+  = Rec.ArgsMatch ( match :: Match | r ) rTypeId rTerm rCaseItems
 
 type ArgsHole r
-  = Rec.ArgsHole (ProtoArgsTerm ( hole :: Hole | r ))
+  = Rec.ArgsHole ( hole :: Hole | r )
 
 recTerm ::
   forall r a.
@@ -95,52 +97,67 @@ recTerm ::
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
-recTerm rec args = case args.here.term of
+recTerm rec args = case args.term of
   Lam lam ->
     rec.lam
-      { here: { lam } `R.union` args.here
-      , termBind: (R.union { termBind: lam.termBind } <<< R.delete _term) `atHere` args
-      , body: (_ { term = lam.body }) `atHere` args
-      }
+      $ R.union
+          { lam
+          , termBind: { termBind: lam.termBind } `R.union` prune args
+          , body: { term: lam.body } `R.union` prune args
+          }
+      $ prune args
   Neu neu ->
     rec.neu
-      { here: { neu } `R.union` args.here
-      , termId: (R.union { termId: neu.termId } <<< R.delete _term) `atHere` args
-      , argItems: (R.union { argItems: neu.argItems } <<< R.delete _term) `atHere` args
-      }
+      $ R.union
+          { neu
+          , termId: { termId: neu.termId } `R.union` prune args
+          , argItems: { argItems: neu.argItems } `R.union` prune args
+          }
+      $ prune args
   Let let_ ->
     rec.let_
-      { here: { let_ } `R.union` args.here
-      , termBind: (R.union { termBind: let_.termBind } <<< R.delete _term) `atHere` args
-      , type_: (R.union { type_: let_.type_ } <<< R.delete _term) `atHere` args
-      , term: (R.union { term: let_.term } <<< R.delete _term) `atHere` args
-      , body: (R.union { term: let_.body } <<< R.delete _term) `atHere` args
-      }
+      $ R.union
+          { let_
+          , termBind: { termBind: let_.termBind } `R.union` prune args
+          , type_: { type_: let_.type_ } `R.union` prune args
+          , term: { term: let_.term } `R.union` prune args
+          , body: { term: let_.body } `R.union` prune args
+          }
+      $ prune args
   Buf buf ->
     rec.buf
-      { here: { buf } `R.union` args.here
-      , type_: (R.union { type_: buf.type_ } <<< R.delete _term) `atHere` args
-      , term: (R.union { term: buf.term } <<< R.delete _term) `atHere` args
-      , body: (R.union { term: buf.body } <<< R.delete _term) `atHere` args
-      }
+      $ R.union
+          { buf
+          , type_: { type_: buf.type_ } `R.union` prune args
+          , term: { term: buf.term } `R.union` prune args
+          , body: { term: buf.body } `R.union` prune args
+          }
+      $ prune args
   Data data_ ->
     rec.data_
-      { here: { data_ } `R.union` args.here
-      , typeBind: (R.union { typeBind: data_.typeBind } <<< R.delete _term) `atHere` args
-      , sumItems: (R.union { sumItems: data_.sumItems } <<< R.delete _term) `atHere` args
-      , body: (R.union { term: data_.body } <<< R.delete _term) `atHere` args
-      }
+      $ R.union
+          { data_
+          , typeBind: { typeBind: data_.typeBind } `R.union` prune args
+          , sumItems: { sumItems: data_.sumItems } `R.union` prune args
+          , body: { term: data_.body } `R.union` prune args
+          }
+      $ prune args
   Match match ->
     rec.match
-      { here: { match } `R.union` args.here
-      , typeId: (R.union { typeId: match.typeId } <<< R.delete _term) `atHere` args
-      , term: (R.union { term: match.term } <<< R.delete _term) `atHere` args
-      , caseItems: (R.union { caseItems: match.caseItems } <<< R.delete _term) `atHere` args
-      }
+      $ R.union
+          { match
+          , typeId: { typeId: match.typeId } `R.union` prune args
+          , term: { term: match.term } `R.union` prune args
+          , caseItems: { caseItems: match.caseItems } `R.union` prune args
+          }
+      $ prune args
   Hole hole ->
     rec.hole
-      { here: { hole } `R.union` args.here
-      }
+      $ R.union { hole }
+      $ prune args
+  where
+  prune :: forall r. Lacks "term" r => Record ( term :: Term | r ) -> Record r
+  prune args = R.delete _term args
 
 -- | recArgItems
 type ArgsArgItems r

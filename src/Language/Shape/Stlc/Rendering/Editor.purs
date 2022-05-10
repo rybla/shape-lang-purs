@@ -54,7 +54,7 @@ renderEnvironment this env =
                 $ maybeArray env.goal \goal ->
                     Array.concat
                       [ [ DOM.div [ Props.className "environment-divider" ] [] ]
-                      , flip State.evalState env $ renderType this { syn: { type_: goal }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
+                      , flip State.evalState env $ undefined -- renderType this { syn: { type_: goal }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
                       ]
             ]
   ]
@@ -78,7 +78,8 @@ renderEnvironment this env =
         DOM.span [ Props.className "context-data" ]
           $ Array.concat
               [ [ token.data1 ]
-              , flip State.evalState env' $ renderTypeBind this { syn: { typeBind: data_.typeBind }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              , flip State.evalState env' $ undefined -- renderTypeBind this ?a
+              -- { syn: { typeBind: data_.typeBind }, ctx: { ctx: ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               ]
 
     renderVarType termId =
@@ -91,9 +92,9 @@ renderEnvironment this env =
       in
         DOM.span [ Props.className "context-varType" ]
           $ Array.concat
-              [ flip State.evalState env' $ renderTermId this { syn: { termId }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              [ flip State.evalState env' $ undefined -- renderTermId this { syn: { termId }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               , [ token.let2 ]
-              , flip State.evalState env' $ renderType this { syn: { type_ }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              , flip State.evalState env' $ undefined -- renderType this { syn: { type_ }, ctx: { ctx }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
               ]
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement

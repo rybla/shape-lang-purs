@@ -11,3 +11,5 @@ _visit = Proxy :: Proxy "visit"
 
 _term = Proxy :: Proxy "term"
 _goal = Proxy :: Proxy "goal"
+_ctx = Proxy :: Proxy "ctx"
+_actions = Proxy :: Proxy "actions"

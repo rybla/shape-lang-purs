@@ -137,7 +137,7 @@ ixStepBuf =
 
 ixStepData =
   { typeBind: IxStep IxStepData 0
-  , sum: IxStep IxStepData 1
+  , sumItems: IxStep IxStepData 1
   , body: IxStep IxStepData 2
   }
 

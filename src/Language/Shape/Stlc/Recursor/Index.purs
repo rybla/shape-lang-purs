@@ -30,8 +30,14 @@ visitIxStep { ix, csr } ixStep =
           Nil -> Nothing
   }
 
-visit :: forall r1 r2. IxStep -> { here :: { visit :: Visit | r1 } | r2 } -> { here :: { visit :: Visit | r1 } | r2 }
-visit ixStep args = args { here = args.here { visit = visitIxStep args.here.visit ixStep } }
+visit :: forall r. IxStep -> { visit :: Visit | r } -> { visit :: Visit | r }
+visit ixStep args = args { visit = visitIxStep args.visit ixStep }
+
+nonVisit :: Visit
+nonVisit = { ix: Nothing, csr: Nothing }
+
+nilVisit :: Maybe IxDown -> Visit 
+nilVisit csr = {ix:Just (nilIxUp), csr}
 
 -- | recType
 type ArgsType r
@@ -50,6 +56,7 @@ recType ::
   forall r a.
   Lacks "typeId" r =>
   Lacks "type_" r =>
+  Lacks "visit" r =>
   { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
   , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
   , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
@@ -60,27 +67,169 @@ recType rec =
     { arrowType:
         \args ->
           rec.arrowType
-            { here: args.here
-            , dom: visit ixStepArrowType.dom args.dom
-            , cod: visit ixStepArrowType.cod args.cod
-            }
+            args
+              { dom = visit ixStepArrowType.dom args.dom
+              , cod = visit ixStepArrowType.cod args.cod
+              }
     , dataType:
         \args ->
           rec.dataType
-            { here: args.here
-            , typeId: args.typeId
-            }
+            args
+              { typeId = args.typeId }
     , holeType:
         \args ->
           rec.holeType
-            { here: args.here
-            , holeId: args.holeId
-            }
+            args
+              { holeId = args.holeId }
     }
+
+-- | recTerm
+type ArgsTerm r
+  = Rec.ArgsTerm ( visit :: Visit | r )
+
+type ArgsLam r rTermBind rTerm
+  = Rec.ArgsLam ( visit :: Visit | r ) rTermBind rTerm
+
+type ArgsNeu r rTermId rArgItems
+  = Rec.ArgsNeu ( visit :: Visit | r ) rTermId rArgItems
+
+type ArgsLet r termBind rType rTerm
+  = Rec.ArgsLet ( visit :: Visit | r ) termBind rType rTerm
+
+type ArgsBuf r rType rTerm
+  = Rec.ArgsBuf ( visit :: Visit | r ) rType rTerm
+
+type ArgsData r rTypeBind rTerm rSumItems
+  = Rec.ArgsData ( visit :: Visit | r ) rTypeBind rTerm rSumItems
+
+type ArgsMatch r rTypeId rTerm rCaseItems
+  = Rec.ArgsMatch ( visit :: Visit | r ) rTypeId rTerm rCaseItems
+
+type ArgsHole r
+  = Rec.ArgsHole ( visit :: Visit | r )
+
+recTerm ::
+  forall r a.
+  Lacks "term" r =>
+  Lacks "goal" r =>
+  Lacks "visit" r =>
+  { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
+  , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , hole :: Record (ArgsHole r) -> a
+  } ->
+  Record (ArgsTerm r) -> a
+recTerm rec =
+  Rec.recTerm
+    { lam:
+        \args ->
+          rec.lam
+            args
+              { termBind = visit ixStepLam.termBind args.termBind
+              , body = visit ixStepLam.body args.body
+              }
+    , neu:
+        \args ->
+          rec.neu
+            args
+              { termId = visit ixStepNeu.termId args.termId
+              , argItems = visit ixStepNeu.argItems args.argItems
+              }
+    , let_:
+        \args ->
+          rec.let_
+            args
+              { termBind = visit ixStepLet.termBind args.termBind
+              , type_ = visit ixStepLet.type_ args.type_
+              , term = visit ixStepLet.term args.term
+              , body = visit ixStepLet.body args.body
+              }
+    , buf:
+        \args ->
+          rec.buf
+            args
+              { type_ = visit ixStepBuf.type_ args.type_
+              , term = visit ixStepBuf.term args.term
+              , body = visit ixStepBuf.body args.body
+              }
+    , data_:
+        \args ->
+          rec.data_
+            args
+              { typeBind = visit ixStepData.typeBind args.typeBind
+              , sumItems = visit ixStepData.sumItems args.sumItems
+              , body = visit ixStepData.body args.body
+              }
+    , match:
+        \args ->
+          rec.match
+            args
+              { typeId = args.typeId { visit = nonVisit }
+              , term = visit ixStepMatch.term args.term
+              , caseItems = visit ixStepMatch.caseItems args.caseItems
+              }
+    , hole: rec.hole
+    }
+
+-- | recArgItems
+type ArgsArgItems r
+  = Rec.ArgsArgItems ( visit :: Visit | r )
+
+type ArgsArgItem r rTerm
+  = Rec.ArgsArgItem ( visit :: Visit | r ) rTerm
+
+-- | recSumItems
+type ArgsSumItems r
+  = Rec.ArgsSumItems ( visit :: Visit | r )
+
+type ArgsSumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem ( visit :: Visit | r ) rTermBind rParamItems
+
+-- | recCaseItems
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems ( visit :: Visit | r )
+
+type ArgsCaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem ( visit :: Visit | r ) rTermBindItems rTerm
+
+-- | recParamItems
+type ArgsParamItems r
+  = Rec.ArgsParamItems ( visit :: Visit | r )
+
+type ArgsParamItem r rType
+  = Rec.ArgsParamItem ( visit :: Visit | r ) rType
+
+-- | recTermBindItems
+type ArgsTermBindItems r
+  = Rec.ArgsTermBindItems ( visit :: Visit | r )
+
+type ArgsTermBindItem r rTermBind
+  = Rec.ArgsTermBindItem ( visit :: Visit | r ) rTermBind
+
+-- | recTypeBind
+type ArgsTypeBind r
+  = Rec.ArgsTypeBind ( visit :: Visit | r )
+
+type ArgsTypeBind_TypeBind r rTypeId
+  = Rec.ArgsTypeBind_TypeBind ( visit :: Visit | r ) rTypeId
+
+-- | recTermBind
+type ArgsTermBind r
+  = Rec.ArgsTermBind ( visit :: Visit | r )
+
+type ArgsTermBind_TermBind r rTermId
+  = Rec.ArgsTermBind_TermBind ( visit :: Visit | r ) rTermId
 
 -- | recTypeId
 type ArgsTypeId r
   = Rec.ArgsTypeId ( visit :: Visit | r )
+
+-- | recTermId
+type ArgsTermId r
+  = Rec.ArgsTermId ( visit :: Visit | r )
 
 -- | recHoleId 
 type ArgsHoleId r

@@ -15,12 +15,12 @@ import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
-mapContext :: forall r1 r2. (Context -> Context) -> { here :: { context :: Context | r1 } | r2 } -> { here :: { context :: Context | r1 } | r2 }
-mapContext f args = args { here = args.here { context = f args.here.context } }
+mapArgsCtx :: forall r. (Context -> Context) -> { ctx :: Context | r } -> { ctx :: Context | r }
+mapArgsCtx f args = args { ctx = f args.ctx }
 
 -- | recType
 type ProtoArgsType r
-  = ( context :: Context | r )
+  = ( ctx :: Context | r )
 
 type ArgsType r
   = Rec.ArgsType (ProtoArgsType r)
@@ -47,7 +47,7 @@ recType = Rec.recType
 
 -- | recTerm
 type ProtoArgsTerm r
-  = ( context :: Context, goal :: Type | r )
+  = ( ctx :: Context, goal :: Type | r )
 
 type ArgsTerm r
   = Rec.ArgsTerm (ProtoArgsTerm r)
@@ -92,111 +92,119 @@ recTerm rec =
         \args ->
           rec.lam
             args
-              { termBind = R.delete _goal `mapHere` args.termBind
+              { termBind = prune args.termBind
               , body =
-                case args.here.goal of
-                  ArrowType arrowType -> insertVarType args.here.lam.termBind.termId arrowType.dom `mapContext` args.body
+                case args.goal of
+                  ArrowType arrowType -> insertVarType args.lam.termBind.termId arrowType.dom `mapArgsCtx` args.body
                   _ -> unsafeCrashWith "badly-typed lam"
               }
     , neu:
         \args ->
           rec.neu
             args
-              { termId = R.delete _goal `mapHere` args.termId
-              , argItems = (R.delete _goal `mapHere` _) $ (R.union { appType: lookupVarType args.here.neu.termId args.here.context } `mapHere` _) $ args.argItems
+              { termId = prune args.termId
+              , argItems = R.union { appType: lookupVarType args.neu.termId args.ctx } $ prune args.argItems
               }
     , let_:
         \args ->
           rec.let_
             args
-              { termBind = R.delete _goal `mapHere` args.termBind
-              , type_ = R.delete _goal `mapHere` args.type_
-              , term = (insertVarType args.here.let_.termBind.termId args.here.let_.type_ `mapContext` _) $ (_ { goal = args.here.let_.type_ } `mapHere` _) $ args.term
-              , body = insertVarType args.here.let_.termBind.termId args.here.let_.type_ `mapContext` args.body
+              { termBind = prune args.termBind
+              , type_ = prune args.type_
+              , term =
+                args.term
+                  { ctx = insertVarType args.let_.termBind.termId args.let_.type_ args.ctx
+                  , goal = args.let_.type_
+                  }
+              , body =
+                args.body { ctx = insertVarType args.let_.termBind.termId args.let_.type_ args.ctx }
               }
     , buf:
         \args ->
           rec.buf
             args
-              { type_ = R.delete _goal `mapHere` args.type_
-              , term = (_ { goal = args.here.buf.type_ }) `mapHere` args.term
+              { type_ = prune args.type_
+              , term = args.term { goal = args.buf.type_ }
               }
     , data_:
         \args ->
           rec.data_
             args
-              { typeBind = R.delete _goal `mapHere` args.typeBind
-              , sumItems = R.delete _goal `mapHere` args.sumItems
-              , body = insertData args.here.data_ `mapContext` args.body
+              { typeBind = prune args.typeBind
+              , sumItems = prune args.sumItems
+              , body = args.body { ctx = insertData args.data_ args.body.ctx }
               }
     , match:
         \args ->
           rec.match
             args
-              { typeId = R.delete _goal `mapHere` args.typeId
-              , term = (_ { goal = DataType { typeId: args.here.match.typeId, meta: default } }) `mapHere` args.term
+              { typeId = prune args.typeId
+              , term = args.term { goal = DataType { typeId: args.match.typeId, meta: default } }
               , caseItems = args.caseItems
               }
     , hole: rec.hole
     }
+  where
+  prune :: forall r. Lacks "goal" r => Record ( goal :: Type | r ) -> Record r
+  prune args = R.delete _goal args
 
 -- | recArgItems
 type ArgsArgItems r
-  = Rec.ArgsArgItems ( context :: Context, appType :: Type | r )
+  = Rec.ArgsArgItems ( ctx :: Context, appType :: Type | r )
 
 type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( context :: Context, goal :: Type | r ) rTerm
+  = Rec.ArgsArgItem ( ctx :: Context, goal :: Type | r ) rTerm
 
 -- | recSumItems
 type ArgsSumItems r
-  = Rec.ArgsSumItems ( context :: Context | r )
+  = Rec.ArgsSumItems ( ctx :: Context | r )
 
 type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( context :: Context | r ) rTermBind rParamItems
+  = Rec.ArgsSumItem ( ctx :: Context | r ) rTermBind rParamItems
 
 -- | recCaseItems
 type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( context :: Context, goal :: Type | r )
+  = Rec.ArgsCaseItems ( ctx :: Context, goal :: Type | r )
 
 type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( context :: Context, goal :: Type | r ) rTermBindItems rTerm
+  = Rec.ArgsCaseItem ( ctx :: Context, goal :: Type | r ) rTermBindItems rTerm
 
 -- | recParamItems
 type ArgsParamItems r
-  = Rec.ArgsParamItems ( context :: Context | r )
+  = Rec.ArgsParamItems ( ctx :: Context | r )
 
 type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( context :: Context | r ) rType
+  = Rec.ArgsParamItem ( ctx :: Context | r ) rType
 
 -- | recTermBindItems
 type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( context :: Context | r )
+  = Rec.ArgsTermBindItems ( ctx :: Context | r )
 
 type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( context :: Context | r ) rTermBind
+  = Rec.ArgsTermBindItem ( ctx :: Context | r ) rTermBind
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = Rec.ArgsTypeBind ( context :: Context | r )
+  = Rec.ArgsTypeBind ( ctx :: Context | r )
 
 type ArgsTypeBind_TypeBind r rTypeId
-  = Rec.ArgsTypeBind_TypeBind ( context :: Context | r ) rTypeId
+  = Rec.ArgsTypeBind_TypeBind ( ctx :: Context | r ) rTypeId
 
 -- | recTermBind
 type ArgsTermBind r
-  = Rec.ArgsTermBind ( context :: Context | r )
+  = Rec.ArgsTermBind ( ctx :: Context | r )
 
 type ArgsTermBind_TermBind r rTermId
-  = Rec.ArgsTermBind_TermBind ( context :: Context | r ) rTermId
+  = Rec.ArgsTermBind_TermBind ( ctx :: Context | r ) rTermId
 
 -- | recTypeId
 type ArgsTypeId r
-  = Rec.ArgsTypeId ( context :: Context | r )
+  = Rec.ArgsTypeId ( ctx :: Context | r )
 
 -- | recTermId
 type ArgsTermId r
-  = Rec.ArgsTermId ( context :: Context | r )
+  = Rec.ArgsTermId ( ctx :: Context | r )
 
 -- | recHoleId 
 type ArgsHoleId r
-  = Rec.ArgsHoleId ( context :: Context | r )
+  = Rec.ArgsHoleId ( ctx :: Context | r )
