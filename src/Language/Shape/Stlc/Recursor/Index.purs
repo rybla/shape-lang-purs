@@ -4,12 +4,13 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.List (List(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust)
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Recursor.Context as Rec
 import Language.Shape.Stlc.Recursor.Record as RH
-import Prim (Record, Row)
+import Prim (Boolean, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
@@ -19,25 +20,31 @@ import Undefined (undefined)
 type Visit
   = { ix :: Maybe IxUp, csr :: Maybe IxDown }
 
-visitIxStep :: Visit -> IxStep -> Visit
-visitIxStep { ix, csr } ixStep =
-  { ix: over wrap (Cons ixStep) <$> ix
-  , csr:
-      do
-        ixSteps <- unwrap <$> csr
-        case ixSteps of
-          Cons ixStep' ixSteps' -> if ixStep == ixStep' then Just (wrap ixSteps') else Nothing
-          Nil -> Nothing
-  }
-
-visit :: forall r. IxStep -> { visit :: Visit | r } -> { visit :: Visit | r }
-visit ixStep args = args { visit = visitIxStep args.visit ixStep }
+visitVia :: forall r. IxStep -> { visit :: Visit | r } -> { visit :: Visit | r }
+visitVia ixStep args@{ visit: { ix, csr } } =
+  args
+    { visit =
+      { ix: over wrap (Cons ixStep) <$> ix
+      , csr:
+          do
+            ixSteps <- unwrap <$> csr
+            case ixSteps of
+              Cons ixStep' ixSteps' -> if ixStep == ixStep' then Just (wrap ixSteps') else Nothing
+              Nil -> Nothing
+      }
+    }
 
 nonVisit :: Visit
 nonVisit = { ix: Nothing, csr: Nothing }
 
-nilVisit :: Maybe IxDown -> Visit 
-nilVisit csr = {ix:Just (nilIxUp), csr}
+nilVisit :: Maybe IxDown -> Visit
+nilVisit csr = { ix: Just (nilIxUp), csr }
+
+isSelected :: Visit -> Boolean
+isSelected visit = visit.csr == Just nilIxDown
+
+isSelectionAncestor :: Visit -> Boolean 
+isSelectionAncestor visit = isJust visit.csr
 
 -- | recType
 type ArgsType r
@@ -68,8 +75,8 @@ recType rec =
         \args ->
           rec.arrowType
             args
-              { dom = visit ixStepArrowType.dom args.dom
-              , cod = visit ixStepArrowType.cod args.cod
+              { dom = visitVia ixStepArrowType.dom args.dom
+              , cod = visitVia ixStepArrowType.cod args.cod
               }
     , dataType:
         \args ->
@@ -128,48 +135,48 @@ recTerm rec =
         \args ->
           rec.lam
             args
-              { termBind = visit ixStepLam.termBind args.termBind
-              , body = visit ixStepLam.body args.body
+              { termBind = visitVia ixStepLam.termBind args.termBind
+              , body = visitVia ixStepLam.body args.body
               }
     , neu:
         \args ->
           rec.neu
             args
-              { termId = visit ixStepNeu.termId args.termId
-              , argItems = visit ixStepNeu.argItems args.argItems
+              { termId = visitVia ixStepNeu.termId args.termId
+              , argItems = visitVia ixStepNeu.argItems args.argItems
               }
     , let_:
         \args ->
           rec.let_
             args
-              { termBind = visit ixStepLet.termBind args.termBind
-              , type_ = visit ixStepLet.type_ args.type_
-              , term = visit ixStepLet.term args.term
-              , body = visit ixStepLet.body args.body
+              { termBind = visitVia ixStepLet.termBind args.termBind
+              , type_ = visitVia ixStepLet.type_ args.type_
+              , term = visitVia ixStepLet.term args.term
+              , body = visitVia ixStepLet.body args.body
               }
     , buf:
         \args ->
           rec.buf
             args
-              { type_ = visit ixStepBuf.type_ args.type_
-              , term = visit ixStepBuf.term args.term
-              , body = visit ixStepBuf.body args.body
+              { type_ = visitVia ixStepBuf.type_ args.type_
+              , term = visitVia ixStepBuf.term args.term
+              , body = visitVia ixStepBuf.body args.body
               }
     , data_:
         \args ->
           rec.data_
             args
-              { typeBind = visit ixStepData.typeBind args.typeBind
-              , sumItems = visit ixStepData.sumItems args.sumItems
-              , body = visit ixStepData.body args.body
+              { typeBind = visitVia ixStepData.typeBind args.typeBind
+              , sumItems = visitVia ixStepData.sumItems args.sumItems
+              , body = visitVia ixStepData.body args.body
               }
     , match:
         \args ->
           rec.match
             args
               { typeId = args.typeId { visit = nonVisit }
-              , term = visit ixStepMatch.term args.term
-              , caseItems = visit ixStepMatch.caseItems args.caseItems
+              , term = visitVia ixStepMatch.term args.term
+              , caseItems = visitVia ixStepMatch.caseItems args.caseItems
               }
     , hole: rec.hole
     }
