@@ -4,7 +4,9 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.Default (default)
-import Language.Shape.Stlc.Context (Context(..), insertData, insertVarType, lookupVarType)
+import Data.List (List)
+import Data.List.Unsafe as List
+import Language.Shape.Stlc.Context (Context(..), flattenType, insertData, insertVarType, lookupVarType)
 import Language.Shape.Stlc.Recursor.Base (mapHere)
 import Language.Shape.Stlc.Recursor.Syntax as Rec
 import Partial.Unsafe (unsafeCrashWith)
@@ -19,7 +21,6 @@ mapArgsCtx :: forall r. (Context -> Context) -> { gamma :: Context | r } -> { ga
 mapArgsCtx f args = args { gamma = f args.gamma }
 
 -- | recType
-
 type ArgsType r
   = Rec.ArgsType ( gamma :: Context | r )
 
@@ -95,10 +96,13 @@ recTerm rec =
     , neu:
         \args ->
           rec.neu
-            args
-              { termId = prune args.termId
-              , argItems = R.union { appType: lookupVarType args.neu.termId args.gamma } $ prune args.argItems
-              }
+            let
+              { doms, cod } = flattenType (lookupVarType args.neu.termId args.gamma)
+            in
+              args
+                { termId = prune args.termId
+                , argItems = R.union { doms, cod } $ prune args.argItems
+                }
     , let_:
         \args ->
           rec.let_
@@ -144,10 +148,36 @@ recTerm rec =
 
 -- | recArgItems
 type ArgsArgItems r
-  = Rec.ArgsArgItems ( gamma :: Context, appType :: Type | r )
+  = Rec.ArgsArgItems ( gamma :: Context, doms :: List Type, cod :: Type | r )
 
 type ArgsArgItem r rTerm
   = Rec.ArgsArgItem ( gamma :: Context, alpha :: Type | r ) rTerm
+
+recArgsArgItems ::
+  forall r a.
+  Lacks "argItems" r =>
+  Lacks "gamma" r =>
+  Lacks "doms" r =>
+  Lacks "cod" r =>
+  { argItem :: Record (ArgsArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItems r) -> List a
+recArgsArgItems rec =
+  Rec.recArgsArgItems
+    { argItem:
+        \args ->
+          let
+            alpha = List.index' args.doms args.i
+          in
+            rec.argItem
+              $ ( { alpha } `R.union` prune args
+                )
+                  { term = { alpha } `R.union` prune args.term
+                  , gamma = args.gamma
+                  }
+    }
+  where
+  prune :: forall r. Lacks "doms" r => Lacks "cod" r => { doms :: List Type, cod :: Type | r } -> { | r }
+  prune = R.delete (Proxy :: Proxy "doms") <<< R.delete (Proxy :: Proxy "cod")
 
 -- | recSumItems
 type ArgsSumItems r
