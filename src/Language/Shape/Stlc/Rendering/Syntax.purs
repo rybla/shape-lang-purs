@@ -406,21 +406,11 @@ printShadow shadow =
   else
     []
 
--- useArgsCtx :: forall r1 r2. Record (RecCtx.ProtoArgsType r1 r2) -> NodeProps -> NodeProps
--- useArgsCtx { gamma } = _ { gamma = Just gamma.gamma }
--- useArgsCtx_Term :: forall r1 r2. Record (RecCtx.ProtoArgsTerm r1 r2) -> NodeProps -> NodeProps
--- useArgsCtx_Term { gamma } = _ { gamma = Just gamma.gamma, type_ = Just gamma.type_ }
--- useArgsMeta :: forall r1 r2. { meta :: { meta :: Metacontext | r1 } | r2 } -> NodeProps -> NodeProps
--- useArgsMeta { meta: { meta: meta } } = _ { meta = meta }
--- useArgsIx :: forall r1 r2. Record (RecIx.ProtoArgs r1 r2) -> NodeProps -> NodeProps
--- useArgsIx { ix } = _ { visit = Just (ix.visit) }
--- useArgsAct :: forall r1 r2. Record (Rec.ProtoArgs ( actions :: Array Action | r1 ) r2) -> NodeProps -> NodeProps
--- useArgsAct { act } = _ { actions = act.actions }
 defaultNodeProps :: NodeProps
 defaultNodeProps =
   { label: default
   , visit: default
-  , type_: default
+  , goal: default
   , gamma: default
   , meta: default
   , actions: []
@@ -429,7 +419,7 @@ defaultNodeProps =
 type NodeProps
   = { label :: Maybe String
     , visit :: Maybe Visit
-    , type_ :: Maybe Type
+    , goal :: Maybe Type
     , gamma :: Context
     , meta :: Metacontext
     , actions :: Array Action
@@ -447,7 +437,7 @@ renderNode this props elemsM = do
     -- update environment
     State.modify_
       ( _
-          { goal = props.type_
+          { goal = props.goal
           , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta
