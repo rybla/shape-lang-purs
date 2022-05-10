@@ -1,10 +1,10 @@
 module Language.Shape.Stlc.Index where
 
 import Prelude
-
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), reverse, singleton, snoc, (:))
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
@@ -43,8 +43,8 @@ instance monoidIxDown :: Monoid IxDown where
   mempty = wrap Nil
 
 -- | utilities
-
 nilIxUp = IxUp Nil
+
 nilIxDown = IxDown Nil
 
 -- | conversions IxDown <-> IxUp
@@ -124,20 +124,20 @@ ixStepNeu =
 
 ixStepLet =
   { termBind: IxStep IxStepLet 0
-  , type_: IxStep IxStepLet 1
-  , term: IxStep IxStepLet 2
+  , sign:  IxStep IxStepLet 1
+  , impl: IxStep IxStepLet 2
   , body: IxStep IxStepLet 3
   }
 
 ixStepBuf =
-  { type_: IxStep IxStepBuf 1
-  , term: IxStep IxStepBuf 0
+  { sign:  IxStep IxStepBuf 1
+  , impl: IxStep IxStepBuf 0
   , body: IxStep IxStepBuf 2
   }
 
 ixStepData =
   { typeBind: IxStep IxStepData 0
-  , sum: IxStep IxStepData 1
+  , sumItems: IxStep IxStepData 1
   , body: IxStep IxStepData 2
   }
 

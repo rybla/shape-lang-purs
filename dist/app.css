@@ -33,38 +33,79 @@ html {
   margin: 0;
 }
 
-.span {
-  display: inline-block;
-}
-
 /* panel */
 
-.panel {}
-
-.palette {
+.panel {
   position: absolute;
   right: 0;
   width: 300px;
+  height: 100%;
+  overflow: wrap;
+
+  box-shadow: -1px 0 0 0 black;
+}
+
+.panel .header  {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16pt;
+  font-weight: bold;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.environment {
+  padding: 8px;
+}
+.context {
+
+}
+.context-datas {
+}
+.context-data {
+  display: block;
+  margin-bottom: 4px;
+}
+.context-varTypes {}
+.context-varType {
+  display: block;
+  margin-bottom: 4px;
+}
+.environment-divider {
+  margin-top: 4px;
+  /* border-top: 1px solid black; */
+  height: 2px;
+  background-color: black;
+  margin-bottom: 4px;
+}
+.goal {
+  
+}
+
+.palette {
+  border-top: 1px solid black;
+  padding: 8px;
 }
 .action {
   display: block;
 }
 
-.environment {}
-.context {}
-.goal {}
-
 /* syntax */
 
+.hole-container {
+  box-shadow: 0 0 0 2px red;
+}
+
 .Hole {
-  display: inline-block;
-  box-shadow: 0 0 0 1px red;
 }
 
 /* token */
 
 .token {
   white-space: pre;
+}
+
+.token.delimiter {
+  color: purple;
 }
 
 /* name */
@@ -75,19 +116,33 @@ html {
 
 .selected {
   background-color: rgb(116, 173, 196);
-  box-shadow: none;
+  
+  box-shadow: -2px 0 0 0 white;
+  
+  /* box-shadow: 0 0 0 10px solid white; */
   /* border-left: 4px solid black; */
   /* box-shadow: -4px 0 0 0 black; */
+
+  /* border-left-color: white;
+  border-left-width: 2px; */
 }
 
 .selected {
-  animation: blink-animation 1s steps(2, start) infinite;
+  animation-name: blink-animation;
+  animation-duration: 1s;
+  animation-timing-function: steps(2, start);
+  animation-delay: 0;
+  animation-fill-mode: backwards;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
 }
 
 @keyframes blink-animation {
+  from {
+    box-shadow: -2px 0 0 0 white;
+  }
   to {
-    /* box-shadow: -2px 0 0 0 white, -6px 0 0 0 black; */
-    box-shadow: -4px 0 0 0 black;
+    box-shadow: -2px 0 0 0 black;
   }
 }
 
@@ -119,4 +174,10 @@ html {
 
 .indentation {
   white-space: pre;
+}
+
+/* misc */
+
+.span {
+  display: inline-block;
 }

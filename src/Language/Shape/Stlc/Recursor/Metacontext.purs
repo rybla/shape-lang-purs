@@ -1,376 +1,210 @@
 module Language.Shape.Stlc.Recursor.Metacontext where
 
-import Data.Foldable
-import Language.Shape.Stlc.Metacontext
+import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-import Prim hiding (Type)
-import Prim.Row
-import Record
-import Control.Monad.State (StateT)
-import Control.Monad.State as State
-import Data.List.Unsafe (List)
-import Data.List.Unsafe as List
-import Data.Newtype (unwrap)
-import Data.Traversable (sequence)
-import Debug as Debug
+import Data.Newtype (over, unwrap, wrap)
+import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
-import Language.Shape.Stlc.Recursor.Record (modifyHetero)
+import Prim (Record, Row)
 import Prim as Prim
-import Type.Proxy (Proxy(..))
+import Prim.Row (class Lacks)
+import Record as R
 import Undefined (undefined)
 
--- | ProtoRec
-type ProtoArgs r1 r2
-  = ( meta :: Record ( meta :: Metacontext | r1 ) | r2 )
-
-type ProtoRec args r a
-  = Rec.ProtoRec args r a
-
-_meta = Proxy :: Proxy "meta"
+mapArgsMeta :: forall r. (Metacontext -> Metacontext) -> { meta :: Metacontext | r } -> { meta :: Metacontext | r }
+mapArgsMeta f args = args { meta = f args.meta }
 
 -- | recType
-type ProtoArgsType r1 r2
-  = ProtoArgs ( | r1 ) r2
-
 type ArgsType r
-  = Rec.ArgsType (ProtoArgsType () r)
+  = Rec.ArgsType ( meta :: Metacontext | r )
 
-type ArgsArrowType r
-  = Rec.ArgsArrowType (ProtoArgsType ( dom :: Metacontext, cod :: Metacontext ) r)
+type ArgsArrowType r rType
+  = Rec.ArgsArrowType ( meta :: Metacontext | r ) rType
 
-type ArgsDataType r
-  = Rec.ArgsDataType (ProtoArgsType () r)
+type ArgsDataType r rTypeId
+  = Rec.ArgsDataType ( meta :: Metacontext | r ) rTypeId
 
-type ArgsHoleType r
-  = Rec.ArgsHoleType (ProtoArgsType () r)
+type ArgsHoleType r rHoleId
+  = Rec.ArgsHoleType ( meta :: Metacontext | r ) rHoleId
 
 recType ::
   forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { arrow :: ProtoRec ArgsArrowType r a, data_ :: ProtoRec ArgsDataType r a, hole :: ProtoRec ArgsHoleType r a } ->
-  ProtoRec ArgsType r a
+  Lacks "type_" r =>
+  { arrowType :: Record (ArgsArrowType r (ArgsType r)) -> a
+  , dataType :: Record (ArgsDataType r (ArgsTypeId r)) -> a
+  , holeType :: Record (ArgsHoleType r (ArgsHoleId r)) -> a
+  } ->
+  Record (ArgsType r) -> a
 recType rec =
   Rec.recType
-    { arrow:
-        \args@{ meta: { meta } } ->
-          rec.arrow
-            $ modifyHetero _meta (union { dom: meta, cod: incrementIndentation meta }) args
-    , data_: rec.data_
-    , hole:
-        \args@{ syn: { hole } } -> rec.hole args
+    { arrowType:
+        \args ->
+          rec.arrowType
+            args
+              { dom = args.dom
+              , cod = incrementIndentation `mapArgsMeta` args.cod
+              }
+    , dataType:
+        \args ->
+          rec.dataType
+            args
+              { typeId = args.typeId }
+    , holeType:
+        \args ->
+          rec.holeType
+            args
+              { holeId = args.holeId }
     }
 
--- -- | recTerm
-type ProtoArgsTerm r1 r2
-  = ProtoArgs ( | r1 ) r2
-
+-- | recTerm
 type ArgsTerm r
-  = Rec.ArgsTerm (ProtoArgsTerm () r)
+  = Rec.ArgsTerm ( meta :: Metacontext | r )
 
-type ArgsLam r
-  = Rec.ArgsLam (ProtoArgsTerm ( termBind :: Metacontext, body :: Metacontext ) r)
+type ArgsLam r rTermBind rTerm
+  = Rec.ArgsLam ( meta :: Metacontext | r ) rTermBind rTerm
 
-type ArgsNeu r
-  = Rec.ArgsNeu (ProtoArgsTerm ( argItems :: Metacontext ) r)
+type ArgsNeu r rTermId rArgItems
+  = Rec.ArgsNeu ( meta :: Metacontext | r ) rTermId rArgItems
 
-type ArgsLet r
-  = Rec.ArgsLet (ProtoArgsTerm ( termBind :: Metacontext, type_ :: Metacontext, term :: Metacontext, body :: Metacontext ) r)
+type ArgsLet r termBind rType rTerm
+  = Rec.ArgsLet ( meta :: Metacontext | r ) termBind rType rTerm
 
-type ArgsBuf r
-  = Rec.ArgsBuf (ProtoArgsTerm ( term :: Metacontext, body :: Metacontext ) r)
+type ArgsBuf r rType rTerm
+  = Rec.ArgsBuf ( meta :: Metacontext | r ) rType rTerm
 
-type ArgsData r
-  = Rec.ArgsData (ProtoArgsTerm ( typeBind :: Metacontext, sumItems :: Metacontext, body :: Metacontext ) r)
+type ArgsData r rTypeBind rTerm rSumItems
+  = Rec.ArgsData ( meta :: Metacontext | r ) rTypeBind rTerm rSumItems
 
-type ArgsMatch r
-  = Rec.ArgsMatch (ProtoArgsTerm ( term :: Metacontext, caseItems :: Metacontext ) r)
+type ArgsMatch r rTypeId rTerm rCaseItems
+  = Rec.ArgsMatch ( meta :: Metacontext | r ) rTypeId rTerm rCaseItems
 
 type ArgsHole r
-  = Rec.ArgsHole (ProtoArgsTerm () r)
+  = Rec.ArgsHole ( meta :: Metacontext | r )
 
 recTerm ::
   forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { lam :: ProtoRec ArgsLam r a, neu :: ProtoRec ArgsNeu r a, let_ :: ProtoRec ArgsLet r a, buf :: ProtoRec ArgsBuf r a, data_ :: ProtoRec ArgsData r a, match :: ProtoRec ArgsMatch r a, hole :: ProtoRec ArgsHole r a } ->
-  ProtoRec ArgsTerm r a
+  Lacks "term" r =>
+  Lacks "alpha" r =>
+  { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
+  , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , hole :: Record (ArgsHole r) -> a
+  } ->
+  Record (ArgsTerm r) -> a
 recTerm rec =
   Rec.recTerm
     { lam:
-        \args@{ syn: { lam }, meta: { meta } } ->
-          let
-            meta' = insertVarName lam.termBind.termId (unwrap lam.meta).name meta
-          in
-            rec.lam
-              $ modifyHetero _meta
-                  (union { termBind: meta', body: meta' })
-                  args
+        \args ->
+          rec.lam
+            args
+              { termBind = args.termBind
+              , body = incrementIndentation `mapArgsMeta` args.body
+              }
     , neu:
-        \args@{ syn: { neu }, meta: { meta } } ->
+        \args ->
           rec.neu
-            $ modifyHetero _meta
-                (union { argItems: meta })
-                args
+            args
+              { termId = args.termId
+              , argItems = incrementIndentation `mapArgsMeta` args.argItems
+              }
     , let_:
-        \args@{ syn: { let_ }, meta: { meta } } ->
+        \args ->
           rec.let_
-            $ modifyHetero _meta
-                ( let
-                    meta' = incrementIndentation meta
-                  in
-                    union
-                      { termBind: meta'
-                      , type_: meta'
-                      , term: meta'
-                      , body: insertVarName let_.termBind.termId (unwrap let_.meta).name meta'
-                      }
-                )
-                args
+            args
+              { termBind = incrementIndentation `mapArgsMeta` args.termBind
+              , sign = incrementIndentation `mapArgsMeta` args.sign
+              , impl = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.impl
+              , body = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.body
+              }
     , buf:
-        \args@{ meta: { meta } } ->
+        \args ->
           rec.buf
-            $ modifyHetero _meta
-                ( let
-                    meta' = incrementIndentation meta
-                  in
-                    union
-                      { term: meta'
-                      , body: meta'
-                      }
-                )
-                args
+            args
+              { sign = incrementIndentation `mapArgsMeta` args.sign
+              , impl = incrementIndentation `mapArgsMeta` args.impl
+              , body = incrementIndentation `mapArgsMeta` args.body
+              }
     , data_:
-        \args@{ syn: { data_ }, meta: { meta } } ->
+        \args ->
           rec.data_
-            $ modifyHetero _meta
-                ( let
-                    meta' =
-                      insertDataName data_.typeBind.typeId (unwrap data_.typeBind.meta).name
-                        $ incrementIndentation meta
-                  in
-                    union
-                      { typeBind: meta'
-                      , sumItems: meta'
-                      , body: meta'
-                      }
-                )
-                args
+            args
+              { typeBind = args.typeBind
+              , sumItems = incrementIndentation `mapArgsMeta` args.sumItems
+              , body = (incrementIndentation <<< insertData args.data_) `mapArgsMeta` args.body
+              }
     , match:
-        \args@{ meta: { meta } } ->
+        \args ->
           rec.match
-            $ modifyHetero _meta
-                ( let
-                    meta' = incrementIndentation meta
-                  in
-                    union
-                      { term: meta'
-                      , caseItems: meta'
-                      }
-                )
-                args
-    , hole: \args -> rec.hole args
+            args
+              { typeId = args.typeId
+              , term = incrementIndentation `mapArgsMeta` args.term
+              , caseItems = incrementIndentation `mapArgsMeta` args.caseItems
+              }
+    , hole: rec.hole
     }
 
--- -- | recArgItems
--- type ProtoArgsArgItems r1 r2
---   = ProtoArgs r1 r2
--- type ArgsArgItems r
---   = Rec.ArgsArgItems (ProtoArgsArgItems () r)
--- type ArgsArgItemsCons r
---   = Rec.ArgsArgItemsCons (ProtoArgsArgItems () r)
--- type ArgsArgItemsNil r
---   = Rec.ArgsArgItemsNil (ProtoArgsArgItems () r)
--- recArgItems ::
---   forall r a. 
---   Lacks "syn" r =>
---   Lacks "ctx" r =>
---   Lacks "ix" r =>
---   Lacks "meta" r =>
---   { cons :: ProtoRec ArgsArgItemsCons r a, nil :: ProtoRec ArgsArgItemsNil r a } ->
---   ProtoRec ArgsArgItems r a
--- recArgItems rec =
---   Rec.recArgItems
---     { cons: rec.cons
---     , nil: rec.nil
---     }
-type ProtoArgsArgItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
+-- | recArgItems
 type ArgsArgItems r
-  = Rec.ArgsArgItems (ProtoArgsArgItems () r)
+  = Rec.ArgsArgItems ( meta :: Metacontext | r )
 
-type ArgsArgItem r
-  = Rec.ArgsArgItem (ProtoArgsArgItems () r)
-
-recArgItems ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { argItem :: ProtoRec ArgsArgItem r a } ->
-  ProtoRec ArgsArgItems r (List a)
-recArgItems rec = Rec.recArgItems rec
-
--- | recCaseItem
-type ProtoArgsCaseItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems (ProtoArgsCaseItems () r)
-
-type ArgsCaseItem r
-  = Rec.ArgsCaseItem (ProtoArgsCaseItems ( termBindItems :: Metacontext, body :: Metacontext ) r)
-
-recCaseItems ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { caseItem :: ProtoRec ArgsCaseItem r a } ->
-  ProtoRec ArgsCaseItems r (List a)
-recCaseItems rec =
-  Rec.recCaseItems
-    { caseItem:
-        \args@{ meta } ->
-          let
-            meta' =
-              foldl (\f termBindItem -> f <<< insertVarName termBindItem.termBind.termId (unwrap termBindItem.termBind.meta).name) identity
-                args.syn.caseItem.termBindItems
-                $ incrementIndentation meta.meta
-          in
-            rec.caseItem $ modifyHetero _meta (union { termBindItems: meta', body: meta' }) args
-    }
+type ArgsArgItem r rTerm
+  = Rec.ArgsArgItem ( meta :: Metacontext | r ) rTerm
 
 -- | recSumItems
-type ProtoArgsSumItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
 type ArgsSumItems r
-  = Rec.ArgsSumItems (ProtoArgsSumItems () r)
+  = Rec.ArgsSumItems ( meta :: Metacontext | r )
 
-type ArgsSumItem r
-  = Rec.ArgsSumItem (ProtoArgsSumItems ( sumItem :: Metacontext, termBind :: Metacontext, paramItems :: Metacontext ) r)
+type ArgsSumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem ( meta :: Metacontext | r ) rTermBind rParamItems
 
-recSumItems ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { sumItem :: ProtoRec ArgsSumItem r a } ->
-  ProtoRec ArgsSumItems r (List a)
-recSumItems rec =
-  Rec.recSumItems
-    { sumItem:
-        \args@{ meta } ->
-          let
-            meta' =
-              insertVarName args.syn.sumItem.termBind.termId (unwrap args.syn.sumItem.termBind.meta).name
-                $ incrementIndentation meta.meta
-          in
-            rec.sumItem $ modifyHetero _meta (union { sumItem: meta', termBind: meta', paramItems: meta' }) args
-    }
+-- | recCaseItems
+type ArgsCaseItems r
+  = Rec.ArgsCaseItems ( meta :: Metacontext | r )
+
+type ArgsCaseItem r rTermBindItems rTerm
+  = Rec.ArgsCaseItem ( meta :: Metacontext | r ) rTermBindItems rTerm
 
 -- | recParamItems
-type ProtoArgsParamItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
 type ArgsParamItems r
-  = Rec.ArgsParamItems (ProtoArgsParamItems () r)
+  = Rec.ArgsParamItems ( meta :: Metacontext | r )
 
-type ArgsParamItem r
-  = Rec.ArgsParamItem (ProtoArgsParamItems ( paramItem :: Metacontext, type_ :: Metacontext ) r)
-
-recParamItems ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { paramItem :: ProtoRec ArgsParamItem r a } ->
-  ProtoRec ArgsParamItems r (List a)
-recParamItems rec = Rec.recParamItems { paramItem: \args@{ meta: { meta } } -> rec.paramItem $ modifyHetero _meta (union { paramItem: meta, type_: meta }) args }
+type ArgsParamItem r rType
+  = Rec.ArgsParamItem ( meta :: Metacontext | r ) rType
 
 -- | recTermBindItems
-type ProtoArgsTermBindItems r1 r2
-  = ProtoArgs ( | r1 ) r2
-
 type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems (ProtoArgsTermBindItems () r)
+  = Rec.ArgsTermBindItems ( meta :: Metacontext | r )
 
-type ArgsTermBindItem r
-  = Rec.ArgsTermBindItem (ProtoArgsTermBindItems () r)
-
-recTermBindItems ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { termBindItem :: ProtoRec ArgsTermBindItem r a } ->
-  ProtoRec ArgsTermBindItems r (List a)
-recTermBindItems rec = Rec.recTermBindItems rec
-
--- | recTermBind
-type ArgsTermBind r
-  = Rec.ArgsTermBind (ProtoArgs () r)
-
-recTermBind ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { termBind :: ProtoRec ArgsTermBind r a } ->
-  ProtoRec ArgsTermBind r a
-recTermBind rec = Rec.recTermBind { termBind: rec.termBind }
+type ArgsTermBindItem r rTermBind
+  = Rec.ArgsTermBindItem ( meta :: Metacontext | r ) rTermBind
 
 -- | recTypeBind
 type ArgsTypeBind r
-  = Rec.ArgsTypeBind (ProtoArgs () r)
+  = Rec.ArgsTypeBind ( meta :: Metacontext | r )
 
-recTypeBind ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { typeBind :: ProtoRec ArgsTypeBind r a } ->
-  ProtoRec ArgsTypeBind r a
-recTypeBind rec = Rec.recTypeBind { typeBind: rec.typeBind }
+type ArgsTypeBind_TypeBind r rTypeId
+  = Rec.ArgsTypeBind_TypeBind ( meta :: Metacontext | r ) rTypeId
+
+-- | recTermBind
+type ArgsTermBind r
+  = Rec.ArgsTermBind ( meta :: Metacontext | r )
+
+type ArgsTermBind_TermBind r rTermId
+  = Rec.ArgsTermBind_TermBind ( meta :: Metacontext | r ) rTermId
 
 -- | recTypeId
 type ArgsTypeId r
-  = Rec.ArgsTypeId (ProtoArgs () r)
-
-recTypeId ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { typeId :: ProtoRec ArgsTypeId r a } ->
-  ProtoRec ArgsTypeId r a
-recTypeId = Rec.recTypeId
+  = Rec.ArgsTypeId ( meta :: Metacontext | r )
 
 -- | recTermId
 type ArgsTermId r
-  = Rec.ArgsTermId (ProtoArgs () r)
+  = Rec.ArgsTermId ( meta :: Metacontext | r )
 
-recTermId ::
-  forall r a.
-  Lacks "syn" r =>
-  Lacks "ctx" r =>
-  Lacks "ix" r =>
-  Lacks "meta" r =>
-  { termId :: ProtoRec ArgsTermId r a } ->
-  ProtoRec ArgsTermId r a
-recTermId = Rec.recTermId
+-- | recHoleId 
+type ArgsHoleId r
+  = Rec.ArgsHoleId ( meta :: Metacontext | r )
