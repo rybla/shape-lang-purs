@@ -1,6 +1,8 @@
 module Language.Shape.Stlc.Recursor.Base where
 
 import Prelude
+
+import Data.List (List)
 import Prim (Record, Row)
 import Prim as Prim
 import Type.Proxy (Proxy(..))
@@ -47,8 +49,8 @@ type ArgsBuf r rType rTerm
 type ArgsData r rTypeBind rSumItems rTerm
   = ( typeBind :: Record rTypeBind, sumItems :: Record rSumItems, body :: Record rTerm | r )
 
-type ArgsMatch r rTypeId rTerm rCaseItems
-  = ( typeId :: Record rTypeId, term :: Record rTerm, caseItems :: Record rCaseItems | r )
+type ArgsMatch r rTypeId rTerm rCaseItem
+  = ( typeId :: Record rTypeId, term :: Record rTerm, caseItems :: List (Record rCaseItem) | r )
 
 type ArgsHole r
   = ( | r )
@@ -71,7 +73,13 @@ type ArgsSumItem r rTermBind rParamItems
 type ArgsCaseItems r
   = ( | r )
 
-type ArgsCaseItem r rTermBindItems rTerm
+type ArgsCaseItems_CaseItem r rCaseItem
+  = ( caseItem :: Record rCaseItem | r )
+
+type ArgsCaseItem r
+  = ( | r )
+
+type ArgsCaseItem_CaseItem r rTermBindItems rTerm
   = ( termBindItems :: Record rTermBindItems, body :: Record rTerm | r )
 
 -- | recParamItems

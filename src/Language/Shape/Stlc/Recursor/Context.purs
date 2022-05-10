@@ -1,5 +1,6 @@
 module Language.Shape.Stlc.Recursor.Context where
 
+import Data.Foldable
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
@@ -77,7 +78,7 @@ recTerm ::
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
   , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
-  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItems r)) -> a
+  , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
   Record (ArgsTerm r) -> a
@@ -138,7 +139,7 @@ recTerm rec =
             args
               { typeId = prune args.typeId
               , term = args.term { alpha = DataType { typeId: args.match.typeId, meta: default } }
-              , caseItems = args.caseItems
+              , caseItems = undefined -- args.caseItems
               }
     , hole: rec.hole
     }
@@ -153,7 +154,7 @@ type ArgsArgItems r
 type ArgsArgItem r rTerm
   = Rec.ArgsArgItem ( gamma :: Context, alpha :: Type | r ) rTerm
 
-recArgsArgItems ::
+recArgItems ::
   forall r a.
   Lacks "argItems" r =>
   Lacks "gamma" r =>
@@ -161,8 +162,8 @@ recArgsArgItems ::
   Lacks "cod" r =>
   { argItem :: Record (ArgsArgItem r (ArgsTerm r)) -> a } ->
   Record (ArgsArgItems r) -> List a
-recArgsArgItems rec =
-  Rec.recArgsArgItems
+recArgItems rec =
+  Rec.recArgItems
     { argItem:
         \args ->
           let
@@ -186,28 +187,51 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( gamma :: Context | r ) rTermBind rParamItems
 
--- | recCaseItems
-type ArgsCaseItems r
-  = Rec.ArgsCaseItems ( gamma :: Context, alpha :: Type | r )
+-- -- | recCaseItems
+-- type ArgsCaseItems r
+--   = Rec.ArgsCaseItems ( gamma :: Context, alpha :: Type | r )
+-- type ArgsCaseItem r rTermBindItems rTerm
+--   = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r ) rTermBindItems rTerm
+-- recCaseItems ::
+--   forall r a.
+--   Lacks "caseItems" r =>
+--   Lacks "gamma" r =>
+--   Lacks "alpha" r =>
+--   { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+--   Record (ArgsCaseItems r) -> List a
+-- recCaseItems rec =
+--   Rec.recCaseItems
+--     { caseItem:
+--         \args ->
+--           rec.caseItem
+--             args
+--               { termBindItems = prune args.termBindItems
+--               , body = args.body -- TODO: add bindings into context
+--               }
+--     }
+--   where
+--   prune = R.delete _alpha
+-- | recCaseItem
+type ArgsCaseItem r
+  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r )
 
-type ArgsCaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r ) rTermBindItems rTerm
+type ArgsCaseItem_CaseItem r rTermBind rParamItems
+  = Rec.ArgsCaseItem_CaseItem ( gamma :: Context, alpha :: Type | r ) rTermBind rParamItems
 
-recArgsCaseItems ::
+recCaseItem ::
   forall r a.
-  Lacks "caseItems" r =>
-  Lacks "gamma" r =>
+  Lacks "caseItem" r =>
   Lacks "alpha" r =>
-  { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
-  Record (ArgsCaseItems r) -> List a
-recArgsCaseItems rec =
-  Rec.recArgsCaseItems
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItem r) -> a
+recCaseItem rec =
+  Rec.recCaseItem
     { caseItem:
         \args ->
           rec.caseItem
             args
               { termBindItems = prune args.termBindItems
-              , body = args.body
+              , body = args.body  -- TODO: Add bindigns into context
               }
     }
   where
