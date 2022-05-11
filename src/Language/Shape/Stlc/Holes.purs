@@ -28,6 +28,9 @@ type HoleEq = Map HoleId HoleType
 emptyHoleSub :: HoleSub
 emptyHoleSub = empty
 
+emptyHoleEq :: HoleEq
+emptyHoleEq = empty
+
 subType :: HoleSub -> Type -> Type
 subType sub (ArrowType {dom, cod, meta})
   = ArrowType {dom: subType sub dom, cod: subType sub cod, meta}

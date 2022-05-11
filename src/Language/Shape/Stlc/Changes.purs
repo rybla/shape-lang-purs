@@ -241,7 +241,6 @@ displaceArgs _ _ _ _ = error "shouldn't get here"
 -- }
 -- Need to wait for henry to make args recursor
 
--- data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
 
 chSum = undefined
 
