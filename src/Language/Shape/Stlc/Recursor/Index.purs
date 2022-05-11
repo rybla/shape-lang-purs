@@ -5,7 +5,6 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.List (List(..))
 import Data.List as List
 import Data.Maybe (Maybe(..), isJust)
@@ -40,13 +39,15 @@ visitVia ixStep args@{ visit: { ix, csr } } =
 
 visitItemsVia :: forall r. IxStep -> List { visit :: Visit | r } -> List { visit :: Visit | r }
 visitItemsVia ixStep argss = go 0 (visitVia ixStep <$> argss)
-  where 
+  where
   l = List.length argss
+
   go i Nil
     | i == l = unsafeCrashWith "TODO"
     | otherwise = Nil
-  go i (Cons args argss) = 
-    Cons 
+
+  go i (Cons args argss) =
+    Cons
       (visitVia ixStepList.head args)
       (go (i + 1) (visitVia ixStepList.tail <$> argss))
 
@@ -134,10 +135,10 @@ recTerm ::
   Lacks "term" r =>
   Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
-  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItem r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
-  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItem r) (ArgsTerm r)) -> a
   , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
@@ -156,7 +157,7 @@ recTerm rec =
           rec.neu
             args
               { termId = visitVia ixStepNeu.termId args.termId
-              , argItems = visitVia ixStepNeu.argItems args.argItems
+              , argItems = visitItemsVia ixStepNeu.argItems args.argItems
               }
     , let_:
         \args ->
@@ -180,7 +181,7 @@ recTerm rec =
           rec.data_
             args
               { typeBind = visitVia ixStepData.typeBind args.typeBind
-              , sumItems = visitVia ixStepData.sumItems args.sumItems
+              , sumItems = visitItemsVia ixStepData.sumItems args.sumItems
               , body = visitVia ixStepData.body args.body
               }
     , match:
@@ -194,32 +195,66 @@ recTerm rec =
     , hole: rec.hole
     }
 
--- | recArgItems
-type ArgsArgItems r
-  = Rec.ArgsArgItems ( visit :: Visit | r )
+-- | recArgItem
+type ArgsArgItem r
+  = Rec.ArgsArgItem ( visit :: Visit | r )
 
-type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( visit :: Visit | r ) rTerm
+type ArgsArgItem_ArgItem r rTerm
+  = Rec.ArgsArgItem_ArgItem ( visit :: Visit | r ) rTerm
+
+recArgItem ::
+  forall r a.
+  Lacks "argItem" r =>
+  Lacks "gamma" r =>
+  Lacks "doms" r =>
+  Lacks "cod" r =>
+  { argItem :: Record (ArgsArgItem_ArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItem r) -> a
+recArgItem rec =
+  Rec.recArgItem
+    { argItem:
+        \args ->
+          rec.argItem
+            args
+              { term = visitVia ixStepArgItem.term args.term }
+    }
 
 -- | recSumItems
-type ArgsSumItems r
-  = Rec.ArgsSumItems ( visit :: Visit | r )
+type ArgsSumItem r
+  = Rec.ArgsSumItem ( visit :: Visit | r )
 
-type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( visit :: Visit | r ) rTermBind rParamItems
+type ArgsSumItem_SumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem_SumItem ( visit :: Visit | r ) rTermBind rParamItems
+
+recSumItem ::
+  forall r a.
+  Lacks "sumItem" r =>
+  { sumItem :: Record (ArgsSumItem_SumItem r (ArgsTermBind r) (ArgsParamItem r)) -> a } ->
+  Record (ArgsSumItem r) -> a
+recSumItem rec =
+  Rec.recSumItem
+    { sumItem:
+        \args ->
+          rec.sumItem
+            args
+              { termBind = visitVia ixStepSumItem.termBind args.termBind
+              , paramItems = visitItemsVia ixStepSumItem.paramItems args.paramItems
+              }
+    }
 
 -- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( visit :: Visit | r )
 
-type ArgsCaseItem_CaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem_CaseItem ( visit :: Visit | r ) rTermBindItems rTerm
+type ArgsCaseItem_CaseItem r rTermBindItem rTerm
+  = Rec.ArgsCaseItem_CaseItem ( visit :: Visit | r ) rTermBindItem rTerm
 
 recCaseItem ::
   forall r a.
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
-  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Lacks "typeId" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =
   Rec.recCaseItem
@@ -227,24 +262,52 @@ recCaseItem rec =
         \args ->
           rec.caseItem
             args
-              { termBindItems = visitVia ixStepCaseItem.termBindItems args.termBindItems
+              { termBindItems = visitItemsVia ixStepCaseItem.termBindItems args.termBindItems
               , body = visitVia ixStepCaseItem.body args.body
               }
     }
 
 -- | recParamItems
-type ArgsParamItems r
-  = Rec.ArgsParamItems ( visit :: Visit | r )
+type ArgsParamItem r
+  = Rec.ArgsParamItem ( visit :: Visit | r )
 
-type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( visit :: Visit | r ) rType
+type ArgsParamItem_ParamItem r rType
+  = Rec.ArgsParamItem_ParamItem ( visit :: Visit | r ) rType
+
+recParamItem ::
+  forall r a.
+  Lacks "paramItem" r =>
+  { paramItem :: Record (ArgsParamItem_ParamItem r (ArgsType r)) -> a } ->
+  Record (ArgsParamItem r) -> a
+recParamItem rec =
+  Rec.recParamItem
+    { paramItem:
+        \args ->
+          rec.paramItem
+            args
+              { type_ = visitVia ixStepParamItem.type_ args.type_ }
+    }
 
 -- | recTermBindItems
-type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( visit :: Visit | r )
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem ( visit :: Visit | r )
 
-type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( visit :: Visit | r ) rTermBind
+type ArgsTermBindItem_TermBindItem r rTermBind
+  = Rec.ArgsTermBindItem_TermBindItem ( visit :: Visit | r ) rTermBind
+
+recTermBindItem ::
+  forall r a.
+  Lacks "termBindItem" r =>
+  { termBindItem :: Record (ArgsTermBindItem_TermBindItem r (ArgsTermBind r)) -> a } ->
+  Record (ArgsTermBindItem r) -> a
+recTermBindItem rec =
+  Rec.recTermBindItem
+    { termBindItem:
+        \args ->
+          rec.termBindItem
+            args
+              { termBind = visitVia ixStepTermBindItem.termBind args.termBind }
+    }
 
 -- | recTypeBind
 type ArgsTypeBind r

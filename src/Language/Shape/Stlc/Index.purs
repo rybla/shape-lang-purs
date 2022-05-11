@@ -147,6 +147,10 @@ ixStepMatch =
   , caseItems: IxStep IxStepMatch 1
   }
 
+ixStepArgItem =
+  { term: IxStep IxStepSumItem 0
+  }
+
 ixStepSumItem =
   { termBind: IxStep IxStepSumItem 0
   , paramItems: IxStep IxStepSumItem 1
