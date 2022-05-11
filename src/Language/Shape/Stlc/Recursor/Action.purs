@@ -213,6 +213,13 @@ type ArgsTypeBind r
 type ArgsTypeBind_TypeBind r rTypeId
   = Rec.ArgsTypeBind_TypeBind ( actions :: Array Action | r ) rTypeId
 
+recTypeBind ::
+  forall r a.
+  Lacks "typeBind" r =>
+  { typeBind :: Record (ArgsTypeBind_TypeBind r (ArgsTypeId r)) -> a } ->
+  Record (ArgsTypeBind r) -> a
+recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ R.union { actions: [] } args }
+
 -- | recTermBind
 type ArgsTermBind r
   = Rec.ArgsTermBind ( | r )
@@ -220,12 +227,25 @@ type ArgsTermBind r
 type ArgsTermBind_TermBind r rTermId
   = Rec.ArgsTermBind_TermBind ( actions :: Array Action | r ) rTermId
 
+recTermBind ::
+  forall r a.
+  Lacks "termBind" r =>
+  { termBind :: Record (ArgsTermBind_TermBind r (ArgsTermId r)) -> a } ->
+  Record (ArgsTermBind r) -> a
+recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ R.union { actions: [] } args }
+
 -- | recTypeId
 type ArgsTypeId r
   = Rec.ArgsTypeId ( | r )
 
-type ArgsTypeId_TypeID r
+type ArgsTypeId_TypeId r
   = Rec.ArgsTypeId ( actions :: Array Action | r )
+
+recTypeId ::
+  forall r a.
+  { typeId :: Record (ArgsTypeId_TypeId r) -> a } ->
+  Record (ArgsTypeId r) -> a
+recTypeId rec args = rec.typeId $ R.union { actions: [] } args
 
 -- | recTermId
 type ArgsTermId r
@@ -234,9 +254,21 @@ type ArgsTermId r
 type ArgsTermId_TermId r
   = Rec.ArgsTermId ( actions :: Array Action | r )
 
+recTermId ::
+  forall r a.
+  { termId :: Record (ArgsTermId_TermId r) -> a } ->
+  Record (ArgsTermId r) -> a
+recTermId rec args = rec.termId $ R.union { actions: [] } args
+
 -- | recHoleId 
 type ArgsHoleId r
   = Rec.ArgsHoleId ( | r )
 
 type ArgsHoleId_HoleId r
   = Rec.ArgsHoleId ( actions :: Array Action | r )
+
+recHoleId ::
+  forall r a.
+  { holeId :: Record (ArgsHoleId_HoleId r) -> a } ->
+  Record (ArgsHoleId r) -> a
+recHoleId rec args = rec.holeId $ R.union { actions: [] } args

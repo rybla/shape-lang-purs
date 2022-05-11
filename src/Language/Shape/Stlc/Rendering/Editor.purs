@@ -49,10 +49,10 @@ renderEnvironment this env =
           [ [ DOM.div [ Props.className "header" ] [ DOM.text "Context" ] ]
           , renderContext env.gamma
           , Array.concat
-              $ maybeArray env.goal \goal ->
+              $ maybeArray env.alpha \alpha ->
                   Array.concat
                     [ [ DOM.div [ Props.className "environment-divider" ] [] ]
-                    , flip State.evalState env $ undefined -- renderType this { syn: { type_: goal }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
+                    , flip State.evalState env $ undefined -- renderType this { syn: { type_: alpha }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
                     ]
           ]
   ]

@@ -5,7 +5,6 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
@@ -254,12 +253,26 @@ type ArgsTypeBind r
 type ArgsTypeBind_TypeBind r rTypeId
   = Rec.ArgsTypeBind_TypeBind ( meta :: Metacontext | r ) rTypeId
 
+recTypeBind ::
+  forall r a.
+  Lacks "typeBind" r =>
+  { typeBind :: Record (ArgsTypeBind_TypeBind r (ArgsTypeId r)) -> a } ->
+  Record (ArgsTypeBind r) -> a
+recTypeBind = Rec.recTypeBind
+
 -- | recTermBind
 type ArgsTermBind r
   = Rec.ArgsTermBind ( meta :: Metacontext | r )
 
 type ArgsTermBind_TermBind r rTermId
   = Rec.ArgsTermBind_TermBind ( meta :: Metacontext | r ) rTermId
+
+recTermBind ::
+  forall r a.
+  Lacks "termBind" r =>
+  { termBind :: Record (ArgsTermBind_TermBind r (ArgsTermId r)) -> a } ->
+  Record (ArgsTermBind r) -> a
+recTermBind = Rec.recTermBind
 
 -- | recTypeId
 type ArgsTypeId r

@@ -45,7 +45,7 @@ import Undefined (undefined)
 type RenderEnvironment
   = { gamma :: Context
     , meta :: Metacontext
-    , goal :: Maybe Type
+    , alpha :: Maybe Type
     , actions :: Array Action
     , holeIds :: List HoleId
     }
@@ -56,7 +56,7 @@ emptyRenderEnvironment :: RenderEnvironment
 emptyRenderEnvironment =
   { gamma: default
   , meta: default
-  , goal: default
+  , alpha: default
   , actions: []
   , holeIds: Nil
   }
@@ -195,30 +195,31 @@ renderTerm this =
     defaultNodeProps
       { visit = Just args.visit
       , gamma = args.gamma
-      , goal = Just args.alpha
+      , alpha = Just args.alpha
       , meta = args.meta
       , actions = args.actions
       }
 
--- renderArgItems :: This -> Record Rec.ArgsArgItems -> M (Array ReactElement)
--- renderArgItems this =
---   renderConcatList
---     <<< Rec.recArgItems
---         { argItem:
---             \args ->
---               renderNode this
---                 ( defaultNodeProps
---                     { label = Just "ArgItem"
---                     , visit = Just args.ix.argItem
---                     , gamma = Just args.gamma.argItem.gamma
---                     , meta = args.meta.meta
---                     , actions = args.act.actions
---                     }
---                 )
---                 [ pure $ newline args.meta.meta (unwrap args.argItem.meta).indented
---                 , renderTerm this { syn: { term: args.argItem.term }, gamma: args.gamma.argItem, ix: { visit: args.ix.argItem }, meta: { meta: args.meta.meta }, act: {} }
---                 ]
---         }
+renderArgItem :: This -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
+renderArgItem this =
+  Rec.recArgItem
+    { argItem:
+        \args ->
+          renderNode this
+            ( defaultNodeProps
+                { label = Just "ArgItem"
+                , visit = Just args.visit
+                , gamma = args.gamma
+                , alpha = Just args.alpha
+                , meta = args.meta
+                , actions = args.actions
+                }
+            )
+            [ pure $ newline args.meta (unwrap args.argItem.meta).indented
+            , renderTerm this args.term
+            ]
+    }
+
 -- renderSumItems :: This -> Record Rec.ArgsSumItems -> M (Array ReactElement)
 -- renderSumItems this =
 --   renderConcatList
@@ -421,7 +422,7 @@ defaultNodeProps :: NodeProps
 defaultNodeProps =
   { label: default
   , visit: default
-  , goal: default
+  , alpha: default
   , gamma: default
   , meta: default
   , actions: []
@@ -430,7 +431,7 @@ defaultNodeProps =
 type NodeProps
   = { label :: Maybe String
     , visit :: Maybe Visit
-    , goal :: Maybe Type
+    , alpha :: Maybe Type
     , gamma :: Context
     , meta :: Metacontext
     , actions :: Array Action
@@ -448,7 +449,7 @@ renderNode this props elemsM = do
     -- update environment
     State.modify_
       ( _
-          { goal = props.goal
+          { alpha = props.alpha
           , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta

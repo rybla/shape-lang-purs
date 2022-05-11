@@ -271,12 +271,34 @@ type ArgsTypeBind r
 type ArgsTypeBind_TypeBind r rTypeId
   = Rec.ArgsTypeBind_TypeBind ( typeBind :: TypeBind | r ) rTypeId
 
+recTypeBind ::
+  forall r a.
+  Lacks "typeBind" r =>
+  { typeBind :: Record (ArgsTypeBind_TypeBind r (ArgsTypeId r)) -> a } ->
+  Record (ArgsTypeBind r) -> a
+recTypeBind rec args =
+  rec.typeBind
+    $ R.union
+        { typeId: { typeId: args.typeBind.typeId } `R.union` R.delete _typeBind args }
+        args
+
 -- | recTermBind
 type ArgsTermBind r
   = Rec.ArgsTermBind ( termBind :: TermBind | r )
 
 type ArgsTermBind_TermBind r rTermId
   = Rec.ArgsTermBind_TermBind ( termBind :: TermBind | r ) rTermId
+
+recTermBind ::
+  forall r a.
+  Lacks "termBind" r =>
+  { termBind :: Record (ArgsTermBind_TermBind r (ArgsTermId r)) -> a } ->
+  Record (ArgsTermBind r) -> a
+recTermBind rec args =
+  rec.termBind
+    $ R.union
+        { termId: { termId: args.termBind.termId } `R.union` R.delete _termBind args }
+        args
 
 -- | recTypeId
 type ArgsTypeId r

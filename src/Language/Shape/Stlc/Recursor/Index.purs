@@ -316,12 +316,40 @@ type ArgsTypeBind r
 type ArgsTypeBind_TypeBind r rTypeId
   = Rec.ArgsTypeBind_TypeBind ( visit :: Visit | r ) rTypeId
 
+recTypeBind ::
+  forall r a.
+  Lacks "typeBind" r =>
+  { typeBind :: Record (ArgsTypeBind_TypeBind r (ArgsTypeId r)) -> a } ->
+  Record (ArgsTypeBind r) -> a
+recTypeBind rec =
+  Rec.recTypeBind
+    { typeBind:
+        \args ->
+          rec.typeBind
+            args
+              { typeId = args.typeId { visit = nonVisit } }
+    }
+
 -- | recTermBind
 type ArgsTermBind r
   = Rec.ArgsTermBind ( visit :: Visit | r )
 
 type ArgsTermBind_TermBind r rTermId
   = Rec.ArgsTermBind_TermBind ( visit :: Visit | r ) rTermId
+
+recTermBind ::
+  forall r a.
+  Lacks "termBind" r =>
+  { termBind :: Record (ArgsTermBind_TermBind r (ArgsTermId r)) -> a } ->
+  Record (ArgsTermBind r) -> a
+recTermBind rec =
+  Rec.recTermBind
+    { termBind:
+        \args ->
+          rec.termBind
+            args
+              { termId = args.termId { visit = nonVisit } }
+    }
 
 -- | recTypeId
 type ArgsTypeId r

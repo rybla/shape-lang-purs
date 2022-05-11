@@ -30,3 +30,5 @@ _paramItem = Proxy :: Proxy "paramItem"
 _termBindItem = Proxy :: Proxy "termBindItem"
 
 _typeId = Proxy :: Proxy "typeId"
+_typeBind = Proxy :: Proxy "typeBind"
+_termBind = Proxy :: Proxy "termBind"
