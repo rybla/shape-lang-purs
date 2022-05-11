@@ -6,13 +6,14 @@ import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
-import Data.List.Unsafe (List(..))
+import Data.List.Unsafe (List(..), reverse)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -74,7 +75,7 @@ renderProgram this = do
         -- TODO: maybe pull this out into multiple files or at least somewhere else?
         { term: st.term
         , gamma: default
-        , alpha: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+        , alpha: st.type_
         , visit: nilVisit (Just st.ix)
         , meta: default
         }
@@ -97,7 +98,7 @@ renderType this =
             [ printTypeId args.typeId ]
     , holeType:
         \args -> do
-          State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId))
+          State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId)) -- should be inserted into ordered set
           renderNode this
             ((makeNodeProps args) { label = Just "HoleType" })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
@@ -175,9 +176,7 @@ renderTerm this =
         \args ->
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
             <$> renderNode this
-                ( (makeNodeProps args)
-                    { label = Just "Hole" }
-                )
+                ( (makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha } )
                 [ renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
                 ]
     }
@@ -328,7 +327,7 @@ printTermId { termId, meta } =
 
 printHoleId :: { holeId :: HoleId, meta :: Metacontext } -> M (Array ReactElement)
 printHoleId args = do
-  mb_i <- List.findIndex (args.holeId == _) <$> State.gets _.holeIds
+  mb_i <- List.findIndex (args.holeId == _) <$> (State.gets (reverse <<< _.holeIds))
   case mb_i of
     Just i -> pure [ DOM.span [ Props.className "holeId" ] [ DOM.text $ "?" <> show i ] ]
     Nothing -> unsafeCrashWith $ "count not find index of holeId " <> show args.holeId <> " in metacontext " <> show args.meta

@@ -7,6 +7,7 @@ import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+import Data.List.Unsafe (List(..))
 import Data.List.Unsafe as List
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over, wrap)
@@ -41,11 +42,28 @@ init1 =
               , meta: default
               }
             ]
-      , body: Hole { meta: default }
+      , body:
+          let
+            xId /\ xName = mkTermVar "x"
+          in
+            -- Lam
+            --   { termBind: { termId: xId, meta: over TermBindMetadata (_ { name = xName }) default }
+            --   , body:
+            --       -- Neu { termId: xId, argItems: Nil, meta: default }
+            --       Hole { meta: default }
+            --   , meta: default
+            --   }
+            Let
+              { termBind: { termId: xId, meta: over TermBindMetadata (_ { name = xName }) default }
+              , sign: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+              , impl: Hole { meta: default }
+              , body: Hole { meta: default }
+              , meta: default
+              }
       , meta: default
       }
-      /\ HoleType
-          { holeId: freshHoleId unit
-          , weakening: Set.empty
+      /\ ArrowType
+          { dom: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+          , cod: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
           , meta: default
           }

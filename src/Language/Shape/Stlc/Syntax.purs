@@ -3,9 +3,12 @@ module Language.Shape.Stlc.Syntax where
 import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
+
+import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 import Data.Set (Set)
+import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Effect.Unsafe (unsafePerformEffect)
@@ -125,6 +128,11 @@ derive newtype instance showHoleId :: Show HoleId
 
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
+
+freshHoleType :: Unit -> Type 
+freshHoleType _ = HoleType {holeId: freshHoleId unit, weakening: Set.empty, meta: default}
+freshHole :: Unit -> Term 
+freshHole _ = Hole {meta: default}
 
 -- | Syntax
 data Syntax

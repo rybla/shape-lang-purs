@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Types
 import Prelude hiding (div)
 import React
 import React.DOM
+import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.Initial (init1)
@@ -35,7 +36,10 @@ programComponent this =
     let
       term /\ type_ = init1
     in
-      { ix: mempty, term, type_ }
+      { ix: mempty
+      , term
+      , type_
+      }
 
   componentDidMount = do
     Console.log "componentDidMount"
@@ -51,5 +55,5 @@ programComponent this =
 
   render = do
     st <- getState this
-    Console.log $ "st = " <> show st
+    -- Console.log $ "st = " <> show st
     renderEditor this

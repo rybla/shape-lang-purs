@@ -1,16 +1,26 @@
 module Language.Shape.Stlc.Recursor.Action where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
+
+import Data.Default (default)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (over, unwrap, wrap)
+import Data.Set as Set
+import Language.Shape.Stlc.ChAtIndex (ToReplace(..), chAtTerm, chAtType)
+import Language.Shape.Stlc.Changes (TypeChange(..))
+import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Prim (Array, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
+import React (getState, modifyState)
 import Record as R
 import Undefined (undefined)
 
@@ -53,6 +63,29 @@ recType rec =
             $ R.union { actions: [] }
                 args
     }
+  where 
+  common :: forall r. Type -> { gamma :: Context | r } -> Array Action
+  common type_ { gamma } =
+    [ Action
+        { label: Just "enarrow"
+        , effect:
+            \this -> do
+              st <- getState this
+              let holeType = freshHoleType unit
+              case chAtType { type_, gamma }
+                  (ReplaceType 
+                    (ArrowType {dom: holeType, cod: type_, meta: default})
+                    (InsertArg holeType)
+                  )
+                  st.ix of 
+                Just (type' /\ ix' /\ tc /\ holeEq) -> do
+                  -- TODO: apply holeEq
+                  -- modifyState this (_ { term = term', ix = ix' })
+                  pure unit 
+                Nothing -> pure unit
+        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        }
+    ]
 
 -- | recTerm
 type ArgsTerm r
@@ -97,39 +130,60 @@ recTerm rec =
     { lam:
         \args ->
           rec.lam
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Lam args.lam) args <> [] }
                 args
     , neu:
         \args ->
           rec.neu
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Neu args.neu) args <> [] }
                 args
     , let_:
         \args ->
           rec.let_
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Let args.let_) args <> [] }
                 args
     , buf:
         \args ->
           rec.buf
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Buf args.buf) args <> [] }
                 args
     , data_:
         \args ->
           rec.data_
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Data args.data_) args <> [] }
                 args
     , match:
         \args ->
           rec.match
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Match args.match) args <> [] }
                 args
     , hole:
         \args ->
           rec.hole
-            $ R.union { actions: [] }
+            $ R.union { actions: common (Hole args.hole) args <> [] }
                 args
     }
+  where
+  common :: forall r. Term -> { gamma :: Context, alpha :: Type | r } -> Array Action
+  common term { gamma, alpha } =
+    [ Action
+        { label: Just "enlambda"
+        , effect:
+            \this -> do
+              st <- getState this
+              case chAtTerm { term, gamma, alpha }
+                  ( ReplaceTerm
+                      (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
+                      (InsertArg (HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }))
+                  )
+                  st.ix of
+                Just (term' /\ ix' /\ tc /\ holeEq) -> do
+                  -- TODO: apply holeEq
+                  modifyState this (_ { term = term', ix = ix' })
+                Nothing -> pure unit
+        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        }
+    ]
 
 -- | recArgItem
 type ArgsArgItem r

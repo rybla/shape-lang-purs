@@ -104,7 +104,7 @@ recTerm rec =
         \args ->
           rec.lam
             args
-              { termBind = args.termBind
+              { termBind = insertVar args.lam.termBind.termId (unwrap args.lam.termBind.meta).name `mapArgsMeta` args.termBind
               , body = (incrementIndentation <<< insertVar args.lam.termBind.termId (unwrap args.lam.termBind.meta).name) `mapArgsMeta` args.body
               }
     , neu:
@@ -118,7 +118,7 @@ recTerm rec =
         \args ->
           rec.let_
             args
-              { termBind = incrementIndentation `mapArgsMeta` args.termBind
+              { termBind = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.termBind
               , sign = incrementIndentation `mapArgsMeta` args.sign
               , impl = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.impl
               , body = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.body

@@ -9,6 +9,7 @@ import Prelude
 import Data.Default (default)
 import Data.List (List)
 import Data.List.Unsafe as List
+import Debug as Debug
 import Language.Shape.Stlc.Context (Context(..), flattenType, insertData, insertVarType, lookupData, lookupVarType, typeOfSumItem)
 import Language.Shape.Stlc.Recursor.Base (mapHere)
 import Language.Shape.Stlc.Recursor.Syntax as Rec
@@ -93,8 +94,10 @@ recTerm rec =
               { termBind = prune args.termBind
               , body =
                 case args.alpha of
-                  ArrowType arrowType -> insertVarType args.lam.termBind.termId arrowType.dom `mapArgsCtx` args.body
-                  _ -> unsafeCrashWith "badly-typed lam"
+                  ArrowType arrowType ->
+                    (insertVarType args.lam.termBind.termId arrowType.dom `mapArgsCtx` args.body)
+                      { alpha = arrowType.cod }
+                  type_ -> unsafeCrashWith $ "badly-typed lam with non-arrow type: " <> show type_
               }
     , neu:
         \args ->

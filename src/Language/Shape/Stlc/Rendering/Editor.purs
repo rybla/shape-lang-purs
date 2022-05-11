@@ -74,7 +74,7 @@ renderEnvironment this env =
         DOM.span [ Props.className "context-data" ]
           $ Array.concat
               [ [ token.data1 ]
-              , flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta } 
+              , flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta }
               ]
 
     renderVarType termId =
@@ -97,5 +97,11 @@ renderPalette this env =
   ]
   where
   renderAction (Action action) = case action.label of
-    Just str -> [ DOM.div [ Props.className "action" ] [ DOM.text str ] ]
+    Just str ->
+      [ DOM.div
+          [ Props.className "action"
+          , Props.onClick \event -> action.effect this
+          ]
+          [ DOM.text str ]
+      ]
     Nothing -> []
