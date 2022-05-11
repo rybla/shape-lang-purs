@@ -132,16 +132,16 @@ chTermAux args chs sbjto = Rec.recTerm {
     , neu : \args chs sbjto ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
-                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.argItems.argItems
+                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.neu.argItems
                 let maybeSub = unifyTypeRestricted (applyTC sbjto args.alpha) (applyTC tc args.alpha)
                 case maybeSub of
                     Just holeSub -> do subHoles holeSub
                                        pure $ wrapInDisplaced displaced1 (Neu $ args.neu{argItems = argItems'})
-                    Nothing -> do displaced2 <- displaceArgs args.gamma varType chs args.argItems.argItems
+                    Nothing -> do displaced2 <- displaceArgs args.gamma varType chs args.neu.argItems
                                   pure $ wrapInDisplaced (displaced1 <> displaced2) (Hole {meta: default})
         in
         case lookup args.neu.termId chs.termChanges of
-            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.argItems.argItems
+            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.neu.argItems
                                         pure $ wrapInDisplaced displaced (Hole {meta: default})
             Just (VariableTypeChange varTC) -> ifChanged varTC
             Nothing -> ifChanged NoChange
@@ -253,11 +253,11 @@ inferChTerm = Rec.recTerm {
     , neu : \args chs ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
-                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.argItems.argItems
+                (argItems' /\ tc /\ displaced1) <- chArgs args.gamma varType chs varTC args.neu.argItems
                 pure $ wrapInDisplaced displaced1 (Neu $ args.neu{argItems = argItems'}) /\ tc
         in
         case lookup args.neu.termId chs.termChanges of
-            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.argItems.argItems
+            Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.neu.argItems
                                         pure $ wrapInDisplaced displaced (Hole {meta: default}) /\ NoChange -- TODO: should this be NoChange?
             Just (VariableTypeChange varTC) -> ifChanged varTC
             Nothing -> ifChanged NoChange
