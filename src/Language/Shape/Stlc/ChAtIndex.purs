@@ -8,11 +8,11 @@ import Ansi.Codes (EscapeCode(..))
 import Control.Monad.State (runState)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), isJust, maybe)
-import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), chTerm, chTerm', emptyChanges, varChange)
+import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, varChange)
 import Language.Shape.Stlc.Hole (HoleEq, emptyHoleEq, emptyHoleSub)
-import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixStepBuf, ixStepLet)
+import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixStepBuf, ixStepData, ixStepLet)
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (Term(..), Type(..), ArrowType)
+import Language.Shape.Stlc.Syntax (ArrowType, Term(..), Type(..), Buf)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -47,23 +47,37 @@ chAtTerm args tRep idx = Rec.recTerm {
     _ -> error "no"
   , let_ : \args tRep -> case _ of
     (IxDown (IxStep IxStepLet 1 : rest)) -> do -- type of let
-      ty' /\ IxDown idx' /\ tc /\ holeEq <- chAtType args.sign tRep (IxDown rest)
-      let impl' /\ holeEq1 = runState (chTerm' args.impl emptyChanges tc) emptyHoleEq
+      ty' /\ IxDown idx' /\ tc /\ holeEq0 <- chAtType args.sign tRep (IxDown rest)
+      let impl' /\ holeEq1 = runState (chTerm' args.impl emptyChanges tc) holeEq0
       let body' /\ holeEq2 = runState (chTerm' args.body (varChange emptyChanges args.termBind.termBind.termId tc) NoChange) holeEq1
       pure $ Let args.let_ {sign= ty', impl= impl', body= body'} /\ IxDown (ixStepLet.sign : idx') /\ NoChange /\ holeEq2
     (IxDown (IxStep IxStepLet 2 : rest)) -> do -- definition of let
-      undefined
+      impl' /\ IxDown idx' /\ tc /\ holeEq1 <- chAtTerm args.impl tRep (IxDown rest)
+      let sign' = applyTC tc args.sign.type_
+      let body' /\ holeEq2 = runState (chTerm' args.body (varChange emptyChanges args.termBind.termBind.termId tc) NoChange) holeEq1
+      pure $ Let args.let_ {sign = sign', impl = impl', body = body'} /\ IxDown (ixStepLet.impl : idx') /\ NoChange /\ holeEq2
     (IxDown (IxStep IxStepLet 3 : rest)) -> do -- body of let
-      undefined
+      body' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.body tRep (IxDown rest)
+      pure $ Let args.let_ {body = body'} /\ IxDown (ixStepLet.body : idx') /\ tc /\ holeEq
     _ -> error "no"
   , buf : \args tRep -> case _ of
-    (IxDown (IxStep IxStepBuf 0 : rest)) -> undefined
-    (IxDown (IxStep IxStepBuf 1 : rest)) -> undefined
+    (IxDown (IxStep IxStepBuf 0 : rest)) -> do -- type of thing in buffer
+      ty' /\ IxDown idx' /\ tc /\ holeEq0 <- chAtType args.sign tRep (IxDown rest)
+      let impl' /\ holeEq1 = runState (chTerm' args.impl emptyChanges tc) holeEq0
+      pure $ Buf args.buf {sign= ty', impl= impl'} /\ IxDown (ixStepBuf.sign : idx') /\ NoChange /\ holeEq1
+    (IxDown (IxStep IxStepBuf 1 : rest)) -> do -- thing in buffer
+      impl' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.impl tRep (IxDown rest)
+      let sign' = applyTC tc args.sign.type_
+      pure $ Buf args.buf {sign = sign', impl = impl'} /\ IxDown (ixStepBuf.impl : idx') /\ NoChange /\ holeEq
+    (IxDown (IxStep IxStepBuf 2 : rest)) -> do -- body of buffer (rest of program)
+      body' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.body tRep (IxDown rest)
+      pure $ Buf args.buf {body = body'} /\ IxDown (ixStepBuf.body : idx') /\ tc /\ holeEq
     _ -> error "no"
   , data_ : \args tRep -> case _ of
-    (IxDown (IxStep IxStepData 1 : rest)) -> undefined
-    (IxDown (IxStep IxStepData 2 : rest)) -> undefined
-    (IxDown (IxStep IxStepData 3 : rest)) -> undefined
+    (IxDown (IxStep IxStepData 1 : rest)) -> error "unimplemented"
+    (IxDown (IxStep IxStepData 2 : rest)) -> do -- body of data type definition
+      body' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.body tRep (IxDown rest)
+      pure $ Data args.data_ {body = body'} /\ IxDown (ixStepData.body : idx') /\ tc /\ holeEq
     _ -> error "no"
   , match : \args tRep -> case _ of
     (IxDown (IxStep IxStepMatch 1 : rest)) -> error "unimplemented"
@@ -86,45 +100,3 @@ chAtType args tRep idx = Rec.recType {
   , holeType : \args tRep -> case _ of
     _ -> error "no"
 } args tRep idx
-
--- It would really be nice to have an argItems recursor which actually is a recursor and not just map...
--- chAtArgs :: Rec.Args
-
--- chAtTerm :: Record (Rec.ArgsTerm ()) -> (Unit -> Unit -> Maybe Unit)
--- chAtTerm args arg1 arg2
---   | isSelected args.visit = undefined
---   | otherwise =
---     Rec.recTerm
---       { lam: undefined
---       , neu: undefined
---       , let_: undefined
---       , buf:
---           \args arg1 arg2 ->
---             if isSelectionAncestor args.visit then
---               undefined
---             else
---               undefined
---       , data_: undefined
---       , match: undefined
---       , hole: undefined
---       }
---       args
---       arg1
---       arg2
-
--- chAtTerm {ix: {visit: {csr: Just (IxDown Nil)}}} _ _ = undefined -- pure unit
--- chAtTerm args _ _ = Rec.recTerm {
---     lam : \args _ _ -> undefined
---     , neu : undefined
---     , let_ : undefined
---     , buf : \args _ _ ->
---         if isJust args.ix.term.csr then 
---             undefined
---         else if isJust args.ix.body.csr then
---             undefined
---         else
---         error "no"
---     , data_ : undefined
---     , match : undefined
---     , hole : undefined
--- } args unit unit
