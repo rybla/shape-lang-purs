@@ -306,7 +306,7 @@ printTypeId { typeId, meta } =
     Just name -> name
     Nothing -> unsafeCrashWith $ "could not find name of type id " <> show typeId <> " in metacontext " <> show meta
 
-  shadow = case Map.lookup name (unwrap meta).dataShadows of
+  shadow = case Map.lookup typeId (unwrap meta).dataShadowIndices of
     Just i -> i
     Nothing -> unsafeCrashWith $ "could not find shadow of data name " <> show name <> " in metacontext " <> show meta
 
@@ -322,7 +322,7 @@ printTermId { termId, meta } =
     Just name -> name
     Nothing -> unsafeCrashWith $ "could not find name of term id " <> show termId <> " in metacontext " <> show meta
 
-  shadow = case Map.lookup name (unwrap meta).varShadows of
+  shadow = case Map.lookup termId (unwrap meta).varShadowIndices of
     Just i -> i
     Nothing -> unsafeCrashWith $ "could not find shadow of var name " <> show name <> " in metacontext " <> show meta
 

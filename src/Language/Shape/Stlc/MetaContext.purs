@@ -1,13 +1,14 @@
 module Language.Shape.Stlc.Metacontext where
 
 import Data.Newtype
+import Data.Foldable
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.Default (class Default)
-import Data.Map (Map)
-import Data.Map as Map
+import Data.Map.Unsafe (Map)
+import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype as NT
 import Data.Set (Set)
@@ -22,70 +23,78 @@ newtype Metacontext
 
 type MetacontextRow
   = ( varNames :: Map TermId Name -- varId => varName
-    , varShadows :: Map Name Int -- varName => shadowDepth
-    , varMetas :: Map TermId Metacontext
+    , varShadowIndices :: Map TermId Int -- varId => shadowIndex
+    , varShadowDepths :: Map Name Int -- varName => shadowDepth
     , dataNames :: Map TypeId Name -- dataId => dataName
-    , dataShadows :: Map Name Int -- dataName => shadowDepth
-    , dataMetas :: Map TypeId Metacontext
+    , dataShadowIndices :: Map TypeId Int -- dataName => shadowIndex
+    , dataShadowDepths :: Map Name Int -- dataName => shadowDepth
     , indentation :: Int
     )
 
 instance newtypeMetacontext :: Newtype Metacontext (Record MetacontextRow)
 
-instance showMetacontext :: Show Metacontext where
-  show (Metacontext m) =
-    String.joinWith ", " <<< map (\(l /\ t) -> l <> ": " <> t)
-      $ [ "varNames" /\ show m.varNames
-        , "varShadows" /\ show m.varShadows
-        , "varMetas" /\ show m.varMetas
-        , "dataNames" /\ show m.dataNames
-        , "dataShadows" /\ show m.dataShadows
-        , "dataMetas" /\ show m.dataMetas
-        , "indentation" /\ show m.indentation
-        ]
+derive newtype instance showMetacontext :: Show Metacontext
 
 instance defaultMetacontext :: Default Metacontext where
   default =
     Metacontext
       { varNames: Map.empty
-      , varShadows: Map.empty
-      , varMetas: Map.empty
+      , varShadowIndices: Map.empty
+      , varShadowDepths: Map.empty
       , dataNames: Map.empty
-      , dataShadows: Map.empty
-      , dataMetas: Map.empty
+      , dataShadowIndices: Map.empty
+      , dataShadowDepths: Map.empty
       , indentation: 0
       }
 
 _varNames = Proxy :: Proxy "varNames"
 
-_varShadows = Proxy :: Proxy "varShadows"
+_varShadowDepths = Proxy :: Proxy "varShadowDepths"
 
-_varMetas = Proxy :: Proxy "varMetas"
+_varShadowIndices = Proxy :: Proxy "varShadowIndices"
 
 _dataNames = Proxy :: Proxy "dataNames"
 
-_dataShadows = Proxy :: Proxy "dataShadows"
+_dataShadowDepths = Proxy :: Proxy "dataShadowDepths"
 
-_dataMetas = Proxy :: Proxy "dataMetas"
+_dataShadowIndices = Proxy :: Proxy "dataShadowIndices"
 
 _indentation = Proxy :: Proxy "indentation"
 
 insertVar :: TermId -> Name -> Metacontext -> Metacontext
-insertVar termId name =
-  (\meta -> over Metacontext (Record.modify _varMetas (Map.insert termId meta)) meta)
-    <<< over Metacontext
-        ( Record.modify _varNames (Map.insert termId name)
-            <<< Record.modify _varShadows (Map.alter (maybe (Just 0) (Just <<< (1 + _))) name)
-        )
+insertVar termId name meta =
+  let
+    shadowDepth' = case Map.lookup name (unwrap meta).varShadowDepths of
+      Just shadowDepth -> shadowDepth + 1
+      Nothing -> 0
+  in
+    over Metacontext
+      ( Record.modify _varNames (Map.insert termId name) -- set name
+          <<< Record.modify _varShadowDepths (Map.insert name shadowDepth') -- increment shadow depth
+          <<< Record.modify _varShadowIndices (Map.insert termId shadowDepth') -- set shadow index
+      )
+      meta
 
--- TODO: need to add constructors
 insertData :: Data -> Metacontext -> Metacontext
-insertData data_ =
-  (\meta -> over Metacontext (Record.modify _dataMetas (Map.insert data_.typeBind.typeId meta)) meta)
-    <<< over Metacontext
-        ( Record.modify _dataNames (Map.insert data_.typeBind.typeId (unwrap data_.typeBind.meta).name)
-            <<< Record.modify _dataShadows (Map.alter (maybe (Just 0) (Just <<< (1 + _))) (unwrap data_.typeBind.meta).name)
-        )
+insertData data_ meta =
+  let
+    typeId = data_.typeBind.typeId
+
+    name = (unwrap data_.typeBind.meta).name
+
+    shadowDepth' = case Map.lookup name (unwrap meta).dataShadowDepths of
+      Just shadowDepth -> shadowDepth + 1
+      Nothing -> 0
+  in
+    -- (\meta -> foldl (\meta sumItem -> insertVar sumItem.termBind.termId (unwrap sumItem.termBind.meta).name meta) meta data_.sumItems) -- * unflipped version
+    flip (foldl (flip (\sumItem -> insertVar sumItem.termBind.termId (unwrap sumItem.termBind.meta).name))) data_.sumItems
+      $ over Metacontext
+          ( Record.modify _dataNames (Map.insert typeId name) -- set name
+              <<< Record.modify _dataShadowDepths (Map.insert name shadowDepth') -- increment shadow depth
+              <<< Record.modify _dataShadowIndices (Map.insert typeId shadowDepth') -- set shadow index
+          )
+          meta
+
 
 incrementIndentation :: Metacontext -> Metacontext
 incrementIndentation = over Metacontext $ Record.modify _indentation (_ + 1)

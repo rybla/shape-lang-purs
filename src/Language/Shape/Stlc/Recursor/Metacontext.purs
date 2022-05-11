@@ -5,6 +5,7 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
@@ -104,7 +105,7 @@ recTerm rec =
           rec.lam
             args
               { termBind = args.termBind
-              , body = incrementIndentation `mapArgsMeta` args.body
+              , body = (incrementIndentation <<< insertVar args.lam.termBind.termId (unwrap args.lam.termBind.meta).name) `mapArgsMeta` args.body
               }
     , neu:
         \args ->
@@ -134,8 +135,8 @@ recTerm rec =
         \args ->
           rec.data_
             args
-              { typeBind = args.typeBind
-              , sumItems = (incrementIndentation `mapArgsMeta` _) <$> args.sumItems
+              { typeBind = insertData args.data_ `mapArgsMeta` args.typeBind
+              , sumItems = ((incrementIndentation <<< insertData args.data_) `mapArgsMeta` _) <$> args.sumItems
               , body = (incrementIndentation <<< insertData args.data_) `mapArgsMeta` args.body
               }
     , match:

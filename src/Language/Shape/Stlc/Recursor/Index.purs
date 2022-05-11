@@ -38,18 +38,14 @@ visitVia ixStep args@{ visit: { ix, csr } } =
     }
 
 visitItemsVia :: forall r. IxStep -> List { visit :: Visit | r } -> List { visit :: Visit | r }
-visitItemsVia ixStep argss = go 0 (visitVia ixStep <$> argss)
+visitItemsVia ixStep argss = go (visitVia ixStep <$> argss)
   where
-  l = List.length argss
+  go Nil = Nil
 
-  go i Nil
-    | i == l = unsafeCrashWith "TODO"
-    | otherwise = Nil
-
-  go i (Cons args argss) =
+  go (Cons args argss) =
     Cons
       (visitVia ixStepList.head args)
-      (go (i + 1) (visitVia ixStepList.tail <$> argss))
+      (go (visitVia ixStepList.tail <$> argss))
 
 nonVisit :: Visit
 nonVisit = { ix: Nothing, csr: Nothing }

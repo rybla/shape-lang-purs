@@ -7,6 +7,7 @@ import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State as State
 import Data.Array as Array
+import Data.Default (default)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
@@ -16,6 +17,7 @@ import Effect (Effect)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Metacontext (Metacontext(..))
 import Language.Shape.Stlc.Metadata (SumItemMetadata(..))
+import Language.Shape.Stlc.Recursor.Index (nonVisit)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement)
 import React.DOM as DOM
@@ -52,7 +54,7 @@ renderEnvironment this env =
               $ maybeArray env.alpha \alpha ->
                   Array.concat
                     [ [ DOM.div [ Props.className "environment-divider" ] [] ]
-                    , flip State.evalState env $ undefined -- renderType this { syn: { type_: alpha }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: env.meta }, act: {} }
+                    , flip State.evalState env $ renderType this { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
                     ]
           ]
   ]
@@ -68,31 +70,22 @@ renderEnvironment this env =
     renderData typeId =
       let
         data_ = OrderedMap.lookup'' "renderData.data_" typeId (unwrap gamma).datas
-
-        meta' = Map.lookup'' "renderData.meta'" typeId (unwrap env.meta).dataMetas
-
-        env' = env { meta = meta' }
       in
         DOM.span [ Props.className "context-data" ]
           $ Array.concat
               [ [ token.data1 ]
-              , flip State.evalState env' $ undefined -- renderTypeBind this ?a
-              -- { syn: { typeBind: data_.typeBind }, gamma: { gamma: gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              , flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta } 
               ]
 
     renderVarType termId =
       let
         type_ = OrderedMap.lookup'' "renderVarType.type_" termId (unwrap gamma).varTypes
-
-        meta' = Map.lookup'' "renderVarType.meta'" termId (unwrap env.meta).varMetas
-
-        env' = env { meta = meta' }
       in
         DOM.span [ Props.className "context-varType" ]
           $ Array.concat
-              [ flip State.evalState env' $ undefined -- renderTermId this { syn: { termId }, gamma: { gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              [ flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
               , [ token.let2 ]
-              , flip State.evalState env' $ undefined -- renderType this { syn: { type_ }, gamma: { gamma }, ix: { visit: { ix: Nothing, csr: Nothing } }, meta: { meta: meta' }, act: {} }
+              , flip State.evalState env $ renderType this { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
               ]
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement
