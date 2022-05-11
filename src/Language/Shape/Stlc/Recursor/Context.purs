@@ -187,30 +187,6 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( gamma :: Context | r ) rTermBind rParamItems
 
--- -- | recCaseItems
--- type ArgsCaseItems r
---   = Rec.ArgsCaseItems ( gamma :: Context, alpha :: Type | r )
--- type ArgsCaseItem r rTermBindItems rTerm
---   = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r ) rTermBindItems rTerm
--- recCaseItems ::
---   forall r a.
---   Lacks "caseItems" r =>
---   Lacks "gamma" r =>
---   Lacks "alpha" r =>
---   { caseItem :: Record (ArgsCaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
---   Record (ArgsCaseItems r) -> List a
--- recCaseItems rec =
---   Rec.recCaseItems
---     { caseItem:
---         \args ->
---           rec.caseItem
---             args
---               { termBindItems = prune args.termBindItems
---               , body = args.body -- TODO: add bindings into context
---               }
---     }
---   where
---   prune = R.delete _alpha
 -- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r )

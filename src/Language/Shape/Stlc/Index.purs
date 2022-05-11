@@ -1,9 +1,10 @@
 module Language.Shape.Stlc.Index where
 
+import Data.Foldable
 import Prelude
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
-import Data.List (List(..), reverse, singleton, snoc, (:))
+import Data.List (List(..), range, reverse, singleton, snoc, (:))
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
@@ -124,13 +125,13 @@ ixStepNeu =
 
 ixStepLet =
   { termBind: IxStep IxStepLet 0
-  , sign:  IxStep IxStepLet 1
+  , sign: IxStep IxStepLet 1
   , impl: IxStep IxStepLet 2
   , body: IxStep IxStepLet 3
   }
 
 ixStepBuf =
-  { sign:  IxStep IxStepBuf 1
+  { sign: IxStep IxStepBuf 1
   , impl: IxStep IxStepBuf 0
   , body: IxStep IxStepBuf 2
   }
@@ -173,12 +174,25 @@ ixStepList =
   , tail: IxStep IxStepList 1
   }
 
-ixUpListItem :: Int -> IxUp
-ixUpListItem i
-  | i == 0 = wrap (singleton ixStepList.head)
-  | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
+-- TODO: do I actually use there anywhere?
 
-ixDownListItem :: Int -> IxDown
-ixDownListItem i
-  | i == 0 = wrap (singleton ixStepList.head)
-  | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
+-- ixUpListItem :: Int -> IxUp
+-- ixUpListItem i
+--   | i == 0 = wrap (singleton ixStepList.head)
+--   | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
+
+-- ixDownListItem :: Int -> IxDown
+-- ixDownListItem i
+--   | i == 0 = wrap (singleton ixStepList.head)
+--   | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
+
+-- ixUpListItems :: Int -> List IxUp
+-- ixUpListItems l = go nilIxUp l
+--   where
+--   go :: IxUp -> Int -> List IxUp
+--   go ixUp i
+--     | i == 0 = Nil
+--     | otherwise =
+--       Cons
+--         (over IxUp (Cons ixStepList.head) ixUp)
+--         (go (over IxUp (Cons ixStepList.tail) ixUp) (i - 1))

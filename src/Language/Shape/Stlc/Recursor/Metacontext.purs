@@ -143,7 +143,7 @@ recTerm rec =
             args
               { typeId = args.typeId
               , term = incrementIndentation `mapArgsMeta` args.term
-              , caseItems = undefined -- incrementIndentation `mapArgsMeta` args.caseItems
+              , caseItems = map (incrementIndentation `mapArgsMeta` _) args.caseItems
               }
     , hole: rec.hole
     }
@@ -168,6 +168,23 @@ type ArgsCaseItem r
 
 type ArgsCaseItem_CaseItem r rTermBindItems rTerm
   = Rec.ArgsCaseItem_CaseItem ( meta :: Metacontext | r ) rTermBindItems rTerm
+
+recCaseItem ::
+  forall r a.
+  Lacks "caseItem" r =>
+  Lacks "alpha" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItem r) -> a
+recCaseItem rec =
+  Rec.recCaseItem
+    { caseItem:
+        \args ->
+          rec.caseItem
+            args
+              { termBindItems = args.termBindItems
+              , body = mapArgsMeta incrementIndentation args.body
+              }
+    }
 
 -- | recParamItems
 type ArgsParamItems r

@@ -1,7 +1,6 @@
 module Language.Shape.Stlc.Recursor.Base where
 
 import Prelude
-
 import Data.List (List)
 import Prim (Record, Row)
 import Prim as Prim
@@ -55,45 +54,39 @@ type ArgsMatch r rTypeId rTerm rCaseItem
 type ArgsHole r
   = ( | r )
 
--- | recArgItems
-type ArgsArgItems r
+-- | recArgItem
+type ArgsArgItem r
   = ( | r )
 
-type ArgsArgItem r rTerm
+type ArgsArgItem_ArgItem r rTerm
   = ( term :: Record rTerm | r )
 
--- | recSumItems
-type ArgsSumItems r
+-- | recSumItem
+type ArgsSumItem r
   = ( | r )
 
-type ArgsSumItem r rTermBind rParamItems
+type ArgsSumItem_SumItem r rTermBind rParamItems
   = ( termBind :: Record rTermBind, paramItems :: Record rParamItems | r )
 
--- | recCaseItems
-type ArgsCaseItems r
-  = ( | r )
-
-type ArgsCaseItems_CaseItem r rCaseItem
-  = ( caseItem :: Record rCaseItem | r )
-
+-- | recCaseItem
 type ArgsCaseItem r
   = ( | r )
 
 type ArgsCaseItem_CaseItem r rTermBindItems rTerm
   = ( termBindItems :: Record rTermBindItems, body :: Record rTerm | r )
 
--- | recParamItems
-type ArgsParamItems r
+-- | recParamItem
+type ArgsParamItem r
   = ( | r )
 
-type ArgsParamItem r rType
+type ArgsParamItem_ParamItem r rType
   = ( type_ :: Record rType | r )
 
 -- | recTermBindItems
-type ArgsTermBindItems r
+type ArgsTermBindItem r
   = ( | r )
 
-type ArgsTermBindItem r rTermBind
+type ArgsTermBindItem_TermBindItem r rTermBind
   = ( termBind :: Record rTermBind | r )
 
 -- | recTypeBind

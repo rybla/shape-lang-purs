@@ -1,21 +1,25 @@
 module Language.Shape.Stlc.Recursor.Index where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
 
 import Data.List (List(..))
+import Data.List as List
 import Data.Maybe (Maybe(..), isJust)
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Recursor.Context as Rec
 import Language.Shape.Stlc.Recursor.Record as RH
-import Prim (Boolean, Record, Row)
+import Partial.Unsafe (unsafeCrashWith)
+import Prim (Boolean, Int, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+import Unsafe (fromJust)
 
 type Visit
   = { ix :: Maybe IxUp, csr :: Maybe IxDown }
@@ -34,6 +38,18 @@ visitVia ixStep args@{ visit: { ix, csr } } =
       }
     }
 
+visitItemsVia :: forall r. IxStep -> List { visit :: Visit | r } -> List { visit :: Visit | r }
+visitItemsVia ixStep argss = go 0 (visitVia ixStep <$> argss)
+  where 
+  l = List.length argss
+  go i Nil
+    | i == l = unsafeCrashWith "TODO"
+    | otherwise = Nil
+  go i (Cons args argss) = 
+    Cons 
+      (visitVia ixStepList.head args)
+      (go (i + 1) (visitVia ixStepList.tail <$> argss))
+
 nonVisit :: Visit
 nonVisit = { ix: Nothing, csr: Nothing }
 
@@ -43,7 +59,7 @@ nilVisit csr = { ix: Just (nilIxUp), csr }
 isSelected :: Visit -> Boolean
 isSelected visit = visit.csr == Just nilIxDown
 
-isSelectionAncestor :: Visit -> Boolean 
+isSelectionAncestor :: Visit -> Boolean
 isSelectionAncestor visit = isJust visit.csr
 
 -- | recType
@@ -173,7 +189,7 @@ recTerm rec =
             args
               { typeId = args.typeId { visit = nonVisit }
               , term = visitVia ixStepMatch.term args.term
-              , caseItems = undefined -- visitVia ixStepMatch.caseItems args.caseItems
+              , caseItems = visitItemsVia ixStepMatch.caseItems args.caseItems
               }
     , hole: rec.hole
     }
@@ -192,19 +208,29 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( visit :: Visit | r ) rTermBind rParamItems
 
--- -- | recCaseItems
--- type ArgsCaseItems r
---   = Rec.ArgsCaseItems ( visit :: Visit | r )
-
--- type ArgsCaseItem r rTermBindItems rTerm
---   = Rec.ArgsCaseItem ( visit :: Visit | r ) rTermBindItems rTerm
-
--- | recCaseItems
+-- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( visit :: Visit | r )
 
 type ArgsCaseItem_CaseItem r rTermBindItems rTerm
   = Rec.ArgsCaseItem_CaseItem ( visit :: Visit | r ) rTermBindItems rTerm
+
+recCaseItem ::
+  forall r a.
+  Lacks "caseItem" r =>
+  Lacks "alpha" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItem r) -> a
+recCaseItem rec =
+  Rec.recCaseItem
+    { caseItem:
+        \args ->
+          rec.caseItem
+            args
+              { termBindItems = visitVia ixStepCaseItem.termBindItems args.termBindItems
+              , body = visitVia ixStepCaseItem.body args.body
+              }
+    }
 
 -- | recParamItems
 type ArgsParamItems r

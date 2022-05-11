@@ -3,8 +3,8 @@ module Language.Shape.Stlc.Recursor.Action where
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
-import Prelude
 import Language.Shape.Stlc.Types
+import Prelude
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
@@ -121,10 +121,9 @@ recTerm rec =
                 args
     , match:
         \args ->
-          -- rec.match
-          --   $ R.union { actions: [] }
-          --       args
-          undefined
+          rec.match
+            $ R.union { actions: [] }
+                args
     , hole:
         \args ->
           rec.hole
@@ -146,19 +145,27 @@ type ArgsSumItems r
 type ArgsSumItem r rTermBind rParamItems
   = Rec.ArgsSumItem ( actions :: Array Action | r ) rTermBind rParamItems
 
--- -- | recCaseItems
--- type ArgsCaseItems r
---   = Rec.ArgsCaseItems ( | r )
-
--- type ArgsCaseItem r rTermBindItems rTerm
---   = Rec.ArgsCaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
-
 -- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( | r )
 
 type ArgsCaseItem_CaseItem r rTermBindItems rTerm
   = Rec.ArgsCaseItem_CaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
+
+recCaseItem ::
+  forall r a.
+  Lacks "caseItem" r =>
+  Lacks "alpha" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Record (ArgsCaseItem r) -> a
+recCaseItem rec =
+  Rec.recCaseItem
+    { caseItem:
+        \args ->
+          rec.caseItem
+            $ R.union { actions: [] }
+                args
+    }
 
 -- | recParamItems
 type ArgsParamItems r
@@ -169,7 +176,7 @@ type ArgsParamItem r rType
 
 -- | recTermBindItems
 type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( actions :: Array Action | r )
+  = Rec.ArgsTermBindItems ( | r )
 
 type ArgsTermBindItem r rTermBind
   = Rec.ArgsTermBindItem ( actions :: Array Action | r ) rTermBind

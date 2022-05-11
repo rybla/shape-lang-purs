@@ -84,7 +84,7 @@ renderType this =
     { arrowType:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "ArrowType" })
+            ((makeNodeProps args) { label = Just "ArrowType" })
             [ renderType this args.dom
             , pure [ token.arrowType1 ]
             , renderType this args.cod
@@ -92,13 +92,13 @@ renderType this =
     , dataType:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "DataType" })
+            ((makeNodeProps args) { label = Just "DataType" })
             [ printTypeId { typeId: args.dataType.typeId, meta: args.typeId.meta } ]
     , holeType:
         \args -> do
           State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId))
           renderNode this
-            ( (makeNodeProps args) { label = Just "HoleType" })
+            ((makeNodeProps args) { label = Just "HoleType" })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
   where
@@ -117,7 +117,7 @@ renderTerm this =
     { lam:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Lam" })
+            ((makeNodeProps args) { label = Just "Lam" })
             [ pure [ token.lam1 ]
             , pure [] -- renderTermBind this args.termBind
             , pure [ token.lam2 ]
@@ -126,7 +126,7 @@ renderTerm this =
     , neu:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Neu" })
+            ((makeNodeProps args) { label = Just "Neu" })
             if List.length args.neu.argItems == 0 then
               [ pure [] -- renderTermId this args.termId
               ]
@@ -138,7 +138,7 @@ renderTerm this =
     , let_:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Let" })
+            ((makeNodeProps args) { label = Just "Let" })
             [ pure [ token.let1 ]
             , pure [] -- renderTermBind this args.termBind
             , pure [ token.let2 ]
@@ -151,7 +151,7 @@ renderTerm this =
     , buf:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Buf" })
+            ((makeNodeProps args) { label = Just "Buf" })
             [ pure [ token.buf1 ]
             , renderTerm this args.impl
             , pure [ token.buf2 ]
@@ -162,7 +162,7 @@ renderTerm this =
     , data_:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Data" })
+            ((makeNodeProps args) { label = Just "Data" })
             [ pure [ token.data1 ]
             , pure [] -- renderTypeBind this args.typeBind
             , pure [ token.data2 ]
@@ -173,7 +173,7 @@ renderTerm this =
     , match:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "Match" })
+            ((makeNodeProps args) { label = Just "Match" })
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
@@ -191,7 +191,7 @@ renderTerm this =
     }
   where
   makeNodeProps :: forall r. { actions ∷ Array Action, gamma ∷ Context, alpha :: Type, meta ∷ Metacontext, visit ∷ Visit | r } -> NodeProps
-  makeNodeProps args = 
+  makeNodeProps args =
     defaultNodeProps
       { visit = Just args.visit
       , gamma = args.gamma
@@ -263,6 +263,28 @@ renderTerm this =
 --                 , renderTerm this { syn: { term: args.caseItem.body }, gamma: args.gamma.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
 --                 ]
 --         }
+renderCaseItem :: This -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
+renderCaseItem this =
+  Rec.recCaseItem
+    { caseItem:
+        \args ->
+          renderNode this
+            ( defaultNodeProps
+                { label = Just "CaseItem"
+                , visit = Just args.visit
+                , gamma = args.gamma
+                , meta = args.meta
+                , actions = args.actions
+                }
+            )
+            [ pure $ newline args.meta (unwrap args.caseItem.meta).indented
+            , pure [ token.caseItem1 ]
+            , pure [] -- renderTermBindItems this args.termBindItems
+            , pure [ token.caseItem2 ]
+            , renderTerm this args.body
+            ]
+    }
+
 -- renderParamItems :: This -> Record Rec.ArgsParamItems -> M (Array ReactElement)
 -- renderParamItems this =
 --   renderConcatList
