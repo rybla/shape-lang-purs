@@ -84,10 +84,10 @@ recTerm ::
   Lacks "term" r =>
   Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
-  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItem r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
-  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItem r) (ArgsTerm r)) -> a
   , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
@@ -131,55 +131,80 @@ recTerm rec =
                 args
     }
 
--- | recArgItems
-type ArgsArgItems r
-  = Rec.ArgsArgItems ( | r )
+-- | recArgItem
+type ArgsArgItem r
+  = Rec.ArgsArgItem ( | r )
 
-type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( actions :: Array Action | r ) rTerm
+type ArgsArgItem_ArgItem r rTerm
+  = Rec.ArgsArgItem_ArgItem ( actions :: Array Action | r ) rTerm
 
--- | recSumItems
-type ArgsSumItems r
-  = Rec.ArgsSumItems ( | r )
+recArgItem ::
+  forall r a.
+  Lacks "argItem" r =>
+  Lacks "gamma" r =>
+  Lacks "doms" r =>
+  Lacks "cod" r =>
+  { argItem :: Record (ArgsArgItem_ArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItem r) -> a
+recArgItem rec = Rec.recArgItem { argItem: \args -> rec.argItem $ R.union { actions: [] } args }
 
-type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( actions :: Array Action | r ) rTermBind rParamItems
+-- | recSumItem
+type ArgsSumItem r
+  = Rec.ArgsSumItem ( | r )
+
+type ArgsSumItem_SumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem_SumItem ( actions :: Array Action | r ) rTermBind rParamItems
+
+recSumItem ::
+  forall r a.
+  Lacks "sumItem" r =>
+  { sumItem :: Record (ArgsSumItem_SumItem r (ArgsTermBind r) (ArgsParamItem r)) -> a } ->
+  Record (ArgsSumItem r) -> a
+recSumItem rec = Rec.recSumItem { sumItem: \args -> rec.sumItem $ R.union { actions: [] } args }
 
 -- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( | r )
 
-type ArgsCaseItem_CaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem_CaseItem ( actions :: Array Action | r ) rTermBindItems rTerm
+type ArgsCaseItem_CaseItem r rTermBindItem rTerm
+  = Rec.ArgsCaseItem_CaseItem ( actions :: Array Action | r ) rTermBindItem rTerm
 
 recCaseItem ::
   forall r a.
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
-  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Lacks "typeId" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
-recCaseItem rec =
-  Rec.recCaseItem
-    { caseItem:
-        \args ->
-          rec.caseItem
-            $ R.union { actions: [] }
-                args
-    }
+recCaseItem rec = Rec.recCaseItem { caseItem: \args -> rec.caseItem $ R.union { actions: [] } args }
 
 -- | recParamItems
-type ArgsParamItems r
-  = Rec.ArgsParamItems ( | r )
+type ArgsParamItem r
+  = Rec.ArgsParamItem ( | r )
 
-type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( actions :: Array Action | r ) rType
+type ArgsParamItem_ParamItem r rType
+  = Rec.ArgsParamItem_ParamItem ( actions :: Array Action | r ) rType
+
+recParamItem ::
+  forall r a.
+  Lacks "paramItem" r =>
+  { paramItem :: Record (ArgsParamItem_ParamItem r (ArgsType r)) -> a } ->
+  Record (ArgsParamItem r) -> a
+recParamItem rec = Rec.recParamItem { paramItem: \args -> rec.paramItem $ R.union { actions: [] } args }
 
 -- | recTermBindItems
-type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( | r )
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem ( | r )
 
-type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( actions :: Array Action | r ) rTermBind
+type ArgsTermBindItem_TermBindItem r rTermBind
+  = Rec.ArgsTermBindItem_TermBindItem ( actions :: Array Action | r ) rTermBind
+
+recTermBindItem ::
+  forall r a.
+  Lacks "termBindItem" r =>
+  { termBindItem :: Record (ArgsTermBindItem_TermBindItem r (ArgsTermBind r)) -> a } ->
+  Record (ArgsTermBindItem r) -> a
+recTermBindItem rec = Rec.recTermBindItem { termBindItem: \args -> rec.termBindItem $ R.union { actions: [] } args }
 
 -- | recTypeBind
 type ArgsTypeBind r
