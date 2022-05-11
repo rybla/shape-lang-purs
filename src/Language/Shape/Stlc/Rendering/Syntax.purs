@@ -11,6 +11,7 @@ import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Array as Array
 import Data.Default (default)
+import Data.Foldable (foldM)
 import Data.List.Unsafe (List(..))
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
@@ -93,7 +94,7 @@ renderType this =
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "DataType" })
-            [ printTypeId { typeId: args.dataType.typeId, meta: args.typeId.meta } ]
+            [ printTypeId args.typeId ]
     , holeType:
         \args -> do
           State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId))
@@ -101,15 +102,6 @@ renderType this =
             ((makeNodeProps args) { label = Just "HoleType" })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
-  where
-  makeNodeProps :: forall r. { visit :: Visit, gamma :: Context, meta :: Metacontext, actions :: Array Action | r } -> NodeProps
-  makeNodeProps args =
-    defaultNodeProps
-      { visit = Just args.visit
-      , gamma = args.gamma
-      , meta = args.meta
-      , actions = args.actions
-      }
 
 renderTerm :: This -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
 renderTerm this =
@@ -117,30 +109,30 @@ renderTerm this =
     { lam:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Lam" })
+            ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha })
             [ pure [ token.lam1 ]
-            , pure [] -- renderTermBind this args.termBind
+            , renderTermBind this args.termBind
             , pure [ token.lam2 ]
             , renderTerm this args.body
             ]
     , neu:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Neu" })
+            ((makeNodeProps args) { label = Just "Neu", alpha = Just args.alpha })
             if List.length args.neu.argItems == 0 then
-              [ pure [] -- renderTermId this args.termId
+              [ renderTermId this args.termId
               ]
             else
-              [ pure [] -- renderTermId this args.termId
+              [ renderTermId this args.termId
               , pure [ token.neu1 ]
-              , pure [] -- renderArgItems this args.argItems
+              , renderItems (renderArgItem this <$> args.argItems)
               ]
     , let_:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Let" })
+            ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha })
             [ pure [ token.let1 ]
-            , pure [] -- renderTermBind this args.termBind
+            , renderTermBind this args.termBind
             , pure [ token.let2 ]
             , renderType this args.sign
             , pure [ token.let3 ]
@@ -151,7 +143,7 @@ renderTerm this =
     , buf:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Buf" })
+            ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha })
             [ pure [ token.buf1 ]
             , renderTerm this args.impl
             , pure [ token.buf2 ]
@@ -162,22 +154,22 @@ renderTerm this =
     , data_:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Data" })
+            ((makeNodeProps args) { label = Just "Data", alpha = Just args.alpha })
             [ pure [ token.data1 ]
-            , pure [] -- renderTypeBind this args.typeBind
+            , renderTypeBind this args.typeBind
             , pure [ token.data2 ]
-            , pure [] -- renderSumItems this args.sumItems
+            , renderItems (renderSumItem this <$> args.sumItems)
             , pure [ token.data3 ]
             , renderTerm this args.body
             ]
     , match:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "Match" })
+            ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha })
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
-            , pure [] -- renderCaseItems this args.caseItems
+            , renderItems (renderCaseItem this <$> args.caseItems)
             ]
     , hole:
         \args ->
@@ -189,16 +181,6 @@ renderTerm this =
                 [ renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
                 ]
     }
-  where
-  makeNodeProps :: forall r. { actions ∷ Array Action, gamma ∷ Context, alpha :: Type, meta ∷ Metacontext, visit ∷ Visit | r } -> NodeProps
-  makeNodeProps args =
-    defaultNodeProps
-      { visit = Just args.visit
-      , gamma = args.gamma
-      , alpha = Just args.alpha
-      , meta = args.meta
-      , actions = args.actions
-      }
 
 renderArgItem :: This -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
 renderArgItem this =
@@ -206,169 +188,113 @@ renderArgItem this =
     { argItem:
         \args ->
           renderNode this
-            ( defaultNodeProps
-                { label = Just "ArgItem"
-                , visit = Just args.visit
-                , gamma = args.gamma
-                , alpha = Just args.alpha
-                , meta = args.meta
-                , actions = args.actions
-                }
+            ( (makeNodeProps args) { label = Just "ArgItem" }
             )
             [ pure $ newline args.meta (unwrap args.argItem.meta).indented
             , renderTerm this args.term
             ]
     }
 
--- renderSumItems :: This -> Record Rec.ArgsSumItems -> M (Array ReactElement)
--- renderSumItems this =
---   renderConcatList
---     <<< Rec.recSumItems
---         { sumItem:
---             \args ->
---               renderNode this
---                 ( defaultNodeProps
---                     { label = Just "SumItem"
---                     , visit = Just args.ix.sumItem
---                     , gamma = Just args.gamma.gamma
---                     , meta = args.meta.meta
---                     , actions = args.act.actions
---                     }
---                 )
---                 [ pure $ newline args.meta.meta (unwrap args.sumItem.meta).indented
---                 , pure [ token.sumItem1 ]
---                 , renderTermBind this { syn: { termBind: args.sumItem.termBind }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.termBind }, act: {} }
---                 , pure [ token.sumItem2 ]
---                 , renderParamItems this { syn: { paramItems: args.sumItem.paramItems }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.paramItems }, meta: { meta: args.meta.paramItems }, act: {} }
---                 ]
---         }
--- renderCaseItems :: This -> Record Rec.ArgsCaseItems -> M (Array ReactElement)
--- renderCaseItems this =
---   renderConcatList
---     <<< Rec.recCaseItems
---         { caseItem:
---             \args ->
---               renderNode this
---                 ( defaultNodeProps
---                     { label = Just "CaseItem"
---                     , visit = Just args.ix.caseItem
---                     , gamma = Just args.gamma.caseItem.gamma
---                     , meta = args.meta.meta
---                     , actions = args.act.actions
---                     }
---                 )
---                 [ pure $ newline args.meta.meta (unwrap args.caseItem.meta).indented
---                 , pure [ token.caseItem1 ]
---                 , renderTermBindItems this { syn: { termBindItems: args.caseItem.termBindItems }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBindItems }, meta: { meta: args.meta.termBindItems }, act: {} }
---                 , pure [ token.caseItem2 ]
---                 , renderTerm this { syn: { term: args.caseItem.body }, gamma: args.gamma.body, ix: { visit: args.ix.body }, meta: { meta: args.meta.body }, act: {} }
---                 ]
---         }
+renderSumItem :: This -> Record (Rec.ArgsSumItem ()) -> M (Array ReactElement)
+renderSumItem this =
+  Rec.recSumItem
+    { sumItem:
+        \args ->
+          renderNode this
+            ( (makeNodeProps args) { label = Just "SumItem" }
+            )
+            [ pure $ newline args.meta (unwrap args.sumItem.meta).indented
+            , pure [ token.sumItem1 ]
+            , renderTermBind this args.termBind
+            , pure [ token.sumItem2 ]
+            , renderItems (renderParamItem this <$> args.paramItems)
+            ]
+    }
+
 renderCaseItem :: This -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
 renderCaseItem this =
   Rec.recCaseItem
     { caseItem:
         \args ->
           renderNode this
-            ( defaultNodeProps
-                { label = Just "CaseItem"
-                , visit = Just args.visit
-                , gamma = args.gamma
-                , meta = args.meta
-                , actions = args.actions
-                }
-            )
+            (makeNodeProps args) { label = Just "CaseItem" }
             [ pure $ newline args.meta (unwrap args.caseItem.meta).indented
             , pure [ token.caseItem1 ]
-            , pure [] -- renderTermBindItems this args.termBindItems
+            , renderItems (renderTermBindItem this <$> args.termBindItems)
             , pure [ token.caseItem2 ]
             , renderTerm this args.body
             ]
     }
 
--- renderParamItems :: This -> Record Rec.ArgsParamItems -> M (Array ReactElement)
--- renderParamItems this =
---   renderConcatList
---     <<< Rec.recParamItems
---         { paramItem:
---             \args ->
---               renderNode this
---                 ( defaultNodeProps
---                     { label = Just "ParamItem"
---                     , visit = Just args.ix.paramItem
---                     , gamma = Just args.gamma.paramItem
---                     , meta = args.meta.paramItem
---                     , actions = args.act.actions
---                     }
---                 )
---                 [ pure $ newline args.meta.meta (unwrap args.paramItem.meta).indented
---                 , renderType this { syn: { type_: args.paramItem.type_ }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.type_ }, meta: { meta: args.meta.meta }, act: {} }
---                 ]
---         }
--- renderTermBindItems :: This -> Record Rec.ArgsTermBindItems -> M (Array ReactElement)
--- renderTermBindItems this =
---   renderConcatList
---     <<< Rec.recTermBindItems
---         { termBindItem:
---             \args ->
---               renderNode this
---                 ( defaultNodeProps
---                     { label = Just "TermBindItem"
---                     , visit = Just args.ix.termBindItem
---                     , gamma = Just args.gamma.termBindItem
---                     , meta = args.meta.meta
---                     , actions = args.act.actions
---                     }
---                 )
---                 [ pure $ newline args.meta.meta (unwrap args.termBindItem.meta).indented
---                 , renderTermBind this { syn: { termBind: args.termBindItem.termBind }, gamma: { gamma: args.gamma.gamma }, ix: { visit: args.ix.termBind }, meta: { meta: args.meta.meta }, act: {} }
---                 ]
---         }
--- renderTermBind :: This -> Record Rec.ArgsTermBind -> M (Array ReactElement)
--- renderTermBind this =
---   Rec.recTermBind
---     { termBind:
---         \args ->
---           renderNode this
---             ( (useArgsCtx args $ useArgsIx args $ useArgsMeta args $ useArgsAct args $ defaultNodeProps)
---                 { label = Just "TermBind" }
---             )
---             [ pure $ printTermId { termId: args.termBind.termId, meta: args.meta.meta } ]
---     }
--- renderTypeBind :: This -> Record Rec.ArgsTypeBind -> M (Array ReactElement)
--- renderTypeBind this =
---   Rec.recTypeBind
---     { typeBind:
---         \args ->
---           renderNode this
---             ( (useArgsCtx args $ useArgsIx args $ useArgsMeta args $ useArgsAct args $ defaultNodeProps)
---                 { label = Just "TypeBind" }
---             )
---             [ pure $ printTypeId { typeId: args.typeBind.typeId, meta: args.meta.meta } ]
---     }
--- renderTypeId :: This -> Record Rec.ArgsTypeId -> M (Array ReactElement)
--- renderTypeId this =
---   Rec.recTypeId
---     { typeId:
---         \args ->
---           renderNode this
---             ( (useArgsCtx args $ useArgsIx args $ useArgsMeta args $ useArgsAct args $ defaultNodeProps)
---                 { label = Just "TypeId" }
---             )
---             [ pure $ printTypeId { typeId: args.typeId, meta: args.meta.meta } ]
---     }
--- renderTermId :: This -> Record Rec.ArgsTermId -> M (Array ReactElement)
--- renderTermId this =
---   Rec.recTermId
---     { termId:
---         \args ->
---           renderNode this
---             ( (useArgsCtx args $ useArgsIx args $ useArgsMeta args $ useArgsAct args $ defaultNodeProps)
---                 { label = Just "TermId" }
---             )
---             [ pure $ printTermId { termId: args.termId, meta: args.meta.meta } ]
---     }
-printTypeId :: { typeId :: TypeId, meta :: Metacontext } -> M (Array ReactElement)
+renderParamItem :: This -> Record (Rec.ArgsParamItem ()) -> M (Array ReactElement)
+renderParamItem this =
+  Rec.recParamItem
+    { paramItem:
+        \args ->
+          renderNode this
+            (makeNodeProps args) { label = Just "ParamItem" }
+            [ pure $ newline args.meta (unwrap args.paramItem.meta).indented
+            , renderType this args.type_
+            ]
+    }
+
+renderTermBindItem :: This -> Record (Rec.ArgsTermBindItem ()) -> M (Array ReactElement)
+renderTermBindItem this =
+  Rec.recTermBindItem
+    { termBindItem:
+        \args ->
+          renderNode this
+            (makeNodeProps args) { label = Just "TermBindItem" }
+            [ pure $ newline args.meta (unwrap args.termBindItem.meta).indented
+            , renderTermBind this args.termBind
+            ]
+    }
+
+renderTermBind :: This -> Record (Rec.ArgsTermBind ()) -> M (Array ReactElement)
+renderTermBind this =
+  Rec.recTermBind
+    { termBind:
+        \args ->
+          renderNode this
+            ( defaultNodeProps
+                { label = Just "TermBind" }
+            )
+            [ printTermId args.termId ]
+    }
+
+renderTypeBind :: This -> Record (Rec.ArgsTypeBind ()) -> M (Array ReactElement)
+renderTypeBind this =
+  Rec.recTypeBind
+    { typeBind:
+        \args ->
+          renderNode this
+            (makeNodeProps args) { label = Just "TypeBind" }
+            [ printTypeId args.typeId ]
+    }
+
+renderTypeId :: This -> Record (Rec.ArgsTypeId ()) -> M (Array ReactElement)
+renderTypeId this argsTypeId =
+  Rec.recTypeId
+    { typeId:
+        \args ->
+          renderNode this
+            (makeNodeProps args) { label = Just "TypeId" }
+            [ printTypeId argsTypeId ]
+    }
+    argsTypeId
+
+renderTermId :: This -> Record (Rec.ArgsTermId ()) -> M (Array ReactElement)
+renderTermId this argsTermId =
+  Rec.recTermId
+    { termId:
+        \args ->
+          renderNode this
+            (makeNodeProps args) { label = Just "TermId" }
+            [ printTermId argsTermId ]
+    }
+    argsTermId
+
+printTypeId :: Record (Rec.ArgsTypeId ()) -> M (Array ReactElement)
 printTypeId { typeId, meta } =
   pure
     [ DOM.span [ Props.className "typeId" ]
@@ -384,12 +310,13 @@ printTypeId { typeId, meta } =
     Just i -> i
     Nothing -> unsafeCrashWith $ "could not find shadow of data name " <> show name <> " in metacontext " <> show meta
 
-printTermId :: { termId :: TermId, meta :: Metacontext } -> Array ReactElement
+printTermId :: Record (Rec.ArgsTermId ()) -> M (Array ReactElement)
 printTermId { termId, meta } =
-  [ DOM.span [ Props.className "termId" ]
-      $ printName name
-      <> printShadow shadow
-  ]
+  pure
+    [ DOM.span [ Props.className "termId" ]
+        $ printName name
+        <> printShadow shadow
+    ]
   where
   name = case Map.lookup termId (unwrap meta).varNames of
     Just name -> name
@@ -418,21 +345,33 @@ printShadow shadow =
   else
     []
 
+renderItems :: List (M (Array ReactElement)) -> M (Array ReactElement)
+renderItems items = foldM (\elems -> ((elems <> _) <$> _)) [] items
+
 defaultNodeProps :: NodeProps
 defaultNodeProps =
   { label: default
-  , visit: default
+  , visit: nonVisit
   , alpha: default
   , gamma: default
   , meta: default
   , actions: []
   }
 
+makeNodeProps :: forall r. { gamma :: Context, visit :: Visit, meta :: Metacontext, actions :: Array Action | r } -> NodeProps
+makeNodeProps { gamma, visit, meta, actions } =
+  defaultNodeProps
+    { gamma = gamma
+    , visit = visit
+    , meta = meta
+    , actions = actions
+    }
+
 type NodeProps
   = { label :: Maybe String
-    , visit :: Maybe Visit
-    , alpha :: Maybe Type
     , gamma :: Context
+    , alpha :: Maybe Type
+    , visit :: Visit
     , meta :: Metacontext
     , actions :: Array Action
     }
@@ -459,13 +398,13 @@ renderNode this props elemsM = do
   elems <- concat <$> sequence elemsM
   pure $ [ DOM.span propsSpan elems ]
   where
-  isSelected = (props.visit <#> _.csr) == Just (Just nilIxDown)
+  isSelected = props.visit.csr == Just nilIxDown
 
   propsSpan =
     concat
       [ maybeArray props.label \label ->
           Props.className $ joinWith " " [ "node", label, if isSelected then "selected" else "" ]
-      , maybeArray (join $ props.visit <#> _.ix) \ix ->
+      , maybeArray (props.visit.ix) \ix ->
           Props.onClick \event -> do
             Console.log "clicked on a node"
             stopPropagation event
