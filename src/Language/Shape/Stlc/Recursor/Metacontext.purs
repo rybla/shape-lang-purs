@@ -1,9 +1,11 @@
 module Language.Shape.Stlc.Recursor.Metacontext where
 
+import Data.Foldable
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Newtype (over, unwrap, wrap)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
@@ -88,10 +90,10 @@ recTerm ::
   Lacks "term" r =>
   Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
-  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItem r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
-  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItem r) (ArgsTerm r)) -> a
   , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
@@ -110,7 +112,7 @@ recTerm rec =
           rec.neu
             args
               { termId = args.termId
-              , argItems = incrementIndentation `mapArgsMeta` args.argItems
+              , argItems = (incrementIndentation `mapArgsMeta` _) <$> args.argItems
               }
     , let_:
         \args ->
@@ -134,7 +136,7 @@ recTerm rec =
           rec.data_
             args
               { typeBind = args.typeBind
-              , sumItems = incrementIndentation `mapArgsMeta` args.sumItems
+              , sumItems = (incrementIndentation `mapArgsMeta` _) <$> args.sumItems
               , body = (incrementIndentation <<< insertData args.data_) `mapArgsMeta` args.body
               }
     , match:
@@ -149,31 +151,58 @@ recTerm rec =
     }
 
 -- | recArgItems
-type ArgsArgItems r
-  = Rec.ArgsArgItems ( meta :: Metacontext | r )
+type ArgsArgItem r
+  = Rec.ArgsArgItem ( meta :: Metacontext | r )
 
-type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( meta :: Metacontext | r ) rTerm
+type ArgsArgItem_ArgItem r rTerm
+  = Rec.ArgsArgItem_ArgItem ( meta :: Metacontext | r ) rTerm
+
+recArgItem ::
+  forall r a.
+  Lacks "argItem" r =>
+  Lacks "gamma" r =>
+  Lacks "doms" r =>
+  Lacks "cod" r =>
+  { argItem :: Record (ArgsArgItem_ArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItem r) -> a
+recArgItem = Rec.recArgItem
 
 -- | recSumItems
-type ArgsSumItems r
-  = Rec.ArgsSumItems ( meta :: Metacontext | r )
+type ArgsSumItem r
+  = Rec.ArgsSumItem ( meta :: Metacontext | r )
 
-type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( meta :: Metacontext | r ) rTermBind rParamItems
+type ArgsSumItem_SumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem_SumItem ( meta :: Metacontext | r ) rTermBind rParamItems
+
+recSumItem ::
+  forall r a.
+  Lacks "sumItem" r =>
+  { sumItem :: Record (ArgsSumItem_SumItem r (ArgsTermBind r) (ArgsParamItem r)) -> a } ->
+  Record (ArgsSumItem r) -> a
+recSumItem rec =
+  Rec.recSumItem
+    { sumItem:
+        \args ->
+          rec.sumItem
+            args
+              { termBind = incrementIndentation `mapArgsMeta` args.termBind
+              , paramItems = (incrementIndentation `mapArgsMeta` _) <$> args.paramItems
+              }
+    }
 
 -- | recCaseItem
 type ArgsCaseItem r
   = Rec.ArgsCaseItem ( meta :: Metacontext | r )
 
-type ArgsCaseItem_CaseItem r rTermBindItems rTerm
-  = Rec.ArgsCaseItem_CaseItem ( meta :: Metacontext | r ) rTermBindItems rTerm
+type ArgsCaseItem_CaseItem r rTermBindItem rTerm
+  = Rec.ArgsCaseItem_CaseItem ( meta :: Metacontext | r ) rTermBindItem rTerm
 
 recCaseItem ::
   forall r a.
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
-  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Lacks "typeId" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =
   Rec.recCaseItem
@@ -182,23 +211,41 @@ recCaseItem rec =
           rec.caseItem
             args
               { termBindItems = args.termBindItems
-              , body = mapArgsMeta incrementIndentation args.body
+              , body =
+                foldl
+                  (\term { termBindItem: { termBind } } -> insertVar termBind.termId (unwrap termBind.meta).name `mapArgsMeta` term)
+                  (incrementIndentation `mapArgsMeta` args.body)
+                  (args.termBindItems)
               }
     }
 
 -- | recParamItems
-type ArgsParamItems r
-  = Rec.ArgsParamItems ( meta :: Metacontext | r )
+type ArgsParamItem r
+  = Rec.ArgsParamItem ( meta :: Metacontext | r )
 
-type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( meta :: Metacontext | r ) rType
+type ArgsParamItem_ParamItem r rType
+  = Rec.ArgsParamItem_ParamItem ( meta :: Metacontext | r ) rType
+
+recParamItem ::
+  forall r a.
+  Lacks "paramItem" r =>
+  { paramItem :: Record (ArgsParamItem_ParamItem r (ArgsType r)) -> a } ->
+  Record (ArgsParamItem r) -> a
+recParamItem = Rec.recParamItem
 
 -- | recTermBindItems
-type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( meta :: Metacontext | r )
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem ( meta :: Metacontext | r )
 
-type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( meta :: Metacontext | r ) rTermBind
+type ArgsTermBindItem_TermBindItem r rTermBind
+  = Rec.ArgsTermBindItem_TermBindItem ( meta :: Metacontext | r ) rTermBind
+
+recTermBindItem ::
+  forall r a.
+  Lacks "termBindItem" r =>
+  { termBindItem :: Record (ArgsTermBindItem_TermBindItem r (ArgsTermBind r)) -> a } ->
+  Record (ArgsTermBindItem r) -> a
+recTermBindItem = Rec.recTermBindItem
 
 -- | recTypeBind
 type ArgsTypeBind r
