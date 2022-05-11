@@ -1,13 +1,15 @@
 module Language.Shape.Stlc.Recursor.Context where
 
 import Data.Foldable
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
+
 import Data.Default (default)
 import Data.List (List)
 import Data.List.Unsafe as List
-import Language.Shape.Stlc.Context (Context(..), flattenType, insertData, insertVarType, lookupVarType)
+import Language.Shape.Stlc.Context (Context(..), flattenType, insertData, insertVarType, lookupData, lookupVarType, typeOfSumItem)
 import Language.Shape.Stlc.Recursor.Base (mapHere)
 import Language.Shape.Stlc.Recursor.Syntax as Rec
 import Partial.Unsafe (unsafeCrashWith)
@@ -74,10 +76,10 @@ recTerm ::
   Lacks "term" r =>
   Lacks "alpha" r =>
   { lam :: Record (ArgsLam r (ArgsTermBind r) (ArgsTerm r)) -> a
-  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItems r)) -> a
+  , neu :: Record (ArgsNeu r (ArgsTermId r) (ArgsArgItem r)) -> a
   , let_ :: Record (ArgsLet r (ArgsTermBind r) (ArgsType r) (ArgsTerm r)) -> a
   , buf :: Record (ArgsBuf r (ArgsType r) (ArgsTerm r)) -> a
-  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItems r) (ArgsTerm r)) -> a
+  , data_ :: Record (ArgsData r (ArgsTypeBind r) (ArgsSumItem r) (ArgsTerm r)) -> a
   , match :: Record (ArgsMatch r (ArgsTypeId r) (ArgsTerm r) (ArgsCaseItem r)) -> a
   , hole :: Record (ArgsHole r) -> a
   } ->
@@ -102,7 +104,7 @@ recTerm rec =
             in
               args
                 { termId = prune args.termId
-                , argItems = R.union { doms, cod } $ prune args.argItems
+                , argItems = (\(argItem /\ dom) -> argItem { alpha = dom }) <$> (args.argItems `List.zip` doms)
                 }
     , let_:
         \args ->
@@ -130,7 +132,7 @@ recTerm rec =
           rec.data_
             args
               { typeBind = prune args.typeBind
-              , sumItems = prune args.sumItems
+              , sumItems = prune <$> args.sumItems
               , body = args.body { gamma = insertData args.data_ args.body.gamma }
               }
     , match:
@@ -148,84 +150,95 @@ recTerm rec =
   prune args = R.delete _alpha args
 
 -- | recArgItems
-type ArgsArgItems r
-  = Rec.ArgsArgItems ( gamma :: Context, doms :: List Type, cod :: Type | r )
+type ArgsArgItem r
+  = Rec.ArgsArgItem ( gamma :: Context, alpha :: Type | r )
 
-type ArgsArgItem r rTerm
-  = Rec.ArgsArgItem ( gamma :: Context, alpha :: Type | r ) rTerm
+type ArgsArgItem_ArgItem r rTerm
+  = Rec.ArgsArgItem_ArgItem ( gamma :: Context, alpha :: Type | r ) rTerm
 
-recArgItems ::
+recArgItem ::
   forall r a.
-  Lacks "argItems" r =>
+  Lacks "argItem" r =>
   Lacks "gamma" r =>
   Lacks "doms" r =>
   Lacks "cod" r =>
-  { argItem :: Record (ArgsArgItem r (ArgsTerm r)) -> a } ->
-  Record (ArgsArgItems r) -> List a
-recArgItems rec =
-  Rec.recArgItems
-    { argItem:
-        \args ->
-          let
-            alpha = List.index' args.doms args.i
-          in
-            rec.argItem
-              $ ( { alpha } `R.union` prune args
-                )
-                  { term = { alpha } `R.union` prune args.term
-                  , gamma = args.gamma
-                  }
-    }
-  where
-  prune :: forall r. Lacks "doms" r => Lacks "cod" r => { doms :: List Type, cod :: Type | r } -> { | r }
-  prune = R.delete (Proxy :: Proxy "doms") <<< R.delete (Proxy :: Proxy "cod")
+  { argItem :: Record (ArgsArgItem_ArgItem r (ArgsTerm r)) -> a } ->
+  Record (ArgsArgItem r) -> a
+recArgItem = Rec.recArgItem
 
 -- | recSumItems
-type ArgsSumItems r
-  = Rec.ArgsSumItems ( gamma :: Context | r )
+type ArgsSumItem r
+  = Rec.ArgsSumItem ( gamma :: Context | r )
 
-type ArgsSumItem r rTermBind rParamItems
-  = Rec.ArgsSumItem ( gamma :: Context | r ) rTermBind rParamItems
+type ArgsSumItem_SumItem r rTermBind rParamItems
+  = Rec.ArgsSumItem_SumItem ( gamma :: Context | r ) rTermBind rParamItems
+
+recSumItem ::
+  forall r a.
+  Lacks "sumItem" r =>
+  { sumItem :: Record (ArgsSumItem_SumItem r (ArgsTermBind r) (ArgsParamItem r)) -> a } ->
+  Record (ArgsSumItem r) -> a
+recSumItem = Rec.recSumItem
 
 -- | recCaseItem
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type | r )
+  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId | r )
 
-type ArgsCaseItem_CaseItem r rTermBind rParamItems
-  = Rec.ArgsCaseItem_CaseItem ( gamma :: Context, alpha :: Type | r ) rTermBind rParamItems
+type ArgsCaseItem_CaseItem r rTermBind rTerm
+  = Rec.ArgsCaseItem_CaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId | r ) rTermBind rTerm
 
 recCaseItem ::
   forall r a.
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
-  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItems r) (ArgsTerm r)) -> a } ->
+  Lacks "typeId" r =>
+  { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =
   Rec.recCaseItem
     { caseItem:
         \args ->
-          rec.caseItem
-            args
-              { termBindItems = prune args.termBindItems
-              , body = args.body  -- TODO: Add bindigns into context
-              }
+          let
+            data_ = lookupData args.typeId args.gamma
+          in
+            rec.caseItem
+              args
+                { termBindItems = (R.delete _alpha <<< R.delete _typeId) <$> args.termBindItems
+                , body =
+                  foldl
+                    (\term (termBindItem /\ sumItem) -> insertVarType termBindItem.termBindItem.termBind.termId (typeOfSumItem args.typeId sumItem) `mapArgsCtx` term)
+                    (R.delete _typeId args.body)
+                    (args.termBindItems `List.zip` data_.sumItems)
+                }
     }
-  where
-  prune = R.delete _alpha
 
 -- | recParamItems
-type ArgsParamItems r
-  = Rec.ArgsParamItems ( gamma :: Context | r )
+type ArgsParamItem r
+  = Rec.ArgsParamItem ( gamma :: Context | r )
 
-type ArgsParamItem r rType
-  = Rec.ArgsParamItem ( gamma :: Context | r ) rType
+type ArgsParamItem_ParamItem r rType
+  = Rec.ArgsParamItem_ParamItem ( gamma :: Context | r ) rType
+
+recParamItem ::
+  forall r a.
+  Lacks "paramItem" r =>
+  { paramItem :: Record (ArgsParamItem_ParamItem r (ArgsType r)) -> a } ->
+  Record (ArgsParamItem r) -> a
+recParamItem = Rec.recParamItem
 
 -- | recTermBindItems
-type ArgsTermBindItems r
-  = Rec.ArgsTermBindItems ( gamma :: Context | r )
+type ArgsTermBindItem r
+  = Rec.ArgsTermBindItem ( gamma :: Context | r )
 
-type ArgsTermBindItem r rTermBind
-  = Rec.ArgsTermBindItem ( gamma :: Context | r ) rTermBind
+type ArgsTermBindItem_TermBindItem r rTermBind
+  = Rec.ArgsTermBindItem_TermBindItem ( gamma :: Context | r ) rTermBind
+
+recTermBindItem ::
+  forall r a.
+  Lacks "termBindItem" r =>
+  { termBindItem :: Record (ArgsTermBindItem_TermBindItem r (ArgsTermBind r)) -> a } ->
+  Record (ArgsTermBindItem r) -> a
+recTermBindItem = Rec.recTermBindItem
 
 -- | recTypeBind
 type ArgsTypeBind r

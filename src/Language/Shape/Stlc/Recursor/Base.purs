@@ -36,8 +36,8 @@ type ArgsTerm r
 type ArgsLam r rTermBind rTerm
   = ( termBind :: Record rTermBind, body :: Record rTerm | r )
 
-type ArgsNeu r rTermId rArgItems
-  = ( termId :: Record rTermId, argItems :: Record rArgItems | r )
+type ArgsNeu r rTermId rArgItem
+  = ( termId :: Record rTermId, argItems :: List (Record rArgItem) | r )
 
 type ArgsLet r rTermBind rType rTerm
   = ( termBind :: Record rTermBind, sign :: Record rType, impl :: Record rTerm, body :: Record rTerm | r )
@@ -45,8 +45,8 @@ type ArgsLet r rTermBind rType rTerm
 type ArgsBuf r rType rTerm
   = ( sign :: Record rType, impl :: Record rTerm, body :: Record rTerm | r )
 
-type ArgsData r rTypeBind rSumItems rTerm
-  = ( typeBind :: Record rTypeBind, sumItems :: Record rSumItems, body :: Record rTerm | r )
+type ArgsData r rTypeBind rSumItem rTerm
+  = ( typeBind :: Record rTypeBind, sumItems :: List (Record rSumItem), body :: Record rTerm | r )
 
 type ArgsMatch r rTypeId rTerm rCaseItem
   = ( typeId :: Record rTypeId, term :: Record rTerm, caseItems :: List (Record rCaseItem) | r )
@@ -65,15 +65,15 @@ type ArgsArgItem_ArgItem r rTerm
 type ArgsSumItem r
   = ( | r )
 
-type ArgsSumItem_SumItem r rTermBind rParamItems
-  = ( termBind :: Record rTermBind, paramItems :: Record rParamItems | r )
+type ArgsSumItem_SumItem r rTermBind rParamItem
+  = ( termBind :: Record rTermBind, paramItems :: List (Record rParamItem) | r )
 
 -- | recCaseItem
 type ArgsCaseItem r
   = ( | r )
 
-type ArgsCaseItem_CaseItem r rTermBindItems rTerm
-  = ( termBindItems :: Record rTermBindItems, body :: Record rTerm | r )
+type ArgsCaseItem_CaseItem r rTermBindItem rTerm
+  = ( termBindItems :: List (Record rTermBindItem), body :: Record rTerm | r )
 
 -- | recParamItem
 type ArgsParamItem r

@@ -19,12 +19,14 @@ _actions = Proxy :: Proxy "actions"
 
 _alpha = Proxy :: Proxy "alpha"
 
-_argItems = Proxy :: Proxy "argItems"
+_argItem = Proxy :: Proxy "argItem"
 
-_caseItems = Proxy :: Proxy "caseItems"
+_caseItem = Proxy :: Proxy "caseItem"
 
-_sumItems = Proxy :: Proxy "sumItems"
+_sumItem = Proxy :: Proxy "sumItem"
 
-_paramItems = Proxy :: Proxy "paramItems"
+_paramItem = Proxy :: Proxy "paramItem"
 
-_termBindItems = Proxy :: Proxy "termBindItems"
+_termBindItem = Proxy :: Proxy "termBindItem"
+
+_typeId = Proxy :: Proxy "typeId"
