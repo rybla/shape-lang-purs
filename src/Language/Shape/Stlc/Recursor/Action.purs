@@ -30,7 +30,7 @@ import Record as R
 import Undefined (undefined)
 
 applyChange :: Change -> State -> Maybe State
-applyChange change st = do 
+applyChange change st = do
   -- TODO: apply holeEq
   term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
   pure
@@ -46,7 +46,7 @@ doChange this change = do
   st <- getState this
   Debug.traceM $ "===[ history ]==="
   Debug.traceM $ show st.history
-  case applyChange change st of 
+  case applyChange change st of
     Just st' -> do
       Debug.traceM $ "===[ change success ]==="
       modifyState this \_ -> st'
@@ -211,19 +211,22 @@ recTerm rec =
                         (InsertArg (freshHoleType unit))
                   }
               Nothing -> pure unit
-        -- do
-        --   st <- getState this
-        --   case chAtTerm { term, gamma, alpha }
-        --       ( ReplaceTerm
-        --           (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
-        --           (InsertArg (HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }))
-        --       )
-        --       st.ix of
-        --     Just (term' /\ ix' /\ tc /\ holeEq) -> do
-        --       -- TODO: apply holeEq
-        --       modifyState this (_ { term = term', ix = ix' })
-        --     Nothing -> pure unit
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        }
+    , Action
+        { label: Just "dig"
+        , effect:
+            \this -> case args.visit.ix of
+              Just ix ->
+                doChange this
+                  { ix: toIxDown ix
+                  , toReplace:
+                      ReplaceTerm
+                        (Hole { meta: default })
+                        (Dig (freshHoleId unit))
+                  }
+              Nothing -> pure unit
+        , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
         }
     ]
 
