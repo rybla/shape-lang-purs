@@ -18,6 +18,8 @@ import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
+import Data.OrderedSet (OrderedSet)
+import Data.OrderedSet as OrderedSet
 import Data.Set as Set
 import Data.String (joinWith)
 import Data.Traversable (sequence)
@@ -49,7 +51,7 @@ type RenderEnvironment
     , meta :: Metacontext
     , alpha :: Maybe Type
     , actions :: Array Action
-    , holeIds :: List HoleId
+    , holeIds :: OrderedSet HoleId
     }
 
 _holeIds = Proxy :: Proxy "holeIds"
@@ -60,7 +62,7 @@ emptyRenderEnvironment =
   , meta: default
   , alpha: default
   , actions: []
-  , holeIds: Nil
+  , holeIds: mempty
   }
 
 type M a
@@ -100,7 +102,7 @@ renderType this =
             [ printTypeId args.typeId ]
     , holeType:
         \args -> do
-          State.modify_ (Record.modify _holeIds (Cons args.holeType.holeId)) -- should be inserted into ordered set
+          State.modify_ (Record.modify _holeIds (OrderedSet.insert args.holeType.holeId)) -- should be inserted into ordered set
           renderNode this
             ((makeNodeProps args) { label = Just "HoleType" })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
@@ -329,7 +331,7 @@ printTermId { termId, meta } =
 
 printHoleId :: { holeId :: HoleId, meta :: Metacontext } -> M (Array ReactElement)
 printHoleId args = do
-  mb_i <- List.findIndex (args.holeId == _) <$> (State.gets (reverse <<< _.holeIds))
+  mb_i <- OrderedSet.findIndexRev (args.holeId == _) <$> State.gets _.holeIds
   case mb_i of
     Just i -> pure [ DOM.span [ Props.className "holeId" ] [ DOM.text $ "?" <> show i ] ]
     Nothing -> unsafeCrashWith $ "count not find index of holeId " <> show args.holeId <> " in metacontext " <> show args.meta

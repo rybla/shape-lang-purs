@@ -31,6 +31,9 @@ insert a s = if List.elem a s then s else over wrap (Cons a) s
 findIndex :: forall a. Eq a => (a -> Boolean) -> OrderedSet a -> Maybe Int
 findIndex cond s = List.findIndex cond (unwrap s)
 
+findIndexRev :: forall a. Eq a => (a -> Boolean) -> OrderedSet a -> Maybe Int
+findIndexRev cond s = List.findIndex cond (List.reverse $ unwrap s)
+
 singleton :: forall a. a -> OrderedSet a
 singleton = wrap <<< List.singleton
 
