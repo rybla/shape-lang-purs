@@ -6,8 +6,10 @@ import Prim hiding (Type)
 
 import Ansi.Codes (EscapeCode(..))
 import Control.Monad.State (runState)
+import Data.Generic.Rep (class Generic)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), isJust, maybe)
+import Data.Show.Generic (genericShow)
 import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, varChange)
 import Language.Shape.Stlc.Hole (HoleEq, emptyHoleEq, emptyHoleSub)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixStepBuf, ixStepData, ixStepLet)
@@ -16,7 +18,12 @@ import Language.Shape.Stlc.Syntax (ArrowType, Term(..), Type(..), Buf)
 import Undefined (undefined)
 import Unsafe (error)
 
+type Change = {ix :: IxDown, toReplace :: ToReplace}
+
 data ToReplace = ReplaceTerm Term TypeChange | ReplaceType Type TypeChange
+
+derive instance genericToReplace :: Generic ToReplace _
+instance showToReplace :: Show ToReplace where show x = genericShow x
 
 -- old thing:
 -- data Change

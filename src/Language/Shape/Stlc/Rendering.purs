@@ -39,6 +39,7 @@ programComponent this =
       { ix: mempty
       , term
       , type_
+      , history: (term /\ type_) /\ []
       }
 
   componentDidMount = do

@@ -1,9 +1,37 @@
-module Language.Shape.Stlc.Syntax where
+module Language.Shape.Stlc.Syntax
+  ( ArgItem
+  , ArrowType
+  , Buf
+  , CaseItem
+  , Data
+  , DataType
+  , Hole
+  , HoleId(..)
+  , HoleType
+  , Lam
+  , Let
+  , Match
+  , Neu
+  , ParamItem
+  , SumItem
+  , Syntax(..)
+  , Term(..)
+  , TermBind
+  , TermBindItem
+  , TermId(..)
+  , Type(..)
+  , TypeBind
+  , TypeId(..)
+  , freshHole
+  , freshHoleId
+  , freshHoleType
+  , freshTermId
+  , freshTypeId
+  ) where
 
 import Language.Shape.Stlc.Metadata
 import Prelude
 import Prim hiding (Type)
-
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
@@ -11,6 +39,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
+import Data.UUID as UUID
 import Effect.Unsafe (unsafePerformEffect)
 
 -- | Type
@@ -98,8 +127,6 @@ derive newtype instance eqTypeId :: Eq TypeId
 
 derive newtype instance ordTypeId :: Ord TypeId
 
-derive newtype instance showTypeId :: Show TypeId
-
 freshTypeId :: Unit -> TypeId
 freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
 
@@ -110,8 +137,6 @@ newtype TermId
 derive newtype instance eqTermId :: Eq TermId
 
 derive newtype instance ordTermId :: Ord TermId
-
-derive newtype instance showTermId :: Show TermId
 
 freshTermId :: Unit -> TermId
 freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
@@ -124,15 +149,27 @@ derive newtype instance eqHoleId :: Eq HoleId
 
 derive newtype instance ordHoleId :: Ord HoleId
 
-derive newtype instance showHoleId :: Show HoleId
-
 freshHoleId :: Unit -> HoleId
 freshHoleId _ = unsafePerformEffect $ HoleId <$> genUUID
 
-freshHoleType :: Unit -> Type 
-freshHoleType _ = HoleType {holeId: freshHoleId unit, weakening: Set.empty, meta: default}
-freshHole :: Unit -> Term 
-freshHole _ = Hole {meta: default}
+freshHoleType :: Unit -> Type
+freshHoleType _ = HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+
+freshHole :: Unit -> Term
+freshHole _ = Hole { meta: default }
+
+-- | UUID
+instance showTypeId :: Show TypeId where
+  show (TypeId uuid) = "(TypeId " <> showUUID uuid <> ")"
+
+instance showTermId :: Show TermId where
+  show (TermId uuid) = "(TermId " <> showUUID uuid <> ")"
+
+instance showHoleId :: Show HoleId where
+  show (HoleId uuid) = "(HoleId " <> showUUID uuid <> ")"
+
+showUUID :: UUID -> String
+showUUID uuid = "(fromJust (UUID.parseUUID \"" <> UUID.toString uuid <> "\"))"
 
 -- | Syntax
 data Syntax

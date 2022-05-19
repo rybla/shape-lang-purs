@@ -1,5 +1,12 @@
 # TODO
 
+- Henry (new)
+  - enable selecting name of a `Let`
+  - enable selecting name of a `SumItem`
+  - enumerated properly the type hole ids (what happened to `?1`??) 
+  - debugging framework from before
+
+
 Potential Plan:
 - Replace block with single let
 - Figure out how to move lets

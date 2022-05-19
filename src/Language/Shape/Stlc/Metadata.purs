@@ -3,9 +3,10 @@ module Language.Shape.Stlc.Metadata where
 import Data.Tuple
 import Data.Tuple.Nested
 import Prelude
+
 import Data.Default (class Default, default)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap)
 
 -- | Type Metadata
 newtype ArrowTypeMetadata
@@ -16,7 +17,7 @@ instance defaultArrowTypeMetadata :: Default ArrowTypeMetadata where
 
 derive instance newTypeArrowTypeMetadata :: Newtype ArrowTypeMetadata _
 
-derive newtype instance showArrowTypeMetadata :: Show ArrowTypeMetadata
+instance showArrowTypeMetadata :: Show ArrowTypeMetadata where show x = "ArrowTypeMetadata " <> show (unwrap x)
 
 newtype DataTypeMetadata
   = DataTypeMetadata {}
@@ -26,7 +27,7 @@ instance defaultDataTypeMetadata :: Default DataTypeMetadata where
 
 derive instance newTypeDataTypeMetadata :: Newtype DataTypeMetadata _
 
-derive newtype instance showDataTypeMetadata :: Show DataTypeMetadata
+instance showDataTypeMetadata :: Show DataTypeMetadata where show x = "DataTypeMetadata " <> show (unwrap x)
 
 newtype HoleTypeMetadata
   = HoleTypeMetadata {}
@@ -36,7 +37,7 @@ instance defaultHoleTypeMetadata :: Default HoleTypeMetadata where
 
 derive instance newTypeHoleTypeMetadata :: Newtype HoleTypeMetadata _
 
-derive newtype instance showHoleTypeMetadata :: Show HoleTypeMetadata
+instance showHoleTypeMetadata :: Show HoleTypeMetadata where show x = "HoleTypeMetadata " <> show (unwrap x)
 
 -- | Term Metadata
 newtype LamMetadata
@@ -47,7 +48,7 @@ instance defaultLamMetadata :: Default LamMetadata where
 
 derive instance newTypeLamMetadata :: Newtype LamMetadata _
 
-derive newtype instance showLamMetadata :: Show LamMetadata
+instance showLamMetadata :: Show LamMetadata where show x = "LamMetadata " <> show (unwrap x)
 
 newtype NeuMetadata
   = NeuMetadata {}
@@ -57,7 +58,7 @@ instance defaultNeuMetadata :: Default NeuMetadata where
 
 derive instance newTypeNeuMetadata :: Newtype NeuMetadata _
 
-derive newtype instance showNeuMetadata :: Show NeuMetadata
+instance showNeuMetadata :: Show NeuMetadata where show x = "NeuMetadata " <> show (unwrap x)
 
 newtype ArgItemMetadata
   = ArgItemMetadata { indented :: Boolean }
@@ -67,7 +68,7 @@ instance defaultArgItemMetadata :: Default ArgItemMetadata where
 
 derive instance newTypeArgItemMetadata :: Newtype ArgItemMetadata _
 
-derive newtype instance showArgItemMetadata :: Show ArgItemMetadata
+instance showArgItemMetadata :: Show ArgItemMetadata where show x = "ArgItemMetadata " <> show (unwrap x)
 
 newtype ArgMetadata
   = ArgMetadata { indented :: Boolean }
@@ -77,7 +78,7 @@ instance defaultArgMetadata :: Default ArgMetadata where
 
 derive instance newTypeArgMetadata :: Newtype ArgMetadata _
 
-derive newtype instance showArgMetadata :: Show ArgMetadata
+instance showArgMetadata :: Show ArgMetadata where show x = "ArgMetadata " <> show (unwrap x)
 
 newtype LetMetadata
   = LetMetadata { name :: Name, indentArg :: Boolean, indentBody :: Boolean }
@@ -87,7 +88,7 @@ instance defaultLetMetadata :: Default LetMetadata where
 
 derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
-derive newtype instance showLetMetadata :: Show LetMetadata
+instance showLetMetadata :: Show LetMetadata where show x = "LetMetadata " <> show (unwrap x)
 
 newtype BufMetadata
   = BufMetadata {}
@@ -97,7 +98,7 @@ instance defaultBufMetadata :: Default BufMetadata where
 
 derive instance newTypeBufMetadata :: Newtype BufMetadata _
 
-derive newtype instance showBufMetadata :: Show BufMetadata
+instance showBufMetadata :: Show BufMetadata where show x = "BufMetadata " <> show (unwrap x)
 
 newtype DataMetadata
   = DataMetadata { name :: Name, indentSum :: Boolean }
@@ -107,7 +108,7 @@ instance defaultDataMetadata :: Default DataMetadata where
 
 derive instance newTypeDataMetadata :: Newtype DataMetadata _
 
-derive newtype instance showDataMetadata :: Show DataMetadata
+instance showDataMetadata :: Show DataMetadata where show x = "DataMetadata " <> show (unwrap x)
 
 newtype MatchMetadata
   = MatchMetadata { indentCases :: Boolean }
@@ -117,7 +118,7 @@ instance defaultMatchMetadata :: Default MatchMetadata where
 
 derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 
-derive newtype instance showMatchMetadata :: Show MatchMetadata
+instance showMatchMetadata :: Show MatchMetadata where show x = "MatchMetadata " <> show (unwrap x)
 
 newtype HoleMetadata
   = HoleMetadata {}
@@ -127,7 +128,7 @@ instance defaultHoleMetadata :: Default HoleMetadata where
 
 derive instance newTypeHoleMetadata :: Newtype HoleMetadata _
 
-derive newtype instance showHoleMetadata :: Show HoleMetadata
+instance showHoleMetadata :: Show HoleMetadata where show x = "HoleMetadata " <> show (unwrap x)
 
 newtype TypeBindMetadata
   = TypeBindMetadata { name :: Name }
@@ -137,7 +138,7 @@ instance defaultTypeBindMetadata :: Default TypeBindMetadata where
 
 derive instance newTypeTypeBindMetadata :: Newtype TypeBindMetadata _
 
-derive newtype instance showTypeBindMetadata :: Show TypeBindMetadata
+instance showTypeBindMetadata :: Show TypeBindMetadata where show x = "TypeBindMetadata " <> show (unwrap x)
 
 newtype TermBindMetadata
   = TermBindMetadata { name :: Name }
@@ -147,7 +148,7 @@ instance defaultTermBindMetadata :: Default TermBindMetadata where
 
 derive instance newTypeTermBindMetadata :: Newtype TermBindMetadata _
 
-derive newtype instance showTermBindMetadata :: Show TermBindMetadata
+instance showTermBindMetadata :: Show TermBindMetadata where show x = "TermBindMetadata " <> show (unwrap x)
 
 newtype SumItemMetadata
   = SumItemMetadata { indented :: Boolean }
@@ -157,7 +158,7 @@ instance defaultSumItemMetadata :: Default SumItemMetadata where
 
 derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
 
-derive newtype instance showSumItemMetadata :: Show SumItemMetadata
+instance showSumItemMetadata :: Show SumItemMetadata where show x = "SumItemMetadata " <> show (unwrap x)
 
 newtype CaseItemMetadata
   = CaseItemMetadata { indented :: Boolean }
@@ -167,7 +168,7 @@ instance defaultCaseItemMetadata :: Default CaseItemMetadata where
 
 derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
 
-derive newtype instance showCaseItemMetadata :: Show CaseItemMetadata
+instance showCaseItemMetadata :: Show CaseItemMetadata where show x = "CaseItemMetadata " <> show (unwrap x)
 
 newtype ParamItemMetadata
   = ParamItemMetadata { indented :: Boolean }
@@ -177,7 +178,7 @@ instance defaultParamItemMetadata :: Default ParamItemMetadata where
 
 derive instance newTypeParamItemMetadata :: Newtype ParamItemMetadata _
 
-derive newtype instance showParamItemMetadata :: Show ParamItemMetadata
+instance showParamItemMetadata :: Show ParamItemMetadata where show x = "ParamItemMetadata " <> show (unwrap x)
 
 newtype TermBindItemMetadata
   = TermBindItemMetadata { indented :: Boolean }
@@ -187,7 +188,7 @@ instance defaultTermBindItemMetadata :: Default TermBindItemMetadata where
 
 derive instance newTypeTermBindItemMetadata :: Newtype TermBindItemMetadata _
 
-derive newtype instance showTermBindItemMetadata :: Show TermBindItemMetadata
+instance showTermBindItemMetadata :: Show TermBindItemMetadata where show x = "TermBindItemMetadata " <> show (unwrap x)
 
 -- | Name 
 newtype Name
@@ -199,7 +200,7 @@ derive newtype instance eqName :: Eq Name
 
 derive newtype instance ordName :: Ord Name
 
-derive newtype instance showName :: Show Name
+instance showName :: Show Name where show x = "Name " <> show (unwrap x)
 
 instance defaultName :: Default Name where
   default = Name Nothing

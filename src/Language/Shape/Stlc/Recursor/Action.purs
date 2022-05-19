@@ -7,15 +7,20 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
-
+import Data.Array as Array
 import Data.Default (default)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over, unwrap, wrap)
 import Data.Set as Set
-import Language.Shape.Stlc.ChAtIndex (ToReplace(..), chAtTerm, chAtType)
-import Language.Shape.Stlc.Changes (TypeChange(..))
+import Data.Show.Generic (genericShow)
+import Debug as Debug
+import Effect (Effect)
+import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm, chAtType)
+import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
 import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
+import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Prim (Array, Record, Row)
 import Prim as Prim
@@ -23,6 +28,31 @@ import Prim.Row (class Lacks)
 import React (getState, modifyState)
 import Record as R
 import Undefined (undefined)
+
+applyChange :: Change -> State -> Maybe State
+applyChange change st = do 
+  -- TODO: apply holeEq
+  term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
+  pure
+    st
+      { term = term'
+      , type_ = applyTC typeChange st.type_
+      , ix = ix'
+      , history = (_ `Array.snoc` change) <$> st.history
+      }
+
+doChange :: This -> Change -> Effect Unit
+doChange this change = do
+  st <- getState this
+  Debug.traceM $ "===[ history ]==="
+  Debug.traceM $ show st.history
+  case applyChange change st of 
+    Just st' -> do
+      Debug.traceM $ "===[ change success ]==="
+      modifyState this \_ -> st'
+    Nothing -> do
+      Debug.traceM $ "===[ change failure ]==="
+      pure unit
 
 -- | recType
 type ArgsType r
@@ -50,39 +80,41 @@ recType rec =
     { arrowType:
         \args ->
           rec.arrowType
-            $ R.union { actions: [] }
+            $ R.union { actions: common (ArrowType args.arrowType) args <> [] }
                 args
     , dataType:
         \args ->
           rec.dataType
-            $ R.union { actions: [] }
+            $ R.union { actions: common (DataType args.dataType) args <> [] }
                 args
     , holeType:
         \args ->
           rec.holeType
-            $ R.union { actions: [] }
+            $ R.union { actions: common (HoleType args.holeType) args <> [] }
                 args
     }
-  where 
-  common :: forall r. Type -> { gamma :: Context | r } -> Array Action
-  common type_ { gamma } =
+  where
+  common :: forall r. Type -> { | r } -> Array Action
+  common type_ {} =
     [ Action
         { label: Just "enarrow"
         , effect:
             \this -> do
               st <- getState this
-              let holeType = freshHoleType unit
-              case chAtType { type_, gamma }
-                  (ReplaceType 
-                    (ArrowType {dom: holeType, cod: type_, meta: default})
-                    (InsertArg holeType)
-                  )
-                  st.ix of 
-                Just (type' /\ ix' /\ tc /\ holeEq) -> do
-                  -- TODO: apply holeEq
-                  -- modifyState this (_ { term = term', ix = ix' })
-                  pure unit 
-                Nothing -> pure unit
+              let
+                holeType = freshHoleType unit
+              doChange this { ix: st.ix, toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType) }
+        -- case chAtType { type_, gamma }
+        --     (ReplaceType 
+        --       (ArrowType {dom: holeType, cod: type_, meta: default})
+        --       (InsertArg holeType)
+        --     )
+        --     st.ix of 
+        --   Just (type' /\ ix' /\ tc /\ holeEq) -> do
+        --     -- TODO: apply holeEq
+        --     -- modifyState this (_ { term = term', ix = ix' })
+        --     pure unit 
+        --   Nothing -> pure unit
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
         }
     ]
@@ -164,23 +196,33 @@ recTerm rec =
                 args
     }
   where
-  common :: forall r. Term -> { gamma :: Context, alpha :: Type | r } -> Array Action
-  common term { gamma, alpha } =
+  common :: forall r. Term -> { visit :: Visit | r } -> Array Action
+  common term args =
     [ Action
         { label: Just "enlambda"
         , effect:
-            \this -> do
-              st <- getState this
-              case chAtTerm { term, gamma, alpha }
-                  ( ReplaceTerm
-                      (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
-                      (InsertArg (HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }))
-                  )
-                  st.ix of
-                Just (term' /\ ix' /\ tc /\ holeEq) -> do
-                  -- TODO: apply holeEq
-                  modifyState this (_ { term = term', ix = ix' })
-                Nothing -> pure unit
+            \this -> case args.visit.ix of
+              Just ix ->
+                doChange this
+                  { ix: toIxDown ix
+                  , toReplace:
+                      ReplaceTerm
+                        (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
+                        (InsertArg (freshHoleType unit))
+                  }
+              Nothing -> pure unit
+        -- do
+        --   st <- getState this
+        --   case chAtTerm { term, gamma, alpha }
+        --       ( ReplaceTerm
+        --           (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
+        --           (InsertArg (HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }))
+        --       )
+        --       st.ix of
+        --     Just (term' /\ ix' /\ tc /\ holeEq) -> do
+        --       -- TODO: apply holeEq
+        --       modifyState this (_ { term = term', ix = ix' })
+        --     Nothing -> pure unit
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
         }
     ]

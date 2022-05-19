@@ -69,6 +69,8 @@ type M a
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
+  -- Debug.traceM $ "===[ st.term ]==============================="
+  -- Debug.traceM $ show st.term
   pure
     $ flip State.runState emptyRenderEnvironment
     $ renderTerm this
@@ -379,11 +381,11 @@ renderNode :: This -> NodeProps -> Array (M (Array ReactElement)) -> M (Array Re
 renderNode this props elemsM = do
   -- if this node is selected
   when isSelected do
-    Debug.traceM $ "================================="
-    Debug.traceM $ "renderNode isSelected"
-    Debug.traceM $ "label = " <> show props.label
-    Debug.traceM $ "meta  = " <> show props.meta
-    Debug.traceM $ "================================="
+    -- Debug.traceM $ "================================="
+    -- Debug.traceM $ "renderNode isSelected"
+    -- Debug.traceM $ "label = " <> show props.label
+    -- Debug.traceM $ "meta  = " <> show props.meta
+    -- Debug.traceM $ "================================="
     -- update environment
     State.modify_
       ( _

@@ -1,11 +1,14 @@
 module Language.Shape.Stlc.Types where
 
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
+import Language.Shape.Stlc.ChAtIndex (Change)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Index (IxDown(..))
 import Language.Shape.Stlc.Key (Key(..))
@@ -19,7 +22,10 @@ type State
   = { term :: Term
     , type_ :: Type
     , ix :: IxDown
+    , history :: History
     }
+
+type History = (Term /\ Type) /\ Array Change
 
 type Given
   = { state :: State
