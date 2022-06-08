@@ -7,7 +7,7 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "test": "spago test",
+    "test": "spago test --purs-args \"--censor-warnings\"",
     "quickbuild": "spago build --purs-args \"--censor-warnings\"",
     "build": "spago build --purs-args \"--censor-warnings -gsourcemaps,js\"",
     "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to dist/app.js",
