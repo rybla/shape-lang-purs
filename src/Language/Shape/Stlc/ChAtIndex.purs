@@ -100,7 +100,9 @@ chAtType args tRep idx = Rec.recType {
     (IxDown (IxStep IxStepArrowType 0 : rest)) -> do -- left of arrow
       (dom' /\ (IxDown idx') /\ tcIn /\ holeEq) <- chAtType args.dom tRep (IxDown rest)
       pure $ ArrowType (args.arrowType {dom=dom'}) /\ IxDown ((IxStep IxStepArrowType 0) : idx') /\ ArrowCh tcIn NoChange /\ holeEq
-    (IxDown (IxStep IxStepArrowType 1 : rest)) -> undefined
+    (IxDown (IxStep IxStepArrowType 1 : rest)) -> do
+      (cod' /\ (IxDown idx') /\ tcOut /\ holeEq) <- chAtType args.cod tRep (IxDown rest)
+      pure $ ArrowType (args.arrowType {cod=cod'}) /\ IxDown ((IxStep IxStepArrowType 1) : idx') /\ ArrowCh NoChange tcOut /\ holeEq
     _ -> error "no5"
   , dataType : \args tRep -> case _ of
     _ -> error "no6"

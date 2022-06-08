@@ -25,7 +25,7 @@ import Unsafe (fromJust)
 
 main :: Effect Unit
 main = do
-  runHistory (Map.lookup' "enlambda in let impl" histories)
+  -- runHistory (Map.lookup' "enlambda in let impl" histories)
   runHistory (Map.lookup' "enArrow codomain" histories)
 
 runHistory :: History -> Effect Unit
