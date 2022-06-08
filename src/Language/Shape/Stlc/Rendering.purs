@@ -8,6 +8,7 @@ import React.DOM
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
+import Language.Shape.Stlc.Event.KeyboardEvent (eventKey)
 import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
 import Undefined (undefined)
@@ -15,8 +16,6 @@ import Web.Event.Event (Event, EventType(..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
 import Web.HTML.Window (toEventTarget)
-
-foreign import eventKey :: Event -> String
 
 type ReactElements
   = Array ReactElement
@@ -52,6 +51,7 @@ programComponent this =
     let
       key = eventKey event
     Console.log $ "===[ keydown: " <> key <> " ]==============================="
+    Debug.traceM event
     pure unit
 
   render = do

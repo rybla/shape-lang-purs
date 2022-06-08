@@ -14,18 +14,6 @@ import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
-class HasMetadata a meta where
-  getMetadata :: a -> meta
-  setMetadata :: meta -> a -> a
-
-modifyMetadata :: forall a meta. HasMetadata a meta => (meta -> meta) -> a -> a
-modifyMetadata f a = setMetadata (f (getMetadata a)) a
-
-class CanHaveLabel (label :: Symbol) a m where
-  modifyLabel :: Proxy label -> (a -> a) -> m -> m
-
-defaultV label f = Variant.default default # Variant.on label f
-
 -- | Type Metadata
 newtype ArrowTypeMetadata
   = ArrowTypeMetadata {}
@@ -109,7 +97,7 @@ newtype LetMetadata
   = LetMetadata { name :: Name, indentSign :: Boolean, indentImpl :: Boolean, indentBody :: Boolean }
 
 instance defaultLetMetadata :: Default LetMetadata where
-  default = LetMetadata { name: default, indentSign: false, indentImpl: false, indentBody: true }
+  default = LetMetadata { name: default, indentSign: false, indentImpl: false, indentBody: false }
 
 derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
@@ -142,7 +130,7 @@ newtype MatchMetadata
   = MatchMetadata { indentCases :: Boolean }
 
 instance defaultMatchMetadata :: Default MatchMetadata where
-  default = MatchMetadata { indentCases: true }
+  default = MatchMetadata { indentCases: false }
 
 derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 
@@ -164,23 +152,6 @@ newtype TermMetadata
   = TermMetadata (Variant ( lam :: LamMetadata, neu :: NeuMetadata, let_ :: LetMetadata, buf :: BufMetadata, data_ :: DataMetadata, match :: MatchMetadata, hole :: HoleMetadata ))
 
 derive instance newTypeTermmetadata :: Newtype TermMetadata _
-
-overCase :: forall l a r' r. IsSymbol l => Cons l a r' r => Proxy l -> (a -> a) -> Variant r -> Variant r
-overCase l f v = Variant.default v # Variant.on l (Variant.inj l <<< f) $ v
-
--- Variant.default ?a # Variant.on l f
-instance canHaveLabelIndentTermMetadata :: CanHaveLabel "indent" Boolean TermMetadata where
-  modifyLabel l f m =
-    unwrap m
-      # Variant.match
-          { lam: \meta -> wrap $ Variant.inj _lam (over wrap (\m -> m { indentBody = f m.indentBody }) meta)
-          , neu: \meta -> wrap $ Variant.inj _neu meta
-          , let_: \meta -> wrap $ Variant.inj _let_ (over wrap (\m -> m { indentSign = f m.indentSign, indentImpl = f m.indentImpl, indentBody = f m.indentBody }) meta)
-          , buf: \meta -> wrap $ Variant.inj _buf (over wrap (\m -> m { indentSign = f m.indentSign, indentImpl = f m.indentImpl, indentBody = f m.indentBody }) meta)
-          , data_: \meta -> wrap $ Variant.inj _data_ (over wrap (\m -> m { indentSum = f m.indentSum, indentBody = f m.indentBody }) meta)
-          , match: \meta -> wrap $ Variant.inj _match (over wrap (\m -> m { indentCases = f m.indentCases }) meta)
-          , hole: \meta -> wrap $ Variant.inj _hole meta
-          }
 
 newtype TypeBindMetadata
   = TypeBindMetadata { name :: Name }

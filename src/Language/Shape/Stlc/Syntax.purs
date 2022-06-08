@@ -84,24 +84,6 @@ derive instance genericTerm :: Generic Term _
 instance showTerm :: Show Term where
   show x = genericShow x
 
-instance hasMetadataTerm :: HasMetadata Term TermMetadata where
-  getMetadata = case _ of
-    Lam { meta } -> TermMetadata $ Variant.inj _lam meta
-    Neu { meta } -> TermMetadata $ Variant.inj _neu meta
-    Let { meta } -> TermMetadata $ Variant.inj _let_ meta
-    Buf { meta } -> TermMetadata $ Variant.inj _buf meta
-    Data { meta } -> TermMetadata $ Variant.inj _data_ meta
-    Match { meta } -> TermMetadata $ Variant.inj _match meta
-    Hole { meta } -> TermMetadata $ Variant.inj _hole meta
-  setMetadata meta = case _ of
-    Lam x -> Lam x { meta = defaultV _lam identity $ unwrap meta }
-    Neu x -> Neu x { meta = defaultV _neu identity $ unwrap meta }
-    Let x -> Let x { meta = defaultV _let_ identity $ unwrap meta }
-    Buf x -> Buf x { meta = defaultV _buf identity $ unwrap meta }
-    Data x -> Data x { meta = defaultV _data_ identity $ unwrap meta }
-    Match x -> Match x { meta = defaultV _match identity $ unwrap meta }
-    Hole x -> Hole x { meta = defaultV _hole identity $ unwrap meta }
-
 -- | SumItem
 type SumItem
   = { termBind :: TermBind, paramItems :: List ParamItem, meta :: SumItemMetadata }
