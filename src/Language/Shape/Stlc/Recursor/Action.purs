@@ -129,7 +129,7 @@ recType rec =
         --     -- modifyState this (_ { term = term', ix = ix' })
         --     pure unit 
         --   Nothing -> pure unit
-        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        , triggers: [ ActionTrigger_Keypress keys.lambda ]
         }
     ]
 
@@ -225,7 +225,7 @@ recTerm rec =
                             (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
                             (InsertArg (freshHoleType unit))
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        , triggers: [ ActionTrigger_Keypress keys.lambda ]
         }
     , Action
         { label: Just "dig"
@@ -240,7 +240,7 @@ recTerm rec =
                             (Hole { meta: default })
                             (Dig (freshHoleId unit))
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
+        , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
     , Action
         { label: Just "let_"
@@ -255,7 +255,7 @@ recTerm rec =
                             (Let { termBind: freshTermBind unit, sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
                             NoChange
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.let_ } ]
+        , triggers: [ ActionTrigger_Keypress keys.let_ ]
         }
     , Action
         { label: Just "indent"
@@ -269,7 +269,7 @@ recTerm rec =
                       , toReplace:
                           ReplaceTerm (indentTerm term) NoChange
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
+        , triggers: [ ActionTrigger_Keypress keys.indent ]
         }
     ]
 

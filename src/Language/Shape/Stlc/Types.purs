@@ -5,7 +5,9 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 
+import Data.Array (intercalate)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.ChAtIndex (Change)
@@ -43,6 +45,8 @@ newtype Action
   , effect :: ActionEffect
   }
 
+derive instance newtypeAction :: Newtype Action _ 
+
 type ActionEffect
   = This -> Effect Unit
 
@@ -51,6 +55,20 @@ data ActionTrigger
   | ActionTrigger_Drag
   | ActionTrigger_Hover
   | ActionTrigger_Paste
-  | ActionTrigger_Keypress { keys :: Array Key }
+  | ActionTrigger_Keypress (Array Key)
 
 derive instance eqActionTrigger :: Eq ActionTrigger
+
+instance Show ActionTrigger where 
+  show ActionTrigger_Drop = "drop"
+  show ActionTrigger_Drag = "drag"
+  show ActionTrigger_Hover = "hover"
+  show ActionTrigger_Paste = "paste"
+  show (ActionTrigger_Keypress keys) = "keys[" <> intercalate ", " (show <$> keys) <> "]"
+
+instance Show Action where 
+  show (Action action ) = 
+    (case action.label of 
+      Just str -> str <> ": "
+      Nothing -> ""
+    ) <>  intercalate ", " (show <$> action.triggers )

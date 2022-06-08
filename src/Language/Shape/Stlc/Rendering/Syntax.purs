@@ -90,7 +90,7 @@ renderType this =
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "ArrowType" })
-            [ renderType this args.dom
+            [ enParenIf (renderType this args.dom) (requiresParenType args.dom.type_)
             , pure [ token.arrowType1 ]
             , renderType this args.cod
             ]
@@ -117,6 +117,7 @@ renderTerm this =
             [ pure [ token.lam1 ]
             , renderTermBind this args.termBind
             , pure [ token.lam2 ]
+            , pure $ newline args.meta (unwrap args.lam.meta).indentBody
             , renderTerm this args.body
             ]
     , neu:
@@ -137,14 +138,14 @@ renderTerm this =
             ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha })
             [ pure [ token.let1 ]
             , renderTermBind this args.termBind
-            , pure $ newline args.meta (unwrap args.let_.meta).indentSign
             , pure [ token.let2 ]
+            , pure $ newline args.meta (unwrap args.let_.meta).indentSign
             , renderType this args.sign
-            , pure $ newline args.meta (unwrap args.let_.meta).indentImpl
             , pure [ token.let3 ]
+            , pure $ newline args.meta (unwrap args.let_.meta).indentImpl
             , renderTerm this args.impl
-            , pure $ newline args.meta (unwrap args.let_.meta).indentBody
             , pure [ token.let4 ]
+            , pure $ newline args.meta (unwrap args.let_.meta).indentBody
             , renderTerm this args.body
             ]
     , buf:
@@ -152,10 +153,13 @@ renderTerm this =
           renderNode this
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha })
             [ pure [ token.buf1 ]
+            , pure $ newline args.meta (unwrap args.buf.meta).indentImpl
             , renderTerm this args.impl
             , pure [ token.buf2 ]
+            , pure $ newline args.meta (unwrap args.buf.meta).indentSign
             , renderType this args.sign
             , pure [ token.buf3 ]
+            , pure $ newline args.meta (unwrap args.buf.meta).indentBody
             , renderTerm this args.body
             ]
     , data_:
@@ -165,8 +169,10 @@ renderTerm this =
             [ pure [ token.data1 ]
             , renderTypeBind this args.typeBind
             , pure [ token.data2 ]
+            , pure $ newline args.meta (unwrap args.data_.meta).indentSumItems
             , renderItems (renderSumItem this <$> args.sumItems)
             , pure [ token.data3 ]
+            , pure $ newline args.meta (unwrap args.data_.meta).indentBody
             , renderTerm this args.body
             ]
     , match:
@@ -176,6 +182,7 @@ renderTerm this =
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
+            , pure $ newline args.meta (unwrap args.match.meta).indentCaseItems
             , renderItems (renderCaseItem this <$> args.caseItems)
             ]
     , hole:
@@ -195,9 +202,9 @@ renderArgItem this =
           renderNode this
             ( (makeNodeProps args) { label = Just "ArgItem" }
             )
-            [ pure $ newline args.meta (unwrap args.argItem.meta).indented
-            , renderTerm this args.term
-            ]
+            $ [ pure $ newline args.meta (unwrap args.argItem.meta).indented
+              , enParenIf (renderTerm this args.term) (requiresParenTerm args.term.term)
+              ]
     }
 
 renderSumItem :: This -> Record (Rec.ArgsSumItem ()) -> M (Array ReactElement)
@@ -425,3 +432,27 @@ renderConcatArray = (Array.foldl append [] <$> _) <<< sequence
 
 maybeArray :: forall a b. Maybe a -> (a -> b) -> Array b
 maybeArray ma f = maybe [] (Array.singleton <<< f) ma
+
+enParen :: M (Array ReactElement) -> M (Array ReactElement)
+enParen m = renderConcatArray [ pure [ token.lparen ], m, pure [ token.rparen ] ]
+
+enParenIf :: M (Array ReactElement) -> Boolean -> M (Array ReactElement)
+enParenIf m true = enParen m
+
+enParenIf m false = m
+
+requiresParenType :: Type -> Boolean
+requiresParenType = case _ of
+  ArrowType _ -> true
+  _ -> false
+
+requiresParenTerm :: Term -> Boolean
+requiresParenTerm = case _ of
+  Lam _ -> true
+  Neu neu
+    | List.length neu.argItems == 0 -> true
+  Let _ -> true
+  Buf _ -> true
+  Data _ -> true
+  Match _ -> true
+  _ -> false

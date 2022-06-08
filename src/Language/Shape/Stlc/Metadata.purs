@@ -116,10 +116,10 @@ instance showBufMetadata :: Show BufMetadata where
   show x = "BufMetadata " <> show (unwrap x)
 
 newtype DataMetadata
-  = DataMetadata { name :: Name, indentSum :: Boolean, indentBody :: Boolean }
+  = DataMetadata { name :: Name, indentSumItems :: Boolean, indentBody :: Boolean }
 
 instance defaultDataMetadata :: Default DataMetadata where
-  default = DataMetadata { name: default, indentSum: false, indentBody: false }
+  default = DataMetadata { name: default, indentSumItems: false, indentBody: false }
 
 derive instance newTypeDataMetadata :: Newtype DataMetadata _
 
@@ -127,10 +127,10 @@ instance showDataMetadata :: Show DataMetadata where
   show x = "DataMetadata " <> show (unwrap x)
 
 newtype MatchMetadata
-  = MatchMetadata { indentCases :: Boolean }
+  = MatchMetadata { indentCaseItems :: Boolean }
 
 instance defaultMatchMetadata :: Default MatchMetadata where
-  default = MatchMetadata { indentCases: false }
+  default = MatchMetadata { indentCaseItems: false }
 
 derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 
