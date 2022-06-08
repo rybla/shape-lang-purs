@@ -5,10 +5,13 @@ import Prelude
 newtype Key
   = Key String
 
+derive newtype instance showKey :: Show Key
+
 derive newtype instance eqKey :: Eq Key
 
 derive newtype instance ordKey :: Ord Key
 
+keys :: _
 keys =
   { dig: [ Key "d" ]
   , lambda: [ Key "l" ]
@@ -23,6 +26,6 @@ keys =
   , unbuf: [ Key "Shift /" ]
   , delete: [ Key "Backspace" ]
   , indent: [ Key "Tab" ]
-  , copy: [ Key "Control c" ]
-  , paste: [ Key "Control v" ]
+  , copy: [ Key "Ctrl c" ]
+  , paste: [ Key "Ctrl v" ]
   }
