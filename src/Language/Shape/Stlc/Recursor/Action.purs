@@ -20,6 +20,7 @@ import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
+import Language.Shape.Stlc.Metadata (TermMetadata(..), modifyLabel, modifyMetadata)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Prim (Array, Record, Row)
@@ -27,7 +28,15 @@ import Prim as Prim
 import Prim.Row (class Lacks)
 import React (getState, modifyState)
 import Record as R
+import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+
+bindMaybeEffectUnit :: forall a. Maybe a -> (a -> Effect Unit) -> Effect Unit
+bindMaybeEffectUnit = case _ of
+  Just a -> (a # _)
+  Nothing -> const (pure unit)
+
+infixr 5 bindMaybeEffectUnit as >>|=
 
 applyChange :: Change -> State -> Maybe State
 applyChange change st = do
@@ -44,6 +53,8 @@ applyChange change st = do
 doChange :: This -> Change -> Effect Unit
 doChange this change = do
   st <- getState this
+  -- add this action to history before an error can happen
+  st <- pure st { history = (_ `Array.snoc` change) <$> st.history }
   Debug.traceM $ "===[ history ]==="
   Debug.traceM $ show st.history
   case applyChange change st of
@@ -201,33 +212,64 @@ recTerm rec =
     [ Action
         { label: Just "enlambda"
         , effect:
-            \this -> case args.visit.ix of
-              Just ix ->
-                doChange this
-                  { ix: toIxDown ix
-                  , toReplace:
-                      ReplaceTerm
-                        (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
-                        (InsertArg (freshHoleType unit))
-                  }
-              Nothing -> pure unit
+            \this ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
+                            (InsertArg (freshHoleType unit))
+                      }
         , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
         }
     , Action
         { label: Just "dig"
         , effect:
-            \this -> case args.visit.ix of
-              Just ix ->
-                doChange this
-                  { ix: toIxDown ix
-                  , toReplace:
-                      ReplaceTerm
-                        (Hole { meta: default })
-                        (Dig (freshHoleId unit))
-                  }
-              Nothing -> pure unit
+            \this ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            (Hole { meta: default })
+                            (Dig (freshHoleId unit))
+                      }
         , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
         }
+    , Action
+        { label: Just "let_"
+        , effect:
+            \this ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            (Let { termBind: freshTermBind unit, sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
+                            NoChange
+                      }
+        , triggers: [ ActionTrigger_Keypress { keys: keys.let_ } ]
+        }
+    -- TODO: finsih implementing Syntax.Modify
+    -- , Action
+    --     { label: Just "indent"
+    --     , effect:
+    --         \this ->
+    --           args.visit.ix
+    --             >>|= \ix ->
+    --                 doChange this
+    --                   { ix: toIxDown ix
+    --                   , toReplace:
+    --                       ReplaceTerm
+    --                         (modifyMetadata (\meta -> modifyLabel (Proxy :: Proxy "indent") ?a :: TermMetadata) term)
+    --                         NoChange
+    --                   }
+    --     , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
+    --     }
     ]
 
 -- | recArgItem

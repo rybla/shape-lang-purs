@@ -24,6 +24,7 @@
   , "undefined"
   , "unsafe-coerce"
   , "uuid"
+  , "variant"
   , "web-dom"
   , "web-events"
   , "web-html"

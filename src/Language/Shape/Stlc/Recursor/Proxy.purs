@@ -30,5 +30,27 @@ _paramItem = Proxy :: Proxy "paramItem"
 _termBindItem = Proxy :: Proxy "termBindItem"
 
 _typeId = Proxy :: Proxy "typeId"
+
 _typeBind = Proxy :: Proxy "typeBind"
+
 _termBind = Proxy :: Proxy "termBind"
+
+_dom = Proxy :: Proxy "dom"
+
+_cod = Proxy :: Proxy "cod"
+
+_body = Proxy :: Proxy "body"
+
+_termId = Proxy :: Proxy "termId"
+
+_argItems = Proxy :: Proxy "argItems"
+
+_sign = Proxy :: Proxy "sign"
+
+_impl = Proxy :: Proxy "impl"
+
+_sumItems = Proxy :: Proxy "sumItems"
+
+_caseItems = Proxy :: Proxy "caseItems"
+
+_paramItems = Proxy :: Proxy "paramItems"

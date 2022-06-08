@@ -1,33 +1,4 @@
-module Language.Shape.Stlc.Syntax
-  ( ArgItem
-  , ArrowType
-  , Buf
-  , CaseItem
-  , Data
-  , DataType
-  , Hole
-  , HoleId(..)
-  , HoleType
-  , Lam
-  , Let
-  , Match
-  , Neu
-  , ParamItem
-  , SumItem
-  , Syntax(..)
-  , Term(..)
-  , TermBind
-  , TermBindItem
-  , TermId(..)
-  , Type(..)
-  , TypeBind
-  , TypeId(..)
-  , freshHole
-  , freshHoleId
-  , freshHoleType
-  , freshTermId
-  , freshTypeId
-  ) where
+module Language.Shape.Stlc.Syntax where
 
 import Language.Shape.Stlc.Metadata
 import Prelude
@@ -35,12 +6,18 @@ import Prim hiding (Type)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.UUID (UUID, genUUID)
 import Data.UUID as UUID
+import Data.Variant (Variant)
+import Data.Variant as Variant
 import Effect.Unsafe (unsafePerformEffect)
+import Type.Proxy (Proxy(..))
+import Undefined (undefined)
 
 -- | Type
 data Type
@@ -107,12 +84,33 @@ derive instance genericTerm :: Generic Term _
 instance showTerm :: Show Term where
   show x = genericShow x
 
+instance hasMetadataTerm :: HasMetadata Term TermMetadata where
+  getMetadata = case _ of
+    Lam { meta } -> TermMetadata $ Variant.inj _lam meta
+    Neu { meta } -> TermMetadata $ Variant.inj _neu meta
+    Let { meta } -> TermMetadata $ Variant.inj _let_ meta
+    Buf { meta } -> TermMetadata $ Variant.inj _buf meta
+    Data { meta } -> TermMetadata $ Variant.inj _data_ meta
+    Match { meta } -> TermMetadata $ Variant.inj _match meta
+    Hole { meta } -> TermMetadata $ Variant.inj _hole meta
+  setMetadata meta = case _ of
+    Lam x -> Lam x { meta = defaultV _lam identity $ unwrap meta }
+    Neu x -> Neu x { meta = defaultV _neu identity $ unwrap meta }
+    Let x -> Let x { meta = defaultV _let_ identity $ unwrap meta }
+    Buf x -> Buf x { meta = defaultV _buf identity $ unwrap meta }
+    Data x -> Data x { meta = defaultV _data_ identity $ unwrap meta }
+    Match x -> Match x { meta = defaultV _match identity $ unwrap meta }
+    Hole x -> Hole x { meta = defaultV _hole identity $ unwrap meta }
+
+-- | SumItem
 type SumItem
   = { termBind :: TermBind, paramItems :: List ParamItem, meta :: SumItemMetadata }
 
+-- | CaseItem
 type CaseItem
   = { termBindItems :: List TermBindItem, body :: Term, meta :: CaseItemMetadata }
 
+-- | ParamItem
 type ParamItem
   = { type_ :: Type, meta :: ParamItemMetadata }
 
@@ -130,6 +128,9 @@ derive newtype instance ordTypeId :: Ord TypeId
 freshTypeId :: Unit -> TypeId
 freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
 
+freshTypeBind :: Unit -> TypeBind
+freshTypeBind _ = { typeId: freshTypeId unit, meta: default }
+
 -- | TermId
 newtype TermId
   = TermId UUID
@@ -140,6 +141,9 @@ derive newtype instance ordTermId :: Ord TermId
 
 freshTermId :: Unit -> TermId
 freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
+
+freshTermBind :: Unit -> TermBind
+freshTermBind _ = { termId: freshTermId unit, meta: default }
 
 -- | HoleId
 newtype HoleId
@@ -175,6 +179,9 @@ showUUID uuid = "(fromJust (UUID.parseUUID \"" <> UUID.toString uuid <> "\"))"
 data Syntax
   = SyntaxType Type
   | SyntaxTerm Term
+  | SyntaxTermBind TermBind
+  | SyntaxTermId TermId
+  | SyntaxTypeBind TypeBind
   | SyntaxArgItem ArgItem
   | SyntaxSumItem SumItem
   | SyntaxCaseItem CaseItem
@@ -186,3 +193,83 @@ derive instance genericSyntax :: Generic Syntax _
 
 instance showSyntax :: Show Syntax where
   show x = genericShow x
+
+toType =
+  ( case _ of
+      SyntaxType t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe Type
+
+toTerm =
+  ( case _ of
+      SyntaxTerm t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe Term
+
+toTermBind =
+  ( case _ of
+      SyntaxTermBind t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe TermBind
+
+toTermId =
+  ( case _ of
+      SyntaxTermId t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe TermId
+
+toTypeBind =
+  ( case _ of
+      SyntaxTypeBind t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe TypeBind
+
+toArgItem =
+  ( case _ of
+      SyntaxArgItem t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe ArgItem
+
+toSumItem =
+  ( case _ of
+      SyntaxSumItem t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe SumItem
+
+toCaseItem =
+  ( case _ of
+      SyntaxCaseItem t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe CaseItem
+
+toParamItem =
+  ( case _ of
+      SyntaxParamItem t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe ParamItem
+
+toTermBindItem =
+  ( case _ of
+      SyntaxTermBindItem t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe TermBindItem
+
+toSyntaxList =
+  ( case _ of
+      SyntaxList t -> Just t
+      _ -> Nothing
+  ) ::
+    Syntax -> Maybe (List Syntax)
+
+-- overSyntax :: (a -> Syntax) -> (Syntax -> Maybe a) -> (Syntax -> Syntax)
+-- overSyntax wrap unwrap f 

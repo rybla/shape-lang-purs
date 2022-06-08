@@ -16,7 +16,10 @@ newtype IxUp
 
 derive instance newTypeIxUp :: Newtype IxUp _
 
-derive newtype instance showIxUp :: Show IxUp
+derive instance genericIxUp :: Generic IxUp _
+
+instance showIxUp :: Show IxUp where
+  show x = genericShow x
 
 derive newtype instance eqIxUp :: Eq IxUp
 
@@ -33,7 +36,10 @@ newtype IxDown
 
 derive instance newTypeIxDown :: Newtype IxDown _
 
-derive newtype instance showIxDown :: Show IxDown
+derive instance genericIxDown :: Generic IxDown _
+
+instance showIxDown :: Show IxDown where
+  show x = genericShow x
 
 derive newtype instance eqIxDown :: Eq IxDown
 
@@ -179,17 +185,14 @@ ixStepList =
   }
 
 -- TODO: do I actually use there anywhere?
-
 -- ixUpListItem :: Int -> IxUp
 -- ixUpListItem i
 --   | i == 0 = wrap (singleton ixStepList.head)
 --   | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
-
 -- ixDownListItem :: Int -> IxDown
 -- ixDownListItem i
 --   | i == 0 = wrap (singleton ixStepList.head)
 --   | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
-
 -- ixUpListItems :: Int -> List IxUp
 -- ixUpListItems l = go nilIxUp l
 --   where
