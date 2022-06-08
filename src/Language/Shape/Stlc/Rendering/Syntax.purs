@@ -67,21 +67,26 @@ emptyRenderEnvironment =
 type M a
   = State RenderEnvironment a
 
+runM :: forall a. M a -> (a /\ RenderEnvironment)
+runM = flip State.runState emptyRenderEnvironment
+
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
   -- Debug.traceM $ "===[ st.term ]==============================="
   -- Debug.traceM $ show st.term
-  pure
-    $ flip State.runState emptyRenderEnvironment
-    $ renderTerm this
-        -- TODO: maybe pull this out into multiple files or at least somewhere else?
-        { term: st.term
-        , gamma: default
-        , alpha: st.type_
-        , visit: nilVisit (Just st.ix)
-        , meta: default
-        }
+  let
+    (elems /\ env) =
+      runM
+        $ renderTerm this
+            -- TODO: maybe pull this out into multiple files or at least somewhere else?
+            { term: st.term
+            , gamma: default
+            , alpha: st.type_
+            , visit: nilVisit (Just st.ix)
+            , meta: default
+            }
+  pure ([ DOM.div [ Props.className "program" ] elems ] /\ env)
 
 renderType :: This -> Record (Rec.ArgsType ()) -> M (Array ReactElement)
 renderType this =

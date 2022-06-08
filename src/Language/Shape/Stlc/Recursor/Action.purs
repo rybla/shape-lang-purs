@@ -5,6 +5,8 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Syntax.Metadata
+import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
 import Data.Array as Array
@@ -23,8 +25,6 @@ import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, i
 import Language.Shape.Stlc.Metadata (LamMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
-import Language.Shape.Stlc.Syntax.Metadata
-import Language.Shape.Stlc.Syntax.Modify
 import Prim (Array, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
@@ -257,6 +257,7 @@ recTerm rec =
                       }
         , triggers: [ ActionTrigger_Keypress keys.let_ ]
         }
+    -- TODO: but actually, indentation is not necessarily a local action because it can step up the index via `stepUpToNearestIndentableParentIxUp` to perform an action
     , Action
         { label: Just "indent"
         , effect:
@@ -264,11 +265,17 @@ recTerm rec =
               args.visit.ix
                 >>|= \ix -> do
                     Debug.traceM "indent"
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm (indentTerm term) NoChange
-                      }
+                    -- doChange this
+                    --   { ix: toIxDown ix
+                    --   , toReplace:
+                    --       ReplaceTerm (indentTerm term) NoChange
+                    --   }
+                    let
+                      ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
+                    modifyState this \st ->
+                      st
+                        { term = fromJust $ toTerm =<< indentSyntaxAt (toIxDown ixIndentableParent) (SyntaxTerm st.term)
+                        }
         , triggers: [ ActionTrigger_Keypress keys.indent ]
         }
     ]

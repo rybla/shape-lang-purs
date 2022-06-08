@@ -33,6 +33,14 @@ html {
   margin: 0;
 }
 
+/* program */
+
+.program {
+  max-width: calc(100vw - 300px - 10px);
+  height: 100%;
+  overflow-x: scroll;
+}
+
 /* panel */
 
 .panel {
