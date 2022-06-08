@@ -133,9 +133,8 @@ chTerm' args chs tc = chTerm args.gamma args.alpha chs tc args.term
 
 chTermAux :: Record (Rec.ArgsTerm ()) -> (Changes -> TypeChange -> State HoleEq Term)
 chTermAux args chs sbjto =
-    Debug.trace ("location 1" <> show args.term) (\_ ->
     Rec.recTerm {
-    lam : \args chs sbjto -> error "location 2"
+    lam : \args chs sbjto -> error "shouldn't get here!"
     , neu : \args chs sbjto ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
@@ -176,7 +175,6 @@ chTermAux args chs sbjto =
         pure $ Match $ args.match {term = term', caseItems = caseItems'}
     , hole : \args chs sbjto -> pure $ Hole args.hole
 } args chs sbjto
-)
 
 wrapInDisplaced :: Displaced -> Term -> Term
 wrapInDisplaced Nil term = term
