@@ -20,9 +20,11 @@ import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
-import Language.Shape.Stlc.Metadata (TermMetadata(..), modifyLabel, modifyMetadata)
+import Language.Shape.Stlc.Metadata (LamMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
+import Language.Shape.Stlc.Syntax.Metadata
+import Language.Shape.Stlc.Syntax.Modify
 import Prim (Array, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
@@ -30,6 +32,7 @@ import React (getState, modifyState)
 import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+import Unsafe (fromJust)
 
 bindMaybeEffectUnit :: forall a. Maybe a -> (a -> Effect Unit) -> Effect Unit
 bindMaybeEffectUnit = case _ of
@@ -254,22 +257,20 @@ recTerm rec =
                       }
         , triggers: [ ActionTrigger_Keypress { keys: keys.let_ } ]
         }
-    -- TODO: finsih implementing Syntax.Modify
-    -- , Action
-    --     { label: Just "indent"
-    --     , effect:
-    --         \this ->
-    --           args.visit.ix
-    --             >>|= \ix ->
-    --                 doChange this
-    --                   { ix: toIxDown ix
-    --                   , toReplace:
-    --                       ReplaceTerm
-    --                         (modifyMetadata (\meta -> modifyLabel (Proxy :: Proxy "indent") ?a :: TermMetadata) term)
-    --                         NoChange
-    --                   }
-    --     , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
-    --     }
+    , Action
+        { label: Just "indent"
+        , effect:
+            \this ->
+              args.visit.ix
+                >>|= \ix -> do
+                    Debug.traceM "indent"
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm (indentTerm term) NoChange
+                      }
+        , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
+        }
     ]
 
 -- | recArgItem

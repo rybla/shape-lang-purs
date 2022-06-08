@@ -54,3 +54,5 @@ _sumItems = Proxy :: Proxy "sumItems"
 _caseItems = Proxy :: Proxy "caseItems"
 
 _paramItems = Proxy :: Proxy "paramItems"
+
+_termBindItems = Proxy :: Proxy "termBindItems"

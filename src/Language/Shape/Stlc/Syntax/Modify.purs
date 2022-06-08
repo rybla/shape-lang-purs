@@ -51,11 +51,17 @@ modifySyntax f (IxDown steps) syn = go steps syn
     SyntaxSumItem sumItem
       | step == ixStepSumItem.termBind -> w _termBind SyntaxSumItem SyntaxTermBind toTermBind steps sumItem
       | step == ixStepSumItem.paramItems -> w _paramItems SyntaxSumItem (SyntaxList <<< map SyntaxParamItem) (join <<< map (traverse toParamItem) <<< toSyntaxList) steps sumItem
-    -- TODO: finsh these cases
-    SyntaxCaseItem caseItem -> undefined
-    SyntaxParamItem paramItem -> undefined
-    SyntaxTermBindItem termBindItem -> undefined
-    SyntaxList syns -> undefined
+    SyntaxCaseItem caseItem
+      | step == ixStepCaseItem.body -> w _body SyntaxCaseItem SyntaxTerm toTerm steps caseItem
+      | step == ixStepCaseItem.termBindItems -> w _termBindItems SyntaxCaseItem (SyntaxList <<< map SyntaxTermBindItem) (join <<< map (traverse toTermBindItem) <<< toSyntaxList) steps caseItem
+    SyntaxParamItem paramItem
+      | step == ixStepParamItem.type_ -> w _type_ SyntaxParamItem SyntaxType toType steps paramItem
+    SyntaxTermBindItem termBindItem
+      | step == ixStepTermBindItem.termBind -> w _termBind SyntaxTermBindItem SyntaxTermBind toTermBind steps termBindItem
+    SyntaxList (Cons syn _)
+      | step == ixStepList.head -> go steps syn
+    SyntaxList (Cons _ syns)
+      | step == ixStepList.tail -> go steps (SyntaxList syns)
     _ -> Nothing
 
   w ::

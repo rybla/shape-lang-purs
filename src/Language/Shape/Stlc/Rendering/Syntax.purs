@@ -6,7 +6,6 @@ import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Array (concat)
@@ -138,10 +137,13 @@ renderTerm this =
             ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha })
             [ pure [ token.let1 ]
             , renderTermBind this args.termBind
+            , pure $ newline args.meta (unwrap args.let_.meta).indentSign
             , pure [ token.let2 ]
             , renderType this args.sign
+            , pure $ newline args.meta (unwrap args.let_.meta).indentImpl
             , pure [ token.let3 ]
             , renderTerm this args.impl
+            , pure $ newline args.meta (unwrap args.let_.meta).indentBody
             , pure [ token.let4 ]
             , renderTerm this args.body
             ]
@@ -180,7 +182,7 @@ renderTerm this =
         \args ->
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
             <$> renderNode this
-                ( (makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha } )
+                ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha })
                 [ renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
                 ]
     }
