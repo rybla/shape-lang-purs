@@ -5,7 +5,6 @@ import Data.Tuple.Nested
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
-
 import Data.Default (default)
 import Data.List (List)
 import Data.List.Unsafe as List
@@ -144,7 +143,7 @@ recTerm rec =
             args
               { typeId = prune args.typeId
               , term = args.term { alpha = DataType { typeId: args.match.typeId, meta: default } }
-              , caseItems = undefined -- args.caseItems
+              , caseItems = undefined -- TODO
               }
     , hole: rec.hole
     }

@@ -2,7 +2,6 @@ module Language.Shape.Stlc.Rendering.Token where
 
 import Data.Array
 import Prelude
-
 import Data.Char as Char
 import Data.Newtype (unwrap)
 import Data.String as String
@@ -28,17 +27,19 @@ token =
   , buf3: DOM.span [ Props.className "token delimiter" ] [ DOM.text " in " ]
   , match1: DOM.span [ Props.className "token delimiter" ] [ DOM.text "match " ]
   , match2: DOM.span [ Props.className "token delimiter" ] [ DOM.text "with " ]
-  , sumItem1: DOM.span [Props.className "token"] [DOM.text "| "]
-  , sumItem2: DOM.span [Props.className "token"] [DOM.text " "]
-  , caseItem1: DOM.span [Props.className "token"] [DOM.text "| "]
-  , caseItem2: DOM.span [Props.className "token"] [DOM.text " ⇒ "]
+  , sumItem1: DOM.span [ Props.className "token" ] [ DOM.text "| " ]
+  , sumItem2: DOM.span [ Props.className "token" ] [ DOM.text " " ]
+  , caseItem1: DOM.span [ Props.className "token" ] [ DOM.text "| " ]
+  , caseItem2: DOM.span [ Props.className "token" ] [ DOM.text " ⇒ " ]
+  , lparen: DOM.span [ Props.className "token punctuation paren lparen" ] [ DOM.text "(" ]
+  , rparen: DOM.span [ Props.className "token punctuation paren rparen" ] [ DOM.text ")" ]
   }
 
 indentation i = DOM.span [ Props.className "indentation" ] [ DOM.text $ String.joinWith "" (replicate i "  ") ]
 
 newline :: Metacontext -> Boolean -> Array ReactElement
-newline meta indented = 
-  if indented then 
+newline meta indented =
+  if indented then
     [ DOM.br', indentation (unwrap meta).indentation ]
-  else 
+  else
     []

@@ -15,8 +15,8 @@ import Record.Builder as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
-modifySyntax :: (Syntax -> Maybe Syntax) -> IxDown -> (Syntax -> Maybe Syntax)
-modifySyntax f (IxDown steps) syn = go steps syn
+modifySyntaxAt :: (Syntax -> Maybe Syntax) -> IxDown -> (Syntax -> Maybe Syntax)
+modifySyntaxAt f (IxDown steps) syn = go steps syn
   where
   go Nil syn = f syn
 

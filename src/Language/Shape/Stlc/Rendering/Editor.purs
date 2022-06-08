@@ -27,12 +27,14 @@ import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 
 -- | renderEditor
-renderEditor :: This -> Effect ReactElement
+renderEditor :: This -> Effect (RenderEnvironment /\ ReactElement)
 renderEditor this = do
   elems /\ env <- renderProgram this
-  pure $ DOM.div [ Props.className "editor" ]
-    $ renderPanel this env
-    <> elems
+  pure $ env
+    /\ ( DOM.div [ Props.className "editor" ]
+          $ renderPanel this env
+          <> elems
+      )
 
 -- | renderPanel
 renderPanel :: This -> RenderEnvironment -> Array ReactElement
@@ -96,12 +98,19 @@ renderPalette this env =
       ]
   ]
   where
-  renderAction (Action action) = case action.label of
-    Just str ->
-      [ DOM.div
-          [ Props.className "action"
-          , Props.onClick \event -> action.effect this
-          ]
-          [ DOM.text str ]
-      ]
-    Nothing -> []
+  -- renderAction (Action action) = case action.label of
+  --   Just str ->
+  --     [ DOM.div
+  --         [ Props.className "action"
+  --         , Props.onClick \event -> action.effect this
+  --         ]
+  --         [ DOM.text str ]
+  --     ]
+  --   Nothing -> []
+  renderAction action =
+    [ DOM.div
+        [ Props.className "action"
+        , Props.onClick \event -> (unwrap action).effect this
+        ]
+        [ DOM.text $ show action ]
+    ]

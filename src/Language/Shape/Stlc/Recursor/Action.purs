@@ -5,6 +5,8 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Syntax.Metadata
+import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
 import Data.Array as Array
@@ -23,8 +25,6 @@ import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, i
 import Language.Shape.Stlc.Metadata (LamMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
-import Language.Shape.Stlc.Syntax.Metadata
-import Language.Shape.Stlc.Syntax.Modify
 import Prim (Array, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
@@ -129,7 +129,7 @@ recType rec =
         --     -- modifyState this (_ { term = term', ix = ix' })
         --     pure unit 
         --   Nothing -> pure unit
-        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        , triggers: [ ActionTrigger_Keypress keys.lambda ]
         }
     ]
 
@@ -225,7 +225,7 @@ recTerm rec =
                             (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
                             (InsertArg (freshHoleType unit))
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.lambda } ]
+        , triggers: [ ActionTrigger_Keypress keys.lambda ]
         }
     , Action
         { label: Just "dig"
@@ -240,7 +240,7 @@ recTerm rec =
                             (Hole { meta: default })
                             (Dig (freshHoleId unit))
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.dig } ]
+        , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
     , Action
         { label: Just "let_"
@@ -255,8 +255,9 @@ recTerm rec =
                             (Let { termBind: freshTermBind unit, sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
                             NoChange
                       }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.let_ } ]
+        , triggers: [ ActionTrigger_Keypress keys.let_ ]
         }
+    -- TODO: but actually, indentation is not necessarily a local action because it can step up the index via `stepUpToNearestIndentableParentIxUp` to perform an action
     , Action
         { label: Just "indent"
         , effect:
@@ -264,12 +265,18 @@ recTerm rec =
               args.visit.ix
                 >>|= \ix -> do
                     Debug.traceM "indent"
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm (indentTerm term) NoChange
-                      }
-        , triggers: [ ActionTrigger_Keypress { keys: keys.indent } ]
+                    -- doChange this
+                    --   { ix: toIxDown ix
+                    --   , toReplace:
+                    --       ReplaceTerm (indentTerm term) NoChange
+                    --   }
+                    let
+                      ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
+                    modifyState this \st ->
+                      st
+                        { term = fromJust $ toTerm =<< indentSyntaxAt (toIxDown ixIndentableParent) (SyntaxTerm st.term)
+                        }
+        , triggers: [ ActionTrigger_Keypress keys.indent ]
         }
     ]
 
