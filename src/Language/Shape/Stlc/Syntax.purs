@@ -127,6 +127,11 @@ freshTermId _ = unsafePerformEffect $ TermId <$> genUUID
 freshTermBind :: Unit -> TermBind
 freshTermBind _ = { termId: freshTermId unit, meta: default }
 
+-- | Type
+derive instance eqType :: Eq Type
+
+derive instance ordType :: Ord Type
+
 -- | HoleId
 newtype HoleId
   = HoleId UUID

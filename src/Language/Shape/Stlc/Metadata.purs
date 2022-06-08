@@ -26,6 +26,10 @@ derive instance newTypeArrowTypeMetadata :: Newtype ArrowTypeMetadata _
 instance showArrowTypeMetadata :: Show ArrowTypeMetadata where
   show x = "ArrowTypeMetadata " <> show (unwrap x)
 
+derive instance eqArrowTypeMetadata :: Eq ArrowTypeMetadata
+
+derive instance ordArrowTypeMetadata :: Ord ArrowTypeMetadata
+
 newtype DataTypeMetadata
   = DataTypeMetadata {}
 
@@ -37,6 +41,10 @@ derive instance newTypeDataTypeMetadata :: Newtype DataTypeMetadata _
 instance showDataTypeMetadata :: Show DataTypeMetadata where
   show x = "DataTypeMetadata " <> show (unwrap x)
 
+derive instance eqDataTypeMetadata :: Eq DataTypeMetadata
+
+derive instance ordDataTypeMetadata :: Ord DataTypeMetadata
+
 newtype HoleTypeMetadata
   = HoleTypeMetadata {}
 
@@ -47,6 +55,10 @@ derive instance newTypeHoleTypeMetadata :: Newtype HoleTypeMetadata _
 
 instance showHoleTypeMetadata :: Show HoleTypeMetadata where
   show x = "HoleTypeMetadata " <> show (unwrap x)
+
+derive instance eqHoleTypeMetadata :: Eq HoleTypeMetadata
+
+derive instance ordHoleTypeMetadata :: Ord HoleTypeMetadata
 
 -- | Term Metadata
 newtype LamMetadata
