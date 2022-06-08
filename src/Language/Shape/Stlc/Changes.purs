@@ -135,7 +135,7 @@ chTermAux :: Record (Rec.ArgsTerm ()) -> (Changes -> TypeChange -> State HoleEq 
 chTermAux args chs sbjto =
     Debug.trace ("location 1" <> show args.term) (\_ ->
     Rec.recTerm {
-    lam : error "location 2"
+    lam : \args chs sbjto -> error "location 2"
     , neu : \args chs sbjto ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
