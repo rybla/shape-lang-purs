@@ -26,6 +26,8 @@ import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, HoleId(..), Term(..), Ter
 import Undefined (undefined)
 import Unsafe (error)
 
+import Debug as Debug
+
 data TypeChange
     = ArrowCh TypeChange TypeChange -- only applies to types of form (ArrowType a b _)
     | NoChange
@@ -125,10 +127,15 @@ chTerm gamma ty chs tc t
 
 chTerm' :: Record (Rec.ArgsTerm ()) -> Changes -> TypeChange -> State HoleEq Term 
 chTerm' args chs tc = chTerm args.gamma args.alpha chs tc args.term
+-- chTerm' args chs tc =
+--     Debug.trace (show args.term) (\_ -> 
+--     chTerm args.gamma args.alpha chs tc args.term)
 
 chTermAux :: Record (Rec.ArgsTerm ()) -> (Changes -> TypeChange -> State HoleEq Term)
-chTermAux args chs sbjto = Rec.recTerm {
-    lam : error "shouldn't get here"
+chTermAux args chs sbjto =
+    Debug.trace ("location 1" <> show args.term) (\_ ->
+    Rec.recTerm {
+    lam : error "location 2"
     , neu : \args chs sbjto ->
         let varType = (lookupVarType args.neu.termId args.gamma) in
         let ifChanged varTC = do
@@ -169,6 +176,7 @@ chTermAux args chs sbjto = Rec.recTerm {
         pure $ Match $ args.match {term = term', caseItems = caseItems'}
     , hole : \args chs sbjto -> pure $ Hole args.hole
 } args chs sbjto
+)
 
 wrapInDisplaced :: Displaced -> Term -> Term
 wrapInDisplaced Nil term = term
@@ -225,7 +233,7 @@ chArgs ctx (ArrowType {dom, cod}) chs NoChange ({term, meta} : args) = do
 chArgs ctx ty chs (Dig hId) args = do
     displaced <- displaceArgs ctx ty chs args
     pure $ Nil /\ (Dig hId) /\ displaced
-chArgs _ _ _ _ _ = error $ "shouldn't get here"
+chArgs _ _ _ tc _ = error $ "shouldn't get here, tc is: " <> show tc
 
 displaceArgs :: Context -> Type -> Changes -> List ArgItem -> State HoleEq Displaced
 displaceArgs ctx _ chs Nil = pure Nil
@@ -233,7 +241,7 @@ displaceArgs ctx (ArrowType {dom, cod}) chs ({term} : args) = do
     term' <- chTerm ctx dom chs NoChange term
     rest <- displaceArgs ctx cod chs args
     pure $ (term' /\ dom) : rest
-displaceArgs _ _ _ _ = error "shouldn't get here"
+displaceArgs _ ty _ _ = error ("shouldn't get here, type is:" <> show ty)
 
 -- chArgsAux ::  Record (Rec.ArgsArgItems ()) -> (Changes -> TypeChange -> State HoleEq (List ArgItem /\ Displaced))
 -- chArgsAux = Rec.recArgsArgItems {
