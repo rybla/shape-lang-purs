@@ -47,7 +47,7 @@ chAtTerm args tRep idx = Rec.recTerm {
   lam : \args tRep -> case _ of
     (IxDown (IxStep IxStepLam 1 : rest)) -> do -- body of lambda
       body' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.body tRep (IxDown rest)
-      pure $ Lam args.lam {body=body'} /\ IxDown (IxStep IxStepLam 1 : idx') /\ tc /\ holeEq
+      pure $ Lam args.lam {body=body'} /\ IxDown (IxStep IxStepLam 1 : idx') /\ (ArrowCh NoChange tc) /\ holeEq
     _ -> error "no8"
   , neu : \args tRep -> case _ of
     (IxDown (IxStep IxStepNeu 1 : rest)) -> error "unimplemented" -- argument of neutral
