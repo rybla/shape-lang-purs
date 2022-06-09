@@ -29,13 +29,14 @@ indentTerm term = case term of
   _ -> term
 
 stepUpToNearestIndentableParentIxUp :: IxUp -> IxUp
-stepUpToNearestIndentableParentIxUp ix = case List.uncons (unwrap ix) of
-  Nothing -> ix
-  Just { head: step, tail: steps } ->
-    if isIndentableIxStep step then
-      ix
-    else
-      stepUpToNearestIndentableParentIxUp (wrap steps)
+-- stepUpToNearestIndentableParentIxUp ix = case List.uncons (unwrap ix) of
+--   Nothing -> ix
+--   Just { head: step, tail: steps } ->
+--     if isIndentableIxStep step then
+--       ix
+--     else
+--       stepUpToNearestIndentableParentIxUp (wrap steps)
+stepUpToNearestIndentableParentIxUp ix = ix
 
 isIndentableIxStep :: IxStep -> Boolean
 isIndentableIxStep (IxStep lbl _) = lbl `Array.elem` indentableIxStepLabels

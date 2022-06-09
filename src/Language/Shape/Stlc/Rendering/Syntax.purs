@@ -144,13 +144,12 @@ renderTerm this =
             [ pure [ token.let1 ]
             , renderTermBind this args.termBind
             , pure [ token.let2 ]
-            , pure $ newline args.meta (unwrap args.let_.meta).indentSign
             , renderType this args.sign
             , pure [ token.let3 ]
-            , pure $ newline args.meta (unwrap args.let_.meta).indentImpl
             , renderTerm this args.impl
+            , pure $ newlineOrSpace args.meta (unwrap args.let_.meta).indentBody
             , pure [ token.let4 ]
-            , pure $ newline args.meta (unwrap args.let_.meta).indentBody
+            , pure $ newlineOrSpace args.meta (unwrap args.let_.meta).indentBody
             , renderTerm this args.body
             ]
     , buf:
@@ -163,8 +162,9 @@ renderTerm this =
             , pure [ token.buf2 ]
             , pure $ newline args.meta (unwrap args.buf.meta).indentSign
             , renderType this args.sign
+            , pure $ newlineOrSpace args.meta (unwrap args.buf.meta).indentBody
             , pure [ token.buf3 ]
-            , pure $ newline args.meta (unwrap args.buf.meta).indentBody
+            , pure $ newlineOrSpace args.meta (unwrap args.buf.meta).indentBody
             , renderTerm this args.body
             ]
     , data_:
@@ -176,8 +176,9 @@ renderTerm this =
             , pure [ token.data2 ]
             , pure $ newline args.meta (unwrap args.data_.meta).indentSumItems
             , renderItems (renderSumItem this <$> args.sumItems)
+            , pure $ newlineOrSpace args.meta (unwrap args.data_.meta).indentBody
             , pure [ token.data3 ]
-            , pure $ newline args.meta (unwrap args.data_.meta).indentBody
+            , pure $ newlineOrSpace args.meta (unwrap args.data_.meta).indentBody
             , renderTerm this args.body
             ]
     , match:
