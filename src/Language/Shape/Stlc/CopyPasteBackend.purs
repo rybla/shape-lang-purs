@@ -16,17 +16,18 @@ import Data.OrderedMap as OMap
 import Data.Set as Set
 import Language.Shape.Stlc.Changes (Changes, VarChange(..))
 import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Hole (HoleSub, unifyType)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..))
 import Language.Shape.Stlc.Syntax (Neu, Term(..), TermId(..), Type(..), ArgItem)
 import Undefined (undefined)
 
 -- First type is type of variable, second type is type of hole, output is how many args the
 -- variable is applied to to fit in the hole
-fitsInHole :: Type -> Type -> Maybe Int
-fitsInHole a b = if a == b
-    then Just 0
-    else case a of
-         (ArrowType {dom, cod}) -> map (\n -> n + 1) (fitsInHole cod b)
+fitsInHole :: Type -> Type -> Maybe (Int /\ HoleSub)
+fitsInHole a b = case unifyType a b of
+    Just holeSub -> Just (0 /\ holeSub)
+    Nothing -> case a of
+         (ArrowType {dom, cod}) -> map (\(n /\ s) -> ((n + 1) /\ s)) (fitsInHole cod b)
          _ -> Nothing
 
 createNeu :: TermId -> Int -> Term
