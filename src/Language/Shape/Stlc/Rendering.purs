@@ -33,7 +33,7 @@ programComponent this = do
   renderEnvironmentRef <- Ref.new emptyRenderEnvironment
   let
     state =
-      { ix: mempty
+      { mb_ix: Nothing
       , term
       , type_
       , history: (term /\ type_) /\ []

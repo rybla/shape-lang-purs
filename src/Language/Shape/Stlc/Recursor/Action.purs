@@ -50,7 +50,7 @@ applyChange change st = do
     st
       { term = term'
       , type_ = applyTC typeChange st.type_
-      , ix = ix'
+      , mb_ix = Just ix'
       , history = (_ `Array.snoc` change) <$> st.history
       }
 
@@ -118,7 +118,7 @@ recType rec =
               st <- getState this
               let
                 holeType = freshHoleType unit
-              doChange this { ix: st.ix, toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType) }
+              doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType) }
         -- case chAtType { type_, gamma }
         --     (ReplaceType 
         --       (ArrowType {dom: holeType, cod: type_, meta: default})

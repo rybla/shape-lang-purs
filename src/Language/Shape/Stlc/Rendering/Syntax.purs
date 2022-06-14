@@ -83,10 +83,21 @@ renderProgram this = do
             { term: st.term
             , gamma: default
             , alpha: st.type_
-            , visit: nilVisit (Just st.ix)
+            , visit: nilVisit st.mb_ix
             , meta: default
             }
-  pure ([ DOM.div [ Props.className "program" ] elems ] /\ env)
+  pure
+    ( [ DOM.div
+          [ Props.className "program"
+          , Props.onClick \event -> do
+              Console.log "clicked on program background"
+              stopPropagation event
+              modifyState this (_ { mb_ix = Nothing }) -- unselect
+          ]
+          elems
+      ]
+        /\ env
+    )
 
 renderType :: This -> Record (Rec.ArgsType ()) -> M (Array ReactElement)
 renderType this =
@@ -467,7 +478,7 @@ renderNode this props elemsM = do
             Console.log "clicked on a node"
             stopPropagation event
             -- select this node
-            modifyState this (_ { ix = toIxDown ix })
+            modifyState this (_ { mb_ix = Just (toIxDown ix) })
       ]
 
 renderConcatList :: List (M (Array ReactElement)) -> M (Array ReactElement)

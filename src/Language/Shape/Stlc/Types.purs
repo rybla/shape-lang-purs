@@ -23,7 +23,7 @@ type Props
 type State
   = { term :: Term
     , type_ :: Type
-    , ix :: IxDown
+    , mb_ix :: Maybe IxDown
     , history :: History
     }
 
