@@ -7,7 +7,15 @@ import Prim hiding (Type)
 import Data.Default (default)
 import Data.Either (Either)
 import Data.List (List(..), range, (:))
+import Data.List as List
+import Data.Map (empty)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
+import Data.OrderedMap as OMap
+import Data.Set as Set
+import Language.Shape.Stlc.Changes (Changes, VarChange(..))
+import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..))
 import Language.Shape.Stlc.Syntax (Neu, Term(..), TermId(..), Type(..), ArgItem)
 import Undefined (undefined)
@@ -25,6 +33,21 @@ createNeu :: TermId -> Int -> Term
 createNeu x n = Neu {termId : x,
     argItems : map (\_ -> {term: Hole {meta: default}, meta: default}) (range 1 n),
     meta: default}
+
+-- for use in copy-pasting a term.
+-- For now, makes the assumption that nothing about the program was changed between
+-- the copy and paste, can I can update later to remove that assumption if we determine that
+-- to be the correct approach.
+changesBetweenContexts :: Context -> Context -> Changes
+changesBetweenContexts gamma1 gamma2 = 
+    let g1 = unwrap gamma1 in
+    let g2 = unwrap gamma2 in
+    {
+        termChanges : Map.fromFoldable (map (\ v -> (v /\ VariableDeletion))
+            (List.difference (OMap.keys g1.varTypes) (OMap.keys g2.varTypes)))
+        , matchChanges : empty
+        , dataTypeDeletions : Set.fromFoldable (List.difference (OMap.keys g1.datas) (OMap.keys g2.datas))
+    }
 
 -- inputs "start" and "end" indicies
 -- if moving a let from "start" to "end", every move in the AST can be classified as going up to an index,
