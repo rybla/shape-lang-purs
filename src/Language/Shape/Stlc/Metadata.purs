@@ -62,10 +62,10 @@ derive instance ordHoleTypeMetadata :: Ord HoleTypeMetadata
 
 -- | Term Metadata
 newtype LamMetadata
-  = LamMetadata { name :: Name, indentBody :: Boolean }
+  = LamMetadata { name :: Name, indentedBody :: Boolean }
 
 instance defaultLamMetadata :: Default LamMetadata where
-  default = LamMetadata { name: default, indentBody: false }
+  default = LamMetadata { name: default, indentedBody: false }
 
 derive instance newTypeLamMetadata :: Newtype LamMetadata _
 
@@ -106,10 +106,10 @@ instance showArgMetadata :: Show ArgMetadata where
   show x = "ArgMetadata " <> show (unwrap x)
 
 newtype LetMetadata
-  = LetMetadata { name :: Name, indentSign :: Boolean, indentImpl :: Boolean, indentBody :: Boolean }
+  = LetMetadata { name :: Name, indentedSign :: Boolean, indentedImpl :: Boolean, indentedBody :: Boolean }
 
 instance defaultLetMetadata :: Default LetMetadata where
-  default = LetMetadata { name: default, indentSign: false, indentImpl: false, indentBody: false }
+  default = LetMetadata { name: default, indentedSign: false, indentedImpl: false, indentedBody: false }
 
 derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
@@ -117,10 +117,10 @@ instance showLetMetadata :: Show LetMetadata where
   show x = "LetMetadata " <> show (unwrap x)
 
 newtype BufMetadata
-  = BufMetadata { indentSign :: Boolean, indentImpl :: Boolean, indentBody :: Boolean }
+  = BufMetadata { indentedSign :: Boolean, indentedImpl :: Boolean, indentedBody :: Boolean }
 
 instance defaultBufMetadata :: Default BufMetadata where
-  default = BufMetadata { indentSign: false, indentImpl: false, indentBody: false }
+  default = BufMetadata { indentedSign: false, indentedImpl: false, indentedBody: false }
 
 derive instance newTypeBufMetadata :: Newtype BufMetadata _
 
@@ -128,10 +128,10 @@ instance showBufMetadata :: Show BufMetadata where
   show x = "BufMetadata " <> show (unwrap x)
 
 newtype DataMetadata
-  = DataMetadata { name :: Name, indentSumItems :: Boolean, indentBody :: Boolean }
+  = DataMetadata { name :: Name, indentedSumItems :: Boolean, indentedBody :: Boolean }
 
 instance defaultDataMetadata :: Default DataMetadata where
-  default = DataMetadata { name: default, indentSumItems: false, indentBody: false }
+  default = DataMetadata { name: default, indentedSumItems: false, indentedBody: false }
 
 derive instance newTypeDataMetadata :: Newtype DataMetadata _
 
@@ -139,10 +139,10 @@ instance showDataMetadata :: Show DataMetadata where
   show x = "DataMetadata " <> show (unwrap x)
 
 newtype MatchMetadata
-  = MatchMetadata { indentCaseItems :: Boolean }
+  = MatchMetadata { indentedCaseItems :: Boolean }
 
 instance defaultMatchMetadata :: Default MatchMetadata where
-  default = MatchMetadata { indentCaseItems: false }
+  default = MatchMetadata { indentedCaseItems: false }
 
 derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 

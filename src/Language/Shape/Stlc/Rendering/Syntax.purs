@@ -27,7 +27,7 @@ import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Index (IxDown(..), nilIxDown, nilIxUp, toIxDown)
-import Language.Shape.Stlc.Metacontext (Metacontext(..))
+import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation)
 import Language.Shape.Stlc.Metadata (Name(..))
 import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Recursor.Context as RecCtx
@@ -122,7 +122,7 @@ renderTerm this =
             [ pure [ token.lam1 ]
             , renderTermBind this args.termBind
             , pure [ token.lam2 ]
-            , pure $ newline args.meta (unwrap args.lam.meta).indentBody
+            , pure $ newline args.body.meta (unwrap args.lam.meta).indentedBody
             , renderTerm this args.body
             ]
     , neu:
@@ -147,25 +147,45 @@ renderTerm this =
             , renderType this args.sign
             , pure [ token.let3 ]
             , renderTerm this args.impl
-            , pure $ newlineOrSpace args.meta (unwrap args.let_.meta).indentBody
-            , pure [ token.let4 ]
-            , pure $ newlineOrSpace args.meta (unwrap args.let_.meta).indentBody
-            , renderTerm this args.body
+            , if (unwrap args.let_.meta).indentedBody then
+                concat
+                  <$> sequence
+                      [ pure $ newline args.body.meta true
+                      , renderTerm this args.body
+                      ]
+              else
+                concat
+                  <$> sequence
+                      [ pure [ token.let4 ]
+                      , renderTerm this args.body
+                      ]
             ]
     , buf:
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha })
             [ pure [ token.buf1 ]
-            , pure $ newline args.meta (unwrap args.buf.meta).indentImpl
+            , pure $ newline args.impl.meta (unwrap args.buf.meta).indentedImpl
             , renderTerm this args.impl
             , pure [ token.buf2 ]
-            , pure $ newline args.meta (unwrap args.buf.meta).indentSign
+            , pure $ newline args.sign.meta (unwrap args.buf.meta).indentedSign
             , renderType this args.sign
-            , pure $ newlineOrSpace args.meta (unwrap args.buf.meta).indentBody
-            , pure [ token.buf3 ]
-            , pure $ newlineOrSpace args.meta (unwrap args.buf.meta).indentBody
-            , renderTerm this args.body
+            -- , pure $ newlineOrSpace args.body.meta (unwrap args.buf.meta).indentedBody
+            -- , pure [ token.buf3 ]
+            -- , pure $ newlineOrSpace args.body.meta (unwrap args.buf.meta).indentedBody
+            -- , renderTerm this args.body
+            , if (unwrap args.buf.meta).indentedBody then
+                concat
+                  <$> sequence
+                      [ pure $ newline args.body.meta true
+                      , renderTerm this args.body
+                      ]
+              else
+                concat
+                  <$> sequence
+                      [ pure [ token.buf3 ]
+                      , renderTerm this args.body
+                      ]
             ]
     , data_:
         \args ->
@@ -174,12 +194,24 @@ renderTerm this =
             [ pure [ token.data1 ]
             , renderTypeBind this args.typeBind
             , pure [ token.data2 ]
-            , pure $ newline args.meta (unwrap args.data_.meta).indentSumItems
+            , pure $ newline (incrementIndentation args.meta) (unwrap args.data_.meta).indentedSumItems
             , renderItems (renderSumItem this <$> args.sumItems)
-            , pure $ newlineOrSpace args.meta (unwrap args.data_.meta).indentBody
-            , pure [ token.data3 ]
-            , pure $ newlineOrSpace args.meta (unwrap args.data_.meta).indentBody
-            , renderTerm this args.body
+            -- , pure $ newlineOrSpace args.body.meta (unwrap args.data_.meta).indentedBody
+            -- , pure [ token.data3 ]
+            -- , pure $ newlineOrSpace args.body.meta (unwrap args.data_.meta).indentedBody
+            -- , renderTerm this args.body
+            , if (unwrap args.data_.meta).indentedBody then
+                concat
+                  <$> sequence
+                      [ pure $ newline args.body.meta true
+                      , renderTerm this args.body
+                      ]
+              else
+                concat
+                  <$> sequence
+                      [ pure [ token.data3 ]
+                      , renderTerm this args.body
+                      ]
             ]
     , match:
         \args ->
@@ -188,7 +220,6 @@ renderTerm this =
             [ pure [ token.match1 ]
             , renderTerm this args.term
             , pure [ token.match2 ]
-            , pure $ newline args.meta (unwrap args.match.meta).indentCaseItems
             , renderItems (renderCaseItem this <$> args.caseItems)
             ]
     , hole:

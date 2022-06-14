@@ -6,7 +6,7 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.Newtype (over, unwrap, wrap)
-import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
+import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, incrementIndentationUnless, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
 import Prim (Record, Row)
 import Prim as Prim
@@ -100,6 +100,7 @@ recTerm ::
 recTerm rec =
   Rec.recTerm
     { lam:
+        -- TODO: somehow it seems like it adds the indentation _after_ the body, so that indenting the lam doesnt indent the body but increments independention on the next indent inside the body
         \args ->
           rec.lam
             args
@@ -120,8 +121,12 @@ recTerm rec =
               { termBind = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.termBind
               , sign = incrementIndentation `mapArgsMeta` args.sign
               , impl = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.impl
-              -- , body = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.body
-              , body = (insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.body
+              , body =
+                ( incrementIndentationUnless (unwrap args.let_.meta).indentedBody
+                    <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name
+                )
+                  `mapArgsMeta`
+                    args.body
               }
     , buf:
         \args ->
@@ -129,7 +134,10 @@ recTerm rec =
             args
               { sign = incrementIndentation `mapArgsMeta` args.sign
               , impl = incrementIndentation `mapArgsMeta` args.impl
-              , body = incrementIndentation `mapArgsMeta` args.body
+              , body =
+                (incrementIndentationUnless (unwrap args.buf.meta).indentedBody)
+                  `mapArgsMeta`
+                    args.body
               }
     , data_:
         \args ->
@@ -137,8 +145,12 @@ recTerm rec =
             args
               { typeBind = insertData args.data_ `mapArgsMeta` args.typeBind
               , sumItems = ((incrementIndentation <<< insertData args.data_) `mapArgsMeta` _) <$> args.sumItems
-              -- , body = (incrementIndentation <<< insertData args.data_) `mapArgsMeta` args.body
-              , body = (insertData args.data_) `mapArgsMeta` args.body
+              , body =
+                ( incrementIndentationUnless (unwrap args.data_.meta).indentedBody
+                    <<< insertData args.data_
+                )
+                  `mapArgsMeta`
+                    args.body
               }
     , match:
         \args ->

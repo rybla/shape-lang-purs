@@ -95,9 +95,15 @@ insertData data_ meta =
           )
           meta
 
-
 incrementIndentation :: Metacontext -> Metacontext
 incrementIndentation = over Metacontext $ Record.modify _indentation (_ + 1)
+
+incrementIndentationUnless :: Boolean -> Metacontext -> Metacontext
+incrementIndentationUnless b =
+  if b then
+    identity
+  else
+    over Metacontext $ Record.modify _indentation (_ + 1)
 
 resetIndentation :: Metacontext -> Metacontext
 resetIndentation = over Metacontext $ Record.set _indentation 0
