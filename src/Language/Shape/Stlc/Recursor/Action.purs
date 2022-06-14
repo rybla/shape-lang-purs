@@ -15,6 +15,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (over, unwrap, wrap)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
+import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm, chAtType)
@@ -271,11 +272,9 @@ recTerm rec =
                     --       ReplaceTerm (indentTerm term) NoChange
                     --   }
                     let
-                      ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
+                      mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
                     modifyState this \st ->
-                      st
-                        { term = fromJust $ toTerm =<< indentSyntaxAt (toIxDown ixIndentableParent) (SyntaxTerm st.term)
-                        }
+                      st { term = fromJust $ toTerm =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm st.term) }
         , triggers: [ ActionTrigger_Keypress keys.indent ]
         }
     ]

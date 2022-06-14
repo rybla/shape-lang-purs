@@ -112,11 +112,20 @@ renderType this =
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
 
+addHoleIdsFromType :: Type -> M Unit
+addHoleIdsFromType = case _ of
+  ArrowType arrow -> do
+    addHoleIdsFromType arrow.dom
+    addHoleIdsFromType arrow.cod
+  DataType data_ -> pure unit
+  HoleType hole -> State.modify_ (Record.modify _holeIds (OrderedSet.insert hole.holeId))
+
 renderTerm :: This -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
 renderTerm this =
   Rec.recTerm
     { lam:
-        \args ->
+        \args -> do
+          addHoleIdsFromType args.alpha
           renderNode this
             ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha })
             [ pure [ token.lam1 ]

@@ -63,7 +63,7 @@ programComponent this = do
 
     render = do
       st <- getState this
-      Console.log (show st)
+      -- Console.log (show st)
       renEnv /\ elems <- renderEditor this
       Ref.write renEnv renderEnvironmentRef
       pure elems

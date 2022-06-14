@@ -13,6 +13,7 @@ import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over, unwrap, wrap)
 import Data.OrderedMap as OrderedMap
+import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Metacontext (Metacontext(..))
@@ -62,6 +63,7 @@ renderEnvironment this env =
   ]
   where
   renderContext gamma =
+    -- Debug.trace (show env) \_ ->
     [ DOM.div
         [ Props.className "context" ]
         [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> OrderedMap.keys (unwrap gamma).datas
