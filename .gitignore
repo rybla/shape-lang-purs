@@ -19,3 +19,4 @@ src/App/State.purs
 **/*.agdai
 **/*.*~
 .vscode/settings.json
+.vscode/tasks.json
