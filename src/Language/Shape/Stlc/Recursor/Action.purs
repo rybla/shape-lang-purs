@@ -239,7 +239,7 @@ recTerm rec =
                       , toReplace:
                           ReplaceTerm
                             (Hole { meta: default })
-                            (Dig (freshHoleId unit))
+                            NoChange -- (Dig (freshHoleId unit))
                       }
         , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
