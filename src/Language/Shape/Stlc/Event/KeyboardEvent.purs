@@ -3,12 +3,13 @@ module Language.Shape.Stlc.Event.KeyboardEvent where
 import Data.Array
 import Language.Shape.Stlc.Key
 import Prelude
+import Prim hiding (Type)
 import Control.Alternative (guard)
 import Data.Foldable (any)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String (Pattern(..), split)
-import Language.Shape.Stlc.Rendering.Syntax (RenderEnvironment)
+import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Undefined (undefined)

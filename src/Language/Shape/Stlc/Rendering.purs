@@ -13,7 +13,8 @@ import Effect.Ref as Ref
 import Language.Shape.Stlc.Event.KeyboardEvent (eventKey, handleKey)
 import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
-import Language.Shape.Stlc.Rendering.Syntax (RenderEnvironment, emptyRenderEnvironment)
+import Language.Shape.Stlc.Rendering.Syntax
+import Language.Shape.Stlc.Rendering.Types
 import React.DOM as DOM
 import React.Ref as Ref
 import Undefined (undefined)
@@ -32,11 +33,14 @@ programComponent :: ReactThis Props State -> Effect Given
 programComponent this = do
   renderEnvironmentRef <- Ref.new emptyRenderEnvironment
   let
+    state :: State
     state =
       { mb_ix: Nothing
       , term
       , type_
       , history: (term /\ type_) /\ []
+      , clipboard: Nothing
+      , dragboard: Nothing
       }
       where
       term /\ type_ = init1
@@ -51,10 +55,10 @@ programComponent this = do
       Debug.traceM event
       let
         key = eventKey event
-      Console.log $ "===[ keydown: " <> key <> " ]==============================="
+      -- Debug.traceM $ "===[ keydown: " <> key <> " ]==============================="
       renEnv <- Ref.read renderEnvironmentRef
-      Console.log $ "===[ actions ]==============================="
-      Console.log $ intercalate "\n" <<< map ("- " <> _) <<< map show $ renEnv.actions
+      -- Debug.traceM $ "===[ actions ]==============================="
+      -- Debug.traceM $ intercalate "\n" <<< map ("- " <> _) <<< map show $ renEnv.actions
       case handleKey renEnv event of
         Just (Action action) -> do
           preventDefault event
@@ -63,7 +67,7 @@ programComponent this = do
 
     render = do
       st <- getState this
-      -- Console.log (show st)
+      -- Debug.traceM (show st)
       renEnv /\ elems <- renderEditor this
       Ref.write renEnv renderEnvironmentRef
       pure elems

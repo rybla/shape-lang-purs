@@ -23,6 +23,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
+import Language.Shape.Stlc.Rendering.Types
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)

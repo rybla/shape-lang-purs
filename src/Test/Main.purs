@@ -38,7 +38,13 @@ runHistory ((term /\ type_) /\ changes) = do
             Just st' -> Right st'
             Nothing -> Left (st /\ change)
         )
-        { term, type_, mb_ix: Just $ nilIxDown, history: (term /\ type_) /\ [] }
+        { term
+        , type_
+        , mb_ix: Just $ nilIxDown
+        , history: (term /\ type_) /\ []
+        , clipboard: Nothing
+        , dragboard: Nothing
+        }
         changes
   case res of
     Right _st -> do

@@ -25,6 +25,8 @@ type State
     , type_ :: Type
     , mb_ix :: Maybe IxDown
     , history :: History
+    , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
+    , dragboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
     }
 
 type History = (Term /\ Type) /\ Array Change
