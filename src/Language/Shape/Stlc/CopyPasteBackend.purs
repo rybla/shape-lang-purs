@@ -36,10 +36,10 @@ createNeu x n = Neu {termId : x,
     meta: default}
 
 -- for use in copy-pasting a term.
+-- first context is where the term is from and second is where its going
 -- For now, makes the assumption that nothing about the program was changed between
 -- the copy and paste, can I can update later to remove that assumption if we determine that
 -- to be the correct approach.
--- TODO: which context is the copied term's context, and which is the pasted hole's context? I assumed the first is copied term's and second is pasted hole's
 changesBetweenContexts :: Context -> Context -> Changes
 changesBetweenContexts gamma1 gamma2 = 
     let g1 = unwrap gamma1 in
