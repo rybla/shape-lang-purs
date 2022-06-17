@@ -131,7 +131,7 @@ newtype DataMetadata
   = DataMetadata { name :: Name, indentedSumItems :: Boolean, indentedBody :: Boolean }
 
 instance defaultDataMetadata :: Default DataMetadata where
-  default = DataMetadata { name: default, indentedSumItems: false, indentedBody: true }
+  default = DataMetadata { name: default, indentedSumItems: true, indentedBody: true }
 
 derive instance newTypeDataMetadata :: Newtype DataMetadata _
 
@@ -191,7 +191,7 @@ newtype SumItemMetadata
   = SumItemMetadata { indented :: Boolean }
 
 instance defaultSumItemMetadata :: Default SumItemMetadata where
-  default = SumItemMetadata { indented: false }
+  default = SumItemMetadata { indented: true }
 
 derive instance newTypeSumItemMetadata :: Newtype SumItemMetadata _
 

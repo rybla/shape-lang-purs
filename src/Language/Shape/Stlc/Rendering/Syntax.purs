@@ -208,12 +208,7 @@ renderTerm this =
             [ pure [ token.data1 ]
             , renderTypeBind this args.typeBind
             , pure [ token.data2 ]
-            , pure $ newline (incrementIndentation args.meta) (unwrap args.data_.meta).indentedSumItems
             , renderItems (renderSumItem this <$> args.sumItems)
-            -- , pure $ newlineOrSpace args.body.meta (unwrap args.data_.meta).indentedBody
-            -- , pure [ token.data3 ]
-            -- , pure $ newlineOrSpace args.body.meta (unwrap args.data_.meta).indentedBody
-            -- , renderTerm this args.body
             , if (unwrap args.data_.meta).indentedBody then
                 concat
                   <$> sequence

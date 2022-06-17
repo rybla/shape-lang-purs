@@ -43,7 +43,8 @@ indentation i = DOM.span [ Props.className "indentation" ] [ DOM.text $ String.j
 newline :: Metacontext -> Boolean -> Array ReactElement
 newline meta indented =
   if indented then
-    [ DOM.br', indentation (unwrap meta).indentation ]
+    (if (unwrap meta).indentation == 0 then [ DOM.br', DOM.br' ] else [ DOM.br' ])
+      <> [ indentation (unwrap meta).indentation ]
   else
     []
 
