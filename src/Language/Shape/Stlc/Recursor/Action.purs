@@ -12,7 +12,7 @@ import Prelude
 import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (over, unwrap, wrap)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
@@ -48,7 +48,9 @@ applyChange change st = do
   Debug.traceM $ "===[ change ]==="
   Debug.traceM $ show change
   Debug.traceM $ "===[ history ]==="
-  Debug.traceM $ show st.history
+  let
+    history = (_ `Array.snoc` change) <$> st.history
+  Debug.traceM $ show history
   -- TODO: apply holeEq
   term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
   pure
@@ -56,42 +58,12 @@ applyChange change st = do
       { term = term'
       , type_ = applyTC typeChange st.type_
       , mb_ix = Just ix'
-      , history = (_ `Array.snoc` change) <$> st.history
+      , history = history
       }
 
 doChange :: This -> Change -> Effect Unit
-doChange this change = do
-  Debug.traceM $ "===[ change ]==="
-  Debug.traceM $ show change
-  st <- getState this
-  -- add this action to history before an error can happen
-  st <- pure st { history = (_ `Array.snoc` change) <$> st.history }
-  Debug.traceM $ "===[ history ]==="
-  Debug.traceM $ show st.history
-  case applyChange change st of
-    Just st' -> do
-      Debug.traceM $ "===[ change success ]==="
-      modifyState this \_ -> st'
-    Nothing -> do
-      Debug.traceM $ "===[ change failure ]==="
-      pure unit
+doChange this change = modifyState this \st -> maybe st identity (applyChange change st)
 
--- doChanges :: This -> Array Change -> Effect Unit
--- doChanges this changes = do
---   Debug.traceM $ "===[ changes ]==="
---   Debug.traceM $ show changes
---   st <- getState this
---   -- add this action to history before an error can happen
---   st <- pure st { history = (_ <> changes) <$> st.history }
---   Debug.traceM $ "===[ history ]==="
---   Debug.traceM $ show st.history
---   case foldM (flip applyChange) st changes of
---     Just st' -> do
---       Debug.traceM $ "===[ changes success ]==="
---       modifyState this \_ -> st'
---     Nothing -> do
---       Debug.traceM $ "===[ changes failure ]==="
---       pure unit
 -- | recType
 type ArgsType r
   = Rec.ArgsType ( | r )
