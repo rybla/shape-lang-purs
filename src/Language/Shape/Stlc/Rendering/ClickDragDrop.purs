@@ -86,10 +86,6 @@ propsClickDragDrop this props =
                         let
                           ixDown = toIxDown ix
                         -- assert that the drop index is not a superindex of the drag index
-                        Debug.traceM $ "===================="
-                        Debug.traceM $ "ixDown  = " <> show ixDown
-                        Debug.traceM $ "ixDown' = " <> show ixDown'
-                        Debug.traceM $ "===================="
                         unless (isSuperIxDown ixDown ixDown') do
                           case term of
                             Hole _ -> do
