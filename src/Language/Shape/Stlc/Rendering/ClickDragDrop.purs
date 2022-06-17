@@ -81,7 +81,7 @@ propsClickDragDrop this props =
                 , Props.onMouseUp \event -> do
                     st <- getState this
                     case st.dragboard of
-                      Just (ixDown_drag /\ gamma' /\ alpha' /\ term') -> do
+                      Just (ixDown' /\ gamma' /\ alpha' /\ term') -> do
                         stopPropagation event
                         case fitsInHole alpha' (fromJust props.alpha) of
                           Just (nArgs /\ holeSub)
@@ -89,7 +89,7 @@ propsClickDragDrop this props =
                               let
                                 ixDown = toIxDown ix
                               -- assert that the drop index is not a superindex of the drag index
-                              unless (isSuperIxDown ixDown_drag ixDown) do
+                              unless (isSuperIxDown ixDown' ixDown) do
                                 modifyState this \st ->
                                   maybe st identity do
                                     -- -- TODO enable this because in theory it works right?
@@ -98,15 +98,15 @@ propsClickDragDrop this props =
                                     -- dig dragged term from its original index
                                     st <-
                                       applyChange
-                                        { ix: ixDown_drag
+                                        { ix: ixDown'
                                         , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
                                         }
                                         st
                                     -- drop dragged term into its new index (here)
                                     st <-
                                       applyChange
-                                        { ix: ixDown_drag
-                                        , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
+                                        { ix: ixDown
+                                        , toReplace: ReplaceTerm term' NoChange
                                         }
                                         st
                                     -- apply holeSub
@@ -124,7 +124,7 @@ propsClickDragDrop this props =
                           -- modifyState this (_ { dragboard = Nothing })
                           -- doChanges this
                           --   -- dig dragged term from its original index
-                          --   [ { ix: ixDown_drag
+                          --   [ { ix: ixDown'
                           --     , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
                           --     }
                           --   -- drop dragged term into its new index (here)
