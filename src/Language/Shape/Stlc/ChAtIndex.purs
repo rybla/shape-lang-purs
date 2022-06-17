@@ -68,11 +68,11 @@ chAtTerm args tRep idx = Rec.recTerm {
       pure $ Let args.let_ {body = body'} /\ IxDown (ixStepLet.body : idx') /\ tc /\ holeEq
     _ -> error "no10"
   , buf : \args tRep -> case _ of
-    (IxDown (IxStep IxStepBuf 0 : rest)) -> do -- type of thing in buffer
+    (IxDown (IxStep IxStepBuf 1 : rest)) -> do -- type of thing in buffer
       ty' /\ IxDown idx' /\ tc /\ holeEq0 <- chAtType args.sign tRep (IxDown rest)
       let impl' /\ holeEq1 = runState (chTerm' args.impl emptyChanges tc) holeEq0
       pure $ Buf args.buf {sign= ty', impl= impl'} /\ IxDown (ixStepBuf.sign : idx') /\ NoChange /\ holeEq1
-    (IxDown (IxStep IxStepBuf 1 : rest)) -> do -- thing in buffer
+    (IxDown (IxStep IxStepBuf 0 : rest)) -> do -- thing in buffer
       impl' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.impl tRep (IxDown rest)
       let sign' = applyTC tc args.sign.type_
       pure $ Buf args.buf {sign = sign', impl = impl'} /\ IxDown (ixStepBuf.impl : idx') /\ NoChange /\ holeEq
