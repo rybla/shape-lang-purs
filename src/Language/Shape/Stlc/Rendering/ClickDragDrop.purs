@@ -120,6 +120,10 @@ propsClickDragDrop this props =
                                                 }
                                         pure st
                                 -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
+                                Just (nArgs /\ holeSub)
+                                  | nArgs > 0 -> do
+                                    -- extract TermId from pasted term
+                                    unsafeCrashWith "[unimplemented] use createNeu to add arguments to pasted term if needed"
                                 _ -> do
                                   -- doesn't fit into hole
                                   pure unit

@@ -10,6 +10,7 @@ import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
 import Data.Array as Array
+import Data.Array ((:))
 import Data.Default (default)
 import Data.Foldable (foldM)
 import Data.Maybe (Maybe(..), maybe)
@@ -49,7 +50,8 @@ applyChange change st = do
   Debug.traceM $ show change
   Debug.traceM $ "===[ history ]==="
   let
-    history = (_ `Array.snoc` change) <$> st.history
+    -- history = (_ `Array.snoc` change) <$> st.history
+    history = toHistoryItem st change : st.history
   Debug.traceM $ show history
   -- TODO: apply holeEq
   term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix

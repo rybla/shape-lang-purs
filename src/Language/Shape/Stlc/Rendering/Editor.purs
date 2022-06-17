@@ -4,6 +4,7 @@ import Data.Tuple.Nested
 import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
+import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State as State
@@ -17,12 +18,12 @@ import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Key (keys)
 import Language.Shape.Stlc.Metacontext (Metacontext(..))
 import Language.Shape.Stlc.Metadata (SumItemMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (nonVisit)
-import Language.Shape.Stlc.Rendering.Utilities
 import Partial.Unsafe (unsafeCrashWith)
-import React (ReactElement)
+import React (ReactElement, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
@@ -33,11 +34,33 @@ import Undefined (undefined)
 renderEditor :: This -> Effect (RenderEnvironment /\ ReactElement)
 renderEditor this = do
   elems /\ env <- renderProgram this
+  -- global actions 
+  env <- pure $ env { actions = env.actions <> globalActions }
   pure $ env
     /\ ( DOM.div [ Props.className "editor" ]
           $ renderPanel this env
           <> elems
       )
+  where
+  globalActions =
+    [ Action
+        { label: Just "undo"
+        , triggers: [ ActionTrigger_Keypress keys.undo ]
+        , effect:
+            \this -> do
+              modifyState this \st -> case Array.uncons st.history of
+                Just { head: { term, type_, mb_ix, change }, tail: history } ->
+                  st
+                    { term = term
+                    , type_ = type_
+                    , mb_ix = mb_ix
+                    , history = history
+                    , clipboard = Nothing
+                    , dragboard = Nothing
+                    }
+                Nothing -> st -- cannot undo if there is no history
+        }
+    ]
 
 -- | renderPanel
 renderPanel :: This -> RenderEnvironment -> Array ReactElement

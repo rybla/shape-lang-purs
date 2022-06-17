@@ -5,7 +5,8 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 
-import Data.Array (intercalate)
+import Data.Array ((:), intercalate)
+import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Effect (Effect)
@@ -29,7 +30,18 @@ type State
     , dragboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
     }
 
-type History = (Term /\ Type) /\ Array Change
+-- type History = (Term /\ Type /\ Maybe IxDown) /\ Array Change
+type History = Array HistoryItem 
+type HistoryItem = { term :: Term, type_ :: Type, mb_ix :: Maybe IxDown, change :: Change }
+
+toHistoryItem :: State -> Change  -> HistoryItem 
+toHistoryItem st change = {
+  term: st.term,
+  type_: st.type_,
+  mb_ix: st.mb_ix, 
+  change: change
+}
+
 
 type Given
   = { state :: State

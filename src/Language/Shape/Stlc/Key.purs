@@ -28,4 +28,5 @@ keys =
   , indent: [ Key "Tab" ]
   , copy: [ Key "Ctrl c" ]
   , paste: [ Key "Ctrl v" ]
+  , undo: [ Key "Ctrl z" ]
   }

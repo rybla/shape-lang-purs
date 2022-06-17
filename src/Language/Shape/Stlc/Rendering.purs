@@ -38,7 +38,7 @@ programComponent this = do
       { mb_ix: Nothing
       , term
       , type_
-      , history: (term /\ type_) /\ []
+      , history: mempty
       , clipboard: Nothing
       , dragboard: Nothing
       }
