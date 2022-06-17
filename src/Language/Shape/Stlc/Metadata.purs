@@ -109,7 +109,7 @@ newtype LetMetadata
   = LetMetadata { name :: Name, indentedSign :: Boolean, indentedImpl :: Boolean, indentedBody :: Boolean }
 
 instance defaultLetMetadata :: Default LetMetadata where
-  default = LetMetadata { name: default, indentedSign: false, indentedImpl: false, indentedBody: false }
+  default = LetMetadata { name: default, indentedSign: false, indentedImpl: false, indentedBody: true }
 
 derive instance newTypeLetMetadata :: Newtype LetMetadata _
 
@@ -120,7 +120,7 @@ newtype BufMetadata
   = BufMetadata { indentedSign :: Boolean, indentedImpl :: Boolean, indentedBody :: Boolean }
 
 instance defaultBufMetadata :: Default BufMetadata where
-  default = BufMetadata { indentedSign: false, indentedImpl: false, indentedBody: false }
+  default = BufMetadata { indentedSign: false, indentedImpl: false, indentedBody: true }
 
 derive instance newTypeBufMetadata :: Newtype BufMetadata _
 
@@ -131,7 +131,7 @@ newtype DataMetadata
   = DataMetadata { name :: Name, indentedSumItems :: Boolean, indentedBody :: Boolean }
 
 instance defaultDataMetadata :: Default DataMetadata where
-  default = DataMetadata { name: default, indentedSumItems: false, indentedBody: false }
+  default = DataMetadata { name: default, indentedSumItems: false, indentedBody: true }
 
 derive instance newTypeDataMetadata :: Newtype DataMetadata _
 

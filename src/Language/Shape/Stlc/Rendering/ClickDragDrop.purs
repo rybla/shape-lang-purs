@@ -83,65 +83,81 @@ propsClickDragDrop this props =
                     case st.dragboard of
                       Just (ixDown' /\ gamma' /\ alpha' /\ term') -> do
                         stopPropagation event
-                        case fitsInHole alpha' (fromJust props.alpha) of
-                          Just (nArgs /\ holeSub)
-                            | nArgs == 0 -> do
-                              let
-                                ixDown = toIxDown ix
-                              -- assert that the drop index is not a superindex of the drag index
-                              unless (isSuperIxDown ixDown' ixDown) do
-                                modifyState this \st ->
-                                  maybe st identity do
-                                    -- -- TODO enable this because in theory it works right?
-                                    -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
-                                    st <- pure $ st { dragboard = Nothing }
-                                    -- dig dragged term from its original index
-                                    st <-
-                                      applyChange
-                                        { ix: ixDown'
-                                        , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
-                                        }
-                                        st
-                                    -- drop dragged term into its new index (here)
-                                    st <-
-                                      applyChange
-                                        { ix: ixDown
-                                        , toReplace: ReplaceTerm term' NoChange
-                                        }
-                                        st
-                                    -- apply holeSub
-                                    st <-
-                                      pure
-                                        $ st
-                                            { term = subTerm holeSub st.term
-                                            , type_ = subType holeSub st.type_
+                        let
+                          ixDown = toIxDown ix
+                        -- assert that the drop index is not a superindex of the drag index
+                        Debug.traceM $ "===================="
+                        Debug.traceM $ "ixDown  = " <> show ixDown
+                        Debug.traceM $ "ixDown' = " <> show ixDown'
+                        Debug.traceM $ "===================="
+                        unless (isSuperIxDown ixDown ixDown') do
+                          case term of
+                            Hole _ -> do
+                              case fitsInHole alpha' (fromJust props.alpha) of
+                                Just (nArgs /\ holeSub)
+                                  | nArgs == 0 -> do
+                                    modifyState this \st ->
+                                      maybe st identity do
+                                        -- -- TODO enable this because in theory it works right?
+                                        -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
+                                        st <- pure $ st { dragboard = Nothing }
+                                        -- dig dragged term from its original index
+                                        st <-
+                                          applyChange
+                                            { ix: ixDown'
+                                            , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
                                             }
-                                    pure st
-                          -- -- TODO enable this because in theory it works right?
-                          -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
-                          -- -- Debug.traceM $ "mouse-up on a term; stop dragging and dropped: " <> show term'
-                          -- -- remove from dragboard
-                          -- modifyState this (_ { dragboard = Nothing })
-                          -- doChanges this
-                          --   -- dig dragged term from its original index
-                          --   [ { ix: ixDown'
-                          --     , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
-                          --     }
-                          --   -- drop dragged term into its new index (here)
-                          --   , { ix: ixDown
-                          --     , toReplace: ReplaceTerm term' NoChange
-                          --     }
-                          --   ]
-                          -- -- apply holeSub
-                          -- modifyState this \st ->
-                          --   st
-                          --     { term = subTerm holeSub st.term
-                          --     , type_ = subType holeSub st.type_
-                          --     }
-                          -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
-                          _ -> do
-                            -- doesn't fit into hole
-                            pure unit
+                                            st
+                                        -- drop dragged term into its new index (here)
+                                        st <-
+                                          applyChange
+                                            { ix: ixDown
+                                            , toReplace: ReplaceTerm term' NoChange
+                                            }
+                                            st
+                                        -- apply holeSub
+                                        st <-
+                                          pure
+                                            $ st
+                                                { term = subTerm holeSub st.term
+                                                , type_ = subType holeSub st.type_
+                                                }
+                                        pure st
+                                -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
+                                _ -> do
+                                  -- doesn't fit into hole
+                                  pure unit
+                            term -> do
+                              -- if the drop location is at a non-hole, then wrap it in a buffer with the dropped term
+                              modifyState this \st ->
+                                maybe st identity do
+                                  -- -- TODO enable this because in theory it works right?
+                                  -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
+                                  st <- pure $ st { dragboard = Nothing }
+                                  -- dig dragged term from its original index
+                                  st <-
+                                    applyChange
+                                      { ix: ixDown'
+                                      , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
+                                      }
+                                      st
+                                  -- wrap the drop location in a buffer, and put the dropped term in the buffer
+                                  st <-
+                                    applyChange
+                                      { ix: ixDown
+                                      , toReplace:
+                                          ReplaceTerm
+                                            ( Buf
+                                                { sign: alpha'
+                                                , impl: term'
+                                                , body: term
+                                                , meta: default
+                                                }
+                                            )
+                                            NoChange
+                                      }
+                                      st
+                                  pure st
                       Nothing -> do
                         -- empty dragboard
                         pure unit

@@ -2,6 +2,7 @@ module Language.Shape.Stlc.Index where
 
 import Data.Foldable
 import Prelude
+import Data.Array as Array
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), range, reverse, singleton, snoc, (:))
@@ -207,4 +208,4 @@ ixStepList =
 -- | utilities
 -- ix1 is a super index of ix2 i.e. ix1 is an index into a child of ix2
 isSuperIxDown :: IxDown -> IxDown -> Boolean
-isSuperIxDown (IxDown steps1) (IxDown steps2) = and $ List.zipWith (==) steps1 steps2
+isSuperIxDown (IxDown steps1) (IxDown steps2) = and (List.zipWith (==) steps1 steps2) && (List.length steps1 >= List.length steps2)

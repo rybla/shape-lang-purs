@@ -267,7 +267,7 @@ recTerm rec =
         , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
     , Action
-        { label: Just "let_"
+        { label: Just "enlet"
         , effect:
             \this ->
               args.visit.ix
@@ -280,6 +280,21 @@ recTerm rec =
                             NoChange
                       }
         , triggers: [ ActionTrigger_Keypress keys.let_ ]
+        }
+    , Action
+        { label: Just "enbuffer"
+        , effect:
+            \this ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            (Buf { sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
+                            NoChange
+                      }
+        , triggers: [ ActionTrigger_Keypress keys.buf ]
         }
     -- TODO: but actually, indentation is not necessarily a local action because it can step up the index via `stepUpToNearestIndentableParentIxUp` to perform an action
     , Action
