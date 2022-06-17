@@ -6,6 +6,7 @@ import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
 import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
+import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
@@ -29,7 +30,7 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.Context (Context(..))
-import Language.Shape.Stlc.CopyPasteBackend (fitsInHole)
+import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
 import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Index (IxDown(..), nilIxDown, nilIxUp, toIxDown)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation)
@@ -40,6 +41,7 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index (Visit, nilVisit, nonVisit)
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
+import Language.Shape.Stlc.Rendering.ClickDragDrop
 import Language.Shape.Stlc.Types (Action(..), This)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
@@ -52,12 +54,7 @@ import Type.Proxy (Proxy(..))
 import Undefined (undefined)
 import Unsafe (fromJust)
 
-type M a
-  = State RenderEnvironment a
-
-runM :: forall a. M a -> (a /\ RenderEnvironment)
-runM = flip State.runState emptyRenderEnvironment
-
+-- xxx = U.runM
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
@@ -407,36 +404,6 @@ printShadow shadow =
 renderItems :: List (M (Array ReactElement)) -> M (Array ReactElement)
 renderItems items = foldM (\elems -> ((elems <> _) <$> _)) [] items
 
-defaultNodeProps :: NodeProps
-defaultNodeProps =
-  { syntax: default
-  , label: default
-  , visit: nonVisit
-  , alpha: default
-  , gamma: default
-  , meta: default
-  , actions: []
-  }
-
-makeNodeProps :: forall r. { gamma :: Context, visit :: Visit, meta :: Metacontext, actions :: Array Action | r } -> NodeProps
-makeNodeProps { gamma, visit, meta, actions } =
-  defaultNodeProps
-    { gamma = gamma
-    , visit = visit
-    , meta = meta
-    , actions = actions
-    }
-
-type NodeProps
-  = { syntax :: Maybe Syntax
-    , label :: Maybe String
-    , gamma :: Context
-    , alpha :: Maybe Type
-    , visit :: Visit
-    , meta :: Metacontext
-    , actions :: Array Action
-    }
-
 renderNode :: This -> NodeProps -> Array (M (Array ReactElement)) -> M (Array ReactElement)
 renderNode this props elemsM = do
   -- if this node is selected
@@ -463,96 +430,9 @@ renderNode this props elemsM = do
 
   propsSpan =
     concat
+      -- className
       [ maybeArray props.label \label ->
           Props.className $ joinWith " " [ "node", label, if isSelected then "selected" else "" ]
-      , maybeArray (props.visit.ix) \ix ->
-          Props.onClick \event -> do
-            -- Debug.traceM "clicked on a node"
-            stopPropagation event
-            -- select this node
-            modifyState this (_ { mb_ix = Just (toIxDown ix) })
-      , case props.syntax of
-          Just (SyntaxTerm term) ->
-            maybeArray (props.visit.ix) \ix ->
-              Props.onMouseDown \event -> do
-                shiftKey event
-                  >>= case _ of
-                      true -> do
-                        -- Debug.traceM event
-                        stopPropagation event
-                        -- Debug.traceM $ "mouse-down on a term; start dragging: " <> show term
-                        -- dig this node from original location
-                        doChange this
-                          { ix: toIxDown ix
-                          , toReplace: ReplaceTerm (freshHole unit) NoChange
-                          }
-                        -- put this node in dragboard
-                        modifyState this (_ { dragboard = Just (toIxDown ix /\ props.gamma /\ fromJust props.alpha /\ term) })
-                      false -> pure unit
-          -- Debug.trace ("mouse-downed on a " <> show props.syntax) \_ -> []
-          _ -> []
-      , case props.syntax of
-          Just (SyntaxTerm term) ->
-            maybeArray (props.visit.ix) \ix ->
-              Props.onMouseUp \event -> do
-                st <- getState this
-                case st.dragboard of
-                  Just (ix' /\ gamma' /\ alpha' /\ term') -> do
-                    stopPropagation event
-                    -- TODO: use fitsInHole
-                    -- TODO: use changesBetweenContexts
-                    case fitsInHole alpha' (fromJust props.alpha) of
-                      Just (nArgs /\ holeSub)
-                        | nArgs == 0 -> do
-                          -- Debug.traceM $ "mouse-up on a term; stop dragging and dropped: " <> show term'
-                          -- remove from dragboard
-                          modifyState this (_ { dragboard = Nothing })
-                          -- put the node here
-                          doChange this
-                            { ix: toIxDown ix
-                            , toReplace: ReplaceTerm term' NoChange
-                            }
-                          -- apply holeSub
-                          modifyState this \st ->
-                            st
-                              { term = subTerm holeSub st.term
-                              , type_ = subType holeSub st.type_
-                              }
-                      -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
-                      _ -> pure unit -- TODO: undo previous dig maybe?
-                  Nothing -> pure unit
-          _ -> []
+      -- click, drag, drop
+      , propsClickDragDrop this props
       ]
-
-renderConcatList :: List (M (Array ReactElement)) -> M (Array ReactElement)
-renderConcatList = (List.foldl append [] <$> _) <<< sequence
-
-renderConcatArray :: Array (M (Array ReactElement)) -> M (Array ReactElement)
-renderConcatArray = (Array.foldl append [] <$> _) <<< sequence
-
-maybeArray :: forall a b. Maybe a -> (a -> b) -> Array b
-maybeArray ma f = maybe [] (Array.singleton <<< f) ma
-
-enParen :: M (Array ReactElement) -> M (Array ReactElement)
-enParen m = renderConcatArray [ pure [ token.lparen ], m, pure [ token.rparen ] ]
-
-enParenIf :: M (Array ReactElement) -> Boolean -> M (Array ReactElement)
-enParenIf m true = enParen m
-
-enParenIf m false = m
-
-requiresParenType :: Type -> Boolean
-requiresParenType = case _ of
-  ArrowType _ -> true
-  _ -> false
-
-requiresParenTerm :: Term -> Boolean
-requiresParenTerm = case _ of
-  Lam _ -> true
-  Neu neu
-    | List.length neu.argItems == 0 -> true
-  Let _ -> true
-  Buf _ -> true
-  Data _ -> true
-  Match _ -> true
-  _ -> false

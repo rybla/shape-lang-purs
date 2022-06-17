@@ -3,6 +3,7 @@ module Language.Shape.Stlc.Rendering.Editor where
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Token
+import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State as State
@@ -19,11 +20,11 @@ import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Metacontext (Metacontext(..))
 import Language.Shape.Stlc.Metadata (SumItemMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (nonVisit)
+import Language.Shape.Stlc.Rendering.Utilities
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
-import Language.Shape.Stlc.Rendering.Types
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)

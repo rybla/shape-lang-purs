@@ -5,6 +5,7 @@ import Prelude
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), range, reverse, singleton, snoc, (:))
+import Data.List as List
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, over2, wrap)
 import Data.Show.Generic (genericShow)
@@ -203,3 +204,7 @@ ixStepList =
 --       Cons
 --         (over IxUp (Cons ixStepList.head) ixUp)
 --         (go (over IxUp (Cons ixStepList.tail) ixUp) (i - 1))
+-- | utilities
+-- ix1 is a super index of ix2 i.e. ix1 is an index into a child of ix2
+isSuperIxDown :: IxDown -> IxDown -> Boolean
+isSuperIxDown (IxDown steps1) (IxDown steps2) = and $ List.zipWith (==) steps1 steps2
