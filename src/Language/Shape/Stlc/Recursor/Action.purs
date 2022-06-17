@@ -9,8 +9,8 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
-import Data.Array as Array
 import Data.Array ((:))
+import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
 import Data.Maybe (Maybe(..), maybe)
@@ -116,18 +116,20 @@ recType rec =
               let
                 holeType = freshHoleType unit
               doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType) }
-        -- case chAtType { type_, gamma }
-        --     (ReplaceType 
-        --       (ArrowType {dom: holeType, cod: type_, meta: default})
-        --       (InsertArg holeType)
-        --     )
-        --     st.ix of 
-        --   Just (type' /\ ix' /\ tc /\ holeEq) -> do
-        --     -- TODO: apply holeEq
-        --     -- modifyState this (_ { term = term', ix = ix' })
-        --     pure unit 
-        --   Nothing -> pure unit
         , triggers: [ ActionTrigger_Keypress keys.lambda ]
+        }
+    , Action
+        { label: Just "dig"
+        , effect:
+            \this -> do
+              st <- getState this
+              let
+                holeId = freshHoleId unit
+              doChange this
+                { ix: fromJust st.mb_ix
+                , toReplace: ReplaceType (HoleType { holeId, weakening: Set.empty, meta: default }) (Dig holeId)
+                }
+        , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
     ]
 
