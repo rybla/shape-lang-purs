@@ -53,6 +53,9 @@ nonVisit = { ix: Nothing, csr: Nothing }
 nilVisit :: Maybe IxDown -> Visit
 nilVisit csr = { ix: Just (nilIxUp), csr }
 
+dontVisit :: forall r. { visit :: Visit | r } -> { visit :: Visit | r }
+dontVisit args = args { visit = nonVisit }
+
 isSelected :: Visit -> Boolean
 isSelected visit = visit.csr == Just nilIxDown
 
@@ -152,7 +155,7 @@ recTerm rec =
         \args ->
           rec.neu
             args
-              { termId = visitVia ixStepNeu.termId args.termId
+              { termId = dontVisit args.termId -- CHANGE visitVia ixStepNeu.termId args.termId
               , argItems = visitItemsVia ixStepNeu.argItems args.argItems
               }
     , let_:
