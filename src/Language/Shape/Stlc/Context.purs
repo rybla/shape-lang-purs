@@ -8,7 +8,8 @@ import Prim hiding (Type)
 import Record
 import Control.Monad.Free (wrap)
 import Data.Default (class Default, default)
-import Data.List (List(..), foldl, (:))
+import Data.Foldable (foldr, foldl)
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.OrderedMap (OrderedMap)
@@ -44,7 +45,12 @@ _varTypes = Proxy :: Proxy "varTypes"
 _constrDataTypes = Proxy :: Proxy "constrDataTypes"
 
 insertData :: Data -> Context -> Context
-insertData data_ = over Context $ modify _datas (OrderedMap.insert data_.typeBind.typeId data_)
+insertData data_ =
+  foldr (>>>) identity
+    [ (over Context $ modify _datas (OrderedMap.insert data_.typeBind.typeId data_)) -- insert datatype into context
+    , foldr (\sumItem f -> insertVarType sumItem.termBind.termId (typeOfSumItem data_.typeBind.typeId sumItem) >>> f) identity data_.sumItems -- for each constructor, associate it with its appropriate type in varTypes
+    , foldr (\sumItem f -> insertConstrDataType sumItem.termBind.termId { typeId: data_.typeBind.typeId, meta: default } >>> f) identity data_.sumItems -- for each constructor, associate it with this datatype in constrDataTypes
+    ]
 
 lookupData :: TypeId -> Context -> Data
 lookupData typeId ctx = case OrderedMap.lookup typeId (unwrap ctx).datas of
