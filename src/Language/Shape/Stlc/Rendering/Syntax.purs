@@ -4,6 +4,7 @@ import Data.Tuple
 import Data.Tuple.Nested
 import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
+import Language.Shape.Stlc.Rendering.ClickDragDrop
 import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
@@ -41,8 +42,7 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index (Visit, nilVisit, nonVisit)
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
-import Language.Shape.Stlc.Rendering.ClickDragDrop
-import Language.Shape.Stlc.Types (Action(..), This)
+import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..), This)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)
@@ -314,9 +314,7 @@ renderTermBind this =
     { termBind:
         \args ->
           renderNode this
-            ( defaultNodeProps
-                { label = Just "TermBind" }
-            )
+            ((makeNodeProps args) { label = Just "TermBind" })
             [ printTermId args.termId ]
     }
 
@@ -394,7 +392,7 @@ printHoleId args = do
 printName :: Name -> Array ReactElement
 printName (Name mb_str) = case mb_str of
   Just str -> [ DOM.span [ Props.className "name" ] [ DOM.text str ] ]
-  Nothing -> [ DOM.span [ Props.className "name discarded" ] [ DOM.text "_" ] ]
+  Nothing -> [ DOM.span [ Props.className "name discarded" ] [ DOM.text "~" ] ]
 
 printShadow :: Int -> Array ReactElement
 printShadow shadow =

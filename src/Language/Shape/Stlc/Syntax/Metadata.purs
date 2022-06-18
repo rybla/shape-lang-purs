@@ -60,3 +60,14 @@ isIndentableIxStep (IxStep lbl _) = lbl `Array.elem` indentableIxStepLabels
   indentableIxStepLabels =
     [ IxStepArrowType, IxStepLam, IxStepLet, IxStepBuf, IxStepData, IxStepMatch, IxStepArgItem, IxStepSumItem, IxStepCaseItem, IxStepParamItem, IxStepTermBindItem, IxStepList
     ]
+
+{-
+modifySyntaxAt
+  (\_ -> Just $ SyntaxTermBind $ args.termBind { meta = over TermBindMetadata (\meta -> meta { name = name' }) args.termBind.meta })
+  (toIxDown ix)
+  (SyntaxTerm st.term)
+-}
+replaceNameAt x toSyntax wrapMeta name' ix =
+  modifySyntaxAt
+    (\_ -> Just $ toSyntax $ x { meta = over wrapMeta (\meta -> meta { name = name' }) x.meta })
+    ix

@@ -1,8 +1,12 @@
 module Language.Shape.Stlc.Recursor.Action where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.ChAtIndex
+import Language.Shape.Stlc.Changes
+import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
+import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Syntax.Metadata
@@ -20,12 +24,9 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm, chAtType)
-import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
-import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name)
 import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
-import Language.Shape.Stlc.Metadata (LamMetadata(..))
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Prim (Array, Record, Row)
@@ -111,7 +112,7 @@ recType rec =
     [ Action
         { label: Just "enarrow"
         , effect:
-            \this -> do
+            \{ this } -> do
               st <- getState this
               let
                 holeType = freshHoleType unit
@@ -121,7 +122,7 @@ recType rec =
     , Action
         { label: Just "dig"
         , effect:
-            \this -> do
+            \{ this } -> do
               st <- getState this
               let
                 holeId = freshHoleId unit
@@ -215,7 +216,7 @@ recTerm rec =
     [ Action
         { label: Just "enlambda"
         , effect:
-            \this ->
+            \{ this } ->
               args.visit.ix
                 >>|= \ix ->
                     doChange this
@@ -230,7 +231,7 @@ recTerm rec =
     , Action
         { label: Just "dig"
         , effect:
-            \this ->
+            \{ this } ->
               args.visit.ix
                 >>|= \ix ->
                     doChange this
@@ -245,7 +246,7 @@ recTerm rec =
     , Action
         { label: Just "enlet"
         , effect:
-            \this ->
+            \{ this } ->
               args.visit.ix
                 >>|= \ix ->
                     doChange this
@@ -260,7 +261,7 @@ recTerm rec =
     , Action
         { label: Just "enbuffer"
         , effect:
-            \this ->
+            \{ this } ->
               args.visit.ix
                 >>|= \ix ->
                     doChange this
@@ -276,7 +277,7 @@ recTerm rec =
     , Action
         { label: Just "indent"
         , effect:
-            \this ->
+            \{ this } ->
               args.visit.ix
                 >>|= \ix -> do
                     Debug.traceM "indent"
@@ -380,7 +381,42 @@ recTypeBind ::
   Lacks "typeBind" r =>
   { typeBind :: Record (ArgsTypeBind_TypeBind r (ArgsTypeId r)) -> a } ->
   Record (ArgsTypeBind r) -> a
-recTypeBind rec = Rec.recTypeBind { typeBind: \args -> rec.typeBind $ R.union { actions: [] } args }
+recTypeBind rec =
+  Rec.recTypeBind
+    { typeBind:
+        \args ->
+          rec.typeBind
+            $ R.union
+                { actions:
+                    [ Action
+                        { label: Just "edit"
+                        , triggers: [ ActionTrigger_Keytype ]
+                        , effect:
+                            case _ of
+                              { this, mb_event: Just event } -> do
+                                Debug.traceM "[event] ActionTrigger_Keytype"
+                                args.visit.ix
+                                  >>|= \ix ->
+                                      handleKeytype_Name event (unwrap args.typeBind.meta).name
+                                        >>|= \name' ->
+                                            modifyState this \st ->
+                                              st
+                                                { term =
+                                                  fromJust $ toTerm $ fromJust
+                                                    $ replaceNameAt
+                                                        args.typeBind
+                                                        SyntaxTypeBind
+                                                        TypeBindMetadata
+                                                        name'
+                                                        (toIxDown ix)
+                                                        (SyntaxTerm st.term)
+                                                }
+                              _ -> pure unit
+                        }
+                    ]
+                }
+                args
+    }
 
 -- | recTermBind
 type ArgsTermBind r
@@ -394,7 +430,42 @@ recTermBind ::
   Lacks "termBind" r =>
   { termBind :: Record (ArgsTermBind_TermBind r (ArgsTermId r)) -> a } ->
   Record (ArgsTermBind r) -> a
-recTermBind rec = Rec.recTermBind { termBind: \args -> rec.termBind $ R.union { actions: [] } args }
+recTermBind rec =
+  Rec.recTermBind
+    { termBind:
+        \args ->
+          rec.termBind
+            $ R.union
+                { actions:
+                    [ Action
+                        { label: Just "edit"
+                        , triggers: [ ActionTrigger_Keytype ]
+                        , effect:
+                            case _ of
+                              { this, mb_event: Just event } -> do
+                                Debug.traceM "[event] ActionTrigger_Keytype"
+                                args.visit.ix
+                                  >>|= \ix ->
+                                      handleKeytype_Name event (unwrap args.termBind.meta).name
+                                        >>|= \name' ->
+                                            modifyState this \st ->
+                                              st
+                                                { term =
+                                                  fromJust $ toTerm $ fromJust
+                                                    $ replaceNameAt
+                                                        args.termBind
+                                                        SyntaxTermBind
+                                                        TermBindMetadata
+                                                        name'
+                                                        (toIxDown ix)
+                                                        (SyntaxTerm st.term)
+                                                }
+                              _ -> pure unit
+                        }
+                    ]
+                }
+                args
+    }
 
 -- | recTypeId
 type ArgsTypeId r

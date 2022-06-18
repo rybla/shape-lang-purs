@@ -60,9 +60,9 @@ programComponent this = do
       -- Debug.traceM $ "===[ actions ]==============================="
       -- Debug.traceM $ intercalate "\n" <<< map ("- " <> _) <<< map show $ renEnv.actions
       case handleKey renEnv event of
-        Just (Action action) -> do
+        Just (trigger /\ Action action) -> do
           preventDefault event
-          action.effect this
+          action.effect { this, mb_event: Just event, trigger }
         Nothing -> pure unit
 
     render = do

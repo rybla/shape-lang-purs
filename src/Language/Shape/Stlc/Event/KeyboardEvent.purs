@@ -1,18 +1,26 @@
 module Language.Shape.Stlc.Event.KeyboardEvent where
 
 import Data.Array
+import Data.Tuple.Nested
 import Language.Shape.Stlc.Key
+import Language.Shape.Stlc.Rendering.Types
 import Prelude
 import Prim hiding (Type)
 import Control.Alternative (guard)
+import Data.Char as Char
 import Data.Foldable (any)
+import Data.Foldable as Array
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String (Pattern(..), split)
-import Language.Shape.Stlc.Rendering.Types
+import Data.String as String
+import Data.String as String
+import Data.String.CodePoints as CodePoints
+import Language.Shape.Stlc.Metadata (Name(..))
 import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Undefined (undefined)
+import Unsafe (fromJust)
 import Web.Event.Event (Event, EventType(..))
 
 foreign import eventKey :: Event -> String
@@ -51,18 +59,19 @@ matchKey event (Key str) = case uncons (reverse $ split (Pattern " ") str) of
 
   alt = altKey event
 
-handleKey :: RenderEnvironment -> Event -> Maybe Action
+handleKey :: RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
 handleKey renEnv event =
   foldr
     ( \action ->
         maybe
           ( foldr
-              ( case _ of
+              ( \trigger -> case trigger of
+                  ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
                   ActionTrigger_Keypress keys ->
                     maybe
                       ( do
                           guard (matchOneOfKeys event keys)
-                          pure action
+                          pure (trigger /\ action)
                       )
                       pure
                   _ -> identity
@@ -74,3 +83,21 @@ handleKey renEnv event =
     )
     Nothing
     renEnv.actions
+
+handleKeytype_Name :: Event -> Name -> Maybe Name
+handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothing else Name (Just str1)) <$> mb_str1
+  where
+  str0 = maybe "" identity mb_str
+
+  mb_str1 = handleKeytype_String event str0
+
+handleKeytype_String :: Event -> String -> Maybe String
+handleKeytype_String event str = go (eventKey event)
+  where
+  go key
+    -- TODO: handle other special keys
+    | key == "Backspace" && altKey event = Just ""
+    | key == "Backspace" = Just $ String.take (String.length str - 1) str
+    | key == "Space" = Just $ str <> " "
+    | key `Array.elem` [ "Shift", "Meta", "Control", "Alt", "Tab" ] = Nothing
+    | otherwise = Just $ str <> key

@@ -47,7 +47,7 @@ renderEditor this = do
         { label: Just "undo"
         , triggers: [ ActionTrigger_Keypress keys.undo ]
         , effect:
-            \this -> do
+            \{ this } -> do
               modifyState this \st -> case Array.uncons st.history of
                 Just { head: { term, type_, mb_ix, change }, tail: history } ->
                   st
@@ -137,7 +137,7 @@ renderPalette this env =
   renderAction action =
     [ DOM.div
         [ Props.className "action"
-        , Props.onClick \event -> (unwrap action).effect this
+        , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
         ]
         [ DOM.text $ show action ]
     ]

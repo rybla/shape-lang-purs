@@ -60,7 +60,7 @@ propsClickDragDrop this props =
     -- selection
     [ maybeArray (props.visit.ix) \ix ->
         Props.onClick \event -> do
-          -- Debug.traceM "clicked on a node"
+          Debug.traceM $ "clicked on a node: " <> show props.label -- DEBUG
           stopPropagation event
           -- select this node
           modifyState this (_ { mb_ix = Just (toIxDown ix) })
