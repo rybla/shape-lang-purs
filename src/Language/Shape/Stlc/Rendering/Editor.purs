@@ -143,7 +143,6 @@ renderEnvironment this env =
                           Just (nArgs /\ holeSub) -> do
                             let
                               term = createNeu termId nArgs
-                            Debug.traceM "[here 2]"
                             modifyState this \st ->
                               maybe st identity do
                                 st <-
