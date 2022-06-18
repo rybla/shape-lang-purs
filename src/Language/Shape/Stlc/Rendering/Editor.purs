@@ -138,26 +138,29 @@ renderEnvironment this env =
               [ [ DOM.span
                     [ Props.className "context-varType-var"
                     , Props.onClick \event -> do
+                        -- Debug.traceM $ "fitsInHole (fromJust env.alpha) type_ = " <> show (fitsInHole (fromJust env.alpha) type_)
                         case fitsInHole (fromJust env.alpha) type_ of
                           -- does fit in hole 
-                          Just (nArgs /\ holeSub)
-                            | nArgs == 0 -> do
-                              modifyState this \st ->
-                                maybe st identity do
-                                  st <-
-                                    applyChange
-                                      { ix: fromJust st.mb_ix
-                                      , toReplace: ReplaceTerm (Neu { termId, argItems: mempty, meta: default }) NoChange
-                                      }
-                                      st
-                                  st <-
-                                    pure
-                                      $ st
-                                          { term = subTerm holeSub st.term
-                                          , type_ = subType holeSub st.type_
-                                          }
-                                  pure st
-                            | otherwise -> unsafeCrashWith "[unimplemented] use createNeu to add arguments to variable if needed"
+                          Just (nArgs /\ holeSub) -> do
+                            let
+                              term = createNeu termId nArgs
+                            Debug.traceM "[here 2]"
+                            modifyState this \st ->
+                              maybe st identity do
+                                st <-
+                                  applyChange
+                                    { ix: fromJust st.mb_ix
+                                    , toReplace: ReplaceTerm term NoChange
+                                    }
+                                    st
+                                st <-
+                                  pure
+                                    $ st
+                                        { term = subTerm holeSub st.term
+                                        , type_ = subType holeSub st.type_
+                                        }
+                                pure st
+                          -- | otherwise -> unsafeCrashWith "[unimplemented] use createNeu to add arguments to variable if needed"
                           Nothing -> pure unit -- doesn't fit in hole 
                     ]
                     (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })
