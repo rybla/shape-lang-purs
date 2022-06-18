@@ -122,6 +122,8 @@ chTerm gamma (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
          pure $ Lam {termBind:i2, body: Lam {termBind:i1, body: body', meta: m2}, meta: m1}
 chTerm gamma (ArrowType {dom, cod, meta:m1}) chs RemoveArg (Lam {termBind, body, meta:m2})
     = chTerm (insertVarType termBind.termId dom gamma) cod (deleteVar chs termBind.termId) NoChange body
+chTerm gamma (ArrowType ty) chs (Dig hId) (Lam lam)
+    = pure $ Buf {body: Hole {meta: default}, impl: (Lam lam), meta: default, sign: (ArrowType ty)}
 chTerm gamma ty chs tc t 
     = chTermAux {alpha: ty, gamma: gamma, term: t} chs tc
 
