@@ -22,7 +22,8 @@ runM :: forall a. M a -> (a /\ RenderEnvironment)
 runM = flip State.runState emptyRenderEnvironment
 
 type RenderEnvironment
-  = { gamma :: Context
+  = { syntax :: Maybe Syntax -- selected syntax
+    , gamma :: Context
     , meta :: Metacontext
     , alpha :: Maybe Type
     , actions :: Array Action
@@ -33,7 +34,8 @@ _holeIds = Proxy :: Proxy "holeIds"
 
 emptyRenderEnvironment :: RenderEnvironment
 emptyRenderEnvironment =
-  { gamma: default
+  { syntax: Nothing
+  , gamma: default
   , meta: default
   , alpha: default
   , actions: []

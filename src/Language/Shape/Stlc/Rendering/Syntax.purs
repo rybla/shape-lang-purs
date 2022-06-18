@@ -92,7 +92,7 @@ renderType this =
     { arrowType:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "ArrowType" })
+            ((makeNodeProps args) { label = Just "ArrowType", syntax = Just $ SyntaxType $ ArrowType args.arrowType })
             [ enParenIf (renderType this args.dom) (requiresParenType args.dom.type_)
             , pure [ token.arrowType1 ]
             , renderType this args.cod
@@ -100,13 +100,13 @@ renderType this =
     , dataType:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "DataType" })
+            ((makeNodeProps args) { label = Just "DataType", syntax = Just $ SyntaxType $ DataType args.dataType })
             [ printTypeId args.typeId ]
     , holeType:
         \args -> do
           State.modify_ (Record.modify _holeIds (OrderedSet.insert args.holeType.holeId)) -- should be inserted into ordered set
           renderNode this
-            ((makeNodeProps args) { label = Just "HoleType" })
+            ((makeNodeProps args) { label = Just "HoleType", syntax = Just $ SyntaxType $ HoleType args.holeType })
             [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
     }
 
@@ -411,12 +411,13 @@ renderNode this props elemsM = do
     -- Debug.traceM $ "================================="
     -- Debug.traceM $ "renderNode isSelected"
     -- Debug.traceM $ "label = " <> show props.label
-    -- Debug.traceM $ "meta  = " <> show props.meta
+    -- Debug.traceM $ "props = " <> show props
     -- Debug.traceM $ "================================="
     -- update environment
     State.modify_
       ( _
-          { alpha = props.alpha
+          { syntax = props.syntax
+          , alpha = props.alpha
           , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta

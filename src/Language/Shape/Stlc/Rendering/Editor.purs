@@ -110,7 +110,23 @@ renderEnvironment this env =
         DOM.span [ Props.className "context-data" ]
           $ Array.concat
               [ [ token.data1 ]
-              , flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta }
+              , [ DOM.span
+                    [ Props.onClick \event -> do
+                        -- Debug.traceM "trying to paste datatype"
+                        -- Debug.traceM $ "env.syntax = " <> show env.syntax
+                        case env.syntax of
+                          Just (SyntaxType (HoleType holeType)) -> do
+                            modifyState this \st ->
+                              maybe st identity do
+                                applyChange
+                                  { ix: fromJust st.mb_ix
+                                  , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
+                                  }
+                                  st
+                          _ -> pure unit
+                    ]
+                    (flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta })
+                ]
               ]
 
     renderVarType termId =
@@ -122,7 +138,6 @@ renderEnvironment this env =
               [ [ DOM.span
                     [ Props.className "context-varType-var"
                     , Props.onClick \event -> do
-                        -- TODO: paste this var at current index 
                         case fitsInHole (fromJust env.alpha) type_ of
                           -- does fit in hole 
                           Just (nArgs /\ holeSub)
