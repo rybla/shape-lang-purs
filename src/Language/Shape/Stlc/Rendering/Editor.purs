@@ -138,9 +138,6 @@ renderEnvironment this env =
               [ [ DOM.span
                     [ Props.className "context-varType-var"
                     , Props.onClick \event -> do
-                        -- Debug.traceM $ "env.alpha = " <> show env.alpha
-                        -- Debug.traceM $ "type_ = " <> show type_
-                        -- Debug.traceM $ "fitsInHole (fromJust env.alpha) type_ = " <> show (fitsInHole (fromJust env.alpha) type_)
                         case fitsInHole type_ (fromJust env.alpha) of
                           -- does fit in hole 
                           Just (nArgs /\ holeSub) -> do
