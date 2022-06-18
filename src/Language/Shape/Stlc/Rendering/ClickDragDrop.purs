@@ -119,9 +119,8 @@ propsClickDragDrop this props =
                                                 , type_ = subType holeSub st.type_
                                                 }
                                         pure st
-                                -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
-                                Just (nArgs /\ holeSub)
-                                  | nArgs > 0 -> do
+                                  -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
+                                  | otherwise -> do
                                     -- extract TermId from pasted term
                                     unsafeCrashWith "[unimplemented] use createNeu to add arguments to pasted term if needed"
                                 _ -> do
@@ -142,6 +141,7 @@ propsClickDragDrop this props =
                                       }
                                       st
                                   -- wrap the drop location in a buffer, and put the dropped term in the buffer
+                                  -- BUG need to dig the dragged term if it appears in `term` also. how best to do this? could do an additional dig on `term`, or could extract the new `term` from the state after digging
                                   st <-
                                     applyChange
                                       { ix: ixDown

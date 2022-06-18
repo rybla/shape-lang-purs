@@ -1,10 +1,21 @@
 module Language.Shape.Stlc.Rendering.Editor where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.ChAtIndex
+import Language.Shape.Stlc.Changes
+import Language.Shape.Stlc.Context
+import Language.Shape.Stlc.CopyPasteBackend
+import Language.Shape.Stlc.Hole
+import Language.Shape.Stlc.Key
+import Language.Shape.Stlc.Metacontext
+import Language.Shape.Stlc.Metadata
+import Language.Shape.Stlc.Recursor.Action
+import Language.Shape.Stlc.Recursor.Index
 import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
+import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State as State
@@ -12,16 +23,11 @@ import Data.Array as Array
 import Data.Default (default)
 import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (over, unwrap, wrap)
 import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.Context (Context(..))
-import Language.Shape.Stlc.Key (keys)
-import Language.Shape.Stlc.Metacontext (Metacontext(..))
-import Language.Shape.Stlc.Metadata (SumItemMetadata(..))
-import Language.Shape.Stlc.Recursor.Index (nonVisit)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, modifyState)
 import React.DOM as DOM
@@ -29,6 +35,7 @@ import React.DOM.Props as Props
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
+import Unsafe (fromJust)
 
 -- | renderEditor
 renderEditor :: This -> Effect (RenderEnvironment /\ ReactElement)
@@ -112,9 +119,38 @@ renderEnvironment this env =
       in
         DOM.span [ Props.className "context-varType" ]
           $ Array.concat
-              [ flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
+              [ [ DOM.span
+                    [ Props.className "context-varType-var"
+                    , Props.onClick \event -> do
+                        -- TODO: paste this var at current index 
+                        case fitsInHole (fromJust env.alpha) type_ of
+                          -- does fit in hole 
+                          Just (nArgs /\ holeSub)
+                            | nArgs == 0 -> do
+                              modifyState this \st ->
+                                maybe st identity do
+                                  st <-
+                                    applyChange
+                                      { ix: fromJust st.mb_ix
+                                      , toReplace: ReplaceTerm (Neu { termId, argItems: mempty, meta: default }) NoChange
+                                      }
+                                      st
+                                  st <-
+                                    pure
+                                      $ st
+                                          { term = subTerm holeSub st.term
+                                          , type_ = subType holeSub st.type_
+                                          }
+                                  pure st
+                            | otherwise -> unsafeCrashWith "[unimplemented] use createNeu to add arguments to variable if needed"
+                          Nothing -> pure unit -- doesn't fit in hole 
+                    ]
+                    (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })
+                ]
               , [ token.let2 ]
-              , flip State.evalState env $ renderType this { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
+              , [ DOM.span [ Props.className "context-varType-type" ]
+                    (flip State.evalState env $ renderType this { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta })
+                ]
               ]
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement
