@@ -14,6 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.OrderedMap as OMap
 import Data.Set as Set
+import Debug as Debug
 import Language.Shape.Stlc.Changes (Changes, VarChange(..))
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Hole (HoleSub, unifyType)
@@ -24,11 +25,17 @@ import Undefined (undefined)
 -- First type is type of variable, second type is type of hole, output is how many args the
 -- variable is applied to to fit in the hole
 fitsInHole :: Type -> Type -> Maybe (Int /\ HoleSub)
-fitsInHole a b = case unifyType a b of
-    Just holeSub -> Just (0 /\ holeSub)
-    Nothing -> case a of
-         (ArrowType {dom, cod}) -> map (\(n /\ s) -> ((n + 1) /\ s)) (fitsInHole cod b)
-         _ -> Nothing
+fitsInHole a b = do
+    Debug.traceM $ "fitsInHole.a = " <> show a
+    Debug.traceM $ "fitsInHole.b = " <> show b
+    Debug.traceM $ "fitsInHole.unifyType a b = " <> show (unifyType a b )
+    case unifyType a b of
+      Just holeSub -> do 
+        Just (0 /\ holeSub)
+      Nothing -> do 
+        case a of
+          (ArrowType {dom, cod}) -> map (\(n /\ s) -> ((n + 1) /\ s)) (fitsInHole cod b)
+          _ -> Nothing
 
 createNeu :: TermId -> Int -> Term
 createNeu x n = Neu {termId : x,
