@@ -39,7 +39,7 @@ matchOneOfKeys event keys = any (matchKey event) keys
 matchKey :: Event -> Key -> Boolean
 matchKey event (Key str) = case uncons (reverse $ split (Pattern " ") str) of
   Nothing -> false
-  Just { head: k, tail: mods } -> k == key && all checkMod mods
+  Just { head: k, tail: mods } -> String.toLower k == String.toLower key && all checkMod mods
   where
   checkMod :: String -> Boolean
   checkMod = case _ of
