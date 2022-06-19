@@ -29,6 +29,7 @@ import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
+import Language.Shape.Stlc.Rendering.Utilities (maybeArray)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim (Array, Record, Row)
 import Prim as Prim
@@ -110,6 +111,37 @@ recType rec =
                                   doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType args.arrowType.cod RemoveArg }
                             }
                         ]
+                      <> maybeArray
+                          ( case args.arrowType.cod of
+                              ArrowType arrowType -> Just arrowType
+                              _ -> Nothing
+                          )
+                          ( \arrowType' ->
+                              Action
+                                { label: Just "swaparrow"
+                                , triggers: [ ActionTrigger_Keypress keys.swap ]
+                                , effect:
+                                    \{ this } -> do
+                                      st <- getState this
+                                      doChange this
+                                        { ix: fromJust st.mb_ix
+                                        , toReplace:
+                                            ReplaceType
+                                              ( ArrowType
+                                                  { dom: arrowType'.dom
+                                                  , cod:
+                                                      ArrowType
+                                                        { dom: args.arrowType.dom
+                                                        , cod: arrowType'.cod
+                                                        , meta: arrowType'.meta
+                                                        }
+                                                  , meta: args.arrowType.meta
+                                                  }
+                                              )
+                                              Swap
+                                        }
+                                }
+                          )
                 }
                 args
     , dataType:
@@ -206,6 +238,37 @@ recTerm rec =
                                   doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.lam.body RemoveArg }
                             }
                         ]
+                      <> maybeArray
+                          ( case args.lam.body of
+                              Lam lam -> Just lam -- the body is also a lambda
+                              _ -> Nothing
+                          )
+                          ( \lam' ->
+                              Action
+                                { label: Just "swaplambdas"
+                                , triggers: [ ActionTrigger_Keypress keys.swap ]
+                                , effect:
+                                    \{ this } -> do
+                                      st <- getState this
+                                      doChange this
+                                        { ix: fromJust st.mb_ix
+                                        , toReplace:
+                                            ReplaceTerm
+                                              ( Lam
+                                                  { termBind: lam'.termBind
+                                                  , body:
+                                                      Lam
+                                                        { termBind: args.lam.termBind
+                                                        , body: lam'.body
+                                                        , meta: lam'.meta
+                                                        }
+                                                  , meta: args.lam.meta
+                                                  }
+                                              )
+                                              Swap
+                                        }
+                                }
+                          )
                 }
                 args
     , neu:

@@ -35,12 +35,7 @@ import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Index (IxDown(..), nilIxDown, nilIxUp, toIxDown)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation)
 import Language.Shape.Stlc.Metadata (Name(..))
-import Language.Shape.Stlc.Recursor.Action (doChange)
-import Language.Shape.Stlc.Recursor.Action as Rec
-import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index (Visit, nilVisit, nonVisit)
-import Language.Shape.Stlc.Recursor.Index as RecIx
-import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)

@@ -32,6 +32,8 @@ keys =
   -- buf: b
   , buf: [ Key "b" ]
   , unbuf: [ Key "Shift b" ]
+  -- swap: s
+  , swap: [ Key "s" ]
   -- misc
   , delete: [ Key "Backspace" ]
   , indent: [ Key "Tab" ]
