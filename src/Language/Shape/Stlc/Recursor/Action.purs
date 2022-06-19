@@ -93,7 +93,19 @@ recType rec =
     { arrowType:
         \args ->
           rec.arrowType
-            $ R.union { actions: common (ArrowType args.arrowType) args <> [] }
+            $ R.union
+                { actions:
+                    common (ArrowType args.arrowType) args
+                      <> [ Action
+                            { label: Just "unarrow"
+                            , triggers: [ ActionTrigger_Keypress keys.unlambda ]
+                            , effect:
+                                \{ this } -> do
+                                  st <- getState this
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType args.arrowType.cod RemoveArg }
+                            }
+                        ]
+                }
                 args
     , dataType:
         \args ->
@@ -177,7 +189,19 @@ recTerm rec =
     { lam:
         \args ->
           rec.lam
-            $ R.union { actions: common (Lam args.lam) args <> [] }
+            $ R.union
+                { actions:
+                    common (Lam args.lam) args
+                      <> [ Action
+                            { label: Just "unlambda"
+                            , triggers: [ ActionTrigger_Keypress keys.unlambda ]
+                            , effect:
+                                \{ this } -> do
+                                  st <- getState this
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.lam.body RemoveArg }
+                            }
+                        ]
+                }
                 args
     , neu:
         \args ->
