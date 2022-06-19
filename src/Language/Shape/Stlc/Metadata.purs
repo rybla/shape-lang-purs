@@ -202,7 +202,7 @@ newtype CaseItemMetadata
   = CaseItemMetadata { indented :: Boolean }
 
 instance defaultCaseItemMetadata :: Default CaseItemMetadata where
-  default = CaseItemMetadata { indented: false }
+  default = CaseItemMetadata { indented: true }
 
 derive instance newTypeCaseItemMetadata :: Newtype CaseItemMetadata _
 

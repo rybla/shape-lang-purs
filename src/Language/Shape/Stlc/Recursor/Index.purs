@@ -253,6 +253,7 @@ recCaseItem ::
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
   Lacks "typeId" r =>
+  Lacks "termId" r =>
   { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =

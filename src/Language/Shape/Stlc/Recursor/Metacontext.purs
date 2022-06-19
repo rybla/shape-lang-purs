@@ -6,6 +6,7 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Data.Newtype (over, unwrap, wrap)
+import Language.Shape.Stlc.Context (insertVarType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, incrementIndentationUnless, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index as Rec
 import Prim (Record, Row)
@@ -158,7 +159,16 @@ recTerm rec =
             args
               { typeId = args.typeId
               , term = incrementIndentation `mapArgsMeta` args.term
-              , caseItems = map (incrementIndentation `mapArgsMeta` _) args.caseItems
+              , caseItems =
+                map
+                  ( \argItem ->
+                      ( incrementIndentation
+                          <<< foldr (\termBindItem f -> insertVar termBindItem.termBind.termId (unwrap termBindItem.termBind.meta).name <<< f) identity argItem.caseItem.termBindItems
+                      )
+                        `mapArgsMeta`
+                          argItem
+                  )
+                  args.caseItems
               }
     , hole: rec.hole
     }
@@ -215,6 +225,7 @@ recCaseItem ::
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
   Lacks "typeId" r =>
+  Lacks "termId" r =>
   { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =
