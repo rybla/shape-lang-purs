@@ -46,23 +46,15 @@ matchKey event (Key str) = case uncons (reverse $ split (Pattern " ") str) of
     foldr
       ( \mod b ->
           ( if Array.elem mod opts then
-              -- if in the options, then mod must be enabled
-              modVal mod
+              modVal mod -- if in the options, then mod must be enabled
             else
-              -- if not in the options, then mod must be disabled
-              not (modVal mod)
+              not (modVal mod) -- if not in the options, then mod must be disabled
           )
             && b
       )
       true
       mods
 
-  -- case uncons mods of
-  -- Just { head: mod, tail: mods' } -> 
-  --   if Array.elem mod mods' then modVal mod else not modVal mod 
-  -- Nothing -> ?a
-  -- checkMods mods opts =
-  --   if Array.elem 
   modVal :: String -> Boolean
   modVal = case _ of
     "Shift" -> shift
