@@ -223,7 +223,8 @@ renderTerm this =
                       ]
             ]
     , match:
-        \args ->
+        \args -> do
+          Debug.traceM $ "rendering args.caseItems: " <> show args.caseItems
           renderNode this
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
             [ pure [ token.match1 ]
@@ -273,13 +274,15 @@ renderCaseItem :: This -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
 renderCaseItem this =
   Rec.recCaseItem
     { caseItem:
-        \args ->
+        \args -> do
           renderNode this
             (makeNodeProps args) { label = Just "CaseItem" }
             [ pure $ newline args.meta (unwrap args.caseItem.meta).indented
             , pure [ token.caseItem1 ]
-            , renderItems (renderTermBindItem this <$> args.termBindItems)
+            , printTermId { termId: args.termId, gamma: args.gamma, visit: nonVisit, meta: args.meta }
             , pure [ token.caseItem2 ]
+            , renderItems (renderTermBindItem this <$> args.termBindItems)
+            , pure [ token.caseItem3 ]
             , renderTerm this args.body
             ]
     }

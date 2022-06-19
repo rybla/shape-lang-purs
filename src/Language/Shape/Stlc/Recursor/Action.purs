@@ -13,10 +13,12 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
+import Control.Monad.State (runState)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
+import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (over, unwrap, wrap)
 import Data.Set as Set
@@ -234,8 +236,14 @@ recTerm rec =
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
                             , effect:
                                 \{ this } -> do
+                                  -- BUG doesn't correctly delete bound var
                                   st <- getState this
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.lam.body RemoveArg }
+                                  let
+                                    state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
+
+                                    body' /\ holeEq = runState state Map.empty
+                                  -- TODO: is it possible that the holeEq could apply to more than just body'?
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' RemoveArg }
                             }
                         ]
                       <> maybeArray
@@ -287,9 +295,14 @@ recTerm rec =
                             , triggers: [ ActionTrigger_Keypress keys.unlet ]
                             , effect:
                                 \{ this } -> do
+                                  -- BUG doesn't correctly delete bound var
                                   st <- getState this
-                                  -- TODO: delete instances of bound term (ask jacob)
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.let_.body NoChange }
+                                  let
+                                    state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.let_.termBind.termId) NoChange args.let_.body
+
+                                    body' /\ holeEq = runState state Map.empty
+                                  -- TODO: is it possible that the holeEq could apply to more than just body'?
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' NoChange }
                             }
                         ]
                 }
@@ -473,6 +486,7 @@ recCaseItem ::
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
   Lacks "typeId" r =>
+  Lacks "termId" r =>
   { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec = Rec.recCaseItem { caseItem: \args -> rec.caseItem $ R.union { actions: [] } args }

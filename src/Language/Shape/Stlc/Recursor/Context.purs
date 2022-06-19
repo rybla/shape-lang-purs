@@ -143,7 +143,7 @@ recTerm rec =
             args
               { typeId = prune args.typeId
               , term = args.term { alpha = DataType { typeId: args.match.typeId, meta: default } }
-              , caseItems = undefined -- TODO
+              , caseItems = (\(argItem /\ sumItem) -> { typeId: args.match.typeId, termId: sumItem.termBind.termId } `R.union` argItem) <$> List.zip args.caseItems (lookupData args.match.typeId args.gamma).sumItems
               }
     , hole: rec.hole
     }
@@ -184,16 +184,17 @@ recSumItem = Rec.recSumItem
 
 -- | recCaseItem
 type ArgsCaseItem r
-  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId | r )
+  = Rec.ArgsCaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId, termId :: TermId | r )
 
 type ArgsCaseItem_CaseItem r rTermBind rTerm
-  = Rec.ArgsCaseItem_CaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId | r ) rTermBind rTerm
+  = Rec.ArgsCaseItem_CaseItem ( gamma :: Context, alpha :: Type, typeId :: TypeId, termId :: TermId | r ) rTermBind rTerm
 
 recCaseItem ::
   forall r a.
   Lacks "caseItem" r =>
   Lacks "alpha" r =>
   Lacks "typeId" r =>
+  Lacks "termId" r =>
   { caseItem :: Record (ArgsCaseItem_CaseItem r (ArgsTermBindItem r) (ArgsTerm r)) -> a } ->
   Record (ArgsCaseItem r) -> a
 recCaseItem rec =
@@ -205,11 +206,11 @@ recCaseItem rec =
           in
             rec.caseItem
               args
-                { termBindItems = (R.delete _alpha <<< R.delete _typeId) <$> args.termBindItems
+                { termBindItems = (R.delete _alpha <<< R.delete _typeId <<< R.delete _termId) <$> args.termBindItems
                 , body =
                   foldl
                     (\term (termBindItem /\ sumItem) -> insertVarType termBindItem.termBindItem.termBind.termId (typeOfSumItem args.typeId sumItem) `mapArgsCtx` term)
-                    (R.delete _typeId args.body)
+                    (R.delete _typeId <<< R.delete _termId $ args.body)
                     (args.termBindItems `List.zip` data_.sumItems)
                 }
     }

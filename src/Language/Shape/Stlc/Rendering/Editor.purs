@@ -29,7 +29,7 @@ import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Effect (Effect)
 import Partial.Unsafe (unsafeCrashWith)
-import React (ReactElement, modifyState)
+import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
@@ -131,6 +131,29 @@ renderEnvironment this env =
                                       { term = subTerm holeSub st.term
                                       , type_ = subType holeSub st.type_
                                       }
+                          Just (SyntaxTerm (Hole hole)) -> do
+                            -- match on term of type clicked
+                            st <- getState this
+                            doChange this
+                              { ix: fromJust st.mb_ix
+                              , toReplace:
+                                  ReplaceTerm
+                                    ( Match
+                                        { typeId: typeId
+                                        , term: Hole { meta: default }
+                                        , caseItems:
+                                            ( \sumItem ->
+                                                { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
+                                                , body: Hole { meta: default }
+                                                , meta: default
+                                                }
+                                            )
+                                              <$> data_.sumItems
+                                        , meta: default
+                                        }
+                                    )
+                                    NoChange
+                              }
                           _ -> pure unit
                     ]
                     (flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta })
