@@ -24,8 +24,8 @@ keys =
   -- match: m
   , inmatch: [ Key "Meta m" ]
   -- let: a
-  , let_: [ Key "=" ]
-  , unlet: [ Key "Shift =" ]
+  , let_: [ Key "a" ]
+  , unlet: [ Key "Shift a" ]
   -- data: t
   , data_: [ Key "t" ]
   , undata: [ Key "Shift t" ]
