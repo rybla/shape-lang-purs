@@ -45,6 +45,9 @@ bindMaybeEffectUnit = case _ of
 
 infixr 5 bindMaybeEffectUnit as >>|=
 
+-- TODO: ask jacob how to use chTerm
+-- applyChanges :: Changes -> State -> Maybe State
+-- applyChanges
 applyChange :: Change -> State -> Maybe State
 applyChange change st = do
   Debug.traceM $ "===[ change ]==="
@@ -102,6 +105,7 @@ recType rec =
                             , effect:
                                 \{ this } -> do
                                   st <- getState this
+                                  -- TODO: delete instances of bound term (ask jacob)
                                   doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType args.arrowType.cod RemoveArg }
                             }
                         ]
@@ -211,12 +215,37 @@ recTerm rec =
     , let_:
         \args ->
           rec.let_
-            $ R.union { actions: common (Let args.let_) args <> [] }
+            $ R.union
+                { actions:
+                    common (Let args.let_) args
+                      <> [ Action
+                            { label: Just "unlet"
+                            , triggers: [ ActionTrigger_Keypress keys.unlet ]
+                            , effect:
+                                \{ this } -> do
+                                  st <- getState this
+                                  -- TODO: delete instances of bound term (ask jacob)
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.let_.body NoChange }
+                            }
+                        ]
+                }
                 args
     , buf:
         \args ->
           rec.buf
-            $ R.union { actions: common (Buf args.buf) args <> [] }
+            $ R.union
+                { actions:
+                    common (Buf args.buf) args
+                      <> [ Action
+                            { label: Just "unbuffer"
+                            , triggers: [ ActionTrigger_Keypress keys.unbuf ]
+                            , effect:
+                                \{ this } -> do
+                                  st <- getState this
+                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.buf.body NoChange }
+                            }
+                        ]
+                }
                 args
     , data_:
         \args ->
