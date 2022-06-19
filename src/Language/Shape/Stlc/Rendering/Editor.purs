@@ -98,8 +98,8 @@ renderEnvironment this env =
     -- Debug.trace (show env) \_ ->
     [ DOM.div
         [ Props.className "context" ]
-        [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> OrderedMap.keys (unwrap gamma).datas
-        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable $ renderVarType <$> OrderedMap.keys (unwrap gamma).varTypes
+        [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> List.reverse (OrderedMap.keys (unwrap gamma).datas)
+        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable $ renderVarType <$> List.reverse (OrderedMap.keys (unwrap gamma).varTypes)
         ]
     ]
     where
@@ -118,11 +118,19 @@ renderEnvironment this env =
                           Just (SyntaxType (HoleType holeType)) -> do
                             modifyState this \st ->
                               maybe st identity do
-                                applyChange
-                                  { ix: fromJust st.mb_ix
-                                  , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
-                                  }
-                                  st
+                                -- applyChange
+                                -- { ix: fromJust st.mb_ix
+                                -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
+                                -- }
+                                -- st
+                                -- apply holeSub
+                                let
+                                  holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
+                                pure
+                                  $ st
+                                      { term = subTerm holeSub st.term
+                                      , type_ = subType holeSub st.type_
+                                      }
                           _ -> pure unit
                     ]
                     (flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta })
