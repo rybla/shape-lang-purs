@@ -62,8 +62,14 @@ init1 =
               }
       , meta: default
       }
-      /\ ArrowType
-          { dom: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
-          , cod: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
-          , meta: default
-          }
+      -- /\ ArrowType
+      
+      --     { dom: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+      
+      --     , cod: HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }
+      
+      --     , meta: default
+      
+      --     }
+      
+      /\ HoleType { holeId: freshHoleId unit, weakening: Set.empty, meta: default }

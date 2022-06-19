@@ -140,9 +140,11 @@ renderTerm this =
               [ renderTermId this args.termId
               ]
             else
-              [ renderTermId this args.termId
-              , pure [ token.neu1 ]
+              [ pure [ token.lparen ]
+              , renderTermId this args.termId
+              -- , pure [ token.neu1 ]
               , renderItems (renderArgItem this <$> args.argItems)
+              , pure [ token.rparen ]
               ]
     , let_:
         \args ->
@@ -249,8 +251,9 @@ renderArgItem this =
           renderNode this
             ( (makeNodeProps args) { label = Just "ArgItem" }
             )
-            $ [ pure $ newline args.meta (unwrap args.argItem.meta).indented
-              , enParenIf (renderTerm this args.term) (requiresParenTerm args.term.term)
+            $ [ pure $ newlineOrSpace args.meta (unwrap args.argItem.meta).indented
+              -- , enParenIf (renderTerm this args.term) (requiresParenTerm args.term.term)
+              , renderTerm this args.term
               ]
     }
 
