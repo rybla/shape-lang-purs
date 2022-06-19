@@ -53,7 +53,9 @@ chAtArgItems gamma (ArrowType {cod, dom, meta}) tRep -- index points to this arg
   (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix)) ({term, meta: argMeta} : args)
   = do
     (arg' /\ (IxDown ix') /\ tc /\ holeEq) <- chAtTerm {alpha: dom, gamma, term} tRep (IxDown ix)
-    pure $ ({term: arg', meta: argMeta} : args) /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix')) /\ holeEq
+    if tc == NoChange
+      then pure $ ({term: arg', meta: argMeta} : args) /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix')) /\ holeEq
+      else Nothing
 chAtArgItems _ _ _ _ _ = error "shouldn't get here 10"
 
 chAtTerm :: Record (Rec.ArgsTerm ()) -> ToReplace -> IxDown -> Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
