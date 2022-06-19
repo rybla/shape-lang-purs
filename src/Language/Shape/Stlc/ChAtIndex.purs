@@ -9,12 +9,15 @@ import Control.Monad.State (runState)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..), isJust, maybe)
+import Data.Newtype (unwrap)
+import Data.OrderedMap (lookup')
 import Data.Show.Generic (genericShow)
 import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, varChange)
+import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.Hole (HoleEq, emptyHoleEq, emptyHoleSub)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixStepBuf, ixStepData, ixStepLet)
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (ArrowType, Term(..), Type(..), Buf)
+import Language.Shape.Stlc.Syntax (ArgItem, Buf, Term(..), Type(..), ArrowType)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -40,6 +43,19 @@ No, that doesn't work. Its only if chAtTerm tries to pass something UP to an arg
 NoChange. It is OK if something in an argument changes but it doesn't change the overall type.
 -}
 
+chAtArgItems :: Context -> Type -> ToReplace -> IxDown -> List ArgItem -> Maybe (List ArgItem /\ IxDown /\ HoleEq)
+chAtArgItems gamma (ArrowType {cod, dom, meta}) tRep
+  (IxDown (IxStep IxStepList 1 : ix)) (arg : args) -- index points to next arg
+  = do
+    (argItems /\ (IxDown idx) /\ holeEq) <- chAtArgItems gamma cod tRep (IxDown ix) args
+    pure $ (arg : argItems) /\ (IxDown (IxStep IxStepList 1 : idx)) /\ holeEq
+chAtArgItems gamma (ArrowType {cod, dom, meta}) tRep -- index points to this arg
+  (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix)) ({term, meta: argMeta} : args)
+  = do
+    (arg' /\ (IxDown ix') /\ tc /\ holeEq) <- chAtTerm {alpha: dom, gamma, term} tRep (IxDown ix)
+    pure $ ({term: arg', meta: argMeta} : args) /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix')) /\ holeEq
+chAtArgItems _ _ _ _ _ = error "shouldn't get here 10"
+
 chAtTerm :: Record (Rec.ArgsTerm ()) -> ToReplace -> IxDown -> Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
 chAtTerm args (ReplaceTerm newTerm tc) (IxDown Nil)
   = Just (newTerm /\ IxDown Nil /\ tc /\ emptyHoleEq)
@@ -50,7 +66,16 @@ chAtTerm args tRep idx = Rec.recTerm {
       pure $ Lam args.lam {body=body'} /\ IxDown (IxStep IxStepLam 1 : idx') /\ (ArrowCh NoChange tc) /\ holeEq
     _ -> error "no8"
   , neu : \args tRep -> case _ of
-    (IxDown (IxStep IxStepNeu 1 : rest)) -> error "unimplemented" -- argument of neutral
+    (IxDown (IxStep IxStepNeu 1 : rest)) -> do
+      -- error ("Rest of index after IxStepNeu: " <> show rest)  -- argument of neutral
+      {-
+      So what happens here...
+      is anything ever propagated upwards?
+      Do I just find the correct argument and apply the change there?
+      -}
+      let varType = lookup' (args.neu.termId) (unwrap args.gamma).varTypes
+      (argItems' /\ (IxDown idx) /\ holeEq) <- chAtArgItems args.gamma varType tRep (IxDown rest) args.neu.argItems
+      pure $ Neu args.neu {argItems = argItems'} /\ IxDown (IxStep IxStepNeu 1 : idx) /\ NoChange /\ holeEq
     _ -> error "no9"
   , let_ : \args tRep -> case _ of
     (IxDown (IxStep IxStepLet 1 : rest)) -> do -- type of let
