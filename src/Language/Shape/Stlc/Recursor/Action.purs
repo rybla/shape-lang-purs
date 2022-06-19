@@ -29,6 +29,7 @@ import Language.Shape.Stlc.Hole (HoleEq)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
+import Partial.Unsafe (unsafeCrashWith)
 import Prim (Array, Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
@@ -260,7 +261,26 @@ recTerm rec =
     , hole:
         \args ->
           rec.hole
-            $ R.union { actions: common (Hole args.hole) args <> [] }
+            $ R.union
+                { actions:
+                    common (Hole args.hole) args
+                      <> [ Action
+                            { label: Just "inlambda"
+                            , triggers: [ ActionTrigger_Keypress keys.inlambda ]
+                            , effect:
+                                \{ this } -> do
+                                  st <- getState this
+                                  case args.alpha of
+                                    ArrowType arrow -> doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm (Lam { termBind: freshTermBind unit, body: freshHole unit, meta: default }) NoChange }
+                                    _ -> pure unit -- cannot inlambda if type is not an arrow
+                            }
+                        , Action
+                            { label: Just "inmatch"
+                            , triggers: [ ActionTrigger_Keypress keys.inmatch ]
+                            , effect: \{ this } -> unsafeCrashWith "[unimplemented] inmatch action"
+                            }
+                        ]
+                }
                 args
     }
   where

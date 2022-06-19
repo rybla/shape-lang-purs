@@ -39,10 +39,32 @@ matchOneOfKeys event keys = any (matchKey event) keys
 matchKey :: Event -> Key -> Boolean
 matchKey event (Key str) = case uncons (reverse $ split (Pattern " ") str) of
   Nothing -> false
-  Just { head: k, tail: mods } -> String.toLower k == String.toLower key && all checkMod mods
+  Just { head: k, tail: mods } -> String.toLower k == String.toLower key && checkMods [ "Shift", "Meta", "Ctrl", "Alt" ] mods
   where
-  checkMod :: String -> Boolean
-  checkMod = case _ of
+  checkMods :: Array String -> Array String -> Boolean
+  checkMods mods opts =
+    foldr
+      ( \mod b ->
+          ( if Array.elem mod opts then
+              -- if in the options, then mod must be enabled
+              modVal mod
+            else
+              -- if not in the options, then mod must be disabled
+              not (modVal mod)
+          )
+            && b
+      )
+      true
+      mods
+
+  -- case uncons mods of
+  -- Just { head: mod, tail: mods' } -> 
+  --   if Array.elem mod mods' then modVal mod else not modVal mod 
+  -- Nothing -> ?a
+  -- checkMods mods opts =
+  --   if Array.elem 
+  modVal :: String -> Boolean
+  modVal = case _ of
     "Shift" -> shift
     "Meta" -> meta
     "Ctrl" -> ctrl
