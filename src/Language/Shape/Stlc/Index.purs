@@ -156,7 +156,7 @@ ixStepMatch =
   }
 
 ixStepArgItem =
-  { term: IxStep IxStepSumItem 0
+  { term: IxStep IxStepArgItem 0
   }
 
 ixStepSumItem =
