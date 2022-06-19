@@ -107,6 +107,7 @@ derive newtype instance eqTypeId :: Eq TypeId
 
 derive newtype instance ordTypeId :: Ord TypeId
 
+
 freshTypeId :: Unit -> TypeId
 freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
 

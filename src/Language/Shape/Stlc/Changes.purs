@@ -38,6 +38,9 @@ data TypeChange
     | Dig HoleId
 -- Note for the future: could e.g. make Swap take a typechange which says what happens to rest of type after swap. Currently, it is implicitly NoChange.
 
+derive instance eqTypeChange :: Eq TypeChange
+derive instance ordTypeChange :: Ord TypeChange
+
 derive instance Generic TypeChange _
 instance Show TypeChange where show x = genericShow x
 
