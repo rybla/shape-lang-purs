@@ -101,6 +101,12 @@ combineSubs _ _ = Map.empty -- TODO: fix this later!!!
 write with advanced pattern matching rather than merely simple recursion. Therefore, I write those cases
 manually, and then use the Context recursor for the remaining cases in chTermAux.-}
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State HoleEq Term
+chTerm gamma ty chs tc (Match stuff)
+    = chTermAux {alpha: ty, gamma: gamma, term: Match stuff} chs tc
+chTerm gamma ty chs tc (Let stuff)
+    = chTermAux {alpha: ty, gamma: gamma, term: Let stuff} chs tc
+chTerm gamma ty chs tc (Buf stuff)
+    = chTermAux {alpha: ty, gamma: gamma, term: Buf stuff} chs tc
 chTerm gamma (ArrowType {dom, cod, meta:m1}) chs (ArrowCh c1 c2) (Lam {termBind, body, meta:m2})
     = do let (_ /\ change) = chType chs.dataTypeDeletions dom
         -- TODO TODO TODO TODO TODO TODO: this is the point where I need to figure out when to use
@@ -114,7 +120,7 @@ chTerm gamma (ArrowType {dom, cod, meta:m1}) chs NoChange (Lam {termBind, body, 
          pure $ Lam {termBind, body: body', meta:m2}
 chTerm gamma ty chs (InsertArg a) t
     = do t' <- chTerm gamma ty chs NoChange t
-         pure $ Lam {termBind:{termId: freshTermId unit, meta: default}, body: t, meta: default}
+         pure $ Lam {termBind:{termId: freshTermId unit, meta: default}, body: t', meta: default}
 chTerm gamma (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
     (Lam {termBind:i1, body: Lam {termBind:i2, body: t, meta: m2}, meta:m1})
     = do let (a' /\ change1) = chType chs.dataTypeDeletions a
