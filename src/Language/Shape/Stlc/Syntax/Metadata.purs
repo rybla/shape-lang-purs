@@ -18,6 +18,7 @@ indentSyntaxAt :: Maybe IxStep -> IxDown -> Syntax -> Maybe Syntax
 indentSyntaxAt mb_step =
   modifySyntaxAt case _ of
     SyntaxTerm term -> pure <<< SyntaxTerm $ indentTerm mb_step term
+    SyntaxArgItem argItem -> pure <<< SyntaxArgItem $ indentArgItem mb_step argItem
     syntax -> Just syntax
 
 indentTerm :: Maybe IxStep -> Term -> Term
@@ -43,6 +44,11 @@ indentTerm (Just step) term = case term of
     | step == ixStepMatch.term -> Match match
     | step == ixStepMatch.caseItems -> Match match { meta = over MatchMetadata (\o -> o { indentedCaseItems = not o.indentedCaseItems }) match.meta }
   _ -> term
+
+indentArgItem :: Maybe IxStep -> ArgItem -> ArgItem
+indentArgItem Nothing argItem = argItem
+
+indentArgItem (Just step) argItem = argItem { meta = over ArgItemMetadata (\o -> o { indented = not o.indented }) argItem.meta }
 
 stepUpToNearestIndentableParentIxUp :: IxUp -> Maybe IxStep /\ IxUp
 stepUpToNearestIndentableParentIxUp ix = case List.uncons (unwrap ix) of

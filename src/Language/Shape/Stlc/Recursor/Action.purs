@@ -158,8 +158,8 @@ recType rec =
                 args
     }
   where
-  common :: forall r. Type -> { | r } -> Array Action
-  common type_ {} =
+  common :: forall r. Type -> { visit :: Visit | r } -> Array Action
+  common type_ args =
     [ Action
         { label: Just "enarrow"
         , effect:
@@ -183,6 +183,7 @@ recType rec =
                 }
         , triggers: [ ActionTrigger_Keypress keys.dig ]
         }
+    , actionIndent args.visit.ix
     ]
 
 -- | recTerm
@@ -438,25 +439,7 @@ recTerm rec =
                       }
         , triggers: [ ActionTrigger_Keypress keys.data_ ]
         }
-    -- TODO: but actually, indentation is not necessarily a local action because it can step up the index via `stepUpToNearestIndentableParentIxUp` to perform an action
-    , Action
-        { label: Just "indent"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix -> do
-                    Debug.traceM "indent"
-                    -- doChange this
-                    --   { ix: toIxDown ix
-                    --   , toReplace:
-                    --       ReplaceTerm (indentTerm term) NoChange
-                    --   }
-                    let
-                      mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
-                    modifyState this \st ->
-                      st { term = fromJust $ toTerm =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm st.term) }
-        , triggers: [ ActionTrigger_Keypress keys.indent ]
-        }
+    , actionIndent args.visit.ix
     ]
 
 -- | recArgItem
@@ -474,7 +457,18 @@ recArgItem ::
   Lacks "cod" r =>
   { argItem :: Record (ArgsArgItem_ArgItem r (ArgsTerm r)) -> a } ->
   Record (ArgsArgItem r) -> a
-recArgItem rec = Rec.recArgItem { argItem: \args -> rec.argItem $ R.union { actions: [] } args }
+recArgItem rec =
+  Rec.recArgItem
+    { argItem:
+        \args ->
+          rec.argItem
+            $ R.union
+                { actions:
+                    [ actionIndent args.visit.ix
+                    ]
+                }
+                args
+    }
 
 -- | recSumItem
 type ArgsSumItem r
@@ -662,3 +656,20 @@ recHoleId ::
   { holeId :: Record (ArgsHoleId_HoleId r) -> a } ->
   Record (ArgsHoleId r) -> a
 recHoleId rec args = rec.holeId $ R.union { actions: [] } args
+
+-- misc actions
+actionIndent :: Maybe IxUp -> Action
+actionIndent mb_ix =
+  Action
+    { label: Just "indent"
+    , effect:
+        \{ this } ->
+          mb_ix
+            >>|= \ix -> do
+                Debug.traceM "indent"
+                let
+                  mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
+                modifyState this \st ->
+                  st { term = fromJust $ toTerm =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm st.term) }
+    , triggers: [ ActionTrigger_Keypress keys.indent ]
+    }
