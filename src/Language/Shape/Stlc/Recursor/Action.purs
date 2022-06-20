@@ -350,11 +350,6 @@ recTerm rec =
                                     ArrowType arrow -> doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm (Lam { termBind: freshTermBind unit, body: freshHole unit, meta: default }) NoChange }
                                     _ -> pure unit -- cannot inlambda if type is not an arrow
                             }
-                        , Action
-                            { label: Just "inmatch"
-                            , triggers: [ ActionTrigger_Keypress keys.inmatch ]
-                            , effect: \{ this } -> unsafeCrashWith "[unimplemented] inmatch action"
-                            }
                         ]
                 }
                 args
