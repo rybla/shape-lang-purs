@@ -618,19 +618,10 @@ recTermBind rec =
                                 args.visit.ix
                                   >>|= \ix ->
                                       handleKeytype_Name event (unwrap args.termBind.meta).name
-                                        >>|= \name' ->
+                                        >>|= \name' -> do
                                             modifyState this \st ->
-                                              st
-                                                { term =
-                                                  fromJust $ toTerm $ fromJust
-                                                    $ replaceNameAt
-                                                        args.termBind
-                                                        SyntaxTermBind
-                                                        TermBindMetadata
-                                                        name'
-                                                        (toIxDown ix)
-                                                        (SyntaxTerm st.term)
-                                                }
+                                              -- Debug.trace ("res = " <> show (replaceTermBindNameAt name' (toIxDown ix) (SyntaxTerm st.term))) \_ ->
+                                              st { term = fromJust $ toTerm $ fromJust $ replaceNameAt args.termBind SyntaxTermBind TermBindMetadata name' (toIxDown ix) (SyntaxTerm st.term) }
                               _ -> pure unit
                         }
                     ]

@@ -5,12 +5,13 @@ import Prelude
 import Prim hiding (Type)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
-import Data.List (List)
+import Data.List (List, foldr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
+import Data.Traversable (traverse)
 import Data.UUID (UUID, genUUID)
 import Data.UUID as UUID
 import Data.Variant (Variant)
@@ -106,7 +107,6 @@ newtype TypeId
 derive newtype instance eqTypeId :: Eq TypeId
 
 derive newtype instance ordTypeId :: Ord TypeId
-
 
 freshTypeId :: Unit -> TypeId
 freshTypeId _ = unsafePerformEffect $ TypeId <$> genUUID
@@ -259,5 +259,10 @@ toSyntaxList =
   ) ::
     Syntax -> Maybe (List Syntax)
 
--- overSyntax :: (a -> Syntax) -> (Syntax -> Maybe a) -> (Syntax -> Syntax)
--- overSyntax wrap unwrap f 
+rollSyntaxList :: forall a. (a -> Syntax) -> List a -> Syntax
+rollSyntaxList wrap ls = SyntaxList $ wrap <$> ls
+
+unrollSyntaxList :: forall a. (Syntax -> Maybe a) -> Syntax -> Maybe (List a)
+unrollSyntaxList unwrap syn = do
+  items <- toSyntaxList syn
+  traverse unwrap items

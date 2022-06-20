@@ -16,3 +16,8 @@ fromJust :: forall a. Maybe.Maybe a -> a
 fromJust = case _ of
   Maybe.Just a -> a
   Maybe.Nothing -> error "fromJust: Nothing"
+
+fromJust' :: forall a. String -> Maybe.Maybe a -> a
+fromJust' str = case _ of
+  Maybe.Just a -> a
+  Maybe.Nothing -> error $ "[" <> str <> "] fromJust: Nothing"

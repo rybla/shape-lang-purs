@@ -70,3 +70,18 @@ replaceNameAt x toSyntax wrapMeta name' ix =
   modifySyntaxAt
     (\_ -> Just $ toSyntax $ x { meta = over wrapMeta (\meta -> meta { name = name' }) x.meta })
     ix
+
+replaceTermBindNameAt :: Name -> IxDown -> Syntax -> Maybe Syntax
+replaceTermBindNameAt name' ixDown syn =
+  let
+    res =
+      modifySyntaxAt
+        ( case _ of
+            SyntaxTermBind termBind -> Debug.trace ("in the SyntaxTermBind case of replaceTermBindNameAt") \_ -> Just $ SyntaxTermBind termBind { meta = TermBindMetadata $ (unwrap termBind.meta) { name = name' } }
+            syn -> Debug.trace ("instead got syn = " <> show syn) \_ -> Nothing
+        )
+        ixDown
+        syn
+  in
+    Debug.trace ("replaceTermBindNameAt name' ixDown syn = " <> show res) \_ ->
+      res
