@@ -3,12 +3,17 @@ module Language.Shape.Stlc.Index where
 import Data.Foldable
 import Prelude
 import Data.Array as Array
+import Data.Bounded.Generic (genericBottom, genericTop)
+import Data.Enum (class BoundedEnum, class Enum, cardinality, fromEnum)
+import Data.Enum as Enum
+import Data.Enum.Generic (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), range, reverse, singleton, snoc, (:))
 import Data.List as List
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, over, over2, wrap)
+import Data.Ord.Generic (genericCompare)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
 
@@ -95,6 +100,22 @@ derive instance genericIxStepLabel :: Generic IxStepLabel _
 
 instance eqIxStepLabel :: Eq IxStepLabel where
   eq x = genericEq x
+
+instance ordIxStepLabel :: Ord IxStepLabel where
+  compare x y = genericCompare x y
+
+instance enumIxStepLabel :: Enum IxStepLabel where
+  succ x = genericSucc x
+  pred x = genericPred x
+
+instance boundedIxStepLabel :: Bounded IxStepLabel where
+  top = genericTop
+  bottom = genericBottom
+
+instance boundedEnumStepLabel :: BoundedEnum IxStepLabel where
+  cardinality = genericCardinality
+  toEnum x = genericToEnum x
+  fromEnum x = genericFromEnum x
 
 instance showIxStepLabel :: Show IxStepLabel where
   show x = genericShow x
@@ -209,3 +230,12 @@ ixStepList =
 -- ix1 is a super index of ix2 i.e. ix1 is an index into a child of ix2
 isSuperIxDown :: IxDown -> IxDown -> Boolean
 isSuperIxDown (IxDown steps1) (IxDown steps2) = and (List.zipWith (==) steps1 steps2) && (List.length steps1 >= List.length steps2)
+
+hashIxUp :: IxUp -> String
+hashIxUp (IxUp steps) = "ixUp:" <> foldMap ((_ <> " ") <<< hashIxStep) steps
+
+hashIxStep :: IxStep -> String
+hashIxStep (IxStep l i) = hashIxStepLabel l <> show i
+
+hashIxStepLabel :: IxStepLabel -> String
+hashIxStepLabel l = show $ Enum.fromEnum l

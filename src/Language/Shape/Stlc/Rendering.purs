@@ -41,6 +41,7 @@ programComponent this = do
       , history: mempty
       , clipboard: Nothing
       , dragboard: Nothing
+      , highlights: mempty
       }
       where
       term /\ type_ = init1

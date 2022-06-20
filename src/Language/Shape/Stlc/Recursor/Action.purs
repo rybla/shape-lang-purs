@@ -422,6 +422,27 @@ recTerm rec =
                       }
         , triggers: [ ActionTrigger_Keypress keys.buf ]
         }
+    , Action
+        { label: Just "endata"
+        , effect:
+            \{ this } ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            ( Data
+                                { typeBind: freshTypeBind unit
+                                , sumItems: mempty
+                                , body: term
+                                , meta: default
+                                }
+                            )
+                            NoChange
+                      }
+        , triggers: [ ActionTrigger_Keypress keys.data_ ]
+        }
     -- TODO: but actually, indentation is not necessarily a local action because it can step up the index via `stepUpToNearestIndentableParentIxUp` to perform an action
     , Action
         { label: Just "indent"

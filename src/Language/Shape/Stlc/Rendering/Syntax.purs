@@ -33,7 +33,7 @@ import Effect.Console as Console
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
 import Language.Shape.Stlc.Hole (subTerm, subType)
-import Language.Shape.Stlc.Index (IxDown(..), nilIxDown, nilIxUp, toIxDown)
+import Language.Shape.Stlc.Index (IxDown(..), hashIxUp, nilIxDown, nilIxUp, toIxDown)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation)
 import Language.Shape.Stlc.Metadata (Name(..))
 import Language.Shape.Stlc.Recursor.Action (doChange)
@@ -42,6 +42,7 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index (Visit, nilVisit, nonVisit)
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
+import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
 import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..), This)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
@@ -233,7 +234,7 @@ renderTerm this =
             ]
     , match:
         \args -> do
-          Debug.traceM $ "rendering args.caseItems: " <> show args.caseItems
+          -- Debug.traceM $ "rendering args.caseItems: " <> show args.caseItems
           renderNode this
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
             [ pure [ token.match1 ]
@@ -442,11 +443,19 @@ renderNode this props elemsM = do
   where
   isSelected = props.visit.csr == Just nilIxDown
 
+  mb_elemId = hashIxUp <$> props.visit.ix
+
   propsSpan =
     concat
       -- className
       [ maybeArray props.label \label ->
           Props.className $ joinWith " " [ "node", label, if isSelected then "selected" else "" ]
+      , maybeArray mb_elemId \elemId ->
+          Props._id elemId
       -- click, drag, drop
       , propsClickDragDrop this props
+      -- highlight
+      , concat
+          $ maybeArray mb_elemId \elemId ->
+              propsHighlight this props elemId
       ]

@@ -7,6 +7,7 @@
   , "debug"
   , "effect"
   , "either"
+  , "enums"
   , "foldable-traversable"
   , "free"
   , "integers"

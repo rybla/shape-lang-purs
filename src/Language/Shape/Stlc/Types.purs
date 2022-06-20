@@ -17,6 +17,7 @@ import Language.Shape.Stlc.Key (Key(..))
 import Language.Shape.Stlc.Metacontext (Metacontext(..))
 import React (ReactElement, ReactThis, getState)
 import Web.Event.Event (Event)
+import Web.HTML (HTMLElement)
 
 type Props
   = {}
@@ -28,6 +29,7 @@ type State
     , history :: History
     , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
     , dragboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
+    , highlights :: Array HTMLElement
     }
 
 -- type History = (Term /\ Type /\ Maybe IxDown) /\ Array Change
