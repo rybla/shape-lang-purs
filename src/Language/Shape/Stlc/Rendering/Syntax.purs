@@ -153,9 +153,16 @@ renderTerm this =
             [ pure [ token.let1 ]
             , renderTermBind this args.termBind
             , pure [ token.let2 ]
-            , renderType this args.sign
+            , if (unwrap args.let_.meta).indentedSign then
+                concat
+                  <$> sequence
+                      [ pure $ newline args.sign.meta true
+                      , renderType this args.sign
+                      ]
+              else
+                renderType this args.sign
             , pure [ token.let3 ]
-            , if (unwrap args.let_.meta).indentedBody then
+            , if (unwrap args.let_.meta).indentedImpl then
                 concat
                   <$> sequence
                       [ pure $ newline args.impl.meta true
