@@ -26,17 +26,19 @@ import Undefined (undefined)
 -- variable is applied to to fit in the hole
 fitsInHole :: Type -> Type -> Maybe (Int /\ HoleSub)
 fitsInHole a b = do
-    -- Debug.traceM $ "===[ fitsInHole ]==="
-    -- Debug.traceM $ "fitsInHole.a = " <> show a
-    -- Debug.traceM $ "fitsInHole.b = " <> show b
-    -- Debug.traceM $ "fitsInHole.unifyType a b = " <> show (unifyType a b )
-    case unifyType a b of
-      Just holeSub -> do 
-        Just (0 /\ holeSub)
-      Nothing -> do 
-        case a of
-          (ArrowType {dom, cod}) -> map (\(n /\ s) -> ((n + 1) /\ s)) (fitsInHole cod b)
-          _ -> Nothing
+    case a of
+        (ArrowType {dom, cod}) -> case fitsInHole cod b of
+            Just (n /\ holeSub) -> Just ((n + 1) /\ holeSub)
+            Nothing -> map (\s -> (0 /\ s)) (unifyType a b)
+        _ -> map (\s -> (0 /\ s)) (unifyType a b)
+
+    -- case unifyType a b of
+    --   Just holeSub -> do 
+    --     Just (0 /\ holeSub)
+    --   Nothing -> do 
+    --     case a of
+    --       (ArrowType {dom, cod}) -> map (\(n /\ s) -> ((n + 1) /\ s)) (fitsInHole cod b)
+    --       _ -> Nothing
 
 createNeu :: TermId -> Int -> Term
 createNeu x n | n == 0 = Neu {termId : x, argItems: mempty, meta: default}

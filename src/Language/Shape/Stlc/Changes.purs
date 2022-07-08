@@ -226,7 +226,7 @@ chArgs ctx a chs (InsertArg t) args = do
     pure $ (({meta: default, term: Hole {meta: default}} : rest) /\ chOut /\ displacements)
 chArgs ctx (ArrowType {dom, cod}) chs (ArrowCh c1 c2) ({term, meta} : args) = do
     arg' <- chTerm ctx dom chs c1 term
-    (args' /\ tc /\ displacements) <- chArgs ctx dom chs c2 args
+    (args' /\ tc /\ displacements) <- chArgs ctx cod chs c2 args
     pure $ ({term: arg', meta} : args') /\ tc /\ displacements
 chArgs ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
     ({term: arg1, meta: md1} : {term: arg2, meta: md2} : args) = do
@@ -242,7 +242,9 @@ chArgs ctx (ArrowType {dom, cod}) chs NoChange ({term, meta} : args) = do
 chArgs ctx ty chs (Dig hId) args = do
     displaced <- displaceArgs ctx ty chs args
     pure $ Nil /\ (Dig hId) /\ displaced
-chArgs _ _ _ tc _ = error $ "shouldn't get here, tc is: " <> show tc
+chArgs _ ty _ tc args
+    = error $ "shouldn't get here, tc is: " <> show tc
+        <> " and ty is: " <> show ty <> " and args is: " <> show args
 
 displaceArgs :: Context -> Type -> Changes -> List ArgItem -> State HoleEq Displaced
 displaceArgs ctx _ chs Nil = pure Nil
