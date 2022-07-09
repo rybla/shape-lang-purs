@@ -91,8 +91,9 @@ chAtTerm args tRep idx = Rec.recTerm {
   , let_ : \args tRep -> case _ of
     (IxDown (IxStep IxStepLet 1 : rest)) -> do -- type of let
       ty' /\ IxDown idx' /\ tc /\ holeEq0 <- chAtType args.sign tRep (IxDown rest)
-      let impl' /\ holeEq1 = runState (chTerm' args.impl emptyChanges tc) holeEq0
-      let body' /\ holeEq2 = runState (chTerm' args.body (varChange emptyChanges args.termBind.termBind.termId tc) NoChange) holeEq1
+      let changes = (varChange emptyChanges args.termBind.termBind.termId tc)
+      let impl' /\ holeEq1 = runState (chTerm' args.impl changes tc) holeEq0
+      let body' /\ holeEq2 = runState (chTerm' args.body changes NoChange) holeEq1
       pure $ Let args.let_ {sign= ty', impl= impl', body= body'} /\ IxDown (ixStepLet.sign : idx') /\ NoChange /\ holeEq2
     (IxDown ((IxStep IxStepLet 2) : rest)) -> do -- definition of let
       impl' /\ IxDown idx' /\ tc /\ holeEq1 <- chAtTerm args.impl tRep (IxDown rest)
