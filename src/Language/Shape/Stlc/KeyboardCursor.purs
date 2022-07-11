@@ -1,9 +1,9 @@
 module KeyboardCursor where
 
+import Data.Tuple.Nested
 import Prelude
 import Prim hiding (Type)
 
-import Data.Tuple.Nested
 import Data.List (List(..), index, length, (:))
 import Data.List.Unsafe (index')
 import Data.Maybe (Maybe(..))
@@ -11,53 +11,38 @@ import Data.Newtype (wrap)
 import Data.Tuple (fst)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..))
 import Language.Shape.Stlc.Syntax (Syntax(..), Type(..), Term(..))
-import Language.Shape.Stlc.Syntax.TreeView (getChildren)
+import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex)
 import Undefined (undefined)
 import Unsafe (error)
-
-{-
-Given some syntax, returns either the IxStepLabel associated with it, or if it
-a node without children, like for example the type Nat, then it returns Nothing.
-There are a few things in Syntax that I am unsure what they are, which I commented below.
--}
--- wait, why did I need this function again?
-getStepLabelAt :: Syntax -> Maybe IxStepLabel
-getStepLabelAt (SyntaxType (ArrowType _)) = Just IxStepArrowType
-getStepLabelAt (SyntaxType (DataType _)) = Nothing
-getStepLabelAt (SyntaxType (HoleType _)) = Nothing
-getStepLabelAt (SyntaxTerm (Lam _)) = Just IxStepLam
-getStepLabelAt (SyntaxTerm (Let _)) = Just IxStepLet
-getStepLabelAt (SyntaxTerm (Neu _)) = Just IxStepNeu
-getStepLabelAt (SyntaxTerm (Buf _)) = Just IxStepBuf
-getStepLabelAt (SyntaxTerm (Data _)) = Just IxStepData
-getStepLabelAt (SyntaxTerm (Match _)) = Just IxStepMatch
-getStepLabelAt (SyntaxTerm (Hole _)) = Nothing
-getStepLabelAt (SyntaxTermBind _) = Just IxStepTermBind -- error "what is a termbind"
-getStepLabelAt (SyntaxTermId _) = Nothing
-getStepLabelAt (SyntaxTypeBind _) = error "what is a typebind henry"
-getStepLabelAt (SyntaxArgItem _) = Just IxStepArgItem
-getStepLabelAt (SyntaxSumItem _) = Just IxStepSumItem
-getStepLabelAt (SyntaxCaseItem _) = Just IxStepCaseItem
-getStepLabelAt (SyntaxParamItem _) = Just IxStepParamItem
-getStepLabelAt (SyntaxTermBindItem _) = Just IxStepTermBindItem -- also what is a termbind here?
-getStepLabelAt (SyntaxList _) = error "what is syntaxList for????"
 
 {-
 Either moves cursor forwards one (forwards in the sense of the ordering that
 we discussed) or returns Nothing if there is no where further to move.
 -}
 stepCursorForwards :: Syntax -> IxDown -> Maybe IxDown
-stepCursorForwards syn (IxDown Nil) = Nothing
-stepCursorForwards syn (IxDown ((IxStep label child) : rest))
-    = let children = (getChildren syn) in
-      let tryInChild = stepCursorForwards (fst (index' children child)) (wrap rest) in
-      case tryInChild of
-      Just (IxDown idx) -> Just (IxDown (IxStep label child : idx))
-      Nothing ->
-        let nextChildIx = child + 1 in
-        case index children nextChildIx of
-        Just (nextChildSyn /\ steps) -> Just (IxDown steps)
-        Nothing -> Nothing
+stepCursorForwards syn idx
+    = case popIndex idx of
+      Nothing -> Nothing
+      Just (step /\ rest) ->
+        -- let children = (getChildren syn) in
+        let child = childAtStep syn step in
+        let tryInChild = stepCursorForwards child rest in
+        case tryInChild of
+        Just (IxDown idx) -> Just (IxDown (step <> idx))
+        Nothing ->
+            let nextChildStep = nextChild syn step in
+            case nextChildStep of
+            Just (newStep) -> Just (IxDown step)
+            Nothing -> Nothing
+
+{-
+There is a problem here, because there are certian index steps that are skipped over and can't be
+selected. So the way that it pattern matches on the first step of the IxDown doesn't work. What if
+the first step is a ixStepList.tail or ixStepList.head?
+
+So what should I do about that? I need (in TreeView.purs) some sort of function which given an index
+into a syntax, pops off a part of the index and returns the rest of the index.
+-}
 
 stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
 stepCursorBackwards = error "not implemnted yet"
