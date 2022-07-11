@@ -1,12 +1,18 @@
 module KeyboardCursor where
 
 import Prelude
-
 import Prim hiding (Type)
-import Data.List (List(..), (:))
+
+import Data.Tuple.Nested
+import Data.List (List(..), index, length, (:))
+import Data.List.Unsafe (index')
 import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
+import Data.Tuple (fst)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..))
 import Language.Shape.Stlc.Syntax (Syntax(..), Type(..), Term(..))
+import Language.Shape.Stlc.Syntax.TreeView (getChildren)
+import Undefined (undefined)
 import Unsafe (error)
 
 {-
@@ -14,6 +20,7 @@ Given some syntax, returns either the IxStepLabel associated with it, or if it
 a node without children, like for example the type Nat, then it returns Nothing.
 There are a few things in Syntax that I am unsure what they are, which I commented below.
 -}
+-- wait, why did I need this function again?
 getStepLabelAt :: Syntax -> Maybe IxStepLabel
 getStepLabelAt (SyntaxType (ArrowType _)) = Just IxStepArrowType
 getStepLabelAt (SyntaxType (DataType _)) = Nothing
@@ -41,7 +48,16 @@ we discussed) or returns Nothing if there is no where further to move.
 -}
 stepCursorForwards :: Syntax -> IxDown -> Maybe IxDown
 stepCursorForwards syn (IxDown Nil) = Nothing
-stepCursorForwards syn (IxDown ((IxStep label child) : rest)) = ?h
+stepCursorForwards syn (IxDown ((IxStep label child) : rest))
+    = let children = (getChildren syn) in
+      let tryInChild = stepCursorForwards (fst (index' children child)) (wrap rest) in
+      case tryInChild of
+      Just (IxDown idx) -> Just (IxDown (IxStep label child : idx))
+      Nothing ->
+        let nextChildIx = child + 1 in
+        case index children nextChildIx of
+        Just (nextChildSyn /\ steps) -> Just (IxDown steps)
+        Nothing -> Nothing
 {-
 1) call stepCursorForwards on child syntax pointed to by the next step.
     - if returns Just something, then done.
