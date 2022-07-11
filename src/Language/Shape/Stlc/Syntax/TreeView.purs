@@ -18,11 +18,13 @@ Often, when you are working with syntax, you don't care about the distinction be
 e.g. an ArrowType and a Buffer, and you just want to view it as a tree.
 -}
 
--- numChildren :: Syntax -> Int
--- numChildren = undefined
-
--- getNthChild :: Syntax -> Int -> Syntax
--- getNthChild = undefined
+{-
+When we think of our syntax as a tree, we want certian things to be nodes of the tree, like an ArrowType,
+a Lambda, or a Neu. However, this doesn't always correspond with how things are programmed
+in Index. So, we make our own type TreeIndexStep, which represents a step from one node of a tree
+to the next.
+-}
+type TreeIndexStep = List IxStep
 
 one :: forall a. a -> List a
 one x = x : Nil
@@ -37,7 +39,7 @@ It also returns (although for some purposes may not need this information) a fra
 goes from the syntax to that child. The reason its a list is because in the Neu case, it skips over
 the ArgItems and goes directly to the terms.
 -}
-getChildren :: Syntax -> List (Syntax /\ List IxStep)
+getChildren :: Syntax -> List (Syntax /\ TreeIndexStep)
 getChildren (SyntaxType (ArrowType {dom, cod}))
     = (SyntaxType dom /\ one ixStepArrowType.dom) : (SyntaxType cod /\ one ixStepArrowType.cod) : Nil
 getChildren (SyntaxType (DataType _)) = Nil
@@ -79,7 +81,7 @@ want to sort of treat as one step, like stepping into an argument of a Neu.
 This function takes an index, returns Nothing if it is empty, and otherwise
 returns the index split into the next step and the rest.
 -}
-popIndex :: IxDown -> Maybe (List IxStep /\ IxDown)
+popIndex :: IxDown -> Maybe (TreeIndexStep /\ IxDown)
 popIndex (IxDown Nil) = Nothing
 popIndex idx@(IxDown ((IxStep IxStepList child) : rest))
     = let before /\ after = untilAfterList (unwrap idx)
@@ -93,7 +95,7 @@ untilAfterList (IxStep IxStepList child : rest)
       in (IxStep IxStepList child : before) /\ after
 untilAfterList idx = Nil /\ idx
 
-nextChild :: Syntax -> List IxStep -> Maybe (List IxStep)
+nextChild :: Syntax -> TreeIndexStep -> Maybe (List IxStep)
 nextChild syn child =
     let children = getChildren syn
     in case findIndex (\(_ /\ ix) -> ix == child) children of
@@ -102,15 +104,12 @@ nextChild syn child =
                             Nothing -> Nothing
                             Just (_ /\ nextChildIdx) -> Just nextChildIdx
 
-childAtStep :: Syntax -> List IxStep -> Syntax
+childAtStep :: Syntax -> TreeIndexStep -> Syntax
 childAtStep syn idx =
     let children = getChildren syn
     in case find (\(_ /\ ix) -> ix == idx) children of
         Nothing -> error "child doesn't exist"
         Just (child /\ _) -> child
-
--- TODO: make a type called TreeIndexStep = List IxStep, and use this
--- to represent a step in the tree. Rewrite the types of the above functions to make use of TreeIndexStep.
 
 -- {-
 -- Given some syntax, returns either the IxStepLabel associated with it, or if it
