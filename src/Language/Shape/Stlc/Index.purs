@@ -212,10 +212,10 @@ ixStepList =
 -- ixUpListItem i
 --   | i == 0 = wrap (singleton ixStepList.head)
 --   | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
--- ixDownListItem :: Int -> IxDown
--- ixDownListItem i
---   | i == 0 = wrap (singleton ixStepList.head)
---   | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
+ixDownListItem :: Int -> IxDown
+ixDownListItem i
+  | i == 0 = wrap (singleton ixStepList.head)
+  | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
 -- ixUpListItems :: Int -> List IxUp
 -- ixUpListItems l = go nilIxUp l
 --   where
