@@ -58,15 +58,6 @@ stepCursorForwards syn (IxDown ((IxStep label child) : rest))
         case index children nextChildIx of
         Just (nextChildSyn /\ steps) -> Just (IxDown steps)
         Nothing -> Nothing
-{-
-1) call stepCursorForwards on child syntax pointed to by the next step.
-    - if returns Just something, then done.
-    - else, continue:
-2) next child
-3) if no next child then return Nothing?
--}
 
-{-
-Plan: make a function Syntax -> Int -> Syntax which returns
-the nth child node of a given syntax
--}
+stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
+stepCursorBackwards = error "not implemnted yet"
