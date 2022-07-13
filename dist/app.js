@@ -13347,7 +13347,7 @@ var PS = {};
                       if (v instanceof Data_Maybe.Nothing) {
                           return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                       };
-                      throw new Error("Failed pattern match at Language.Shape.Stlc.Rendering.Editor (line 204, column 25 - line 225, column 47): " + [ v.constructor.name ]);
+                      throw new Error("Failed pattern match at Language.Shape.Stlc.Rendering.Editor (line 198, column 25 - line 219, column 47): " + [ v.constructor.name ]);
                   }) ])(Data_Function.flip(Control_Monad_State.evalState)(env)(Language_Shape_Stlc_Rendering_Syntax.renderTermId($$this)({
                       termId: termId,
                       gamma: gamma,
@@ -13467,7 +13467,7 @@ var PS = {};
               return function __do() {
                   Debug.traceM()(Effect.monadEffect)("stepCursorForwards")();
                   return React.modifyState($$this)(function (st) {
-                      var mb_st = Control_Bind.bind(Data_Maybe.bindMaybe)(st.mb_ix)(function (ix) {
+                      return Data_Maybe.maybe(st)(Control_Category.identity(Control_Category.categoryFn))(Control_Bind.bind(Data_Maybe.bindMaybe)(st.mb_ix)(function (ix) {
                           return Control_Bind.bind(Data_Maybe.bindMaybe)(KeyboardCursor.stepCursorForwards(new Language_Shape_Stlc_Syntax.SyntaxTerm(st.term))(ix))(function (ix$prime) {
                               return Control_Applicative.pure(Data_Maybe.applicativeMaybe)({
                                   mb_ix: new Data_Maybe.Just(ix$prime),
@@ -13479,8 +13479,7 @@ var PS = {};
                                   type_: st.type_
                               });
                           });
-                      });
-                      return Data_Maybe.maybe(st)(Control_Category.identity(Control_Category.categoryFn))(mb_st);
+                      }));
                   })();
               };
           }
@@ -13491,7 +13490,7 @@ var PS = {};
               return function __do() {
                   Debug.traceM()(Effect.monadEffect)("stepCursorBackwards")();
                   return React.modifyState($$this)(function (st) {
-                      var mb_st = Control_Bind.bind(Data_Maybe.bindMaybe)(st.mb_ix)(function (ix) {
+                      return Data_Maybe.maybe(st)(Control_Category.identity(Control_Category.categoryFn))(Control_Bind.bind(Data_Maybe.bindMaybe)(st.mb_ix)(function (ix) {
                           return Control_Bind.bind(Data_Maybe.bindMaybe)(KeyboardCursor.stepCursorBackwards(new Language_Shape_Stlc_Syntax.SyntaxTerm(st.term))(ix))(function (ix$prime) {
                               return Control_Applicative.pure(Data_Maybe.applicativeMaybe)({
                                   mb_ix: new Data_Maybe.Just(ix$prime),
@@ -13503,8 +13502,7 @@ var PS = {};
                                   type_: st.type_
                               });
                           });
-                      });
-                      return Data_Maybe.maybe(st)(Control_Category.identity(Control_Category.categoryFn))(mb_st);
+                      }));
                   })();
               };
           }
