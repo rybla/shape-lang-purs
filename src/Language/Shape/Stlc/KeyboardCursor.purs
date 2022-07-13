@@ -36,4 +36,4 @@ stepCursorForwards syn idx
             Nothing -> Nothing
 
 stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
-stepCursorBackwards = error "not implemnted yet"
+stepCursorBackwards _ _ = error "not implemnted yet"

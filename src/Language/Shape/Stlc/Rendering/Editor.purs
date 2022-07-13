@@ -28,6 +28,8 @@ import Data.Newtype (over, unwrap, wrap)
 import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Effect (Effect)
+import Effect.Console as Console
+import KeyboardCursor (stepCursorBackwards, stepCursorForwards)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
@@ -66,6 +68,30 @@ renderEditor this = do
                     , dragboard = Nothing
                     }
                 Nothing -> st -- cannot undo if there is no history
+        }
+    , Action
+        { label: Just "stepCursorForwards"
+        , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
+        , effect:
+            \actionEffect -> do
+              Debug.traceM "stepCursorForwards"
+              modifyState this \st ->
+                maybe st identity do
+                  ix <- st.mb_ix
+                  ix' <- stepCursorForwards (SyntaxTerm st.term) ix
+                  pure st { mb_ix = Just ix' }
+        }
+    , Action
+        { label: Just "stepCursorBackwards"
+        , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
+        , effect:
+            \actionEffect -> do
+              Debug.traceM "stepCursorBackwards"
+              modifyState this \st ->
+                maybe st identity do
+                  ix <- st.mb_ix
+                  ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
+                  pure st { mb_ix = Just ix' }
         }
     ]
 

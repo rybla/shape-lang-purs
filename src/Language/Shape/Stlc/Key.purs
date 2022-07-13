@@ -34,6 +34,9 @@ keys =
   , unbuf: [ Key "Shift b" ]
   -- swap: s
   , swap: [ Key "s" ]
+  -- cursor
+  , cursorForwards: [ Key "ArrowRight" ]
+  , cursorBackwards: [ Key "ArrowLeft" ]
   -- misc
   , delete: [ Key "Backspace" ]
   , indent: [ Key "Tab" ]
