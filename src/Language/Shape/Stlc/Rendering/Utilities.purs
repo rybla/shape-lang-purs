@@ -71,8 +71,7 @@ requiresParenType = case _ of
 requiresParenTerm :: Term -> Boolean
 requiresParenTerm = case _ of
   Lam _ -> true
-  Neu neu
-    | List.length neu.argItems == 0 -> true
+  Neu neu -> List.length neu.argItems /= 0
   Let _ -> true
   Buf _ -> true
   Data _ -> true

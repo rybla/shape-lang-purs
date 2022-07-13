@@ -141,11 +141,9 @@ renderTerm this =
               [ renderTermId this args.termId
               ]
             else
-              [ pure [ token.lparen ]
-              , renderTermId this args.termId
+              [ renderTermId this args.termId
               -- , pure [ token.neu1 ]
               , renderItems (renderArgItem this <$> args.argItems)
-              , pure [ token.rparen ]
               ]
     , let_:
         \args ->
