@@ -15,3 +15,7 @@ src/App/State.purs
 **/*.*~
 .vscode/settings.json
 .vscode/tasks.json
+
+node_modules
+dist
+.cache
