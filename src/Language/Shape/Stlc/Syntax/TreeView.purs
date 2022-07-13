@@ -4,9 +4,9 @@ import Data.Tuple.Nested
 import Prelude
 import Prim hiding (Type)
 
-import Data.List (List(..), find, findIndex, index, mapWithIndex, (:))
+import Data.List (List(..), Pattern, find, findIndex, findMap, fold, foldr, index, mapWithIndex, stripPrefix, (:))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
+import Data.Newtype (unwrap, wrap)
 import Data.Tuple (snd)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixDownListItem, ixStepArgItem, ixStepArrowType, ixStepBuf, ixStepCaseItem, ixStepData, ixStepLam, ixStepLet, ixStepMatch, ixStepNeu)
 import Language.Shape.Stlc.Syntax (Syntax(..), Term(..), Type(..))
@@ -51,8 +51,9 @@ getChildren (SyntaxTerm (Let {termBind, sign, impl, body}))
     = (SyntaxTermBind termBind /\ one ixStepLet.termBind) : (SyntaxType sign /\ one ixStepLet.sign)
         : (SyntaxTerm impl /\ one ixStepLet.impl) : (SyntaxTerm body /\ one ixStepLet.body) : Nil
 getChildren (SyntaxTerm (Neu {termId, argItems}))
-    = one (SyntaxTermId termId /\ one ixStepNeu.termId)
-    <> mapWithIndex (\n {term} -> SyntaxTerm term /\ (unwrap (ixDownListItem n) <> one ixStepArgItem.term)) argItems
+    -- = one (SyntaxTermId termId /\ one ixStepNeu.termId)
+    -- <> mapWithIndex (\n {term} -> SyntaxTerm term /\ (unwrap (ixDownListItem n) <> one ixStepArgItem.term)) argItems
+    = mapWithIndex (\n {term} -> SyntaxTerm term /\ (one ixStepNeu.argItems <> unwrap (ixDownListItem n) <> one ixStepArgItem.term)) argItems
 getChildren (SyntaxTerm (Buf {sign, impl, body}))
     = (SyntaxType sign /\ one ixStepBuf.sign) : (SyntaxTerm impl /\ one ixStepBuf.impl) : (SyntaxTerm body /\ one ixStepBuf.body) : Nil
 getChildren (SyntaxTerm (Data {typeBind, sumItems, body}))
@@ -62,7 +63,7 @@ getChildren (SyntaxTerm (Data {typeBind, sumItems, body}))
     : Nil
 getChildren (SyntaxTerm (Match {term, caseItems}))
     = one (SyntaxTerm term /\ one ixStepMatch.term)
-    <> mapWithIndex (\n caseItem -> SyntaxCaseItem caseItem /\ unwrap (ixDownListItem n)) caseItems
+    <> mapWithIndex (\n caseItem -> SyntaxCaseItem caseItem /\ (one ixStepMatch.caseItems <> unwrap (ixDownListItem n))) caseItems
 getChildren (SyntaxTerm (Hole _)) = Nil
 getChildren (SyntaxTermBind _) = Nil
 getChildren (SyntaxTermId _) = Nil
@@ -84,20 +85,29 @@ want to sort of treat as one step, like stepping into an argument of a Neu.
 This function takes an index, returns Nothing if it is empty, and otherwise
 returns the index split into the next step and the rest.
 -}
-popIndex :: IxDown -> Maybe (TreeIndexStep /\ IxDown)
-popIndex (IxDown Nil) = Nothing
-popIndex idx@(IxDown ((IxStep label _) : _))
-    | label == IxStepList || label == IxStepArgItem
-    = let before /\ after = untilAfterList (unwrap idx)
-      in  Just (before /\ IxDown after)
-popIndex (IxDown ((IxStep label child) : rest)) = Just (one (IxStep label child) /\ IxDown rest)
+-- popIndex :: IxDown -> Maybe (TreeIndexStep /\ IxDown)
+-- popIndex (IxDown Nil) = Nothing
+-- popIndex idx@(IxDown (step@(IxStep label _) : _))
+--     | label == IxStepList || {- label == IxStepArgItem || -} step == ixStepMatch.caseItems
+--     = let before /\ after = untilAfterList (unwrap idx)
+--       in  Just (before /\ IxDown after)
+-- popIndex (IxDown ((IxStep label child) : rest)) = Just (one (IxStep label child) /\ IxDown rest)
 
-untilAfterList :: List IxStep -> List IxStep /\ List IxStep
-untilAfterList Nil = error "shouldn't get here 23o4234932"
-untilAfterList (IxStep IxStepList child : rest)
-    = let (before /\ after) = untilAfterList rest
-      in (IxStep IxStepList child : before) /\ after
-untilAfterList idx = Nil /\ idx
+-- untilAfterList :: List IxStep -> List IxStep /\ List IxStep
+-- untilAfterList Nil = error "shouldn't get here 23o4234932"
+-- untilAfterList (IxStep label child : rest)
+--     | label == IxStepList || label == IxStepArgItem
+--     = let (before /\ after) = untilAfterList rest
+--       in (IxStep label child : before) /\ after
+-- untilAfterList idx = Nil /\ idx
+
+popIndex2 :: Syntax -> IxDown -> Maybe (TreeIndexStep /\ IxDown)
+popIndex2 syn (IxDown idx)
+    =  let children = getChildren syn
+    in let nextSteps = map snd children
+    in findMap (
+        \step -> map (\rest -> step /\ IxDown rest) (stripPrefix (wrap step) idx)
+    ) nextSteps
 
 nextChild :: Syntax -> TreeIndexStep -> Maybe (List IxStep)
 nextChild syn child =

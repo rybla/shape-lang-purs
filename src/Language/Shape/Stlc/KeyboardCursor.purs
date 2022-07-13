@@ -12,7 +12,7 @@ import Data.Tuple (fst)
 import Debug (trace)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..))
 import Language.Shape.Stlc.Syntax (Syntax(..), Type(..), Term(..))
-import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex)
+import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex, popIndex2)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -22,7 +22,8 @@ we discussed) or returns Nothing if there is no where further to move.
 -}
 stepCursorForwards :: Syntax -> IxDown -> Maybe IxDown
 stepCursorForwards syn idx
-    = case popIndex idx of
+    -- = case popIndex idx of
+    = case popIndex2 syn idx of
       Nothing -> let children = getChildren syn in
         case head children of
           Nothing -> Nothing
