@@ -15,7 +15,7 @@
     "serve": "cd dist/; parcel index.html",
     "run": "spago run",
     "launch": "npm run build; npm run bundle; npm run serve",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist/dist"
   },
   "dependencies": {
     "control": "^0.2.3",
