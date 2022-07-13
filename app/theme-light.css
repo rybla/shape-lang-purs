@@ -1,0 +1,124 @@
+html {
+  background-color: rgb(194, 188, 172);
+}
+
+.editor {
+  color: rgb(99, 103, 117);
+}
+
+.console {
+  box-shadow: 0 0 0 1px black;
+}
+
+.environment {
+  box-shadow: -1px 0 0 0 black;
+  /* background-color: rgb(199, 200, 203); */
+  background-color: rgb(194, 188, 172);
+}
+
+.context-item.suggested.exact {
+  box-shadow: 0 0 0 1px green;
+}
+.context-item.suggested.apply {
+  box-shadow: 0 0 0 1px yellow;
+}
+.goal {
+  box-shadow: 0 -1px 0 0 black;
+}
+
+/* module */
+
+.module {
+}
+
+.pushDefinition {
+  background-color: rgb(19, 121, 255);
+  color: white;
+}
+
+.term.hole {
+  /* background-color: rgb(48, 48, 48); */
+  /* background-color: rgb(82, 0, 0); */
+  background-color: rgba(79, 9, 26, 0.2);
+  /* transition-property: all;
+  transition-duration: 0.2s;
+
+  font-size: 100%;
+  display: inline-block;
+  transform: rotate(0deg);
+  padding: 0px;
+  width: auto;
+  margin-top: 0; */
+}
+/* .term.hole:hover {
+  transition-property: all;
+  transition-duration: 1s;
+
+  font-size: 600%;
+  display: inline-block;
+  transform: rotate(3deg);
+  padding: 40px;
+  border-width: 10px;
+  width: 50%;
+  margin-top: -70px;
+} */
+
+.termName {
+  color: rgb(122, 99, 29);
+  box-shadow: 0 -1px 0 0 rgba(122, 99, 29, 0.5) inset;
+}
+
+.typeName {
+  color: rgb(95, 29, 117);
+  box-shadow: 0 -1px 0 0 rgba(95, 29, 117, 0.5) inset;
+}
+
+.termName > .shadow-index {
+  color: rgba(122, 99, 29, 0.5);
+}
+
+.typeName > .shadow-index {
+  color: rgba(95, 29, 117, 0.5);
+}
+
+/* keyword */
+
+.keyword {
+  /* color: rgb(64, 52, 18); */
+  color: rgb(99, 103, 117);
+}
+
+/* punctuation */
+
+.punctuation {
+  font-weight: bold;
+}
+
+/* mousing */
+
+.selected {
+  box-shadow: 0 0 0 2px rgb(211, 115, 0);
+  /* background-color: rgba(255, 255, 255, 0.2); */
+  background-color: rgba(122, 122, 122, 0.2);
+}
+
+.highlighted {
+  box-shadow: 0 0 0 2px purple;
+  background-color: rgba(122, 122, 122, 0.2);
+}
+
+/* separator, insertor, deletor */
+
+.separator {
+  color: rgba(64, 52, 18, 0.2);
+}
+
+.separator.selected {
+  color: white;
+}
+
+.separator.highlighted,
+.insertor:hover,
+.deletor:hover {
+  color: white;
+}

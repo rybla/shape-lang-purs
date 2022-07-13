@@ -17,5 +17,5 @@ src/App/State.purs
 .vscode/tasks.json
 
 node_modules
-dist
+dist/
 .cache
