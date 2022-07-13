@@ -76,13 +76,10 @@ renderEditor this = do
             \actionEffect -> do
               Debug.traceM "stepCursorForwards"
               modifyState this \st ->
-                let
-                  mb_st = do
-                    ix <- st.mb_ix
-                    ix' <- stepCursorForwards (SyntaxTerm st.term) ix
-                    pure st { mb_ix = Just ix' }
-                in
-                  maybe st identity mb_st
+                maybe st identity do
+                  ix <- st.mb_ix
+                  ix' <- stepCursorForwards (SyntaxTerm st.term) ix
+                  pure st { mb_ix = Just ix' }
         }
     , Action
         { label: Just "stepCursorBackwards"
@@ -91,13 +88,10 @@ renderEditor this = do
             \actionEffect -> do
               Debug.traceM "stepCursorBackwards"
               modifyState this \st ->
-                let
-                  mb_st = do
-                    ix <- st.mb_ix
-                    ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
-                    pure st { mb_ix = Just ix' }
-                in
-                  maybe st identity mb_st
+                maybe st identity do
+                  ix <- st.mb_ix
+                  ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
+                  pure st { mb_ix = Just ix' }
         }
     ]
 
