@@ -35,14 +35,5 @@ stepCursorForwards syn idx
             Just (newStep) -> Just (IxDown step)
             Nothing -> Nothing
 
-{-
-There is a problem here, because there are certian index steps that are skipped over and can't be
-selected. So the way that it pattern matches on the first step of the IxDown doesn't work. What if
-the first step is a ixStepList.tail or ixStepList.head?
-
-So what should I do about that? I need (in TreeView.purs) some sort of function which given an index
-into a syntax, pops off a part of the index and returns the rest of the index.
--}
-
 stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
 stepCursorBackwards _ _ = error "not implemnted yet"
