@@ -7,6 +7,7 @@ import Prim hiding (Type)
 import Data.List (List(..), find, findIndex, index, mapWithIndex, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Tuple (snd)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixDownListItem, ixStepArgItem, ixStepArrowType, ixStepBuf, ixStepCaseItem, ixStepData, ixStepLam, ixStepLet, ixStepMatch, ixStepNeu)
 import Language.Shape.Stlc.Syntax (Syntax(..), Term(..), Type(..))
 import Undefined (undefined)
@@ -55,8 +56,10 @@ getChildren (SyntaxTerm (Neu {termId, argItems}))
 getChildren (SyntaxTerm (Buf {sign, impl, body}))
     = (SyntaxType sign /\ one ixStepBuf.sign) : (SyntaxTerm impl /\ one ixStepBuf.impl) : (SyntaxTerm body /\ one ixStepBuf.body) : Nil
 getChildren (SyntaxTerm (Data {typeBind, sumItems, body}))
-    = one (SyntaxTypeBind typeBind /\ one ixStepData.typeBind)
-    -- TODO: this should return the various constructors as children!!!!
+    -- TODO: this should return the actually constructors somehow as well
+    = (SyntaxTypeBind typeBind /\ one ixStepData.typeBind)
+    : (SyntaxTerm body /\ one ixStepData.body)
+    : Nil
 getChildren (SyntaxTerm (Match {term, caseItems}))
     = one (SyntaxTerm term /\ one ixStepMatch.term)
     <> mapWithIndex (\n caseItem -> SyntaxCaseItem caseItem /\ unwrap (ixDownListItem n)) caseItems
@@ -83,7 +86,8 @@ returns the index split into the next step and the rest.
 -}
 popIndex :: IxDown -> Maybe (TreeIndexStep /\ IxDown)
 popIndex (IxDown Nil) = Nothing
-popIndex idx@(IxDown ((IxStep IxStepList child) : rest))
+popIndex idx@(IxDown ((IxStep label _) : _))
+    | label == IxStepList || label == IxStepArgItem
     = let before /\ after = untilAfterList (unwrap idx)
       in  Just (before /\ IxDown after)
 popIndex (IxDown ((IxStep label child) : rest)) = Just (one (IxStep label child) /\ IxDown rest)
@@ -108,7 +112,10 @@ childAtStep :: Syntax -> TreeIndexStep -> Syntax
 childAtStep syn idx =
     let children = getChildren syn
     in case find (\(_ /\ ix) -> ix == idx) children of
-        Nothing -> error "child doesn't exist"
+        Nothing -> error ("child doesn't exista sdflka jsdflajks df. \nLooked for index idx = "
+            <> show idx
+            <> "But the child indices are: "
+            <> show (map snd children))
         Just (child /\ _) -> child
 
 -- {-
