@@ -12,18 +12,19 @@
     "quickbuild": "spago build --purs-args \"--censor-warnings\"",
     "build": "spago build --purs-args \"--censor-warnings -gsourcemaps,js\"",
     "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to dist/app.js",
+    "bundle-no-source-maps": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --to dist/app.js",
     "serve": "cd dist/; parcel index.html",
     "run": "spago run",
     "launch": "npm run build; npm run bundle; npm run serve",
-    
-    "parcel-build": "parcel build ./dist/index.html --public-url ./",
+    "parcel-build": "parcel build ./dist/index.html --no-optimize --public-url ./",
     "push-gh-pages": "push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
   },
   "dependencies": {
     "control": "^0.2.3",
     "purescript-psa": "^0.8.2",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "shx": "^0.3.4"
   },
   "homepage": "https://riib11.github.io/shape-lang"
 }
