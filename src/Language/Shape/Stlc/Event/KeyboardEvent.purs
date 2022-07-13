@@ -16,6 +16,7 @@ import Data.String (Pattern(..), split)
 import Data.String as String
 import Data.String as String
 import Data.String.CodePoints as CodePoints
+import Debug as Debug
 import Language.Shape.Stlc.Metadata (Name(..))
 import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..))
 import Partial.Unsafe (unsafeCrashWith)
@@ -75,28 +76,30 @@ matchKey event (Key str) = case uncons (reverse $ split (Pattern " ") str) of
 
 handleKey :: RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
 handleKey renEnv event =
-  foldr
-    ( \action ->
-        maybe
-          ( foldr
-              ( \trigger -> case trigger of
-                  ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
-                  ActionTrigger_Keypress keys ->
-                    maybe
-                      ( do
-                          guard (matchOneOfKeys event keys)
-                          pure (trigger /\ action)
-                      )
-                      pure
-                  _ -> identity
+  Debug.trace "handleKey.event:" \_ ->
+    Debug.trace event \_ ->
+      foldr
+        ( \action ->
+            maybe
+              ( foldr
+                  ( \trigger -> case trigger of
+                      ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
+                      ActionTrigger_Keypress keys ->
+                        maybe
+                          ( do
+                              guard (matchOneOfKeys event keys)
+                              pure (trigger /\ action)
+                          )
+                          pure
+                      _ -> identity
+                  )
+                  Nothing
+                  (unwrap action).triggers
               )
-              Nothing
-              (unwrap action).triggers
-          )
-          pure
-    )
-    Nothing
-    renEnv.actions
+              pure
+        )
+        Nothing
+        renEnv.actions
 
 handleKeytype_Name :: Event -> Name -> Maybe Name
 handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothing else Name (Just str1)) <$> mb_str1
@@ -113,5 +116,5 @@ handleKeytype_String event str = go (eventKey event)
     | key == "Backspace" && altKey event = Just ""
     | key == "Backspace" = Just $ String.take (String.length str - 1) str
     | key == "Space" = Just $ str <> " "
-    | key `Array.elem` [ "Shift", "Meta", "Control", "Alt", "Tab" ] = Nothing
+    | key `Array.elem` [ "Shift", "Meta", "Control", "Alt", "Tab", "ArrowLeft", "ArrowRight" ] = Nothing
     | otherwise = Just $ str <> key

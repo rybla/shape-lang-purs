@@ -45,4 +45,4 @@ into a syntax, pops off a part of the index and returns the rest of the index.
 -}
 
 stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
-stepCursorBackwards = error "not implemnted yet"
+stepCursorBackwards _ _ = error "not implemnted yet"
