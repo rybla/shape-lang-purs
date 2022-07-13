@@ -4,15 +4,15 @@ import Data.Tuple.Nested
 import Prelude
 import Prim hiding (Type)
 
-import Data.List (List(..), head, index, length, (:))
+import Data.List (List(..), head, index, last, length, (:))
 import Data.List.Unsafe (index')
 import Data.Maybe (Maybe(..))
-import Data.Newtype (wrap)
+import Data.Newtype (unwrap, wrap)
 import Data.Tuple (fst)
 import Debug (trace)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..))
 import Language.Shape.Stlc.Syntax (Syntax(..), Type(..), Term(..))
-import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex, popIndex2)
+import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex2, previousChild)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -32,12 +32,32 @@ stepCursorForwards syn idx
         let child = childAtStep syn step in
         let tryInChild = stepCursorForwards child rest in
         case tryInChild of
-        Just (IxDown idx) -> trace "yeetus" (\_ -> Just (IxDown (step <> idx)))
+        Just (IxDown idx) -> Just (IxDown (step <> idx))
         Nothing ->
             let nextChildStep = nextChild syn step in
             case nextChildStep of
             Just (newStep) -> Just (IxDown newStep)
             Nothing -> Nothing
+  
+-- Gets index pointing to the very last node in the input syntax
+getLastIndex :: Syntax -> List IxStep
+getLastIndex syn = 
+  let children = getChildren syn in
+  case last children of
+    Nothing -> Nil
+    Just (child /\ step) -> step <> getLastIndex child
 
 stepCursorBackwards :: Syntax -> IxDown -> Maybe IxDown
-stepCursorBackwards _ _ = error "not implemnted yet"
+stepCursorBackwards syn idx
+    = case popIndex2 syn idx of
+      Nothing -> Nothing
+      Just (step /\ rest) ->
+        let child = childAtStep syn step in
+        let tryInChild = stepCursorBackwards child rest in
+        case tryInChild of
+        Just (IxDown idx) -> Just (IxDown (step <> idx))
+        Nothing ->
+            let nextChildStep = previousChild syn step in
+            case nextChildStep of
+            Just (newStep) -> Just (IxDown (newStep <> (getLastIndex (childAtStep syn newStep))))
+            Nothing -> Just (IxDown Nil)

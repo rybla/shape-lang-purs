@@ -118,6 +118,15 @@ nextChild syn child =
                             Nothing -> Nothing
                             Just (_ /\ nextChildIdx) -> Just nextChildIdx
 
+previousChild :: Syntax -> TreeIndexStep -> Maybe (List IxStep)
+previousChild syn child =
+    let children = getChildren syn
+    in case findIndex (\(_ /\ ix) -> ix == child) children of
+        Nothing -> error "child doesn't exist"
+        Just childIndex -> case index children (childIndex - 1) of
+                            Nothing -> Nothing
+                            Just (_ /\ nextChildIdx) -> Just nextChildIdx
+
 childAtStep :: Syntax -> TreeIndexStep -> Syntax
 childAtStep syn idx =
     let children = getChildren syn
