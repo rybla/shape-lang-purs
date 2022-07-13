@@ -73,12 +73,13 @@ renderEditor this = do
         { label: Just "stepCursorForwards"
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
-            \actionEffect -> do
-              Debug.traceM "stepCursorForwards"
+            \actionEffect ->
               modifyState this \st ->
                 maybe st identity do
                   ix <- st.mb_ix
+                  Debug.traceM $ "stepCursorForwards, old ix: " <> show ix
                   ix' <- stepCursorForwards (SyntaxTerm st.term) ix
+                  Debug.traceM $ "stepCursorForwards, new ix: " <> show ix'
                   pure st { mb_ix = Just ix' }
         }
     , Action
