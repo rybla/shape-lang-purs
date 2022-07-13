@@ -1,3 +1,11 @@
+# build
+app/app.js
+app/app.js.map
+
+# deployment
+dist/
+
+# misc
 /node_modules/
 /.pulp-cache/
 /output/
@@ -10,12 +18,8 @@
 .DS_Store
 .parcel-cache/
 */.DS_Store
-src/App/State.purs
 **/*.agdai
 **/*.*~
 .vscode/settings.json
 .vscode/tasks.json
-
-node_modules
-dist/
 .cache
