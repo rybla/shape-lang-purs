@@ -237,7 +237,7 @@ chArgs ctx (ArrowType {dom: a, cod: ArrowType {dom: b, cod: c}}) chs Swap
 chArgs ctx a chs ch Nil = pure $ Nil /\ ch /\ Nil
 chArgs ctx (ArrowType {dom, cod}) chs NoChange ({term, meta} : args) = do
     arg' <- chTerm ctx dom chs NoChange term
-    args' /\ outCh /\ displacements <- chArgs ctx dom chs NoChange args
+    args' /\ outCh /\ displacements <- chArgs ctx cod chs NoChange args
     pure $ ({term: arg', meta} : args') /\ outCh /\ displacements -- of course, always outCh = NoChange and displacements = Nil
 chArgs ctx ty chs (Dig hId) args = do
     displaced <- displaceArgs ctx ty chs args
