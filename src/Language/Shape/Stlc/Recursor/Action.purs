@@ -49,20 +49,18 @@ bindMaybeEffectUnit = case _ of
 
 infixr 5 bindMaybeEffectUnit as >>|=
 
--- TODO: ask jacob how to use chTerm
--- applyChanges :: Changes -> State -> Maybe State
--- applyChanges
 applyChange :: Change -> State -> Maybe State
 applyChange change st = do
-  Debug.traceM $ "===[ change ]==="
+  Debug.traceM $ "===[ change ]============================================================"
   Debug.traceM $ show change
-  Debug.traceM $ "===[ history ]==="
+  Debug.traceM $ "=========================================================================="
   let
-    -- history = (_ `Array.snoc` change) <$> st.history
     history = toHistoryItem st change : st.history
-  Debug.traceM $ show history
-  -- TODO: apply holeEq
+  Debug.traceM $ "===[ history (copy this into Test.Main.tests) ]=========================="
+  Debug.traceM $ show ((st.type_ /\ st.term) /\ (_.change <$> history))
+  Debug.traceM $ "=========================================================================="
   term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
+  -- TODO: apply holeEq
   pure
     st
       { term = term'
