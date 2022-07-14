@@ -9,7 +9,7 @@ import Control.Monad.State (State, get, put)
 import Data.Default (default)
 import Data.Generic.Rep (class Generic)
 import Data.Int.Bits ((.&.))
-import Data.List (List(..), (:), concat)
+import Data.List (List(..), concat, singleton, (:))
 import Data.Map (Map, insert, lookup)
 import Data.Map as Map
 import Data.Map.Unsafe (lookup')
@@ -159,8 +159,8 @@ chTermAux args chs sbjto =
                 case maybeSub of
                     Just holeSub -> do subHoles holeSub
                                        pure $ wrapInDisplaced displaced1 (Neu $ args.neu{argItems = argItems'})
-                    Nothing -> do displaced2 <- displaceArgs args.gamma varType chs args.neu.argItems
-                                  pure $ wrapInDisplaced (displaced1 <> displaced2) (Hole {meta: default})
+                    Nothing -> let neu' = (Neu args.neu {argItems=argItems'}) /\ applyTC tc args.alpha in
+                                pure $ wrapInDisplaced (displaced1 <> singleton neu') (Hole {meta: default})
         in
         case lookup args.neu.termId chs.termChanges of
             Just VariableDeletion -> do displaced <- displaceArgs args.gamma varType chs args.neu.argItems
