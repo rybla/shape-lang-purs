@@ -55,7 +55,7 @@ getChildren (SyntaxTerm (Neu {termId, argItems}))
     -- <> mapWithIndex (\n {term} -> SyntaxTerm term /\ (unwrap (ixDownListItem n) <> one ixStepArgItem.term)) argItems
     = mapWithIndex (\n {term} -> SyntaxTerm term /\ (one ixStepNeu.argItems <> unwrap (ixDownListItem n) <> one ixStepArgItem.term)) argItems
 getChildren (SyntaxTerm (Buf {sign, impl, body}))
-    = (SyntaxType sign /\ one ixStepBuf.sign) : (SyntaxTerm impl /\ one ixStepBuf.impl) : (SyntaxTerm body /\ one ixStepBuf.body) : Nil
+    = (SyntaxTerm impl /\ one ixStepBuf.impl) : (SyntaxType sign /\ one ixStepBuf.sign) : (SyntaxTerm body /\ one ixStepBuf.body) : Nil
 getChildren (SyntaxTerm (Data {typeBind, sumItems, body}))
     -- TODO: this should return the actually constructors somehow as well
     = (SyntaxTypeBind typeBind /\ one ixStepData.typeBind)
