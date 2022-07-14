@@ -18,15 +18,15 @@ import Data.Set (Set, difference, member)
 import Data.Set as Set
 import Data.Show.Generic (genericShow)
 import Data.Traversable (sequence)
+import Debug (trace)
+import Debug as Debug
 import Language.Shape.Stlc.Context (Context(..), insertVarType, lookupVarType)
 import Language.Shape.Stlc.Hole (HoleEq, unifyTypeRestricted)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), CaseItem, freshHoleId, freshTermId)
+import Language.Shape.Stlc.Syntax (ArgItem, CaseItem, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), ArrowType, freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
-
-import Debug as Debug
 
 data TypeChange
     = ArrowCh TypeChange TypeChange -- only applies to types of form (ArrowType a b _)
@@ -266,7 +266,10 @@ chSum = undefined
 inferChTerm :: Record (Rec.ArgsTerm ()) -> (Changes -> State HoleEq (Term /\ TypeChange))
 inferChTerm = Rec.recTerm {
     lam : \args chs -> do
-        let (alpha' /\ tcIn) = chType chs.dataTypeDeletions args.alpha
+        let (dom /\ cod) = case args.alpha of
+                ArrowType {dom, cod} -> dom /\ cod
+                _ -> error "lambda should be of arrow type"
+        let (alpha' /\ tcIn) = chType chs.dataTypeDeletions dom -- args.alpha
         (body' /\ tcOut) <- inferChTerm args.body (varChange chs args.termBind.termBind.termId tcIn)
         pure $ (Lam args.lam{body=body'} /\ ArrowCh tcIn tcOut)
     , neu : \args chs ->
