@@ -8,7 +8,7 @@ import Data.List (List(..), Pattern, find, findIndex, findMap, fold, foldr, inde
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap, wrap)
 import Data.Tuple (snd)
-import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixDownListItem, ixStepArgItem, ixStepArrowType, ixStepBuf, ixStepCaseItem, ixStepData, ixStepLam, ixStepLet, ixStepMatch, ixStepNeu)
+import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixDownListItem, ixStepArgItem, ixStepArrowType, ixStepBuf, ixStepCaseItem, ixStepData, ixStepLam, ixStepLet, ixStepMatch, ixStepNeu, ixStepTermBindItem)
 import Language.Shape.Stlc.Syntax (Syntax(..), Term(..), Type(..))
 import Undefined (undefined)
 import Unsafe (error)
@@ -71,7 +71,7 @@ getChildren (SyntaxTypeBind _) = Nil
 getChildren (SyntaxArgItem _) = error "shouldn't get here because skips over the ArgItem case in the Neu case"
 getChildren (SyntaxSumItem _) = error "not implemented yet"
 getChildren (SyntaxCaseItem {termBindItems, body})
-    = mapWithIndex (\n termBindItem -> SyntaxTermBindItem termBindItem /\ (ixStepCaseItem.termBindItems : unwrap (ixDownListItem n))) termBindItems
+    = mapWithIndex (\n termBindItem -> SyntaxTermBindItem termBindItem /\ (ixStepCaseItem.termBindItems : unwrap (ixDownListItem n) <> one ixStepTermBindItem.termBind)) termBindItems
     <> one (SyntaxTerm body /\ one ixStepCaseItem.body)
 getChildren (SyntaxParamItem _) = Nil -- TODO: implement this! Should have the various parameters as children!
 getChildren (SyntaxTermBindItem _) = Nil
