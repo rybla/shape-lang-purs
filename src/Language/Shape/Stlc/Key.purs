@@ -23,9 +23,9 @@ keys =
   , uneta: [ Key "Shift n" ]
   -- match: m
   , inmatch: [ Key "Meta m" ]
-  -- let: a
-  , let_: [ Key "d" ]
-  , unlet: [ Key "Shift d" ]
+  -- let: f
+  , let_: [ Key "f" ]
+  , unlet: [ Key "Shift f" ]
   -- data: t
   , data_: [ Key "t" ]
   , undata: [ Key "Shift t" ]
