@@ -18,6 +18,7 @@ import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
+import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (over, unwrap, wrap)
@@ -27,7 +28,7 @@ import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name)
-import Language.Shape.Stlc.Hole (HoleEq)
+import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, unifyType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
@@ -281,7 +282,61 @@ recTerm rec =
     , neu:
         \args ->
           rec.neu
-            $ R.union { actions: common (Neu args.neu) args <> [] }
+            $ R.union
+                { actions:
+                    common (Neu args.neu) args
+                      <> [ Action
+                            { label: Just "app"
+                            , triggers: [ ActionTrigger_Keypress keys.app ]
+                            , effect:
+                                \{ this } ->
+                                  modifyState this \st ->
+                                    -- given a neu: `f a : B -> C` where `f : A -> B -> C`
+                                    -- try to unify output of `f a`, which is `B -> C` with a function type `?0 -> ?1`
+                                    -- if can unify, then apply resulting hole sub to program
+                                    -- apply typechange `RemoveArg` to `f`
+                                    -- apply resulting hole sub to program
+                                    let
+                                      -- type of neu's var
+                                      phi :: Type
+                                      phi = lookupVarType args.neu.termId args.gamma
+
+                                      -- output type of neu
+                                      out :: Type
+                                      out = neuOutputType phi args.neu
+
+                                      -- fresh arrow type
+                                      arr :: ArrowType
+                                      arr = { dom: freshHoleType unit, cod: freshHoleType unit, meta: default }
+                                    in
+                                      case unifyType out (ArrowType arr) of
+                                        Just holeSub ->
+                                          let
+                                            term' = subTerm holeSub st.term
+
+                                            res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
+                                            res =
+                                              chAtTerm { term: term', gamma: default, alpha: st.type_ }
+                                                ( ReplaceTerm
+                                                    (Neu args.neu { argItems = List.snoc args.neu.argItems { term: freshHole unit, meta: default } })
+                                                    RemoveArg
+                                                )
+                                                =<< st.mb_ix
+                                          in
+                                            case res of
+                                              Just (term'' /\ ix' /\ _tc /\ holeEq) ->
+                                                let
+                                                  term''' = subTerm (restrictToFull holeEq) term''
+                                                in
+                                                  st
+                                                    { term = term'''
+                                                    , mb_ix = Just ix'
+                                                    }
+                                              Nothing -> st
+                                        Nothing -> st
+                            }
+                        ]
+                }
                 args
     , let_:
         \args ->

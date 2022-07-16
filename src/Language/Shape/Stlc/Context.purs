@@ -10,6 +10,7 @@ import Control.Monad.Free (wrap)
 import Data.Default (class Default, default)
 import Data.Foldable (foldr, foldl)
 import Data.List (List(..), (:))
+import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.OrderedMap (OrderedMap)
@@ -79,3 +80,14 @@ unflattenType { doms, cod } = foldl (\cod dom -> ArrowType { dom, cod, meta: def
 
 typeOfSumItem :: TypeId -> SumItem -> Type
 typeOfSumItem typeId sumItem = unflattenType { doms: (_.type_) <$> sumItem.paramItems, cod: DataType { typeId, meta: default } }
+
+-- Given `f : A -> B -> C` and `a : A`, computes that output type of `f a` is 
+-- `B -> C`.
+neuOutputType :: Type -> Neu -> Type
+neuOutputType alpha neu =
+  foldr
+    (\dom cod -> ArrowType { dom, cod, meta: default })
+    cod
+    (List.drop (List.length neu.argItems) doms)
+  where
+  { doms, cod } = flattenType alpha

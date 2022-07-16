@@ -24,8 +24,8 @@ keys =
   -- match: m
   , inmatch: [ Key "Meta m" ]
   -- let: a
-  , let_: [ Key "a" ]
-  , unlet: [ Key "Shift a" ]
+  , let_: [ Key "d" ]
+  , unlet: [ Key "Shift d" ]
   -- data: t
   , data_: [ Key "t" ]
   , undata: [ Key "Shift t" ]
@@ -34,6 +34,9 @@ keys =
   , unbuf: [ Key "Shift b" ]
   -- swap: s
   , swap: [ Key "s" ]
+  -- app
+  , app: [ Key "a" ]
+  , unapp: [ Key "Shift a" ]
   -- cursor
   , cursorForwards: [ Key "ArrowRight" ]
   , cursorBackwards: [ Key "ArrowLeft" ]
