@@ -9,10 +9,9 @@
   },
   "scripts": {
     "test": "spago test --purs-args \"--censor-warnings\"",
-    "quickbuild": "spago build --purs-args \"--censor-warnings\"",
-    "build": "spago build --purs-args \"--censor-warnings -gsourcemaps,js\"",
-    "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to app/app.js",
-    "bundle-no-source-maps": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --to app/app.js",
+    "build": "spago build --purs-args \"--censor-warnings\"",
+    "build-source-maps": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --source-maps --to app/app.js",
+    "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --to app/app.js",
     "serve": "parcel ./app/index.html",
     "run": "spago run",
     "launch": "npm run build; npm run bundle; npm run serve",

@@ -27,7 +27,7 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name)
+import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name, handleKeytype_String)
 import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, unifyType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
@@ -404,6 +404,29 @@ recTerm rec =
                                     ArrowType arrow -> doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm (Lam { termBind: freshTermBind unit, body: freshHole unit, meta: default }) NoChange }
                                     _ -> pure unit -- cannot inlambda if type is not an arrow
                             }
+                        , Action
+                            { label: Just "queryvariableMode"
+                            , triggers: [ ActionTrigger_Keypress keys.queryvariableMode ]
+                            , effect: \{ this } -> modifyState this _ { mode = QueryMode { query: "", i: 0 } }
+                            }
+                        -- TODO: don;t need this anymore, because is handled by handleKey_QueryMode
+                        {- 
+                        , Action
+                            { label: Just "edit"
+                            , triggers: [ ActionTrigger_Keytype ]
+                            , effect:
+                                case _ of
+                                  { this, mb_event: Just event } -> do
+                                    st <- getState this
+                                    case st.mode of
+                                      QueryMode query -> do
+                                        case handleKeytype_String event query of
+                                          Just query' -> modifyState this _ { mode = QueryMode query' }
+                                          Nothing -> pure unit
+                                      _ -> pure unit
+                                  _ -> pure unit
+                            }
+                          -}
                         ]
                 }
                 args
@@ -656,7 +679,6 @@ recTermBind rec =
                         , effect:
                             case _ of
                               { this, mb_event: Just event } -> do
-                                Debug.traceM "[event] ActionTrigger_Keytype"
                                 args.visit.ix
                                   >>|= \ix ->
                                       handleKeytype_Name event (unwrap args.termBind.meta).name

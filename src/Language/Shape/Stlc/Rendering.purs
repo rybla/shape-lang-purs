@@ -31,7 +31,6 @@ programClass = component "Program" programComponent
 
 programComponent :: ReactThis Props State -> Effect Given
 programComponent this = do
-  renderEnvironmentRef <- Ref.new emptyRenderEnvironment
   let
     state :: State
     state =
@@ -42,10 +41,14 @@ programComponent this = do
       , clipboard: Nothing
       , dragboard: Nothing
       , highlights: mempty
+      , mode: NormalMode
       }
       where
       term /\ type_ = init1
-
+  let
+    renEnv = emptyRenderEnvironment state
+  renderEnvironmentRef <- Ref.new renEnv
+  let
     componentDidMount = do
       Console.log "componentDidMount"
       win <- window
@@ -53,14 +56,13 @@ programComponent this = do
       addEventListener (EventType "keydown") listener false (toEventTarget win)
 
     keyboardEventHandler event = do
-      Debug.traceM event
-      let
-        key = eventKey event
-      -- Debug.traceM $ "===[ keydown: " <> key <> " ]==============================="
+      -- Debug.traceM event
+      -- Debug.traceM $ "===[ keydown: " <> eventKey event <> " ]==============================="
       renEnv <- Ref.read renderEnvironmentRef
       -- Debug.traceM $ "===[ actions ]==============================="
       -- Debug.traceM $ intercalate "\n" <<< map ("- " <> _) <<< map show $ renEnv.actions
-      case handleKey renEnv event of
+      st <- getState this
+      case handleKey st renEnv event of
         Just (trigger /\ Action action) -> do
           preventDefault event
           action.effect { this, mb_event: Just event, trigger }

@@ -4,17 +4,17 @@ import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-import Data.Array ((:), intercalate)
+import Data.Array ((:))
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
-import Language.Shape.Stlc.ChAtIndex (Change)
-import Language.Shape.Stlc.Context (Context(..))
-import Language.Shape.Stlc.Index (IxDown(..))
-import Language.Shape.Stlc.Key (Key(..))
-import Language.Shape.Stlc.Metacontext (Metacontext(..))
+import Language.Shape.Stlc.ChAtIndex
+import Language.Shape.Stlc.Context
+import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Key
+import Language.Shape.Stlc.Metacontext
 import React (ReactElement, ReactThis, getState)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
@@ -30,7 +30,15 @@ type State
     , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
     , dragboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
     , highlights :: Array HTMLElement
+    , mode :: Mode
     }
+
+-- NOTE: doesn't handle editing binds
+data Mode
+  = NormalMode
+  | QueryMode { query :: String, i :: Int }
+
+derive instance eqMode :: Eq Mode
 
 -- type History = (Term /\ Type /\ Maybe IxDown) /\ Array Change
 type History
@@ -85,7 +93,7 @@ instance showActionTrigger :: Show ActionTrigger where
   show ActionTrigger_Hover = "hover"
   show ActionTrigger_Paste = "paste"
   show ActionTrigger_Click = "click"
-  show (ActionTrigger_Keypress keys) = "keys[" <> intercalate ", " (show <$> keys) <> "]"
+  show (ActionTrigger_Keypress keys) = "keys[" <> Array.intercalate ", " (show <$> keys) <> "]"
   show ActionTrigger_Keytype = "keytype"
 
 instance showAction :: Show Action where
@@ -94,4 +102,4 @@ instance showAction :: Show Action where
         Just str -> str <> ": "
         Nothing -> ""
     )
-      <> intercalate ", " (show <$> action.triggers)
+      <> Array.intercalate ", " (show <$> action.triggers)

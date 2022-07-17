@@ -4,16 +4,25 @@ import Data.Tuple
 import Data.Tuple.Nested
 import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
+import Language.Shape.Stlc.Context
+import Language.Shape.Stlc.Hole
+import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Metacontext
+import Language.Shape.Stlc.Metadata
+import Language.Shape.Stlc.Recursor.Index
 import Language.Shape.Stlc.Rendering.ClickDragDrop
 import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (State)
+import Type.Proxy
+import Unsafe
+import Control.Monad.State (State, runState)
 import Control.Monad.State as State
-import Data.Array (concat)
+import Data.Array (concat, (:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Foldable (foldM)
@@ -22,6 +31,7 @@ import Data.List.Unsafe as List
 import Data.Map.Unsafe as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
+import Data.OrderedMap as OrderedMap
 import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
 import Data.Set as Set
@@ -30,20 +40,14 @@ import Data.Traversable (sequence)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
-import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
-import Language.Shape.Stlc.Hole (subTerm, subType)
-import Language.Shape.Stlc.Index (IxDown(..), hashIxUp, nilIxDown, nilIxUp, toIxDown)
-import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation)
-import Language.Shape.Stlc.Metadata (Name(..))
+import Language.Shape.Stlc.FuzzyFilter (fuzzyDistance)
 import Language.Shape.Stlc.Recursor.Action (doChange)
 import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Recursor.Context as RecCtx
-import Language.Shape.Stlc.Recursor.Index (Visit, nilVisit, nonVisit)
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
-import Language.Shape.Stlc.Types (Action(..), ActionTrigger(..), This)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)
@@ -51,19 +55,18 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
-import Type.Proxy (Proxy(..))
 import Undefined (undefined)
-import Unsafe (fromJust)
 
--- xxx = U.runM
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
+  let
+    renEnv = emptyRenderEnvironment st
   -- Debug.traceM $ "===[ st.term ]==============================="
   -- Debug.traceM $ show st.term
   let
     (elems /\ env) =
-      runM
+      flip runState renEnv
         $ renderTerm this
             -- TODO: maybe pull this out into multiple files or at least somewhere else?
             { term: st.term
@@ -245,7 +248,51 @@ renderTerm this =
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
             <$> renderNode this
                 ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
-                [ renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
+                [ State.gets (_.st.mode)
+                    >>= case _ of
+                        QueryMode q
+                          | args.visit.csr == Just nilIxDown -> do
+                            items <-
+                              sequence
+                                $ map
+                                    ( \(termId /\ type_ /\ _dist) -> do
+                                        elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                                        elemType <- renderType this { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                                        pure
+                                          $ ( DOM.span
+                                                [ Props.className "query-context-item" ]
+                                                $ concat
+                                                    [ elemTermId
+                                                    , [ DOM.text " : " ]
+                                                    , elemType
+                                                    ]
+                                            )
+                                    )
+                                $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+                                $ Array.foldMap
+                                    ( \(termId /\ type_) ->
+                                        let
+                                          Name mb_str = lookupVarName termId args.meta
+                                        in
+                                          case fuzzyDistance q.query =<< mb_str of
+                                            Just dist -> [ termId /\ type_ /\ dist ]
+                                            Nothing -> []
+                                    )
+                                $ OrderedMap.toArray (unwrap args.gamma).varTypes
+                            pure
+                              $ [ DOM.div
+                                    [ Props.className "query" ]
+                                    [ DOM.div
+                                        [ Props.className "query-context" ]
+                                        items
+                                    , DOM.span
+                                        [ Props.className "query-text" ]
+                                        [ DOM.text q.query ]
+                                    ]
+                                , DOM.text " : "
+                                ]
+                        _ -> pure []
+                , renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
                 ]
     }
 
@@ -326,7 +373,9 @@ renderTermBind this =
     { termBind:
         \args ->
           renderNode this
-            ((makeNodeProps args) { label = Just "TermBind" })
+            ( (makeNodeProps args)
+                { label = Just "TermBind" }
+            )
             [ printTermId args.termId ]
     }
 
@@ -336,7 +385,8 @@ renderTypeBind this =
     { typeBind:
         \args ->
           renderNode this
-            (makeNodeProps args) { label = Just "TypeBind" }
+            (makeNodeProps args)
+              { label = Just "TypeBind" }
             [ printTypeId args.typeId ]
     }
 
@@ -370,9 +420,10 @@ printTypeId { typeId, meta } =
         <> printShadow shadow
     ]
   where
-  name = case Map.lookup typeId (unwrap meta).dataNames of
-    Just name -> name
-    Nothing -> unsafeCrashWith $ "could not find name of type id " <> show typeId <> " in metacontext " <> show meta
+  -- name = case Map.lookup typeId (unwrap meta).dataNames of
+  --   Just name -> name
+  --   Nothing -> unsafeCrashWith $ "could not find name of type id " <> show typeId <> " in metacontext " <> show meta
+  name = lookupDataName typeId meta
 
   shadow = case Map.lookup typeId (unwrap meta).dataShadowIndices of
     Just i -> i
@@ -386,9 +437,10 @@ printTermId { termId, meta } =
         <> printShadow shadow
     ]
   where
-  name = case Map.lookup termId (unwrap meta).varNames of
-    Just name -> name
-    Nothing -> unsafeCrashWith $ "could not find name of term id " <> show termId <> " in metacontext " <> show meta
+  -- name = case Map.lookup termId (unwrap meta).varNames of
+  --   Just name -> name
+  --   Nothing -> unsafeCrashWith $ "could not find name of term id " <> show termId <> " in metacontext " <> show meta
+  name = lookupVarName termId meta
 
   shadow = case Map.lookup termId (unwrap meta).varShadowIndices of
     Just i -> i

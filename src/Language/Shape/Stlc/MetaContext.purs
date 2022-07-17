@@ -1,7 +1,7 @@
 module Language.Shape.Stlc.Metacontext where
 
-import Data.Newtype
 import Data.Foldable
+import Data.Newtype
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
@@ -14,6 +14,7 @@ import Data.Newtype as NT
 import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
+import Partial.Unsafe (unsafeCrashWith)
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -107,3 +108,13 @@ incrementIndentationUnless b =
 
 resetIndentation :: Metacontext -> Metacontext
 resetIndentation = over Metacontext $ Record.set _indentation 0
+
+lookupVarName ∷ TermId → Metacontext → Name
+lookupVarName termId meta = case Map.lookup termId (unwrap meta).varNames of
+  Just name -> name
+  Nothing -> unsafeCrashWith $ "could not find name of term id " <> show termId <> " in metacontext " <> show meta
+
+lookupDataName ∷ TypeId → Metacontext → Name
+lookupDataName typeId meta = case Map.lookup typeId (unwrap meta).dataNames of
+  Just name -> name
+  Nothing -> unsafeCrashWith $ "could not find name of type id " <> show typeId <> " in metacontext " <> show meta

@@ -193,3 +193,27 @@ html {
 .span {
   display: inline-block;
 }
+
+/* query */
+
+.query {
+  display: inline-block;
+}
+.query-text {
+  display: inline-block;
+  font-style: italic;
+}
+.query-context {
+  /* position: relative; */
+  position: absolute;
+  margin-top: 20px;
+  margin-left: -2px;
+  display: block;
+  background-color: rgb(200, 200, 200);
+  /* box-shadow: 0 0 0 2px black; */
+  border: 2px solid black;
+  /* margin- */
+}
+.query-context-item {
+  display: block;
+}

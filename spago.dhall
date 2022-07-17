@@ -10,6 +10,7 @@
   , "enums"
   , "foldable-traversable"
   , "free"
+  , "fuzzy"
   , "integers"
   , "lists"
   , "maybe"

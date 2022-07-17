@@ -37,6 +37,11 @@ keys =
   -- app
   , app: [ Key "a" ]
   , unapp: [ Key "Shift a" ]
+  -- NormalMode
+  , normalMode: [ Key "Escape" ]
+  -- QueryMode
+  , queryvariableMode: [ Key "q" ]
+  , submitQueryvariableMode: [ Key "Enter" ]
   -- cursor
   , cursorForwards: [ Key "ArrowRight" ]
   , cursorBackwards: [ Key "ArrowLeft" ]
@@ -46,4 +51,6 @@ keys =
   , copy: [ Key "Ctrl c" ]
   , paste: [ Key "Ctrl v" ]
   , undo: [ Key "Ctrl z" ]
+  , escape: [ Key "Escape" ]
+  , enter: [ Key "Escape" ]
   }

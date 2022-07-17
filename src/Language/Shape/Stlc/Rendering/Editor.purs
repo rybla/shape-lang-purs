@@ -73,7 +73,7 @@ renderEditor this = do
         { label: Just "stepCursorForwards"
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
-            \actionEffect ->
+            \{ this } ->
               modifyState this \st ->
                 maybe st identity do
                   ix <- st.mb_ix
@@ -86,7 +86,7 @@ renderEditor this = do
         { label: Just "stepCursorBackwards"
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
         , effect:
-            \actionEffect -> do
+            \{ this } -> do
               Debug.traceM "stepCursorBackwards"
               modifyState this \st ->
                 maybe st identity do
@@ -94,6 +94,16 @@ renderEditor this = do
                   ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
                   pure st { mb_ix = Just ix' }
         }
+    -- TODO: this isn't actually treated as an explicit action, since it's handled by handleKey_QueryMode
+    -- but probably would be better to have "editing" modes handled more generally
+    -- for when you're doing lots of typing
+    {-
+    , Action
+        { label: Just "normalMode"
+        , triggers: [ ActionTrigger_Keypress keys.normalMode ]
+        , effect: \{ this } -> modifyState this (_ { mode = NormalMode })
+        }
+    -}
     ]
 
 -- | renderPanel

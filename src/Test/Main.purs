@@ -49,6 +49,7 @@ runActions ((type_ /\ term) /\ changes) = do
         , clipboard: Nothing
         , dragboard: Nothing
         , highlights: []
+        , mode: NormalMode
         }
         changes
   case res of

@@ -11,16 +11,15 @@ import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.State as State
-import Control.Monad.State (State)
 import Data.OrderedSet (OrderedSet)
+import Effect (Effect)
+import React (getState)
 import Type.Proxy (Proxy(..))
 
 type M a
-  = State RenderEnvironment a
+  = State.State RenderEnvironment a
 
-runM :: forall a. M a -> (a /\ RenderEnvironment)
-runM = flip State.runState emptyRenderEnvironment
-
+-- runM = flip State.runState emptyRenderEnvironment
 type RenderEnvironment
   = { syntax :: Maybe Syntax -- selected syntax
     , gamma :: Context
@@ -28,18 +27,20 @@ type RenderEnvironment
     , alpha :: Maybe Type
     , actions :: Array Action
     , holeIds :: OrderedSet HoleId
+    , st :: State
     }
 
 _holeIds = Proxy :: Proxy "holeIds"
 
-emptyRenderEnvironment :: RenderEnvironment
-emptyRenderEnvironment =
+emptyRenderEnvironment :: State -> RenderEnvironment
+emptyRenderEnvironment st =
   { syntax: Nothing
   , gamma: default
   , meta: default
   , alpha: default
   , actions: []
   , holeIds: mempty
+  , st
   }
 
 defaultNodeProps :: NodeProps

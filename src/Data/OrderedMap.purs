@@ -3,9 +3,9 @@ module Data.OrderedMap where
 import Data.Tuple
 import Data.Tuple.Nested
 import Prelude
-
 import Data.Foldable as Foldable
 import Data.List (List(..))
+import Data.List as List
 import Data.Maybe (Maybe(..), maybe')
 import Data.Newtype (class Newtype, over, unwrap, wrap)
 import Partial.Unsafe (unsafeCrashWith)
@@ -44,3 +44,6 @@ empty = wrap Nil
 
 toList :: forall k v. OrderedMap k v -> List (k /\ v)
 toList = unwrap
+
+toArray :: forall k v. OrderedMap k v -> Array (k /\ v)
+toArray = List.toUnfoldable <<< unwrap
