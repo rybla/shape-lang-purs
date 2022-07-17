@@ -181,32 +181,32 @@ handleKey_QueryMode renEnv event q res
 
 handleKey_NormalMode :: RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
 handleKey_NormalMode renEnv event =
-  Debug.trace event \_ ->
-    foldr
-      ( \action ->
-          maybe
-            ( foldr
-                ( \trigger -> case trigger of
-                    -- overrides any previously captured keypress. (or
-                    -- keytype, but there should only be one keytype trigger
-                    -- available at a time)
-                    ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
-                    ActionTrigger_Keypress keys ->
-                      maybe
-                        ( do
-                            guard (matchOneOfKeys event keys)
-                            pure (trigger /\ action)
-                        )
-                        pure
-                    _ -> identity
-                )
-                Nothing
-                (unwrap action).triggers
-            )
-            pure
-      )
-      Nothing
-      renEnv.actions
+  -- Debug.trace event \_ ->
+  foldr
+    ( \action ->
+        maybe
+          ( foldr
+              ( \trigger -> case trigger of
+                  -- overrides any previously captured keypress. (or
+                  -- keytype, but there should only be one keytype trigger
+                  -- available at a time)
+                  ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
+                  ActionTrigger_Keypress keys ->
+                    maybe
+                      ( do
+                          guard (matchOneOfKeys event keys)
+                          pure (trigger /\ action)
+                      )
+                      pure
+                  _ -> identity
+              )
+              Nothing
+              (unwrap action).triggers
+          )
+          pure
+    )
+    Nothing
+    renEnv.actions
 
 handleKeytype_Name :: Event -> Name -> Maybe Name
 handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothing else Name (Just str1)) <$> mb_str1

@@ -30,6 +30,7 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import KeyboardCursor (stepCursorBackwards, stepCursorForwards)
+import Language.Shape.Stlc.Index (nilIxDown)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
@@ -74,25 +75,24 @@ renderEditor this = do
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
             \{ this } ->
-              modifyState this \st ->
-                maybe st identity do
-                  ix <- st.mb_ix
-                  Debug.traceM $ "stepCursorForwards, old ix: " <> show ix
-                  ix' <- stepCursorForwards (SyntaxTerm st.term) ix
-                  Debug.traceM $ "stepCursorForwards, new ix: " <> show ix'
-                  pure st { mb_ix = Just ix' }
+              modifyState this \st -> case st.mb_ix of
+                Just ix ->
+                  maybe st identity do
+                    ix' <- stepCursorForwards (SyntaxTerm st.term) ix
+                    pure st { mb_ix = Just ix' }
+                Nothing -> st { mb_ix = Just $ nilIxDown }
         }
     , Action
         { label: Just "stepCursorBackwards"
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
         , effect:
             \{ this } -> do
-              Debug.traceM "stepCursorBackwards"
-              modifyState this \st ->
-                maybe st identity do
-                  ix <- st.mb_ix
-                  ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
-                  pure st { mb_ix = Just ix' }
+              modifyState this \st -> case st.mb_ix of
+                Just ix ->
+                  maybe st identity do
+                    ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
+                    pure st { mb_ix = Just ix' }
+                Nothing -> st { mb_ix = Just $ nilIxDown }
         }
     -- TODO: this isn't actually treated as an explicit action, since it's handled by handleKey_QueryMode
     -- but probably would be better to have "editing" modes handled more generally
