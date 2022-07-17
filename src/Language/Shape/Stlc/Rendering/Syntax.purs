@@ -42,7 +42,6 @@ import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
 import Language.Shape.Stlc.FuzzyFilter (fuzzyDistance)
-import Language.Shape.Stlc.Recursor.Action (doChange)
 import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
@@ -252,15 +251,35 @@ renderTerm this =
                     >>= case _ of
                         QueryMode q
                           | args.visit.csr == Just nilIxDown -> do
-                            items <-
+                            let
+                              -- filter the context for variables that have a
+                              -- name fuzzy-matching the query string
+                              variableQueryItems :: Array (TermId /\ Type)
+                              variableQueryItems =
+                                map (\(termId /\ type_ /\ _) -> (termId /\ type_))
+                                  $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+                                  $ Array.foldMap
+                                      ( \(termId /\ type_) ->
+                                          let
+                                            Name mb_str = lookupVarName termId args.meta
+                                          in
+                                            case fuzzyDistance q.query =<< mb_str of
+                                              Just dist -> [ termId /\ type_ /\ dist ]
+                                              Nothing -> []
+                                      )
+                                  $ OrderedMap.toArray (unwrap args.gamma).varTypes
+                            -- update the render environment to know about the
+                            -- current variable query result
+                            State.modify_ _ { variableQueryResult = Just variableQueryItems }
+                            -- render each items from the query result
+                            variableQueryElems <-
                               sequence
-                                $ map
-                                    ( \(termId /\ type_ /\ _dist) -> do
+                                $ Array.mapWithIndex
+                                    ( \i (termId /\ type_) -> do
                                         elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
                                         elemType <- renderType this { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
                                         pure
-                                          $ ( DOM.span
-                                                [ Props.className "query-context-item" ]
+                                          $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
                                                 $ concat
                                                     [ elemTermId
                                                     , [ DOM.text " : " ]
@@ -268,28 +287,22 @@ renderTerm this =
                                                     ]
                                             )
                                     )
-                                $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
-                                $ Array.foldMap
-                                    ( \(termId /\ type_) ->
-                                        let
-                                          Name mb_str = lookupVarName termId args.meta
-                                        in
-                                          case fuzzyDistance q.query =<< mb_str of
-                                            Just dist -> [ termId /\ type_ /\ dist ]
-                                            Nothing -> []
-                                    )
-                                $ OrderedMap.toArray (unwrap args.gamma).varTypes
+                                $ variableQueryItems
                             pure
-                              $ [ DOM.div
-                                    [ Props.className "query" ]
-                                    [ DOM.div
-                                        [ Props.className "query-context" ]
-                                        items
-                                    , DOM.span
-                                        [ Props.className "query-text" ]
+                              $ [ DOM.div [ Props.className "query" ]
+                                    [ DOM.div [ Props.className "query-context" ]
+                                        ( if Array.length variableQueryElems > 0 then
+                                            variableQueryElems
+                                          else
+                                            [ DOM.span [ Props.className "query-no-matches" ]
+                                                [ DOM.text "no matches" ]
+                                            ]
+                                        )
+                                    , DOM.span [ Props.className "query-text" ]
                                         [ DOM.text q.query ]
                                     ]
-                                , DOM.text " : "
+                                , DOM.span [ Props.className "query-sep" ]
+                                    [ DOM.text " .. : " ]
                                 ]
                         _ -> pure []
                 , renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }

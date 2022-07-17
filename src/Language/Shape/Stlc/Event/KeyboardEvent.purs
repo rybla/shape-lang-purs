@@ -18,6 +18,10 @@ import Data.String as String
 import Data.String.CodePoints as CodePoints
 import Debug as Debug
 import Effect (Effect)
+import Language.Shape.Stlc.ChAtIndex (ToReplace(..))
+import Language.Shape.Stlc.Changes (TypeChange(..))
+import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
+import Language.Shape.Stlc.Hole (subTerm, subType)
 import Partial.Unsafe (unsafeCrashWith)
 import React (modifyState)
 import Undefined (undefined)
@@ -77,10 +81,12 @@ matchKey event (Key str) = case Array.uncons (Array.reverse $ split (Pattern " "
 handleKey :: State -> RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
 handleKey st renEnv event = case st.mode of
   NormalMode -> handleKey_NormalMode renEnv event
-  QueryMode q -> handleKey_QueryMode renEnv event q
+  QueryMode q -> case renEnv.variableQueryResult of
+    Just res -> handleKey_QueryMode renEnv event q res
+    Nothing -> unsafeCrashWith "if in QueryMode, must have a Just VariableQueryResult in the render environment"
 
-handleKey_QueryMode :: RenderEnvironment -> Event -> { query :: String, i :: Int } -> Maybe (ActionTrigger /\ Action)
-handleKey_QueryMode renEnv event q
+handleKey_QueryMode :: RenderEnvironment -> Event -> Query -> VariableQueryResult -> Maybe (ActionTrigger /\ Action)
+handleKey_QueryMode renEnv event q res
   | matchOneOfKeys event keys.normalMode =
     let
       trigger = ActionTrigger_Keypress keys.normalMode
@@ -93,16 +99,68 @@ handleKey_QueryMode renEnv event q
                 , effect: \{ this } -> modifyState this _ { mode = NormalMode }
                 }
         )
-  | matchOneOfKeys event keys.enter =
+  | matchOneOfKeys event keys.arrowUp =
     let
-      trigger = ActionTrigger_Keypress keys.submitQueryvariableMode
+      trigger = ActionTrigger_Keypress keys.arrowUp
     in
       Just
         ( trigger
             /\ Action
-                { label: Just "submitQueryvariableMode"
+                { label: Just "querySelectorMoveUp"
                 , triggers: [ trigger ]
-                , effect: \{ this } -> modifyState this _ { mode = NormalMode } -- TODO: puts the queried variable into hole; maybe QueryVariableMode needs to hold the topmost variable that's been queried?
+                , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i - 1) `mod` Array.length res } }
+                }
+        )
+  | matchOneOfKeys event keys.arrowDown =
+    let
+      trigger = ActionTrigger_Keypress keys.arrowDown
+    in
+      Just
+        ( trigger
+            /\ Action
+                { label: Just "querySelectorMoveDown"
+                , triggers: [ trigger ]
+                , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i + 1) `mod` Array.length res } }
+                }
+        )
+  | matchOneOfKeys event keys.submitVariableQueryMode =
+    let
+      trigger = ActionTrigger_Keypress keys.submitVariableQueryMode
+    in
+      Just
+        ( trigger
+            /\ Action
+                { label: Just "submitVariableQueryMode"
+                , triggers: [ trigger ]
+                -- TODO: puts the queried variable into hole; maybe VariableQueryMode needs to hold the topmost variable that's been queried?
+                , effect:
+                    \{ this } -> do
+                      case renEnv.variableQueryResult of
+                        Just items
+                          | Just (termId /\ type_) <- Array.index items q.i -> do
+                            case fitsInHole type_ (fromJust renEnv.alpha) of
+                              -- does fit in hole 
+                              Just (nArgs /\ holeSub) -> do
+                                let
+                                  term = createNeu termId nArgs
+                                modifyState this \st ->
+                                  maybe st identity do
+                                    st <-
+                                      applyChange
+                                        { ix: fromJust st.mb_ix
+                                        , toReplace: ReplaceTerm term NoChange
+                                        }
+                                        st
+                                    st <-
+                                      pure
+                                        $ st
+                                            { term = subTerm holeSub st.term
+                                            , type_ = subType holeSub st.type_
+                                            , mode = NormalMode
+                                            }
+                                    pure st
+                              _ -> pure unit -- doesn't fit in hole 
+                        _ -> pure unit
                 }
         )
   | otherwise =

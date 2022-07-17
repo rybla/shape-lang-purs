@@ -41,7 +41,7 @@ import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
-import Language.Shape.Stlc.Types (Action(..), This)
+import Language.Shape.Stlc.Types (Action(..), This, applyChange)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)

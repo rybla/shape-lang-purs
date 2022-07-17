@@ -1,21 +1,24 @@
 module Language.Shape.Stlc.Types where
 
 import Data.Tuple.Nested
-import Language.Shape.Stlc.Syntax
-import Prelude
-import Prim hiding (Type)
-import Data.Array ((:))
-import Data.Array as Array
-import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
-import Effect (Effect)
-import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Metacontext
-import React (ReactElement, ReactThis, getState)
+import Language.Shape.Stlc.Syntax
+import Prelude
+import Prim hiding (Type)
+import Data.Array ((:))
+import Data.Array as Array
+import Data.Default (default)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (class Newtype)
+import Debug as Debug
+import Effect (Effect)
+import Effect.Unsafe (unsafePerformEffect)
+import Language.Shape.Stlc.Changes (applyTC)
+import React (ReactElement, ReactThis, getState, modifyState)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
 
@@ -36,7 +39,10 @@ type State
 -- NOTE: doesn't handle editing binds
 data Mode
   = NormalMode
-  | QueryMode { query :: String, i :: Int }
+  | QueryMode Query
+
+type Query
+  = { query :: String, i :: Int }
 
 derive instance eqMode :: Eq Mode
 
@@ -103,3 +109,26 @@ instance showAction :: Show Action where
         Nothing -> ""
     )
       <> Array.intercalate ", " (show <$> action.triggers)
+
+applyChange :: Change -> State -> Maybe State
+applyChange change st = do
+  Debug.traceM $ "===[ change ]============================================================"
+  Debug.traceM $ show change
+  Debug.traceM $ "=========================================================================="
+  let
+    history = toHistoryItem st change : st.history
+  Debug.traceM $ "===[ history (copy this into Test.Main.tests) ]=========================="
+  Debug.traceM $ show ((st.type_ /\ st.term) /\ (_.change <$> history))
+  Debug.traceM $ "=========================================================================="
+  term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
+  -- TODO: apply holeEq
+  pure
+    st
+      { term = term'
+      , type_ = applyTC typeChange st.type_
+      , mb_ix = Just ix'
+      , history = history
+      }
+
+doChange :: This -> Change -> Effect Unit
+doChange this change = modifyState this \st -> maybe st identity (applyChange change st)

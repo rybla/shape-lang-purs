@@ -100,7 +100,7 @@ html {
 /* syntax */
 
 .hole-container {
-  box-shadow: 0 0 0 2px red;
+  box-shadow: 0 0 0 2px goldenrod;
 }
 
 .Hole {
@@ -120,9 +120,9 @@ html {
 
 /* separator */
 
-/* selected */
+/* selected node */
 
-.selected {
+.node.selected {
   background-color: rgb(149, 195, 213);
   
   box-shadow: -2px 0 0 0 white;
@@ -135,7 +135,7 @@ html {
   border-left-width: 2px; */
 }
 
-.selected {
+.node.selected {
   animation-name: blink-animation;
   animation-duration: 1s;
   animation-timing-function: steps(2, start);
@@ -164,7 +164,7 @@ html {
   background-color: rgb(199, 199, 199);
 }
 
-.selected.highlighted {
+.node.selected.highlighted {
   background-color: rgb(116, 173, 196);
 }
 
@@ -203,6 +203,9 @@ html {
   display: inline-block;
   font-style: italic;
 }
+.query-sep {
+  font-style: italic;
+}
 .query-context {
   /* position: relative; */
   position: absolute;
@@ -216,4 +219,10 @@ html {
 }
 .query-context-item {
   display: block;
+}
+.query-context-item.selected {
+  background-color: lightblue;
+}
+.query-no-matches {
+  color: crimson;
 }

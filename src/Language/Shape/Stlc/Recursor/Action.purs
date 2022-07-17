@@ -50,29 +50,6 @@ bindMaybeEffectUnit = case _ of
 
 infixr 5 bindMaybeEffectUnit as >>|=
 
-applyChange :: Change -> State -> Maybe State
-applyChange change st = do
-  Debug.traceM $ "===[ change ]============================================================"
-  Debug.traceM $ show change
-  Debug.traceM $ "=========================================================================="
-  let
-    history = toHistoryItem st change : st.history
-  Debug.traceM $ "===[ history (copy this into Test.Main.tests) ]=========================="
-  Debug.traceM $ show ((st.type_ /\ st.term) /\ (_.change <$> history))
-  Debug.traceM $ "=========================================================================="
-  term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
-  -- TODO: apply holeEq
-  pure
-    st
-      { term = term'
-      , type_ = applyTC typeChange st.type_
-      , mb_ix = Just ix'
-      , history = history
-      }
-
-doChange :: This -> Change -> Effect Unit
-doChange this change = modifyState this \st -> maybe st identity (applyChange change st)
-
 -- | recType
 type ArgsType r
   = Rec.ArgsType ( | r )
@@ -405,8 +382,8 @@ recTerm rec =
                                     _ -> pure unit -- cannot inlambda if type is not an arrow
                             }
                         , Action
-                            { label: Just "queryvariableMode"
-                            , triggers: [ ActionTrigger_Keypress keys.queryvariableMode ]
+                            { label: Just "variableQueryMode"
+                            , triggers: [ ActionTrigger_Keypress keys.variableQueryMode ]
                             , effect: \{ this } -> modifyState this _ { mode = QueryMode { query: "", i: 0 } }
                             }
                         -- TODO: don;t need this anymore, because is handled by handleKey_QueryMode

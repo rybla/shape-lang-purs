@@ -226,7 +226,6 @@ renderEnvironment this env =
                                         , type_ = subType holeSub st.type_
                                         }
                                 pure st
-                          -- | otherwise -> unsafeCrashWith "[unimplemented] use createNeu to add arguments to variable if needed"
                           Nothing -> pure unit -- doesn't fit in hole 
                     ]
                     (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })

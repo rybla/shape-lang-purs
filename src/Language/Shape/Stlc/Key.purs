@@ -40,8 +40,8 @@ keys =
   -- NormalMode
   , normalMode: [ Key "Escape" ]
   -- QueryMode
-  , queryvariableMode: [ Key "q" ]
-  , submitQueryvariableMode: [ Key "Enter" ]
+  , variableQueryMode: [ Key "q" ]
+  , submitVariableQueryMode: [ Key "Enter" ]
   -- cursor
   , cursorForwards: [ Key "ArrowRight" ]
   , cursorBackwards: [ Key "ArrowLeft" ]
@@ -52,5 +52,9 @@ keys =
   , paste: [ Key "Ctrl v" ]
   , undo: [ Key "Ctrl z" ]
   , escape: [ Key "Escape" ]
-  , enter: [ Key "Escape" ]
+  , enter: [ Key "Enter" ]
+  , arrowUp: [ Key "ArrowUp" ]
+  , arrowDown: [ Key "ArrowDown" ]
+  , arrowLeft: [ Key "ArrowLeft" ]
+  , arrowRight: [ Key "ArrowRight" ]
   }

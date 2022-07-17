@@ -19,7 +19,6 @@ import Type.Proxy (Proxy(..))
 type M a
   = State.State RenderEnvironment a
 
--- runM = flip State.runState emptyRenderEnvironment
 type RenderEnvironment
   = { syntax :: Maybe Syntax -- selected syntax
     , gamma :: Context
@@ -28,7 +27,11 @@ type RenderEnvironment
     , actions :: Array Action
     , holeIds :: OrderedSet HoleId
     , st :: State
+    , variableQueryResult :: Maybe VariableQueryResult
     }
+
+type VariableQueryResult
+  = Array (TermId /\ Type)
 
 _holeIds = Proxy :: Proxy "holeIds"
 
@@ -41,6 +44,7 @@ emptyRenderEnvironment st =
   , actions: []
   , holeIds: mempty
   , st
+  , variableQueryResult: Nothing
   }
 
 defaultNodeProps :: NodeProps
