@@ -101,6 +101,8 @@ combineSubs _ _ = Map.empty -- TODO: fix this later!!!
 write with advanced pattern matching rather than merely simple recursion. Therefore, I write those cases
 manually, and then use the Context recursor for the remaining cases in chTermAux.-}
 chTerm :: Context -> Type -> Changes -> TypeChange -> Term -> State HoleEq Term
+chTerm gamma ty chs tc (Hole stuff)
+    = pure (Hole stuff)
 chTerm gamma ty chs tc (Match stuff)
     = chTermAux {alpha: ty, gamma: gamma, term: Match stuff} chs tc
 chTerm gamma ty chs tc (Let stuff)
