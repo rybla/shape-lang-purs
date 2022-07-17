@@ -186,6 +186,7 @@ html {
 
 .name {
   white-space: pre;
+  box-shadow: 0 -1px 0 0 gray inset;
 }
 
 /* misc */
