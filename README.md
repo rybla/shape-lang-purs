@@ -31,6 +31,12 @@ npm install
 npm run build
 ```
 
+### The real building instructions:
+
+```
+npm run build ; npm run bundle ; npm run serve
+```
+
 ### Building
 
 Build the purescript `spago` project via:
