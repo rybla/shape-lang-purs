@@ -15,7 +15,7 @@
     "serve": "parcel ./app/index.html",
     "run": "spago run",
     "launch": "npm run build; npm run bundle; npm run serve",
-    "parcel-build": "export NODE_OPTIONS=--no-experimental-fetch; parcel build ./app/index.html --public-url /shape-lang/",
+    "parcel-build": "export NODE_OPTIONS=--no-experimental-fetch; parcel build ./app/index.html --public-url ./",
     "push-gh-pages": "push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
   },
   "dependencies": {
