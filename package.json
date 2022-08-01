@@ -15,7 +15,7 @@
     "serve": "parcel ./app/index.html",
     "run": "spago run",
     "launch": "npm run build; npm run bundle; npm run serve",
-    "parcel-build": "export NODE_OPTIONS=--no-experimental-fetch; parcel build ./app/index.html --dist-dir ./docs --public-url ./"
+    "parcel-build": "export NODE_OPTIONS=--no-experimental-fetch; parcel build --no-source-maps ./app/index.html --dist-dir ./docs --public-url ./"
   },
   "dependencies": {
     "control": "^0.2.3",
