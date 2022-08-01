@@ -466,7 +466,13 @@ recTerm rec =
                       { ix: toIxDown ix
                       , toReplace:
                           ReplaceTerm
-                            (Buf { sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
+                            ( Buf
+                                { sign: freshHoleType unit
+                                , impl: freshHole unit
+                                , body: term
+                                , meta: default
+                                }
+                            )
                             NoChange
                       }
         , triggers: [ ActionTrigger_Keypress keys.buf ]
@@ -491,6 +497,27 @@ recTerm rec =
                             NoChange
                       }
         , triggers: [ ActionTrigger_Keypress keys.data_ ]
+        }
+    , Action
+        { label: Just "pop"
+        , effect:
+            \{ this } ->
+              args.visit.ix
+                >>|= \ix ->
+                    doChange this
+                      { ix: toIxDown ix
+                      , toReplace:
+                          ReplaceTerm
+                            ( Buf
+                                { sign: freshHoleType unit
+                                , impl: term
+                                , body: freshHole unit
+                                , meta: default
+                                }
+                            )
+                            NoChange
+                      }
+        , triggers: [ ActionTrigger_Keypress keys.pop ]
         }
     , actionIndent args.visit.ix
     ]

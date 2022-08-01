@@ -32,6 +32,7 @@ keys =
   -- buf: b
   , buf: [ Key "b" ]
   , unbuf: [ Key "Shift b" ]
+  , pop: [ Key "p" ]
   -- swap: s
   , swap: [ Key "s" ]
   -- app
