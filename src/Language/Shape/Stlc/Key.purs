@@ -1,11 +1,33 @@
 module Language.Shape.Stlc.Key where
 
 import Prelude
+import Data.String (Pattern(..))
+import Data.String as String
 
 newtype Key
   = Key String
 
-derive newtype instance showKey :: Show Key
+instance showKey :: Show Key where
+  show (Key str) = case String.split (Pattern " ") str of
+    [ base ] -> showBaseKey base
+    [ mod, base ] -> showModKey mod <> showBaseKey base
+    _ -> str
+    where
+    showBaseKey = case _ of
+      "Escape" -> "ESC"
+      "Enter" -> "↩"
+      "ArrowRight" -> "◀"
+      "ArrowLeft" -> "▶"
+      "ArrowUp" -> "▲"
+      "ArrowDown" -> "▼"
+      "Tab" -> "⇥"
+      base -> base
+
+    showModKey = case _ of
+      "Shift" -> "⇧"
+      "Meta" -> "⌘"
+      "Ctrl" -> "⌃"
+      mod -> mod
 
 derive newtype instance eqKey :: Eq Key
 

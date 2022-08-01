@@ -99,7 +99,7 @@ instance showActionTrigger :: Show ActionTrigger where
   show ActionTrigger_Hover = "hover"
   show ActionTrigger_Paste = "paste"
   show ActionTrigger_Click = "click"
-  show (ActionTrigger_Keypress keys) = "keys[" <> Array.intercalate ", " (show <$> keys) <> "]"
+  show (ActionTrigger_Keypress keys) = Array.intercalate ", " (show <$> keys)
   show ActionTrigger_Keytype = "keytype"
 
 instance showAction :: Show Action where

@@ -19,11 +19,16 @@ html {
 }
 
 .app {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  /* left: -10px; */
+  /* margin: 20px; */
+  /* padding: 10px; */
+  
   font-family: monospace;
   line-height: 14pt;
   font-size: 12pt;
-  height: 100vh;
-  padding: 0;
 }
 
 .editor {
@@ -36,54 +41,86 @@ html {
 /* program */
 
 .program {
-  max-width: calc(100vw - 300px - 10px);
-  height: 100%;
+  width: calc(100vw - 300px - 40px);
+  height: 100vh;
   overflow-x: scroll;
+  overflow-y: scroll;
+  margin: 0;
+  padding: 10px;
 }
 
 /* panel */
 
 .panel {
   position: absolute;
-  right: 0;
-  min-width: 300px;
+  right: 6px;
+  width: 300px;
   height: 100%;
-  overflow: wrap;
-
+  overflow-x: wrap;
+  /* overflow-y: scroll; */
   box-shadow: -1px 0 0 0 black;
 }
 
-.panel .header  {
-  font-family: 'Times New Roman', Times, serif;
+.header  {
+  /* font-family: 'Times New Roman', Times, serif; */
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
   font-size: 16pt;
   font-weight: bold;
   margin-top: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .environment {
   padding: 8px;
+  height: calc(50vh - 16px);
 }
 .context {
-
+  padding: 1px;
+  max-height: calc(50vh - 16px - 16pt - 44px);
+  overflow-y: scroll;
 }
 .context-datas {
+
+}
+
+.context-item {
+  display: inline-block;
+  box-shadow: 0 0 0 1px black;
+  /* border-radius: 10px; */
+  border-radius: 4px;
+  margin-bottom: 10px;
+  padding: 2px 6px;
+
+  cursor: pointer;
+}
+.context-item:hover {
+  background-color: rgb(193, 206, 232);
+  box-shadow: 0 0 0 2px black;
+}
+
+.context-data-wrapper {
+  display: block;
 }
 .context-data {
-  display: block;
-  margin-bottom: 4px;
 }
-.context-varTypes {}
-.context-varType {
+.context-data:hover {
+}
+.context-varTypes {
+
+}
+.context-varType-wrapper {
   display: block;
-  margin-bottom: 4px;
+}
+.context-varType {
 }
 .environment-divider {
   margin-top: 4px;
-  /* border-top: 1px solid black; */
   height: 2px;
   background-color: black;
   margin-bottom: 4px;
+}
+.goal-wrapper {
+  
 }
 .goal {
   
@@ -92,18 +129,55 @@ html {
 .palette {
   border-top: 1px solid black;
   padding: 8px;
+  height: calc(50vh - 16px);
+  overflow-y: scroll;
+}
+.action-wrapper {
+  display: block;
 }
 .action {
   display: block;
+  box-shadow: 0 0 0 1px black;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  /* padding: 4px 8px; */
+  padding: 2px 6px;
+
+  cursor: pointer;
+}
+.action:hover {
+  background-color: rgb(193, 206, 232);
+  box-shadow: 0 0 0 2px black;
+}
+.action-label {
+  display: inline-block;
+  /* float: left; */
+}
+.action-triggers {
+  display: block;
+  float: right;
+}
+.action-trigger {
+  display: block;
+  /* border-radius: 4px; */
+  /* padding: 0 4px; */
+  /* box-shadow: 0 0 0 1px black; */
 }
 
 /* syntax */
 
 .hole-container {
-  box-shadow: 0 0 0 2px goldenrod;
+  box-shadow: 0 0 0 4px rgb(197, 91, 14);
+  /* border-radius: 10px; */
+  border-radius: 4px;
+  /* padding: 4px 4px; */
 }
 
 .Hole {
+}
+.HoleType {
+  color: rgb(164, 97, 49);
+  font-weight: bold;
 }
 
 /* token */

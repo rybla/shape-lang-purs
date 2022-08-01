@@ -126,7 +126,11 @@ renderEnvironment this env =
               $ maybeArray env.alpha \alpha ->
                   Array.concat
                     [ [ DOM.div [ Props.className "environment-divider" ] [] ]
-                    , flip State.evalState env $ renderType this { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
+                    , [ DOM.div [ Props.className "environment-goal-wrapper" ] <<< pure
+                          $ DOM.div [ Props.className "environment-goal" ]
+                          $ flip State.evalState env
+                          $ renderType this { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
+                      ]
                     ]
           ]
   ]
@@ -144,90 +148,98 @@ renderEnvironment this env =
       let
         data_ = OrderedMap.lookup'' "renderData.data_" typeId (unwrap gamma).datas
       in
-        DOM.span [ Props.className "context-data" ]
-          $ Array.concat
-              [ [ token.data1 ]
-              , [ DOM.span
-                    [ Props.onClick \event -> do
-                        -- Debug.traceM "trying to paste datatype"
-                        -- Debug.traceM $ "env.syntax = " <> show env.syntax
-                        case env.syntax of
-                          Just (SyntaxType (HoleType holeType)) -> do
-                            modifyState this \st ->
-                              maybe st identity do
-                                -- applyChange
-                                -- { ix: fromJust st.mb_ix
-                                -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
-                                -- }
-                                -- st
-                                -- apply holeSub
-                                let
-                                  holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
-                                pure
-                                  $ st
-                                      { term = subTerm holeSub st.term
-                                      , type_ = subType holeSub st.type_
-                                      }
-                          Just (SyntaxTerm (Hole hole)) -> do
-                            -- match on term of type clicked
-                            st <- getState this
-                            doChange this
-                              { ix: fromJust st.mb_ix
-                              , toReplace:
-                                  ReplaceTerm
-                                    ( Match
-                                        { typeId: typeId
-                                        , term: Hole { meta: default }
-                                        , caseItems:
-                                            ( \sumItem ->
-                                                { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
-                                                , body: Hole { meta: default }
-                                                , meta: default
-                                                }
-                                            )
-                                              <$> data_.sumItems
-                                        , meta: default
-                                        }
-                                    )
-                                    NoChange
-                              }
-                          _ -> pure unit
-                    ]
-                    (flip State.evalState env $ renderTypeBind this { typeBind: data_.typeBind, gamma: gamma, visit: nonVisit, meta: env.meta })
+        DOM.span [ Props.className "context-data-wrapper" ] <<< pure
+          $ DOM.span [ Props.className "context-data context-item" ]
+          $ [ DOM.span
+                [ Props.onClick \event -> do
+                    -- Debug.traceM "trying to paste datatype"
+                    -- Debug.traceM $ "env.syntax = " <> show env.syntax
+                    case env.syntax of
+                      Just (SyntaxType (HoleType holeType)) -> do
+                        modifyState this \st ->
+                          maybe st identity do
+                            -- applyChange
+                            -- { ix: fromJust st.mb_ix
+                            -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
+                            -- }
+                            -- st
+                            -- apply holeSub
+                            let
+                              holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
+                            pure
+                              $ st
+                                  { term = subTerm holeSub st.term
+                                  , type_ = subType holeSub st.type_
+                                  }
+                      Just (SyntaxTerm (Hole hole)) -> do
+                        -- match on term of type clicked
+                        st <- getState this
+                        doChange this
+                          { ix: fromJust st.mb_ix
+                          , toReplace:
+                              ReplaceTerm
+                                ( Match
+                                    { typeId: typeId
+                                    , term: Hole { meta: default }
+                                    , caseItems:
+                                        ( \sumItem ->
+                                            { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
+                                            , body: Hole { meta: default }
+                                            , meta: default
+                                            }
+                                        )
+                                          <$> data_.sumItems
+                                    , meta: default
+                                    }
+                                )
+                                NoChange
+                          }
+                      _ -> pure unit
                 ]
-              ]
+                $ [ token.data1 ]
+                <> ( flip State.evalState env
+                      $ renderTypeBind this
+                          { typeBind: data_.typeBind
+                          , gamma: gamma
+                          , visit: nonVisit
+                          , meta: env.meta
+                          }
+                  )
+            ]
 
     renderVarType termId =
       let
         type_ = OrderedMap.lookup'' "renderVarType.type_" termId (unwrap gamma).varTypes
       in
-        DOM.span [ Props.className "context-varType" ]
+        DOM.span [ Props.className "context-varType-wrapper" ] <<< pure
+          $ DOM.span
+              [ Props.className "context-varType context-item"
+              , Props.onClick \event -> do
+                  case fitsInHole type_ (fromJust env.alpha) of
+                    -- does fit in hole 
+                    Just (nArgs /\ holeSub) -> do
+                      let
+                        term = createNeu termId nArgs
+                      modifyState this \st ->
+                        maybe st identity do
+                          st <-
+                            applyChange
+                              { ix: fromJust st.mb_ix
+                              , toReplace: ReplaceTerm term NoChange
+                              }
+                              st
+                          st <-
+                            pure
+                              $ st
+                                  { term = subTerm holeSub st.term
+                                  , type_ = subType holeSub st.type_
+                                  }
+                          pure st
+                    Nothing -> pure unit -- doesn't fit in hole 
+              ]
           $ Array.concat
               [ [ DOM.span
-                    [ Props.className "context-varType-var"
-                    , Props.onClick \event -> do
-                        case fitsInHole type_ (fromJust env.alpha) of
-                          -- does fit in hole 
-                          Just (nArgs /\ holeSub) -> do
-                            let
-                              term = createNeu termId nArgs
-                            modifyState this \st ->
-                              maybe st identity do
-                                st <-
-                                  applyChange
-                                    { ix: fromJust st.mb_ix
-                                    , toReplace: ReplaceTerm term NoChange
-                                    }
-                                    st
-                                st <-
-                                  pure
-                                    $ st
-                                        { term = subTerm holeSub st.term
-                                        , type_ = subType holeSub st.type_
-                                        }
-                                pure st
-                          Nothing -> pure unit -- doesn't fit in hole 
-                    ]
+                    [ Props.className "context-varType-var" ]
                     (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })
                 ]
               , [ token.let2 ]
@@ -244,19 +256,19 @@ renderPalette this env =
       ]
   ]
   where
-  -- renderAction (Action action) = case action.label of
-  --   Just str ->
-  --     [ DOM.div
-  --         [ Props.className "action"
-  --         , Props.onClick \event -> action.effect this
-  --         ]
-  --         [ DOM.text str ]
-  --     ]
-  --   Nothing -> []
-  renderAction action =
-    [ DOM.div
-        [ Props.className "action"
-        , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
-        ]
-        [ DOM.text $ show action ]
-    ]
+  renderAction action = case (unwrap action).label of
+    Just label ->
+      [ DOM.div [ Props.className "action-wrapper" ] <<< pure
+          $ DOM.div
+              [ Props.className "action"
+              , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
+              ]
+              [ DOM.div [ Props.className "action-label" ] [ DOM.text label ]
+              , DOM.div [ Props.className "action-triggers" ]
+                  $ ( \trigger ->
+                        DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
+                    )
+                  <$> (unwrap action).triggers
+              ]
+      ]
+    Nothing -> []
