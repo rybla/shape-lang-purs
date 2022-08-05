@@ -42,8 +42,17 @@ subType sub (HoleType {holeId, weakening, meta}) = case lookup holeId sub of
 restrictToFull :: HoleEq -> HoleSub
 restrictToFull sub = map HoleType sub
 
+occurs :: Type -> HoleId -> Boolean
+occurs (HoleType {holeId}) holeId2 = holeId == holeId2
+occurs (ArrowType {dom, cod}) holeId = occurs dom holeId || occurs cod holeId
+occurs (DataType _) _ = false
+
 unifyType :: Type -> Type -> Maybe HoleSub
-unifyType (HoleType {holeId}) t2 = Just $ singleton holeId t2
+unifyType (HoleType {holeId: holeId1}) (HoleType {holeId: holeId2})
+  | holeId1 == holeId2 = Just empty
+unifyType (HoleType {holeId}) t2 =
+    if occurs t2 holeId then Nothing
+    else Just $ singleton holeId t2
 unifyType t1 (HoleType hole) = unifyType (HoleType hole) t1
 unifyType (ArrowType {dom:dom1, cod: cod1, meta: meta1})
           (ArrowType {dom:dom2, cod: cod2, meta: meta2}) = do
