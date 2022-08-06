@@ -74,3 +74,12 @@ npm run serve
 7.6. Also for stacktraces: Run `npm run build`
 8. Run `npm run test` in the terminal. This should output some logging information corresponding to running your change history.
 9. Add loggers to `Test.ChangeHistory.runChangeHistory` if you want to print out special information in your test.
+
+## Deployment
+
+Build the GitHub Pages powered web-app via `npm run deploy`.
+
+The branch `deploy` is what the wep-app is based on, so you'll need to do the following to deploy to the hosted web-app:
+1. Merge the `master` branch into `deploy` branch
+2. `npm run deploy` in the `deploy` branch
+3. Push the `deploy` branch
