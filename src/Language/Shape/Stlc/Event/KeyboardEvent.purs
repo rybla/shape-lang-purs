@@ -95,6 +95,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "normalMode"
+                , tooltip: Nothing
                 , triggers: [ trigger ]
                 , effect: \{ this } -> modifyState this _ { mode = NormalMode }
                 }
@@ -107,6 +108,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "querySelectorMoveUp"
+                , tooltip: Nothing
                 , triggers: [ trigger ]
                 , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i - 1) `mod` Array.length res } }
                 }
@@ -119,6 +121,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "querySelectorMoveDown"
+                , tooltip: Nothing
                 , triggers: [ trigger ]
                 , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i + 1) `mod` Array.length res } }
                 }
@@ -131,6 +134,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "submitVariableQueryMode"
+                , tooltip: Just "submit queryt, placing the selected variable in the hole"
                 , triggers: [ trigger ]
                 -- TODO: puts the queried variable into hole; maybe VariableQueryMode needs to hold the topmost variable that's been queried?
                 , effect:
@@ -171,6 +175,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "edit"
+                , tooltip: Nothing
                 , triggers: [ trigger ]
                 , effect:
                     \{ this } -> case handleKeytype_String event q.query of

@@ -73,6 +73,7 @@ type This
 newtype Action
   = Action
   { label :: Maybe String
+  , tooltip :: Maybe String
   , triggers :: Array ActionTrigger
   , effect :: ActionEffect
   }

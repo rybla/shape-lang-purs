@@ -301,3 +301,53 @@ html {
 .query-no-matches {
   color: crimson;
 }
+
+/* tooltips */
+
+/* .action-tooltip {
+
+  position: relative;
+  float: left;
+  height: 0;
+  overflow: visible;
+
+  display: block;
+
+  background-color: rgb(243, 243, 243);
+  border: 1px solid black;
+  width: 250px;
+  padding: 4px;
+  border-radius: 4px;
+  font-style: italic;
+
+  transition-duration: 0.5s;
+  transition-property: all;
+
+  margin-top: -5px;
+  opacity: 0;
+}
+
+.action:hover .action-tooltip {
+  margin-top: 2px;
+  opacity: 1;
+  height: auto;
+} */
+
+
+.action-tooltip {
+  font-style: italic;
+  overflow: hidden;
+  margin: 0 10px;
+  margin-top: 4px;
+
+  transition-duration: 0.2s;
+  transition-property: max-height;
+  transition-timing-function: ease-in-out;
+
+  max-height: 0;
+}
+
+.action:hover .action-tooltip {
+  max-height: 400px;
+}
+

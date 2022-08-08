@@ -55,6 +55,7 @@ renderEditor this = do
   globalActions =
     [ Action
         { label: Just "undo"
+        , tooltip: Just "undo the previous change"
         , triggers: [ ActionTrigger_Keypress keys.undo ]
         , effect:
             \{ this } -> do
@@ -72,6 +73,7 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorForwards"
+        , tooltip: Just "move the cursor fowards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
             \{ this } ->
@@ -84,6 +86,7 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorBackwards"
+        , tooltip: Just "move the cursor backwards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
         , effect:
             \{ this } -> do
@@ -263,12 +266,18 @@ renderPalette this env =
               [ Props.className "action"
               , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
               ]
-              [ DOM.div [ Props.className "action-label" ] [ DOM.text label ]
+          $ ( [ DOM.div [ Props.className "action-label" ] [ DOM.text label ]
               , DOM.div [ Props.className "action-triggers" ]
                   $ ( \trigger ->
                         DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
                     )
                   <$> (unwrap action).triggers
+              -- , DOM.div [ Props.className "action-tooltip" ]
+              --   [ DOM.text  ]
               ]
+                <> maybe []
+                    (\str -> [ DOM.div [ Props.className "action-tooltip" ] [ DOM.text str ] ])
+                    (unwrap action).tooltip
+            )
       ]
     Nothing -> []
