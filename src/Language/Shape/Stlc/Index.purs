@@ -11,8 +11,8 @@ import Data.Eq.Generic (genericEq)
 import Data.Generic.Rep (class Generic)
 import Data.List (List(..), range, reverse, singleton, snoc, (:))
 import Data.List as List
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, over, over2, wrap)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype, over, over2, unwrap, wrap)
 import Data.Ord.Generic (genericCompare)
 import Data.Show.Generic (genericShow)
 import Undefined (undefined)
@@ -207,25 +207,16 @@ ixStepList =
   , tail: IxStep IxStepList 1
   }
 
--- TODO: do I actually use there anywhere?
--- ixUpListItem :: Int -> IxUp
--- ixUpListItem i
---   | i == 0 = wrap (singleton ixStepList.head)
---   | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
+ixUpListItem :: Int -> IxUp
+ixUpListItem i
+  | i == 0 = wrap (singleton ixStepList.head)
+  | otherwise = over wrap (flip snoc ixStepList.tail) (ixUpListItem (i - 1))
+
 ixDownListItem :: Int -> IxDown
 ixDownListItem i
   | i == 0 = wrap (singleton ixStepList.head)
   | otherwise = over wrap (Cons ixStepList.tail) (ixDownListItem (i - 1))
--- ixUpListItems :: Int -> List IxUp
--- ixUpListItems l = go nilIxUp l
---   where
---   go :: IxUp -> Int -> List IxUp
---   go ixUp i
---     | i == 0 = Nil
---     | otherwise =
---       Cons
---         (over IxUp (Cons ixStepList.head) ixUp)
---         (go (over IxUp (Cons ixStepList.tail) ixUp) (i - 1))
+
 -- | utilities
 -- ix1 is a super index of ix2 i.e. ix1 is an index into a child of ix2
 isSuperIxDown :: IxDown -> IxDown -> Boolean
@@ -239,3 +230,11 @@ hashIxStep (IxStep l i) = hashIxStepLabel l <> show i
 
 hashIxStepLabel :: IxStepLabel -> String
 hashIxStepLabel l = show $ Enum.fromEnum l
+
+ixDownEndsWithStep :: IxDown -> IxStep -> Boolean
+ixDownEndsWithStep ix step = List.last (unwrap ix) == Just step
+
+unsnocIxDown :: IxDown -> Maybe { ix :: IxDown, step :: IxStep }
+unsnocIxDown ix = do
+  { init, last } <- List.unsnoc (unwrap ix)
+  pure { ix: wrap init, step: last }

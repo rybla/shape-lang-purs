@@ -31,6 +31,7 @@ import Data.OrderedSet as OrderedSet
 import Data.Set as Set
 import Data.String (joinWith)
 import Data.Traversable (sequence)
+import Debug as Debub
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
@@ -41,6 +42,7 @@ import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
+import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
 import Language.Shape.Stlc.Types (Action(..), This, applyChange)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
@@ -76,12 +78,23 @@ propsClickDragDrop this props =
                     stopPropagation event
                     -- Debug.traceM $ "mouse-down on a term; start dragging: " <> show term
                     -- put this node in dragboard
-                    modifyState this (_ { dragboard = Just (toIxDown ix /\ props.gamma /\ fromJust props.alpha /\ term) })
+                    modifyState this
+                      ( _
+                          { dragboard =
+                            Just
+                              { ix: toIxDown ix
+                              , gamma: props.gamma
+                              , alpha: fromJust props.alpha
+                              , term
+                              }
+                          }
+                      )
                 -- stop drag (drop)
                 , Props.onMouseUp \event -> do
                     st <- getState this
                     case st.dragboard of
-                      Just (ixDown' /\ gamma' /\ alpha' /\ term') -> do
+                      -- Just (ixDown' /\ gamma' /\ alpha' /\ term') -> do
+                      Just { ix: ixDown', gamma: _gamma', alpha: alpha', term: term' } -> do
                         stopPropagation event
                         let
                           ixDown = toIxDown ix
@@ -97,13 +110,6 @@ propsClickDragDrop this props =
                                         -- -- TODO enable this because in theory it works right?
                                         -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
                                         st <- pure $ st { dragboard = Nothing }
-                                        -- dig dragged term from its original index
-                                        st <-
-                                          applyChange
-                                            { ix: ixDown'
-                                            , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
-                                            }
-                                            st
                                         -- drop dragged term into its new index (here)
                                         st <-
                                           applyChange
@@ -111,6 +117,41 @@ propsClickDragDrop this props =
                                             , toReplace: ReplaceTerm term' NoChange
                                             }
                                             st
+                                        -- Dig dragged term from its original
+                                        -- index. Except, if dragging from the
+                                        -- implementation of a buffer, then
+                                        -- unbuffer. Note that since this may
+                                        -- unwrap a buffer, the indices of
+                                        -- things might change, so that's why
+                                        -- the drop must happen first, as it
+                                        -- does above.
+                                        st <- case unsnocIxDown ixDown' of
+                                          Just { ix: ixDown'', step }
+                                            | step == ixStepBuf.impl -> do
+                                              Debub.traceM "when dropping a term, found that it came from the implementation of a buffer"
+                                              term' <-
+                                                -- use `modifySyntaxAt` instead
+                                                -- of `applyChange` because
+                                                -- `applyChange` requires
+                                                -- already knowing the
+                                                -- relacement term 
+                                                toTerm
+                                                  =<< modifySyntaxAt
+                                                      ( case _ of
+                                                          -- already know from matching on `unsnocIxDown ixDown'` that `ixDown''` is at a buffer
+                                                          SyntaxTerm (Buf buf) -> Just (SyntaxTerm buf.body)
+                                                          _ -> Nothing
+                                                      )
+                                                      ixDown''
+                                                      (SyntaxTerm st.term)
+                                              pure st { term = term' }
+                                          -- ?a
+                                          _ ->
+                                            applyChange
+                                              { ix: ixDown'
+                                              , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
+                                              }
+                                              st
                                         -- apply holeSub
                                         st <-
                                           pure
