@@ -31,7 +31,13 @@ type State
     , mb_ix :: Maybe IxDown
     , history :: History
     , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
-    , dragboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
+    , dragboard ::
+        Maybe
+          { ix :: IxDown
+          , gamma :: Context
+          , alpha :: Type
+          , term :: Term
+          }
     , highlights :: Array HTMLElement
     , mode :: Mode
     }
