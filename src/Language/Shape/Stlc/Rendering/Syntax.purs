@@ -315,11 +315,10 @@ renderArgItem this =
     { argItem:
         \args ->
           renderNode this
-            ( (makeNodeProps args) { label = Just "ArgItem" }
+            ( (makeNodeProps args) { label = Just "ArgItem", visit = nonVisit }
             )
             $ [ pure $ newlineOrSpace args.meta (unwrap args.argItem.meta).indented
               , enParenIf (renderTerm this args.term) (requiresParenTerm args.term.term)
-              -- , renderTerm this args.term
               ]
     }
 
