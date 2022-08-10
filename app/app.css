@@ -48,7 +48,7 @@ html {
   overflow-y: scroll;
   margin: 0;
   padding: 10px;
-  line-height: 180%;
+  /* line-height: 180%; */
 }
 
 /* panel */
