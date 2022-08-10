@@ -73,7 +73,7 @@ type This
 newtype Action
   = Action
   { label :: Maybe String
-  , tooltip :: Maybe String
+  , tooltip :: Maybe (Array ReactElement)
   , triggers :: Array ActionTrigger
   , effect :: ActionEffect
   }

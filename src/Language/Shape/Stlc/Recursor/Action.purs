@@ -34,10 +34,12 @@ import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
 import Language.Shape.Stlc.Rendering.Utilities (maybeArray)
 import Partial.Unsafe (unsafeCrashWith)
-import Prim (Array, Record, Row)
+import Prim (Array, Record, Row, String)
 import Prim as Prim
 import Prim.Row (class Lacks)
-import React (getState, modifyState)
+import React (ReactElement, getState, modifyState)
+import React.DOM as DOM
+import React.DOM.Props as Props
 import Record as R
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -81,7 +83,7 @@ recType rec =
                     common (ArrowType args.arrowType) args
                       <> [ Action
                             { label: Just "unarrow"
-                            , tooltip: Just "unwrap an arrow around a type; `A -> B` ~~> `B`"
+                            , tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
                             , effect:
                                 \{ this } -> do
@@ -98,7 +100,7 @@ recType rec =
                           ( \arrowType' ->
                               Action
                                 { label: Just "swaparrow"
-                                , tooltip: Just "swap the order of nested arrows; `A -> B -> C` ~~> `B -> A -> C`"
+                                , tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
                                 , triggers: [ ActionTrigger_Keypress keys.swap ]
                                 , effect:
                                     \{ this } -> do
@@ -140,7 +142,7 @@ recType rec =
   common type_ args =
     [ Action
         { label: Just "enarrow"
-        , tooltip: Just "wrap a type in an arrow; `A` ~~> `? -> A`"
+        , tooltip: makeExampleTooltip "wrap a type in an arrow" "A" "? -> A"
         , effect:
             \{ this } -> do
               st <- getState this
@@ -151,7 +153,7 @@ recType rec =
         }
     , Action
         { label: Just "dig"
-        , tooltip: Just "replace a type with a hole; `A` ~~> `?`"
+        , tooltip: makeExampleTooltip "replace a type with a hole" "A" "?"
         , effect:
             \{ this } -> do
               st <- getState this
@@ -214,7 +216,7 @@ recTerm rec =
                     common (Lam args.lam) args
                       <> [ Action
                             { label: Just "unlambda"
-                            , tooltip: Just "unwrap a lambda, digging the variable; `fun x => e` ~~> `e[x -> ?]`"
+                            , tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
                             , effect:
                                 \{ this } -> do
@@ -236,7 +238,7 @@ recTerm rec =
                           ( \lam' ->
                               Action
                                 { label: Just "swaplambdas"
-                                , tooltip: Just "swap the order of nested lambdas; `fun x => fun y => e` ~~> `fun y => fun x => e`"
+                                , tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
                                 , triggers: [ ActionTrigger_Keypress keys.swap ]
                                 , effect:
                                     \{ this } -> do
@@ -270,7 +272,7 @@ recTerm rec =
                     common (Neu args.neu) args
                       <> [ Action
                             { label: Just "app"
-                            , tooltip: Just "apply a neutral form to an additional argument; `f x y` ~~> `f x y ?`"
+                            , tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
                             , triggers: [ ActionTrigger_Keypress keys.app ]
                             , effect:
                                 \{ this } ->
@@ -330,7 +332,7 @@ recTerm rec =
                     common (Let args.let_) args
                       <> [ Action
                             { label: Just "unlet"
-                            , tooltip: Just "unwrap a let, digging the variable; `let x : A = a in e` ~~> `e[x -> ?]`"
+                            , tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
                             , triggers: [ ActionTrigger_Keypress keys.unlet ]
                             , effect:
                                 \{ this } -> do
@@ -354,7 +356,7 @@ recTerm rec =
                     common (Buf args.buf) args
                       <> [ Action
                             { label: Just "unbuffer"
-                            , tooltip: Just "unwrap a buffer, discarding the term; `buf a : A in e` ~~> `e`"
+                            , tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
                             , triggers: [ ActionTrigger_Keypress keys.unbuf ]
                             , effect:
                                 \{ this } -> do
@@ -382,7 +384,7 @@ recTerm rec =
                     common (Hole args.hole) args
                       <> [ Action
                             { label: Just "inlambda"
-                            , tooltip: Just "fill a hole with a lambda; `?` ~~> `fun ~ => ?`"
+                            , tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
                             , triggers: [ ActionTrigger_Keypress keys.inlambda ]
                             , effect:
                                 \{ this } -> do
@@ -393,7 +395,7 @@ recTerm rec =
                             }
                         , Action
                             { label: Just "variableQueryMode"
-                            , tooltip: Just "enter variable query mode at a hole"
+                            , tooltip: makeSimpleTooltip "enter variable query mode at a hole"
                             , triggers: [ ActionTrigger_Keypress keys.variableQueryMode ]
                             , effect: \{ this } -> modifyState this _ { mode = QueryMode { query: "", i: 0 } }
                             }
@@ -424,7 +426,7 @@ recTerm rec =
   common term args =
     [ Action
         { label: Just "enlambda"
-        , tooltip: Just "wrap a term in a lambda; `e` ~~> `fun ~ => e`"
+        , tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -440,7 +442,7 @@ recTerm rec =
         }
     , Action
         { label: Just "dig"
-        , tooltip: Just "replace a term with a hole; `e` ~~> `?`"
+        , tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -456,7 +458,7 @@ recTerm rec =
         }
     , Action
         { label: Just "enlet"
-        , tooltip: Just "wrap a term in a let; `e` ~~> `let ~ = ? in e`"
+        , tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -472,7 +474,7 @@ recTerm rec =
         }
     , Action
         { label: Just "enbuffer"
-        , tooltip: Just "wrap a term in a buffer; `e` ~~> `buf ? : ? in e`"
+        , tooltip: makeExampleTooltip "wrap a term in a buffer" "e" "buf ? : ? in e"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -494,7 +496,7 @@ recTerm rec =
         }
     , Action
         { label: Just "endata"
-        , tooltip: Just "wrap a term in a datatype definition; `e` ~~> `type ? = ? in e`"
+        , tooltip: makeExampleTooltip "wrap a term in a datatype definition" "e" "type ? = ? in e"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -516,7 +518,7 @@ recTerm rec =
         }
     , Action
         { label: Just "pop"
-        , tooltip: Just "pop a term into a buffer; `e` ~> `buf e : ? in ?`"
+        , tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
         , effect:
             \{ this } ->
               args.visit.ix
@@ -647,7 +649,7 @@ recTypeBind rec =
                 { actions:
                     [ Action
                         { label: Just "edit"
-                        , tooltip: Just "modify the name of a variable"
+                        , tooltip: makeSimpleTooltip "modify the name of a variable"
                         , triggers: [ ActionTrigger_Keytype ]
                         , effect:
                             case _ of
@@ -697,7 +699,7 @@ recTermBind rec =
                 { actions:
                     [ Action
                         { label: Just "edit"
-                        , tooltip: Just "modify the name of a variable"
+                        , tooltip: makeSimpleTooltip "modify the name of a variable"
                         , triggers: [ ActionTrigger_Keytype ]
                         , effect:
                             case _ of
@@ -772,3 +774,19 @@ actionIndent mb_ix =
                   st { term = fromJust $ toTerm =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm st.term) }
     , triggers: [ ActionTrigger_Keypress keys.indent ]
     }
+
+-- tooltip
+makeSimpleTooltip :: String -> Maybe (Array ReactElement)
+makeSimpleTooltip desc = Just [ DOM.text desc ]
+
+makeExampleTooltip :: String -> String -> String -> Maybe (Array ReactElement)
+makeExampleTooltip desc lhs rhs =
+  Just
+    [ DOM.text desc
+    , DOM.br'
+    , DOM.div [ Props.className "example" ]
+        [ DOM.span [ Props.className "code" ] [ DOM.text lhs ]
+        , DOM.span [ Props.className "metacode" ] [ DOM.text "~~~>" ]
+        , DOM.span [ Props.className "code" ] [ DOM.text rhs ]
+        ]
+    ]

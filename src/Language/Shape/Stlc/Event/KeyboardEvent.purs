@@ -24,6 +24,7 @@ import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
 import Language.Shape.Stlc.Hole (subTerm, subType)
 import Partial.Unsafe (unsafeCrashWith)
 import React (modifyState)
+import React.DOM as DOM
 import Undefined (undefined)
 import Unsafe (fromJust)
 import Web.Event.Event (Event, EventType(..))
@@ -134,7 +135,7 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "submitVariableQueryMode"
-                , tooltip: Just "submit queryt, placing the selected variable in the hole"
+                , tooltip: Just [ DOM.text "submit query, placing the selected variable in the hole" ]
                 , triggers: [ trigger ]
                 -- TODO: puts the queried variable into hole; maybe VariableQueryMode needs to hold the topmost variable that's been queried?
                 , effect:

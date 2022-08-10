@@ -41,6 +41,7 @@ html {
 /* program */
 
 .program {
+  position: absolute;
   width: calc(100vw - 300px - 40px);
   height: 100vh;
   overflow-x: scroll;
@@ -54,9 +55,9 @@ html {
 .panel {
   position: absolute;
   right: 6px;
-  width: 300px;
+  /* width: 300px; */
   height: 100%;
-  overflow-x: wrap;
+  /* overflow-x: wrap; */
   /* overflow-y: scroll; */
   box-shadow: -1px 0 0 0 black;
 }
@@ -75,7 +76,7 @@ html {
   height: calc(50vh - 16px);
 }
 .context {
-  padding: 1px;
+  padding: 2px;
   max-height: calc(50vh - 16px - 16pt - 44px);
   overflow-y: scroll;
 }
@@ -129,14 +130,21 @@ html {
 .palette {
   border-top: 1px solid black;
   padding: 8px;
-  height: calc(50vh - 16px);
-  overflow-y: scroll;
 }
-.action-wrapper {
-  display: block;
+
+
+.actions-wrapper {
+  /* overflow-y: scroll; */
+  padding: 2px;
+  height: calc(50vh - 58px);
+}
+.actions {
+  overflow-x: visible;
+  width: 250px;
 }
 .action {
   display: block;
+  position: relative;
   box-shadow: 0 0 0 1px black;
   border-radius: 4px;
   margin-bottom: 10px;
@@ -163,6 +171,44 @@ html {
   /* padding: 0 4px; */
   /* box-shadow: 0 0 0 1px black; */
 }
+.action-tooltip {
+  position: absolute;
+  background-color: white;
+  border: 1px solid rgb(45, 45, 45);
+  /* color: blue; */
+  color: rgb(45, 45, 45);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  
+  display: none;
+  margin-left: -312px;
+  margin-top: -22px;
+  width: 270px;
+}
+.action:hover .action-tooltip {
+  display: block;
+}
+.action-tooltip > .example {
+  display: block;
+  margin-top: 4px;
+  padding: 8px 8px;
+  border-radius: 4px;
+  background-color: rgb(188, 188, 188);
+}
+.action-tooltip > .example > .metacode {
+  display: inline-block;
+  color: green;
+  font-weight: bold;
+  margin: 0 10px;
+}
+.action-tooltip > .example > .code {
+  display: inline-block;
+  color: black;
+  font-family: monospace;
+}
+
+
 
 /* syntax */
 
@@ -334,7 +380,7 @@ html {
 } */
 
 
-.action-tooltip {
+/* .action-tooltip {
   font-style: italic;
   overflow: hidden;
   margin: 0 10px;
@@ -350,4 +396,4 @@ html {
 .action:hover .action-tooltip {
   max-height: 400px;
 }
-
+ */

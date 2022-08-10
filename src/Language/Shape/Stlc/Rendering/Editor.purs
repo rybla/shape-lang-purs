@@ -48,14 +48,16 @@ renderEditor this = do
   env <- pure $ env { actions = env.actions <> globalActions }
   pure $ env
     /\ ( DOM.div [ Props.className "editor" ]
-          $ renderPanel this env
-          <> elems
+          $ Array.concat
+              [ elems
+              , renderPanel this env
+              ]
       )
   where
   globalActions =
     [ Action
         { label: Just "undo"
-        , tooltip: Just "undo the previous change"
+        , tooltip: Nothing
         , triggers: [ ActionTrigger_Keypress keys.undo ]
         , effect:
             \{ this } -> do
@@ -73,7 +75,7 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorForwards"
-        , tooltip: Just "move the cursor fowards in a tree walk"
+        , tooltip: Just [ DOM.text "move the cursor fowards in a tree walk" ]
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
             \{ this } ->
@@ -86,7 +88,7 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorBackwards"
-        , tooltip: Just "move the cursor backwards in a tree walk"
+        , tooltip: Just [ DOM.text "move the cursor backwards in a tree walk" ]
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
         , effect:
             \{ this } -> do
@@ -253,9 +255,16 @@ renderEnvironment this env =
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement
 renderPalette this env =
-  [ DOM.div [ Props.className "palette" ]
-      [ DOM.div [ Props.className "header" ] [ DOM.text "Palette" ]
-      , DOM.div [ Props.className "actions" ] $ Array.concat $ renderAction <$> env.actions
+  [ DOM.div [ Props.className "palette-wrapper" ]
+      [ DOM.div [ Props.className "palette" ]
+          [ DOM.div [ Props.className "header" ] [ DOM.text "Palette" ]
+          , DOM.div [ Props.className "actions-wrapper" ]
+              [ DOM.div [ Props.className "actions" ]
+                  $ Array.concat
+                  $ renderAction
+                  <$> env.actions
+              ]
+          ]
       ]
   ]
   where
@@ -272,11 +281,9 @@ renderPalette this env =
                         DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
                     )
                   <$> (unwrap action).triggers
-              -- , DOM.div [ Props.className "action-tooltip" ]
-              --   [ DOM.text  ]
               ]
                 <> maybe []
-                    (\str -> [ DOM.div [ Props.className "action-tooltip" ] [ DOM.text str ] ])
+                    (\res -> [ DOM.div [ Props.className "action-tooltip" ] res ])
                     (unwrap action).tooltip
             )
       ]
