@@ -39,7 +39,7 @@ keys =
   -- lambda: l
   , lambda: [ Key "l" ]
   , unlambda: [ Key "Shift l" ]
-  , inlambda: [ Key "Meta l" ]
+  , inlambda: [ Key "Meta l", Key "Ctrl l" ]
   -- eta: n
   , eta: [ Key "n" ]
   , uneta: [ Key "Shift n" ]
