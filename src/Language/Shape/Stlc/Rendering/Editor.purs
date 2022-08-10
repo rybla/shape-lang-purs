@@ -29,7 +29,7 @@ import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
-import KeyboardCursor (stepCursorBackwards, stepCursorForwards)
+import KeyboardCursor (getLastIndex, stepCursorBackwards, stepCursorForwards)
 import Language.Shape.Stlc.Index (nilIxDown)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, getState, modifyState)
@@ -97,7 +97,8 @@ renderEditor this = do
                   maybe st identity do
                     ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
                     pure st { mb_ix = Just ix' }
-                Nothing -> st { mb_ix = Just $ nilIxDown }
+                -- selects the rightmost element of the term
+                Nothing -> st { mb_ix = Just $ wrap (getLastIndex (SyntaxTerm st.term)) }
         }
     -- TODO: this isn't actually treated as an explicit action, since it's handled by handleKey_QueryMode
     -- but probably would be better to have "editing" modes handled more generally
