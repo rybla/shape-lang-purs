@@ -306,7 +306,16 @@ html {
 
 .name {
   white-space: pre;
+  margin-right: 2px;
   /* box-shadow: 0 -1px 0 0 gray inset; */
+}
+
+.shadow {
+  font-size: 80%;
+  display: inline-block;
+  position: absolute;
+  margin-top: 5px;
+  margin-left: -2px;
 }
 
 /* misc */
