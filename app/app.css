@@ -325,7 +325,7 @@ html {
   font-style: italic;
 }
 .query-sep {
-  font-style: italic;
+  /* font-style: italic; */
 }
 .query-context {
   /* position: relative; */
