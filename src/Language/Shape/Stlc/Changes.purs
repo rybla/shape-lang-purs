@@ -24,7 +24,7 @@ import Language.Shape.Stlc.Context (Context(..), insertVarType, lookupVarType)
 import Language.Shape.Stlc.Hole (HoleEq, unifyTypeRestricted)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (ArgItem, CaseItem, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), ArrowType, freshHoleId, freshTermId)
+import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, CaseItem, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), Buf, freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -139,7 +139,7 @@ chTerm gamma ty chs (Dig hId) term
     | (case term of
         Hole _ -> false
         _ -> true)
-    = pure $ Buf {body: Hole {meta: default}, impl: term, meta: default, sign: ty}
+    = pure $ bufferIfNotHole {body: Hole {meta: default}, impl: term, meta: default, sign: ty}
 chTerm gamma ty chs tc t 
     = chTermAux {alpha: ty, gamma: gamma, term: t} chs tc
 
@@ -197,7 +197,7 @@ chTermAux args chs sbjto =
 wrapInDisplaced :: Displaced -> Term -> Term
 wrapInDisplaced Nil term = term
 wrapInDisplaced ((t /\ ty) : displaced) term
-    = Buf {
+    = bufferIfNotHole {
             body: (wrapInDisplaced displaced term)
             , meta: default
             , sign : ty
@@ -316,6 +316,12 @@ inferChTerm = Rec.recTerm {
         pure $ Match (args.match {term = term', caseItems = caseItems'}) /\ NoChange
     , hole : \args chs -> pure $ Hole args.hole /\ NoChange -- TODO: is NoChange correct here?
 }
+
+-- Creates a buffer, unless the body would be a hole, in which case it just puts the hole
+bufferIfNotHole :: Buf -> Term
+bufferIfNotHole buf = case buf.impl of
+    Hole _ -> buf.body
+    _ -> Buf buf
 
 {-
 
