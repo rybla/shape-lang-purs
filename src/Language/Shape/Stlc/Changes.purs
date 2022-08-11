@@ -24,7 +24,7 @@ import Language.Shape.Stlc.Context (Context(..), insertVarType, lookupVarType)
 import Language.Shape.Stlc.Hole (HoleEq, unifyTypeRestricted)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, CaseItem, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), Buf, freshHoleId, freshTermId)
+import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, Buf, CaseItem, HoleId(..), SumItem, Term(..), TermId(..), Type(..), TypeId(..), ParamItem, freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -45,13 +45,17 @@ derive instance Generic TypeChange _
 instance Show TypeChange where show x = genericShow x
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
-data ConstructorChange = ChangeConstructor -- TODO: write this!
+
+data ParamChangeItem = NewParam Type | OldParam Int TypeChange
+type ConstructorChange = List ParamChangeItem
+data ConstructorChangeItem = NewConstructor (List ParamItem) | OldConstructor Int ConstructorChange
+type MatchChange = List ConstructorChangeItem
 
 type KindChanges = Set TypeId -- set of datatypes which have been deleted
 
 type Changes = {
     termChanges :: Map TermId VarChange,
-    matchChanges :: Map TypeId (List ConstructorChange),
+    matchChanges :: Map TypeId ConstructorChange,
     dataTypeDeletions :: KindChanges
 }
 
@@ -182,7 +186,7 @@ chTermAux args chs sbjto =
         body' <- chTerm' args.body chs sbjto
         pure $ Buf $ args.buf {impl = impl', body = body', sign = type''}
     , data_ : \args chs sbjto -> do
-        let sumItems' = chSum args chs
+        let sumItems' = chSumFake args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
         body' <- chTerm' args.body chs sbjto
         pure $ Data $ args.data_ {sumItems= sumItems', body = body'}
@@ -268,7 +272,13 @@ displaceArgs _ ty _ _ = error ("shouldn't get here, type is:" <> show ty)
 -- Need to wait for henry to make args recursor
 
 
+chSumFake = undefined
+
+-- Deletes deleted types that were used in constructors, and returns new list of constructors
+-- along with changes which update usage of those constructors
+chSum :: Context -> Changes -> List SumItem -> List SumItem /\ Changes
 chSum = undefined
+
 
 inferChTerm :: Record (Rec.ArgsTerm ()) -> (Changes -> State HoleEq (Term /\ TypeChange))
 inferChTerm = Rec.recTerm {
@@ -304,7 +314,7 @@ inferChTerm = Rec.recTerm {
         body' /\ bodyTc <- inferChTerm args.body chs
         pure $ Buf (args.buf {impl = impl', body = body', sign = type''}) /\ bodyTc
     , data_ : \args chs -> do
-        let sumItems' = chSum args chs
+        let sumItems' = chSumFake args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
         -- body' <- chTerm' args.body chs sbjto
         body' /\ bodyTc <- inferChTerm args.body chs
