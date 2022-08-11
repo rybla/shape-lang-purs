@@ -12,8 +12,8 @@ import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Newtype (unwrap)
 import Data.OrderedMap (lookup')
 import Data.Show.Generic (genericShow)
-import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, varChange)
-import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, inferChTerm, isNoChange, varChange)
+import Language.Shape.Stlc.Context (Context(..), insertVarType)
 import Language.Shape.Stlc.Hole (HoleEq, emptyHoleEq, emptyHoleSub)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..), ixStepBuf, ixStepData, ixStepLet)
 import Language.Shape.Stlc.Recursor.Context as Rec
@@ -98,8 +98,13 @@ chAtTerm args tRep idx = Rec.recTerm {
     (IxDown ((IxStep IxStepLet 2) : rest)) -> do -- definition of let
       impl' /\ IxDown idx' /\ tc /\ holeEq1 <- chAtTerm args.impl tRep (IxDown rest)
       let sign' = applyTC tc args.sign.type_
-      let body' /\ holeEq2 = runState (chTerm' args.body (varChange emptyChanges args.termBind.termBind.termId tc) NoChange) holeEq1
-      pure $ Let args.let_ {sign = sign', impl = impl', body = body'} /\ IxDown (ixStepLet.impl : idx') /\ NoChange /\ holeEq2
+      let (impl'' /\ inferredTC) /\ holeEq2
+            -- = runState (inferChTerm {alpha: sign', gamma: (insertVarType args.termBind.termBind.termId sign' args.gamma), term: impl'}
+            = runState (inferChTerm {alpha: sign', gamma: args.impl.gamma, term: impl'}
+                          (varChange emptyChanges args.termBind.termBind.termId tc)) holeEq1
+      if not (isNoChange inferredTC) then error "should be no change....." else do
+        let body' /\ holeEq3 = runState (chTerm' args.body (varChange emptyChanges args.termBind.termBind.termId tc) NoChange) holeEq2
+        pure $ Let args.let_ {sign = sign', impl = impl'', body = body'} /\ IxDown (ixStepLet.impl : idx') /\ NoChange /\ holeEq3
     (IxDown (IxStep IxStepLet 3 : rest)) -> do -- body of let
       body' /\ IxDown idx' /\ tc /\ holeEq <- chAtTerm args.body tRep (IxDown rest)
       pure $ Let args.let_ {body = body'} /\ IxDown (ixStepLet.body : idx') /\ tc /\ holeEq

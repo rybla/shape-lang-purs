@@ -323,6 +323,11 @@ bufferIfNotHole buf = case buf.impl of
     Hole _ -> buf.body
     _ -> Buf buf
 
+isNoChange :: TypeChange -> Boolean
+isNoChange NoChange = true
+isNoChange (ArrowCh a b) = isNoChange a && isNoChange b
+isNoChange _ = false
+
 {-
 
 The problem, so I don't forget again:
