@@ -13,6 +13,7 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
+
 import Control.Monad.State (runState)
 import Data.Array ((:))
 import Data.Array as Array
@@ -220,11 +221,10 @@ recTerm rec =
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
                             , effect:
                                 \{ this } -> do
-                                  -- BUG doesn't correctly delete bound var
                                   st <- getState this
                                   let
-                                    state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
-
+                                    -- state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
+                                    state = chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
                                     body' /\ holeEq = runState state Map.empty
                                   -- TODO: is it possible that the holeEq could apply to more than just body'?
                                   doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' RemoveArg }
