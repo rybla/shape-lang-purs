@@ -78,7 +78,7 @@ applyTC (InsertArg a) t = ArrowType {dom: a, cod: t, meta:default}
 applyTC Swap (ArrowType {dom: a, cod: (ArrowType {dom: b, cod:c, meta: md1}), meta: md2})
     = ArrowType {dom: b, cod: (ArrowType {dom: a, cod: c, meta: md1}), meta: md2}
 applyTC RemoveArg (ArrowType {cod: b}) = b
-applyTC (Dig id) t = HoleType {holeId: (freshHoleId unit), weakening: Set.empty, meta: default}
+applyTC (Dig id) t = HoleType {holeId: id, weakening: Set.empty, meta: default}
 applyTC tc ty = error $ "Shouldn't get ehre. tc is: " <> show tc <> " ty is: " <> show ty
 
 -- this is like infer
