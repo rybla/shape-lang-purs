@@ -176,8 +176,8 @@ type ArgsTerm r
 type ArgsLam r rTermBind rTerm
   = Rec.ArgsLam ( actions :: Array Action | r ) rTermBind rTerm
 
-type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu ( actions :: Array Action | r ) rTermId rArgItems
+type ArgsNeu r rTermId rArgItem
+  = Rec.ArgsNeu ( actions :: Array Action | r ) rTermId rArgItem
 
 type ArgsLet r termBind rType rTerm
   = Rec.ArgsLet ( actions :: Array Action | r ) termBind rType rTerm
@@ -185,11 +185,11 @@ type ArgsLet r termBind rType rTerm
 type ArgsBuf r rType rTerm
   = Rec.ArgsBuf ( actions :: Array Action | r ) rType rTerm
 
-type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData ( actions :: Array Action | r ) rTypeBind rTerm rSumItems
+type ArgsData r rTypeBind rTerm rSumItem
+  = Rec.ArgsData ( actions :: Array Action | r ) rTypeBind rTerm rSumItem
 
-type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch ( actions :: Array Action | r ) rTypeId rTerm rCaseItems
+type ArgsMatch r rTypeId rTerm rCaseItem
+  = Rec.ArgsMatch ( actions :: Array Action | r ) rTypeId rTerm rCaseItem
 
 type ArgsHole r
   = Rec.ArgsHole ( actions :: Array Action | r )

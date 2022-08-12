@@ -67,8 +67,8 @@ type ArgsTerm r
 type ArgsLam r rTermBind rTerm
   = Rec.ArgsLam ( meta :: Metacontext | r ) rTermBind rTerm
 
-type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu ( meta :: Metacontext | r ) rTermId rArgItems
+type ArgsNeu r rTermId rArgItem
+  = Rec.ArgsNeu ( meta :: Metacontext | r ) rTermId rArgItem
 
 type ArgsLet r termBind rType rTerm
   = Rec.ArgsLet ( meta :: Metacontext | r ) termBind rType rTerm
@@ -76,11 +76,11 @@ type ArgsLet r termBind rType rTerm
 type ArgsBuf r rType rTerm
   = Rec.ArgsBuf ( meta :: Metacontext | r ) rType rTerm
 
-type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData ( meta :: Metacontext | r ) rTypeBind rTerm rSumItems
+type ArgsData r rTypeBind rTerm rSumItem
+  = Rec.ArgsData ( meta :: Metacontext | r ) rTypeBind rTerm rSumItem
 
-type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch ( meta :: Metacontext | r ) rTypeId rTerm rCaseItems
+type ArgsMatch r rTypeId rTerm rCaseItem
+  = Rec.ArgsMatch ( meta :: Metacontext | r ) rTypeId rTerm rCaseItem
 
 type ArgsHole r
   = Rec.ArgsHole ( meta :: Metacontext | r )
