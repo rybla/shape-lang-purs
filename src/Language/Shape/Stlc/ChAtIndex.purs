@@ -54,7 +54,7 @@ chAtArgItems gamma (ArrowType {cod, dom, meta}) tRep -- index points to this arg
   (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix)) ({term, meta: argMeta} : args)
   = do
     (arg' /\ (IxDown ix') /\ tc /\ holeEq) <- chAtTerm {alpha: dom, gamma, term} tRep (IxDown ix)
-    if tc == NoChange
+    if isNoChange tc
       then pure $ ({term: arg', meta: argMeta} : args) /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepArgItem 0 : ix')) /\ holeEq
       else Nothing
 chAtArgItems _ _ _ _ _ = error "shouldn't get here 10"
