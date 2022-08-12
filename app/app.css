@@ -246,7 +246,7 @@ html {
 .node.selected {
   background-color: rgb(149, 195, 213);
   
-  box-shadow: -2px 0 0 0 white;
+  /* box-shadow: -2px 0 0 0 white; */
   
   /* box-shadow: 0 0 0 10px solid white; */
   /* border-left: 4px solid black; */
@@ -256,7 +256,7 @@ html {
   border-left-width: 2px; */
 }
 
-.node.selected {
+/* .node.selected {
   animation-name: blink-animation;
   animation-duration: 1s;
   animation-timing-function: steps(2, start);
@@ -264,7 +264,7 @@ html {
   animation-fill-mode: backwards;
   animation-iteration-count: infinite;
   animation-play-state: running;
-}
+} */
 
 @keyframes blink-animation {
   from {
