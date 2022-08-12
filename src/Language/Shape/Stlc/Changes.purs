@@ -24,7 +24,7 @@ import Language.Shape.Stlc.Context (Context(..), insertVarType, lookupVarType)
 import Language.Shape.Stlc.Hole (HoleEq, unifyTypeRestricted)
 import Language.Shape.Stlc.Index (IxDown(..), IxUp(..))
 import Language.Shape.Stlc.Recursor.Context as Rec
-import Language.Shape.Stlc.Syntax (ArgItem, CaseItem, HoleId(..), Term(..), TermId(..), Type(..), TypeId(..), ArrowType, freshHoleId, freshTermId)
+import Language.Shape.Stlc.Syntax (ArgItem, ArrowType, Buf, CaseItem, HoleId(..), SumItem, Term(..), TermId(..), Type(..), TypeId(..), ParamItem, freshHoleId, freshTermId)
 import Undefined (undefined)
 import Unsafe (error)
 
@@ -45,13 +45,17 @@ derive instance Generic TypeChange _
 instance Show TypeChange where show x = genericShow x
 
 data VarChange = VariableTypeChange TypeChange | VariableDeletion
-data ConstructorChange = ChangeConstructor -- TODO: write this!
+
+data ParamChangeItem = NewParam Type | OldParam Int TypeChange
+type ConstructorChange = List ParamChangeItem
+data ConstructorChangeItem = NewConstructor (List ParamItem) | OldConstructor Int ConstructorChange
+type MatchChange = List ConstructorChangeItem
 
 type KindChanges = Set TypeId -- set of datatypes which have been deleted
 
 type Changes = {
     termChanges :: Map TermId VarChange,
-    matchChanges :: Map TypeId (List ConstructorChange),
+    matchChanges :: Map TypeId ConstructorChange,
     dataTypeDeletions :: KindChanges
 }
 
@@ -78,7 +82,7 @@ applyTC (InsertArg a) t = ArrowType {dom: a, cod: t, meta:default}
 applyTC Swap (ArrowType {dom: a, cod: (ArrowType {dom: b, cod:c, meta: md1}), meta: md2})
     = ArrowType {dom: b, cod: (ArrowType {dom: a, cod: c, meta: md1}), meta: md2}
 applyTC RemoveArg (ArrowType {cod: b}) = b
-applyTC (Dig id) t = HoleType {holeId: (freshHoleId unit), weakening: Set.empty, meta: default}
+applyTC (Dig id) t = HoleType {holeId: id, weakening: Set.empty, meta: default}
 applyTC tc ty = error $ "Shouldn't get ehre. tc is: " <> show tc <> " ty is: " <> show ty
 
 -- this is like infer
@@ -139,7 +143,7 @@ chTerm gamma ty chs (Dig hId) term
     | (case term of
         Hole _ -> false
         _ -> true)
-    = pure $ Buf {body: Hole {meta: default}, impl: term, meta: default, sign: ty}
+    = pure $ bufferIfNotHole {body: Hole {meta: default}, impl: term, meta: default, sign: ty}
 chTerm gamma ty chs tc t 
     = chTermAux {alpha: ty, gamma: gamma, term: t} chs tc
 
@@ -182,7 +186,7 @@ chTermAux args chs sbjto =
         body' <- chTerm' args.body chs sbjto
         pure $ Buf $ args.buf {impl = impl', body = body', sign = type''}
     , data_ : \args chs sbjto -> do
-        let sumItems' = chSum args chs
+        let sumItems' = chSumFake args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
         body' <- chTerm' args.body chs sbjto
         pure $ Data $ args.data_ {sumItems= sumItems', body = body'}
@@ -197,7 +201,7 @@ chTermAux args chs sbjto =
 wrapInDisplaced :: Displaced -> Term -> Term
 wrapInDisplaced Nil term = term
 wrapInDisplaced ((t /\ ty) : displaced) term
-    = Buf {
+    = bufferIfNotHole {
             body: (wrapInDisplaced displaced term)
             , meta: default
             , sign : ty
@@ -268,7 +272,13 @@ displaceArgs _ ty _ _ = error ("shouldn't get here, type is:" <> show ty)
 -- Need to wait for henry to make args recursor
 
 
+chSumFake = undefined
+
+-- Deletes deleted types that were used in constructors, and returns new list of constructors
+-- along with changes which update usage of those constructors
+chSum :: Context -> Changes -> List SumItem -> List SumItem /\ Changes
 chSum = undefined
+
 
 inferChTerm :: Record (Rec.ArgsTerm ()) -> (Changes -> State HoleEq (Term /\ TypeChange))
 inferChTerm = Rec.recTerm {
@@ -304,7 +314,7 @@ inferChTerm = Rec.recTerm {
         body' /\ bodyTc <- inferChTerm args.body chs
         pure $ Buf (args.buf {impl = impl', body = body', sign = type''}) /\ bodyTc
     , data_ : \args chs -> do
-        let sumItems' = chSum args chs
+        let sumItems' = chSumFake args chs
         -- TODO: TODO: TODO::: chSum needs to return potentially changes which get added to chs.
         -- body' <- chTerm' args.body chs sbjto
         body' /\ bodyTc <- inferChTerm args.body chs
@@ -316,6 +326,17 @@ inferChTerm = Rec.recTerm {
         pure $ Match (args.match {term = term', caseItems = caseItems'}) /\ NoChange
     , hole : \args chs -> pure $ Hole args.hole /\ NoChange -- TODO: is NoChange correct here?
 }
+
+-- Creates a buffer, unless the body would be a hole, in which case it just puts the hole
+bufferIfNotHole :: Buf -> Term
+bufferIfNotHole buf = case buf.impl of
+    Hole _ -> buf.body
+    _ -> Buf buf
+
+isNoChange :: TypeChange -> Boolean
+isNoChange NoChange = true
+isNoChange (ArrowCh a b) = isNoChange a && isNoChange b
+isNoChange _ = false
 
 {-
 
