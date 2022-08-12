@@ -12,6 +12,7 @@ import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Newtype (unwrap)
 import Data.OrderedMap (lookup')
 import Data.Show.Generic (genericShow)
+import Data.Traversable (sequence)
 import Language.Shape.Stlc.Changes (ConstructorChange, TypeChange(..), applyTC, chTerm, chTerm', emptyChanges, inferChTerm, isNoChange, varChange)
 import Language.Shape.Stlc.Context (Context(..), insertVarType)
 import Language.Shape.Stlc.Hole (HoleEq, emptyHoleEq, emptyHoleSub)
@@ -58,19 +59,23 @@ chAtArgItems gamma (ArrowType {cod, dom, meta}) tRep -- index points to this arg
       else Nothing
 chAtArgItems _ _ _ _ _ = error "shouldn't get here 10"
 
-chAtMatchCases :: Context -> Type -> ToReplace -> IxDown -> List CaseItem -> Maybe (List CaseItem /\ IxDown /\ HoleEq)
+chAtMatchCases :: Context -> Type -> ToReplace -> IxDown -> List CaseItem -> Maybe (List CaseItem /\ TypeChange /\ IxDown /\ HoleEq)
 chAtMatchCases gamma ty tRep
   (IxDown (IxStep IxStepList 1 : ix)) (arg : args) -- index points to next arg
   = do
-    (argItems /\ (IxDown idx) /\ holeEq) <- chAtMatchCases gamma ty tRep (IxDown ix) args
-    pure $ (arg : argItems) /\ (IxDown (IxStep IxStepList 1 : idx)) /\ holeEq
+    (argItems /\ tc /\ (IxDown idx) /\ holeEq) <- chAtMatchCases gamma ty tRep (IxDown ix) args
+    let newBody /\ holeEq2 = runState (chTerm gamma ty emptyChanges tc arg.body) holeEq
+    pure $ (arg {body = newBody } : argItems) /\ tc /\ (IxDown (IxStep IxStepList 1 : idx)) /\ holeEq2
 chAtMatchCases gamma ty tRep -- index points to this arg
   (IxDown (IxStep IxStepList 0 : IxStep IxStepCaseItem 1 : ix)) ({termBindItems, body, meta: caseMeta} : args)
   = do
     (arg' /\ (IxDown ix') /\ tc /\ holeEq) <- chAtTerm {alpha: ty, gamma, term: body} tRep (IxDown ix)
-    if tc == NoChange
-      then pure $ ({termBindItems, meta: caseMeta, body: arg'} : args) /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepCaseItem 1 : ix')) /\ holeEq
-      else Nothing
+    -- update the rest of the args according to the typechange.
+    let changeArg arg = do -- this function changes the term of an arg by a typechange.
+            newBody <- chTerm gamma ty emptyChanges tc arg.body
+            pure $ arg{body = newBody}
+    let args' /\ holeEq2 = runState (sequence (map changeArg args)) holeEq -- we map that function on all the args
+    pure $ ({termBindItems, meta: caseMeta, body: arg'} : args') /\ tc /\ (IxDown (IxStep IxStepList 0 : IxStep IxStepCaseItem 1 : ix')) /\ holeEq2
 chAtMatchCases _ _ _ idx _ = error ("blabla :" <> show idx)
 
 chAtTerm :: Record (Rec.ArgsTerm ()) -> ToReplace -> IxDown -> Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
@@ -135,8 +140,8 @@ chAtTerm args tRep idx = Rec.recTerm {
         then pure $ Match args.match {term = term'} /\ IxDown (IxStep IxStepMatch 0 : idx') /\ NoChange /\ holeEq
         else Nothing
     (IxDown (IxStep IxStepMatch 1 : rest)) -> do -- case items
-      (caseItems' /\ (IxDown idx) /\ holeEq) <- chAtMatchCases args.gamma args.alpha tRep (IxDown rest) args.match.caseItems
-      pure $ Match args.match {caseItems = caseItems'} /\ IxDown (IxStep IxStepMatch 1 : idx) /\ NoChange /\ holeEq
+      (caseItems' /\ tc /\ (IxDown idx) /\ holeEq) <- chAtMatchCases args.gamma args.alpha tRep (IxDown rest) args.match.caseItems
+      pure $ Match args.match {caseItems = caseItems'} /\ IxDown (IxStep IxStepMatch 1 : idx) /\ tc /\ holeEq
     _ -> error "no"
   , hole : \args tRep -> case _ of _ -> error ("no4 bla " <> (show idx))
 } args tRep idx
