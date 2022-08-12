@@ -336,10 +336,9 @@ recTerm rec =
                             , triggers: [ ActionTrigger_Keypress keys.unlet ]
                             , effect:
                                 \{ this } -> do
-                                  -- BUG doesn't correctly delete bound var
                                   st <- getState this
                                   let
-                                    state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.let_.termBind.termId) NoChange args.let_.body
+                                    state = chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.let_.termBind.termId) NoChange args.let_.body
 
                                     body' /\ holeEq = runState state Map.empty
                                   -- TODO: is it possible that the holeEq could apply to more than just body'?
