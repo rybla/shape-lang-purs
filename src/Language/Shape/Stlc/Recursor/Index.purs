@@ -111,8 +111,8 @@ type ArgsTerm r
 type ArgsLam r rTermBind rTerm
   = Rec.ArgsLam ( visit :: Visit | r ) rTermBind rTerm
 
-type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu ( visit :: Visit | r ) rTermId rArgItems
+type ArgsNeu r rTermId rArgItem
+  = Rec.ArgsNeu ( visit :: Visit | r ) rTermId rArgItem
 
 type ArgsLet r termBind rType rTerm
   = Rec.ArgsLet ( visit :: Visit | r ) termBind rType rTerm
@@ -120,11 +120,11 @@ type ArgsLet r termBind rType rTerm
 type ArgsBuf r rType rTerm
   = Rec.ArgsBuf ( visit :: Visit | r ) rType rTerm
 
-type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData ( visit :: Visit | r ) rTypeBind rTerm rSumItems
+type ArgsData r rTypeBind rTerm rSumItem
+  = Rec.ArgsData ( visit :: Visit | r ) rTypeBind rTerm rSumItem
 
-type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch ( visit :: Visit | r ) rTypeId rTerm rCaseItems
+type ArgsMatch r rTypeId rTerm rCaseItem
+  = Rec.ArgsMatch ( visit :: Visit | r ) rTypeId rTerm rCaseItem
 
 type ArgsHole r
   = Rec.ArgsHole ( visit :: Visit | r )

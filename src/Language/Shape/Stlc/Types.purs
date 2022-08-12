@@ -122,8 +122,7 @@ applyChange change st = do
   Debug.traceM $ "===[ change ]============================================================"
   Debug.traceM $ show change
   Debug.traceM $ "=========================================================================="
-  let
-    history = toHistoryItem st change : st.history
+  history <- pure $ toHistoryItem st change : st.history
   Debug.traceM $ "===[ history (copy this into Test.Main.tests) ]=========================="
   Debug.traceM $ show ((st.type_ /\ st.term) /\ (_.change <$> history))
   Debug.traceM $ "=========================================================================="

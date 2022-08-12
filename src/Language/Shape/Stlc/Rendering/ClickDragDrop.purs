@@ -102,14 +102,17 @@ propsClickDragDrop this props =
                         unless (isSuperIxDown ixDown ixDown') do
                           case term of
                             Hole _ -> do
+                              Debug.traceM "[drop] breakpoint 1"
                               case fitsInHole alpha' (fromJust props.alpha) of
                                 Just (nArgs /\ holeSub)
                                   | nArgs == 0 -> do
+                                    Debug.traceM "[drop] breakpoint 2"
                                     modifyState this \st ->
                                       maybe st identity do
+                                        Debug.traceM "[drop] breakpoint 3"
                                         -- -- TODO enable this because in theory it works right?
                                         -- -- mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
-                                        st <- pure $ st { dragboard = Nothing }
+                                        st <- pure st { dragboard = Nothing }
                                         -- drop dragged term into its new index (here)
                                         st <-
                                           applyChange
@@ -117,6 +120,7 @@ propsClickDragDrop this props =
                                             , toReplace: ReplaceTerm term' NoChange
                                             }
                                             st
+                                        Debug.traceM "[drop] breakpoint 4"
                                         -- Dig dragged term from its original
                                         -- index. Except, if dragging from the
                                         -- implementation of a buffer, then
@@ -135,6 +139,11 @@ propsClickDragDrop this props =
                                                 -- `applyChange` requires
                                                 -- already knowing the
                                                 -- relacement term 
+                                                -- 
+                                                -- BUG: however, this won't add
+                                                -- the change to the History,
+                                                -- since that's done by
+                                                -- `applyChange`
                                                 toTerm
                                                   =<< modifySyntaxAt
                                                       ( case _ of
@@ -152,6 +161,11 @@ propsClickDragDrop this props =
                                               , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
                                               }
                                               st
+                                        Debug.traceM "[drop] breakpoint 5"
+                                        -- set index to be target of drop
+                                        -- st <- pure st { mb_ix = Just ixDown }
+                                        -- TODO: this doesn't actually set the index at all!!
+                                        st <- pure st { mb_ix = Nothing }
                                         -- apply holeSub
                                         st <-
                                           pure
@@ -159,6 +173,8 @@ propsClickDragDrop this props =
                                                 { term = subTerm holeSub st.term
                                                 , type_ = subType holeSub st.type_
                                                 }
+                                        Debug.traceM "[drop] breakpoint 6"
+                                        Debug.traceM $ "[drop] st.mb_ix = " <> show st.mb_ix
                                         pure st
                                   -- TODO: handle case where dragged thing is a neutral form, so can apply more arguments to it i.e. when nArgs > 0
                                   | otherwise -> do
@@ -203,6 +219,5 @@ propsClickDragDrop this props =
                         -- empty dragboard
                         pure unit
                 ]
-        -- Debug.trace ("mouse-downed on a " <> show props.syntax) \_ -> []
         _ -> []
     ]

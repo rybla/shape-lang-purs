@@ -67,8 +67,8 @@ type ArgsTerm r
 type ArgsLam r rTermBind rTerm
   = Rec.ArgsLam ( lam :: Lam | r ) rTermBind rTerm
 
-type ArgsNeu r rTermId rArgItems
-  = Rec.ArgsNeu ( neu :: Neu | r ) rTermId rArgItems
+type ArgsNeu r rTermId rArgItem
+  = Rec.ArgsNeu ( neu :: Neu | r ) rTermId rArgItem
 
 type ArgsLet r termBind rType rTerm
   = Rec.ArgsLet ( let_ :: Let | r ) termBind rType rTerm
@@ -76,11 +76,11 @@ type ArgsLet r termBind rType rTerm
 type ArgsBuf r rType rTerm
   = Rec.ArgsBuf ( buf :: Buf | r ) rType rTerm
 
-type ArgsData r rTypeBind rTerm rSumItems
-  = Rec.ArgsData ( data_ :: Data | r ) rTypeBind rTerm rSumItems
+type ArgsData r rTypeBind rTerm rSumItem
+  = Rec.ArgsData ( data_ :: Data | r ) rTypeBind rTerm rSumItem
 
-type ArgsMatch r rTypeId rTerm rCaseItems
-  = Rec.ArgsMatch ( match :: Match | r ) rTypeId rTerm rCaseItems
+type ArgsMatch r rTypeId rTerm rCaseItem
+  = Rec.ArgsMatch ( match :: Match | r ) rTypeId rTerm rCaseItem
 
 type ArgsHole r
   = Rec.ArgsHole ( hole :: Hole | r )
