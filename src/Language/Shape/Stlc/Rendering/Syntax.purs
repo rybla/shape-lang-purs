@@ -66,7 +66,7 @@ renderProgram this = do
   let
     (elems /\ env) =
       flip runState renEnv
-        $ renderTerm this
+        $ renderTerm this Nothing
             -- TODO: maybe pull this out into multiple files or at least somewhere else?
             { term: st.term
             , gamma: default
@@ -121,19 +121,23 @@ addHoleIdsFromType = case _ of
   DataType data_ -> pure unit
   HoleType hole -> State.modify_ (Record.modify _holeIds (OrderedSet.insert hole.holeId))
 
-renderTerm :: This -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
-renderTerm this =
+renderTerm :: This -> Maybe Syntax -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
+renderTerm this mb_syn_parent =
   Rec.recTerm
     { lam:
         \args -> do
           addHoleIdsFromType args.alpha
           renderNode this
             ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Lam args.lam })
-            [ pure [ token.lam1 ]
+            [ case mb_syn_parent of
+                Just (SyntaxTerm (Lam _)) -> pure []
+                _ -> pure [ token.lam1 ]
             , renderTermBind this args.termBind
-            , pure [ token.lam2 ]
+            , case args.body.term of
+                Lam _ -> pure [ token.space ]
+                _ -> pure [ token.lam2 ]
             , pure $ newline args.body.meta (unwrap args.lam.meta).indentedBody
-            , renderTerm this args.body
+            , renderTerm this (Just $ SyntaxTerm $ Lam $ args.lam) args.body
             ]
     , neu:
         \args ->
@@ -167,21 +171,21 @@ renderTerm this =
                 concat
                   <$> sequence
                       [ pure $ newline args.impl.meta true
-                      , renderTerm this args.impl
+                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.impl
                       ]
               else
-                renderTerm this args.impl
+                renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.impl
             , if (unwrap args.let_.meta).indentedBody then
                 concat
                   <$> sequence
                       [ pure $ newline args.body.meta true
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.body
                       ]
               else
                 concat
                   <$> sequence
                       [ pure [ token.let4 ]
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.body
                       ]
             ]
     , buf:
@@ -190,7 +194,7 @@ renderTerm this =
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Buf args.buf })
             [ pure [ token.buf1 ]
             , pure $ newline args.impl.meta (unwrap args.buf.meta).indentedImpl
-            , renderTerm this args.impl
+            , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.impl
             , pure [ token.buf2 ]
             , pure $ newline args.sign.meta (unwrap args.buf.meta).indentedSign
             , renderType this args.sign
@@ -202,13 +206,13 @@ renderTerm this =
                 concat
                   <$> sequence
                       [ pure $ newline args.body.meta true
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.body
                       ]
               else
                 concat
                   <$> sequence
                       [ pure [ token.buf3 ]
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.body
                       ]
             ]
     , data_:
@@ -223,13 +227,13 @@ renderTerm this =
                 concat
                   <$> sequence
                       [ pure $ newline args.body.meta true
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Data args.data_) args.body
                       ]
               else
                 concat
                   <$> sequence
                       [ pure [ token.data3 ]
-                      , renderTerm this args.body
+                      , renderTerm this (Just $ SyntaxTerm $ Data args.data_) args.body
                       ]
             ]
     , match:
@@ -238,7 +242,7 @@ renderTerm this =
           renderNode this
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
             [ pure [ token.match1 ]
-            , renderTerm this args.term
+            , renderTerm this (Just $ SyntaxTerm $ Match args.match) args.term
             , pure [ token.match2 ]
             , renderItems (renderCaseItem this <$> args.caseItems)
             ]
@@ -318,7 +322,7 @@ renderArgItem this =
             ( (makeNodeProps args) { label = Just "ArgItem", visit = nonVisit }
             )
             $ [ pure $ newlineOrSpace args.meta (unwrap args.argItem.meta).indented
-              , enParenIf (renderTerm this args.term) (requiresParenTerm args.term.term)
+              , enParenIf (renderTerm this (Just $ SyntaxArgItem args.argItem) args.term) (requiresParenTerm args.term.term)
               ]
     }
 
@@ -351,7 +355,7 @@ renderCaseItem this =
             , pure [ token.caseItem2 ]
             , renderItems (renderTermBindItem this <$> args.termBindItems)
             , pure [ token.caseItem3 ]
-            , renderTerm this args.body
+            , renderTerm this Nothing args.body
             ]
     }
 
