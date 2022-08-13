@@ -233,7 +233,9 @@ html {
 }
 
 .token.delimiter {
-  color: purple;
+  /* color: rgb(198, 0, 89); */
+  /* color: #8F2D56; */
+  color: #1F7A8C;
 }
 
 /* name */
@@ -310,6 +312,21 @@ html {
   /* box-shadow: 0 -1px 0 0 gray inset; */
 }
 
+.typeId > .name {
+  /* color: rgb(0, 0, 231); */
+  /* color: #465C69; */
+  /* color: #09897a; */
+  color: #6E2594;
+}
+
+.termId > .name {
+  /* color: red; */
+}
+
+.TermBind > .termId > .name {
+  /* text-decoration: underline; */
+}
+
 .shadow {
   font-size: 60%;
 }
@@ -347,7 +364,7 @@ html {
   display: block;
 }
 .query-context-item.selected {
-  background-color: lightblue;
+  background-color: #add8e6;
 }
 .query-no-matches {
   color: crimson;
