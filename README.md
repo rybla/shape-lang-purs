@@ -77,9 +77,12 @@ npm run serve
 
 ## Deployment
 
-Build the GitHub Pages powered web-app via `npm run deploy`.
-
-The branch `deploy` is what the wep-app is based on, so you'll need to do the following to deploy to the hosted web-app:
-1. Merge the `master` branch into `deploy` branch
-2. `npm run deploy` in the `deploy` branch
-3. Push the `deploy` branch
+To deploy the GitHub pages powered web-app, run the following commands:
+```sh
+git fetch
+git pull
+npm run deploy
+git add ./docs/
+git commit -m"deploy"
+git push
+```
