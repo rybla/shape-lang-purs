@@ -14,14 +14,16 @@
     "bundle": "spago bundle-app --purs-args \"--censor-warnings\" --main Main --to app/app.js",
     "serve": "parcel ./app/index.html",
     "run": "spago run",
-    "launch": "npm run build; npm run bundle; npm run serve",
-    "deploy": "export NODE_OPTIONS=--no-experimental-fetch; parcel build --no-source-maps ./app/index.html --dist-dir ./docs --public-url ./"
+    "launch": "npm run build && npm run bundle && npm run serve",
+    "deploy-mac": "export NODE_OPTIONS=--no-experimental-fetch && parcel build --no-source-maps ./app/index.html --dist-dir ./docs --public-url ./",
+    "deploy": "npm run build && node fix-app.js && parcel build --no-source-maps ./app/index.html --dist-dir ./docs --public-url ./"
   },
   "dependencies": {
     "control": "^0.2.3",
     "purescript-psa": "^0.8.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "replace-in-file": "^6.3.5",
     "shx": "^0.3.4"
   },
   "homepage": "https://riib11.github.io/shape-lang"
