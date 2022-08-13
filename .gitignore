@@ -1,5 +1,6 @@
 # app
-/app/
+/app/app.js
+/app/app.js.map
 
 # dist
 /dist/

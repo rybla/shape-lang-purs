@@ -133,14 +133,13 @@ html {
   padding: 8px;
 }
 
-
 .actions-wrapper {
-  /* overflow-y: scroll; */
+  overflow-y: scroll;
   padding: 2px;
   height: calc(50vh - 58px);
 }
 .actions {
-  overflow-x: visible;
+  /* overflow-x: visible; */
   width: 250px;
 }
 .action {
