@@ -81,6 +81,7 @@ To deploy the GitHub pages powered web-app, run the following commands:
 ```sh
 git fetch
 git pull
+npm install
 npm run deploy
 git add ./docs/
 git commit -m"deploy"
