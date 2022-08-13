@@ -1,8 +1,6 @@
-# build
-app/app.js
-app/app.js.map
 
-# deployment
+
+# dist
 dist/
 
 # misc
@@ -15,11 +13,12 @@ dist/
 /.purs*
 /.psa*
 /.spago
-.DS_Store
-.parcel-cache/
-*/.DS_Store
-**/*.agdai
-**/*.*~
-.vscode/settings.json
-.vscode/tasks.json
-.cache
+/.DS_Store
+/.parcel-cache/
+/*/.DS_Store
+/**/*.agdai
+/**/*.*~
+/.vscode/settings.json
+/.vscode/tasks.json
+/.cache
+/package-lock.json
