@@ -28,7 +28,7 @@ import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name, handleKeytype_String)
-import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, unifyType)
+import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
@@ -276,7 +276,7 @@ recTerm rec =
                             , triggers: [ ActionTrigger_Keypress keys.app ]
                             , effect:
                                 \{ this } ->
-                                  modifyState this \st ->
+                                  modifyState this \st -> do
                                     -- given a neu: `f a : B -> C` where `f : A -> B -> C`
                                     -- try to unify output of `f a`, which is `B -> C` with a function type `?0 -> ?1`
                                     -- if can unify, then apply resulting hole sub to program
@@ -294,32 +294,76 @@ recTerm rec =
                                       -- fresh arrow type
                                       arr :: ArrowType
                                       arr = { dom: freshHoleType unit, cod: freshHoleType unit, meta: default }
-                                    in
-                                      case unifyType out (ArrowType arr) of
-                                        Just holeSub ->
-                                          let
-                                            term' = subTerm holeSub st.term
+                                    case unifyType out (ArrowType arr) of
+                                      Just holeSub ->
+                                        let
+                                          term' = subTerm holeSub st.term
 
-                                            res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
-                                            res =
-                                              chAtTerm { term: term', gamma: default, alpha: st.type_ }
-                                                ( ReplaceTerm
-                                                    (Neu args.neu { argItems = List.snoc args.neu.argItems { term: freshHole unit, meta: default } })
-                                                    RemoveArg
-                                                )
-                                                =<< st.mb_ix
+                                          res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
+                                          res =
+                                            chAtTerm { term: term', gamma: default, alpha: st.type_ }
+                                              ( ReplaceTerm
+                                                  (Neu args.neu { argItems = List.snoc args.neu.argItems { term: freshHole unit, meta: default } })
+                                                  RemoveArg
+                                              )
+                                              =<< st.mb_ix
+                                        in
+                                          case res of
+                                            Just (term'' /\ ix' /\ _tc /\ holeEq) ->
+                                              let
+                                                term''' = subTerm (restrictToFull holeEq) term''
+                                              in
+                                                st
+                                                  { term = term'''
+                                                  , mb_ix = Just ix'
+                                                  }
+                                            Nothing -> st
+                                      Nothing -> st
+                            }
+                        , Action
+                            { label: Just "unapp"
+                            , tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
+                            , triggers: [ ActionTrigger_Keypress keys.unapp ]
+                            , effect:
+                                \{ this } ->
+                                  modifyState this \st -> case List.unsnoc args.neu.argItems of
+                                    -- only works when there's at least one arg
+                                    Just { init: argItems' } -> do
+                                      -- given a neu `f a : B` where `f : A -> B`
+                                      -- try to unify this term's expected type, `B` with `A -> B`
+                                      -- if can unify, then apply resulting hole sub to program
+                                      -- apply typechange `AddArg` to `f`
+                                      -- apply resulting hole sub to program
+                                      let
+                                        -- type of neu's var
+                                        phi :: Type
+                                        phi = lookupVarType args.neu.termId args.gamma
+
+                                        -- output type of neu with one less arg
+                                        out :: Type
+                                        out = neuOutputType phi args.neu { argItems = argItems' }
+
+                                        res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
+                                        res = case out of
+                                          ArrowType arr ->
+                                            chAtTerm { term: st.term, gamma: default, alpha: st.type_ }
+                                              ( ReplaceTerm
+                                                  (Neu args.neu { argItems = argItems' })
+                                                  (InsertArg arr.dom)
+                                              )
+                                              =<< st.mb_ix
+                                          _ -> Nothing
+                                      case res of
+                                        Just (term'' /\ ix' /\ _tc /\ holeEq) ->
+                                          let
+                                            term''' = subTerm (restrictToFull holeEq) term''
                                           in
-                                            case res of
-                                              Just (term'' /\ ix' /\ _tc /\ holeEq) ->
-                                                let
-                                                  term''' = subTerm (restrictToFull holeEq) term''
-                                                in
-                                                  st
-                                                    { term = term'''
-                                                    , mb_ix = Just ix'
-                                                    }
-                                              Nothing -> st
+                                            st
+                                              { term = term'''
+                                              , mb_ix = Just ix'
+                                              }
                                         Nothing -> st
+                                    Nothing -> st
                             }
                         ]
                 }
