@@ -75,7 +75,8 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorForwards"
-        , tooltip: Just [ DOM.text "move the cursor fowards in a tree walk" ]
+        -- , tooltip: Just [ DOM.text "move the cursor fowards in a tree walk" ]
+        , tooltip: Just "move the cursor fowards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
         , effect:
             \{ this } ->
@@ -88,7 +89,8 @@ renderEditor this = do
         }
     , Action
         { label: Just "stepCursorBackwards"
-        , tooltip: Just [ DOM.text "move the cursor backwards in a tree walk" ]
+        -- , tooltip: Just [ DOM.text "move the cursor backwards in a tree walk" ]
+        , tooltip: Just "move the cursor backwards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
         , effect:
             \{ this } -> do
@@ -273,6 +275,27 @@ renderPalette this env =
     Just label ->
       [ DOM.div [ Props.className "action-wrapper" ] <<< pure
           $ DOM.div
+              ( [ Props.className "action"
+                , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
+                ]
+                  <> maybeArray (unwrap action).tooltip Props.title
+              )
+          $ [ DOM.div [ Props.className "action-label" ] [ DOM.text label ]
+            , DOM.div [ Props.className "action-triggers" ]
+                $ ( \trigger ->
+                      DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
+                  )
+                <$> (unwrap action).triggers
+            ]
+      ]
+    Nothing -> []
+
+{-
+  -- OLD: with tooltip divs
+  renderAction action = case (unwrap action).label of
+    Just label ->
+      [ DOM.div [ Props.className "action-wrapper" ] <<< pure
+          $ DOM.div
               [ Props.className "action"
               , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
               ]
@@ -289,3 +312,4 @@ renderPalette this env =
             )
       ]
     Nothing -> []
+  -}

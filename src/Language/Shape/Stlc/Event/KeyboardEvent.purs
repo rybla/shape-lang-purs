@@ -135,7 +135,8 @@ handleKey_QueryMode renEnv event q res
         ( trigger
             /\ Action
                 { label: Just "submitVariableQueryMode"
-                , tooltip: Just [ DOM.text "submit query, placing the selected variable in the hole" ]
+                -- , tooltip: Just [ DOM.text "submit query, placing the selected variable in the hole" ]
+                , tooltip: Just "submit query, placing the selected variable in the hole"
                 , triggers: [ trigger ]
                 -- TODO: puts the queried variable into hole; maybe VariableQueryMode needs to hold the topmost variable that's been queried?
                 , effect:

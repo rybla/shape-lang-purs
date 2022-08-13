@@ -13,7 +13,6 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Types
 import Prelude
-
 import Control.Monad.State (runState)
 import Data.Array ((:))
 import Data.Array as Array
@@ -225,6 +224,7 @@ recTerm rec =
                                   let
                                     -- state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
                                     state = chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
+
                                     body' /\ holeEq = runState state Map.empty
                                   -- TODO: is it possible that the holeEq could apply to more than just body'?
                                   doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' RemoveArg }
@@ -775,17 +775,23 @@ actionIndent mb_ix =
     }
 
 -- tooltip
-makeSimpleTooltip :: String -> Maybe (Array ReactElement)
-makeSimpleTooltip desc = Just [ DOM.text desc ]
+makeSimpleTooltip :: String -> Maybe String
+makeSimpleTooltip = Just
 
-makeExampleTooltip :: String -> String -> String -> Maybe (Array ReactElement)
-makeExampleTooltip desc lhs rhs =
-  Just
-    [ DOM.text desc
-    , DOM.br'
-    , DOM.div [ Props.className "example" ]
-        [ DOM.span [ Props.className "code" ] [ DOM.text lhs ]
-        , DOM.span [ Props.className "metacode" ] [ DOM.text "~~~>" ]
-        , DOM.span [ Props.className "code" ] [ DOM.text rhs ]
-        ]
-    ]
+makeExampleTooltip :: String -> String -> String -> Maybe String
+makeExampleTooltip desc lhs rhs = Just $ desc <> ";  " <> lhs <> "  ~~>  " <> rhs
+
+-- -- OLD: div tooltip
+-- makeSimpleTooltip :: String -> Maybe (Array ReactElement)
+-- makeSimpleTooltip desc = Just [ DOM.text desc ]
+-- makeExampleTooltip :: String -> String -> String -> Maybe (Array ReactElement)
+-- makeExampleTooltip desc lhs rhs =
+--   Just
+--     [ DOM.text desc
+--     , DOM.br'
+--     , DOM.div [ Props.className "example" ]
+--         [ DOM.span [ Props.className "code" ] [ DOM.text lhs ]
+--         , DOM.span [ Props.className "metacode" ] [ DOM.text "~~~>" ]
+--         , DOM.span [ Props.className "code" ] [ DOM.text rhs ]
+--         ]
+--     ]
