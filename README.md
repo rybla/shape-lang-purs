@@ -87,3 +87,17 @@ git add ./docs/
 git commit -m"deploy"
 git push
 ```
+
+
+## Similar Projects
+
+The following are some projects that have some relevant overlaping goals with
+Shape:
+- [Hazel](https://hazel.org/)
+  - a type-sensitive structural editor built on gradual typing
+- [Alfa](https://cth.altocumulus.org/~hallgren/Alfa/index.html)
+- [Meta Programming System](https://www.jetbrains.com/mps/)
+  - a framework for defining DSLs and automatically generating a UI
+- [Lambdu](http://www.lamdu.org)
+- [Scratch](https://scratch.mit.edu)
+  - UI design for a structural editor
