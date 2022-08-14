@@ -11,6 +11,7 @@
   , "foldable-traversable"
   , "free"
   , "fuzzy"
+  , "homogeneous"
   , "integers"
   , "lists"
   , "maybe"

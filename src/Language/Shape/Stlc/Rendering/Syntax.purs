@@ -20,7 +20,7 @@ import Prelude
 import Prim hiding (Type)
 import Type.Proxy
 import Unsafe
-import Control.Monad.State (State, runState)
+import Control.Monad.State (State, gets, runState)
 import Control.Monad.State as State
 import Data.Array (concat, (:))
 import Data.Array as Array
@@ -55,6 +55,9 @@ import React.DOM.Props as Props
 import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
 import Undefined (undefined)
+
+renderToken :: (SyntaxTheme -> Array ReactElement) -> M (Array ReactElement)
+renderToken tok = tok <$> gets _.syntaxtheme
 
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
@@ -97,7 +100,7 @@ renderType this =
           renderNode this
             ((makeNodeProps args) { label = Just "ArrowType", syntax = Just $ SyntaxType $ ArrowType args.arrowType })
             [ enParenIf (renderType this args.dom) (requiresParenType args.dom.type_)
-            , pure [ token.arrowType1 ]
+            , renderToken (token.arrowType1)
             , renderType this args.cod
             ]
     , dataType:
@@ -131,11 +134,11 @@ renderTerm this mb_syn_parent =
             ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Lam args.lam })
             [ case mb_syn_parent of
                 Just (SyntaxTerm (Lam _)) -> pure []
-                _ -> pure [ token.lam1 ]
+                _ -> renderToken token.lam1
             , renderTermBind this args.termBind
             , case args.body.term of
-                Lam _ -> pure [ token.space ]
-                _ -> pure [ token.lam2 ]
+                Lam _ -> renderToken token.space
+                _ -> renderToken token.lam2
             , pure $ newline args.body.meta (unwrap args.lam.meta).indentedBody
             , renderTerm this (Just $ SyntaxTerm $ Lam $ args.lam) args.body
             ]
@@ -148,16 +151,16 @@ renderTerm this mb_syn_parent =
               ]
             else
               [ renderTermId this args.termId
-              -- , pure [ token.neu1 ]
+              -- , renderToken (token.neu1 )
               , renderItems (renderArgItem this <$> args.argItems)
               ]
     , let_:
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Let args.let_ })
-            [ pure [ token.let1 ]
+            [ renderToken token.let1
             , renderTermBind this args.termBind
-            , pure [ token.let2 ]
+            , renderToken (token.let2)
             , if (unwrap args.let_.meta).indentedSign then
                 concat
                   <$> sequence
@@ -166,7 +169,7 @@ renderTerm this mb_syn_parent =
                       ]
               else
                 renderType this args.sign
-            , pure [ token.let3 ]
+            , renderToken (token.let3)
             , if (unwrap args.let_.meta).indentedImpl then
                 concat
                   <$> sequence
@@ -184,7 +187,7 @@ renderTerm this mb_syn_parent =
               else
                 concat
                   <$> sequence
-                      [ pure [ token.let4 ]
+                      [ renderToken token.let4
                       , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.body
                       ]
             ]
@@ -192,16 +195,13 @@ renderTerm this mb_syn_parent =
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Buf args.buf })
-            [ pure [ token.buf1 ]
+            [ renderToken token.buf1
             , pure $ newline args.impl.meta (unwrap args.buf.meta).indentedImpl
             , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.impl
-            , pure [ token.buf2 ]
+            , renderToken (token.buf2)
             , pure $ newline args.sign.meta (unwrap args.buf.meta).indentedSign
             , renderType this args.sign
-            -- , pure $ newlineOrSpace args.body.meta (unwrap args.buf.meta).indentedBody
-            -- , pure [ token.buf3 ]
-            -- , pure $ newlineOrSpace args.body.meta (unwrap args.buf.meta).indentedBody
-            -- , renderTerm this args.body
+            , renderToken token.buf4
             , if (unwrap args.buf.meta).indentedBody then
                 concat
                   <$> sequence
@@ -211,7 +211,7 @@ renderTerm this mb_syn_parent =
               else
                 concat
                   <$> sequence
-                      [ pure [ token.buf3 ]
+                      [ renderToken token.buf4
                       , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.body
                       ]
             ]
@@ -219,9 +219,9 @@ renderTerm this mb_syn_parent =
         \args ->
           renderNode this
             ((makeNodeProps args) { label = Just "Data", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Data args.data_ })
-            [ pure [ token.data1 ]
+            [ renderToken token.data1
             , renderTypeBind this args.typeBind
-            , pure [ token.data2 ]
+            , renderToken (token.data2)
             , renderItems (renderSumItem this <$> args.sumItems)
             , if (unwrap args.data_.meta).indentedBody then
                 concat
@@ -232,7 +232,7 @@ renderTerm this mb_syn_parent =
               else
                 concat
                   <$> sequence
-                      [ pure [ token.data3 ]
+                      [ renderToken token.data3
                       , renderTerm this (Just $ SyntaxTerm $ Data args.data_) args.body
                       ]
             ]
@@ -241,10 +241,11 @@ renderTerm this mb_syn_parent =
           -- Debug.traceM $ "rendering args.caseItems: " <> show args.caseItems
           renderNode this
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
-            [ pure [ token.match1 ]
+            [ renderToken token.match1
             , renderTerm this (Just $ SyntaxTerm $ Match args.match) args.term
-            , pure [ token.match2 ]
+            , renderToken token.match2
             , renderItems (renderCaseItem this <$> args.caseItems)
+            , renderToken token.match3
             ]
     , hole:
         \args ->
@@ -317,11 +318,12 @@ renderArgItem :: This -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
 renderArgItem this =
   Rec.recArgItem
     { argItem:
-        \args ->
+        \args -> do
+          synthm <- gets _.syntaxtheme
           renderNode this
             ( (makeNodeProps args) { label = Just "ArgItem", visit = nonVisit }
             )
-            $ [ pure $ newlineOrSpace args.meta (unwrap args.argItem.meta).indented
+            $ [ pure $ newlineOrSpace synthm args.meta (unwrap args.argItem.meta).indented
               , enParenIf (renderTerm this (Just $ SyntaxArgItem args.argItem) args.term) (requiresParenTerm args.term.term)
               ]
     }
@@ -335,13 +337,15 @@ renderSumItem this =
             ( (makeNodeProps args) { label = Just "SumItem" }
             )
             [ pure $ newline args.meta (unwrap args.sumItem.meta).indented
-            , pure [ token.sumItem1 ]
+            , renderToken token.sumItem1
             , renderTermBind this args.termBind
-            , pure [ token.sumItem2 ]
+            , renderToken token.sumItem2
             , renderItems (renderParamItem this <$> args.paramItems)
+            , renderToken token.sumItem3
             ]
     }
 
+-- <caseItem1> <id> <caseItem2> <termBindItems> <caseItem3> <body> <caseItem4>
 renderCaseItem :: This -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
 renderCaseItem this =
   Rec.recCaseItem
@@ -350,12 +354,13 @@ renderCaseItem this =
           renderNode this
             (makeNodeProps args) { label = Just "CaseItem" }
             [ pure $ newline args.meta (unwrap args.caseItem.meta).indented
-            , pure [ token.caseItem1 ]
+            , renderToken token.caseItem1
             , printTermId { termId: args.termId, gamma: args.gamma, visit: nonVisit, meta: args.meta }
-            , pure [ token.caseItem2 ]
+            , renderToken token.caseItem2
             , renderItems (renderTermBindItem this <$> args.termBindItems)
-            , pure [ token.caseItem3 ]
-            , renderTerm this Nothing args.body
+            , renderToken token.caseItem3
+            , renderTerm this (Just $ SyntaxCaseItem args.caseItem) args.body
+            , renderToken token.caseItem4
             ]
     }
 
@@ -368,6 +373,7 @@ renderParamItem this =
             (makeNodeProps args) { label = Just "ParamItem" }
             [ pure $ newline args.meta (unwrap args.paramItem.meta).indented
             , renderType this args.type_
+            , renderToken (token.space)
             ]
     }
 
@@ -380,6 +386,7 @@ renderTermBindItem this =
             (makeNodeProps args) { label = Just "TermBindItem" }
             [ pure $ newline args.meta (unwrap args.termBindItem.meta).indented
             , renderTermBind this args.termBind
+            , renderToken token.space
             ]
     }
 

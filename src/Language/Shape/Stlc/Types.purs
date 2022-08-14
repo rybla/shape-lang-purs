@@ -48,7 +48,7 @@ type State
     }
 
 initSyntaxtheme :: SyntaxTheme
-initSyntaxtheme = DefaultSyntaxTheme
+initSyntaxtheme = MlSyntaxTheme
 
 initColortheme :: String
 initColortheme = "default-light"

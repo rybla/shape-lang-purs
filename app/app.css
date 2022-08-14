@@ -39,6 +39,7 @@ html, body {
   color: black;
   box-shadow: 0 1px 0 0 black;
   overflow-y: visible;
+  margin-bottom: 1px;
 }
 
 .title {
@@ -49,10 +50,12 @@ html, body {
   z-index: 2;
   font-weight: bold;
   /* text-decoration: underline; */
-  /* box-shadow: 0 0 0 2px black inset; */
+  /* box-shadow: -1px 0 0 0 black inset; */
   /* background-color: black; */
   /* color: white; */
   color: rgb(197, 91, 14);
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  font-size: 12pt;
 }
 
 .menu {
@@ -64,7 +67,11 @@ html, body {
   /* border: 1px solid red; */
   /* box-shadow: 0 0 0 1px red inset; */
   /* background-color: black; */
-  padding: 5px 10px;
+  /* padding: 5px 10px; */
+  padding-top: 6px;
+  padding-bottom: 4px;
+  padding-left: 10px;
+  padding-right: 10px;
   cursor: pointer;
   /* overflow-y: visible; */
   /* overflow: visible; */
@@ -76,7 +83,11 @@ html, body {
   /* box-shadow: -1px 0 0 0 black; */
   /* background-color: rgb(193, 206, 232); */
   /* font-weight: bold; */
-  box-shadow: 0 -4px 0 0 black inset;
+  /* box-shadow: 0 -4px 0 0 black inset; */
+  box-shadow: 
+    -1px 0 0 0 black inset,
+    1px 0 0 0 black inset;
+  background-color: rgb(238, 238, 238);
 }
 
 .menu-name {
@@ -120,7 +131,7 @@ html, body {
 
 .menu-item {
   font-weight: normal;
-  min-width: 100px;
+  min-width: 60px;
   /* box-shadow: 0 0 0 1px black inset; */
   /* box-shadow: 
     -1px 0 0 0 black inset,
@@ -167,6 +178,7 @@ html, body {
   margin: 0;
   padding: 10px;
   z-index: 1;
+  background-color: white;
   /* line-height: 180%; */
 }
 
@@ -175,15 +187,15 @@ html, body {
 .panel {
   position: absolute;
   right: 6px;
-  /* width: 300px; */
+  max-width: 313px;
+  max-width: calc(300px - 30px);
   height: 100%;
-  /* overflow-x: wrap; */
+  /* overflow-x: ; */
   /* overflow-y: scroll; */
   box-shadow: -1px 0 0 0 black;
 }
 
 .header  {
-  /* font-family: 'Times New Roman', Times, serif; */
   font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
   font-size: 16pt;
   font-weight: bold;
@@ -351,7 +363,7 @@ html, body {
   white-space: pre;
 }
 
-.token.delimiter {
+.token.keyword {
   /* color: rgb(198, 0, 89); */
   /* color: #8F2D56; */
   color: #1F7A8C;

@@ -41,18 +41,18 @@ import Undefined (undefined)
 import Unsafe (fromJust)
 
 -- | renderEditor
-renderEditor :: This -> Effect (RenderEnvironment /\ ReactElement)
+renderEditor :: This -> Effect (RenderEnvironment /\ Array (ReactElement))
 renderEditor this = do
-  elems /\ env <- renderProgram this
+  res /\ env <- renderProgram this
   -- global actions 
   env <- pure $ env { actions = env.actions <> globalActions }
   pure $ env
-    /\ ( DOM.div [ Props.className "editor" ]
+    /\ [ DOM.div [ Props.className "editor" ]
           $ Array.concat
-              [ elems
+              [ res
               , renderPanel this env
               ]
-      )
+      ]
   where
   globalActions =
     [ Action
@@ -204,7 +204,7 @@ renderEnvironment this env =
                           }
                       _ -> pure unit
                 ]
-                $ [ token.data1 ]
+                $ token.data1 env.syntaxtheme
                 <> ( flip State.evalState env
                       $ renderTypeBind this
                           { typeBind: data_.typeBind
@@ -250,7 +250,7 @@ renderEnvironment this env =
                     [ Props.className "context-varType-var" ]
                     (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })
                 ]
-              , [ token.let2 ]
+              , token.let2 env.syntaxtheme
               , [ DOM.span [ Props.className "context-varType-type" ]
                     (flip State.evalState env $ renderType this { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta })
                 ]

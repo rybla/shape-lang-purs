@@ -12,7 +12,7 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (State)
+import Control.Monad.State (State, gets)
 import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Array as Array
@@ -56,7 +56,9 @@ maybeArray :: forall a b. Maybe a -> (a -> b) -> Array b
 maybeArray ma f = maybe [] (Array.singleton <<< f) ma
 
 enParen :: M (Array ReactElement) -> M (Array ReactElement)
-enParen m = renderConcatArray [ pure [ token.lparen ], m, pure [ token.rparen ] ]
+enParen m = do
+  synthm <- gets _.syntaxtheme
+  renderConcatArray [ pure (token.lparen synthm), m, pure (token.rparen synthm) ]
 
 enParenIf :: M (Array ReactElement) -> Boolean -> M (Array ReactElement)
 enParenIf m true = enParen m
