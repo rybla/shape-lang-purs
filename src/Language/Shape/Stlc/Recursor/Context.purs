@@ -203,15 +203,17 @@ recCaseItem rec =
         \args ->
           let
             data_ = lookupData args.typeId args.gamma
+
+            constr = lookupVarType args.termId args.gamma
           in
             rec.caseItem
               args
                 { termBindItems = (R.delete _alpha <<< R.delete _typeId <<< R.delete _termId) <$> args.termBindItems
                 , body =
-                  foldl
-                    (\term (termBindItem /\ sumItem) -> insertVarType termBindItem.termBindItem.termBind.termId (typeOfSumItem args.typeId sumItem) `mapArgsCtx` term)
+                  foldr
+                    (\(termBindItem /\ alpha) -> (insertVarType termBindItem.termBindItem.termBind.termId alpha `mapArgsCtx` _))
                     (R.delete _typeId <<< R.delete _termId $ args.body)
-                    (args.termBindItems `List.zip` data_.sumItems)
+                    (args.termBindItems `List.zip` (flattenType constr).doms)
                 }
     }
 

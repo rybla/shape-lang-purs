@@ -62,6 +62,7 @@ syntaxtheme_token =
         , lam2: makeToken " -> " ""
         , data1: makeToken "type " "keyword"
         , data3: makeToken " in " "keyword"
+        , caseItem3: makeToken " -> " "punctuation"
         , let1: makeToken "let " "keyword"
         , buf1: makeToken "let _ = " "keyword"
         , buf2: makeToken " : " ""

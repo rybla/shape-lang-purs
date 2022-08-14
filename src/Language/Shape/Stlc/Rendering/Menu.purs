@@ -40,9 +40,9 @@ renderMenubar this = do
                 [ Props.className "title" ]
                 [ DOM.text "shape" ]
         , renderExternalMenu this
-        , renderExampleMenu this
         -- , renderColorThemeMenu this -- TODO: implement color themes via a class that's given to things in the renderer
         , renderSyntaxThemeMenu this
+        , renderExampleMenu this
         , renderResourcesMenu this
         ]
 

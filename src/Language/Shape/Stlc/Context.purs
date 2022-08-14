@@ -15,6 +15,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, unwrap)
 import Data.OrderedMap (OrderedMap)
 import Data.OrderedMap as OrderedMap
+import Debug as Debug
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
 import Undefined (undefined)
@@ -76,7 +77,10 @@ flattenType type_ = case type_ of
 
 -- TODO: make sure this is right
 unflattenType :: { doms :: List Type, cod :: Type } -> Type
-unflattenType { doms, cod } = foldl (\cod dom -> ArrowType { dom, cod, meta: default }) cod doms
+unflattenType { doms: Nil, cod } = cod
+
+-- foldr (\cod dom -> ArrowType { dom, cod, meta: default }) cod doms
+unflattenType { doms: Cons dom doms, cod } = ArrowType { dom, cod: unflattenType { doms, cod }, meta: default }
 
 typeOfSumItem :: TypeId -> SumItem -> Type
 typeOfSumItem typeId sumItem = unflattenType { doms: (_.type_) <$> sumItem.paramItems, cod: DataType { typeId, meta: default } }
