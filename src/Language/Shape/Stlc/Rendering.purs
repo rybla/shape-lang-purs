@@ -1,6 +1,8 @@
 module Language.Shape.Stlc.Rendering where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Rendering.Syntax
+import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types
 import Prelude hiding (div)
 import React
@@ -11,10 +13,10 @@ import Effect (Effect)
 import Effect.Console as Console
 import Effect.Ref as Ref
 import Language.Shape.Stlc.Event.KeyboardEvent (eventKey, handleKey)
+import Language.Shape.Stlc.Example.Basic as Basic
 import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
-import Language.Shape.Stlc.Rendering.Syntax
-import Language.Shape.Stlc.Rendering.Types
+import Language.Shape.Stlc.Rendering.Menu (renderMenubar)
 import React.DOM as DOM
 import React.Ref as Ref
 import Undefined (undefined)
@@ -32,22 +34,8 @@ programClass = component "Program" programComponent
 programComponent :: ReactThis Props State -> Effect Given
 programComponent this = do
   let
-    state :: State
-    state =
-      { mb_ix: Nothing
-      , term
-      , type_
-      , history: mempty
-      , clipboard: Nothing
-      , dragboard: Nothing
-      , highlights: mempty
-      , mode: NormalMode
-      }
-      where
-      term /\ type_ = init1
-  let
-    renEnv = emptyRenderEnvironment state
-  renderEnvironmentRef <- Ref.new renEnv
+    state = initState Basic.term Basic.type_
+  renderEnvironmentRef <- Ref.new (emptyRenderEnvironment state)
   let
     componentDidMount = do
       Console.log "componentDidMount"
@@ -70,10 +58,11 @@ programComponent this = do
 
     render = do
       st <- getState this
-      -- Debug.traceM (show st)
-      renEnv /\ elems <- renderEditor this
+      Debug.traceM (show st.term)
+      resMenubar <- renderMenubar this
+      renEnv /\ resEditor <- renderEditor this
       Ref.write renEnv renderEnvironmentRef
-      pure elems
+      pure $ DOM.div' (resMenubar <> resEditor)
   pure
     { state
     , render

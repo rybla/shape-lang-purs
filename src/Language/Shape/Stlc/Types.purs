@@ -12,12 +12,15 @@ import Prim hiding (Type)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
+import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
+import Data.Show.Generic (genericShow)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Changes (applyTC)
+import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..))
 import React (ReactElement, ReactThis, getState, modifyState)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
@@ -40,12 +43,51 @@ type State
           }
     , highlights :: Array HTMLElement
     , mode :: Mode
+    , syntaxtheme :: SyntaxTheme
+    , colortheme :: String
     }
 
--- NOTE: doesn't handle editing binds
+initSyntaxtheme :: SyntaxTheme
+initSyntaxtheme = DefaultSyntaxTheme
+
+initColortheme :: String
+initColortheme = "default-light"
+
+initState :: Term -> Type -> State
+initState term type_ =
+  { term
+  , type_
+  , mb_ix: Nothing
+  , history: []
+  , clipboard: Nothing
+  , dragboard: Nothing
+  , highlights: []
+  , mode: NormalMode
+  , syntaxtheme: initSyntaxtheme
+  , colortheme: initColortheme
+  }
+
+updateStateProgram :: Term -> Type -> State -> State
+updateStateProgram term type_ =
+  _
+    { term = term
+    , type_ = type_
+    , mb_ix = Nothing
+    , history = []
+    , clipboard = Nothing
+    , dragboard = Nothing
+    , highlights = []
+    , mode = NormalMode
+    }
+
 data Mode
   = NormalMode
   | QueryMode Query
+
+derive instance genericMode :: Generic Mode _
+
+instance showMode :: Show Mode where
+  show x = genericShow x
 
 type Query
   = { query :: String, i :: Int }

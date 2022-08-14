@@ -1,4 +1,4 @@
-html {
+html, body {
   user-select: none;
   margin: 0;
   padding: 0;
@@ -12,7 +12,7 @@ html {
   user-select: none;
 }
 
-.main {
+#main {
   height: 100vh;
   margin: 0;
   padding: 0;
@@ -25,17 +25,135 @@ html {
   /* left: -10px; */
   /* margin: 20px; */
   /* padding: 10px; */
-  
-  font-family: monospace;
+
   line-height: 14pt;
   font-size: 12pt;
 }
+
+/* menu */
+
+.menubar {
+  width: 100%;
+  height: 29px;
+  /* background-color: black; */
+  color: black;
+  box-shadow: 0 1px 0 0 black;
+  overflow-y: visible;
+}
+
+.title {
+  padding: 5px 10px;
+  float: left;
+  position: relative;
+  /* width: 100px; */
+  z-index: 2;
+  font-weight: bold;
+  /* text-decoration: underline; */
+  /* box-shadow: 0 0 0 2px black inset; */
+  /* background-color: black; */
+  /* color: white; */
+  color: rgb(197, 91, 14);
+}
+
+.menu {
+  /* display: inline-block; */
+  /* display: block; */
+  float: left;
+  position: relative;
+  /* width: 50px; */
+  /* border: 1px solid red; */
+  /* box-shadow: 0 0 0 1px red inset; */
+  /* background-color: black; */
+  padding: 5px 10px;
+  cursor: pointer;
+  /* overflow-y: visible; */
+  /* overflow: visible; */
+  overflow-x: visible;
+  z-index: 2;
+}
+
+.menu:hover {
+  /* box-shadow: -1px 0 0 0 black; */
+  /* background-color: rgb(193, 206, 232); */
+  /* font-weight: bold; */
+  box-shadow: 0 -4px 0 0 black inset;
+}
+
+.menu-name {
+  /* text-decoration: underline; */
+}
+
+.menu-items {
+  position: fixed;
+  z-index: 2;
+  /* width: 120px; */
+  /* max-width: 500px; */
+  margin-top: 5px;
+  margin-left: -10px;
+  margin-bottom: -5px;
+  background-color: white;
+
+  overflow-y: scroll;
+  max-height: 200px;
+
+  display: none;
+}
+
+.menu-items table, .menu-items tr, .menu-items td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+.menu-items > td {
+  border: 1px solid black;
+}
+
+.menu:hover > .menu-name {
+  /* font-weight: bold; */
+  /* text-decoration: underline; */
+}
+
+.menu:hover > .menu-items {
+  display: block;
+}
+
+
+.menu-item {
+  font-weight: normal;
+  min-width: 100px;
+  /* box-shadow: 0 0 0 1px black inset; */
+  /* box-shadow: 
+    -1px 0 0 0 black inset,
+    1px 0 0 0 black inset,
+    0 -1px 0 0 black inset
+    ; */
+  /* width: 200px; */
+  background-color: rgb(238, 238, 238);
+  padding: 5px 10px;
+}
+.menu-item:hover {
+  /* box-shadow: 0 0 0 2px red inset; */
+  background-color: rgb(193, 206, 232);
+}
+
+.filename {
+  font-family: monospace;
+  font-size: 10pt;
+}
+
+.link > a {
+  color: blue;
+  text-decoration: none;
+}
+
+/* editor */
 
 .editor {
   width: 100%;
   height: 100%;
   padding: 0;
   margin: 0;
+  font-family: monospace;
 }
 
 /* program */
@@ -48,6 +166,7 @@ html {
   overflow-y: scroll;
   margin: 0;
   padding: 10px;
+  z-index: 1;
   /* line-height: 180%; */
 }
 
