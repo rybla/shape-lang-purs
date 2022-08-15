@@ -54,22 +54,23 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
-import Undefined (undefined)
 
-renderToken :: (SyntaxTheme -> Array ReactElement) -> M (Array ReactElement)
-renderToken tok = tok <$> gets _.syntaxtheme
+type RenderArgs
+  = { this :: This, syntaxtheme :: SyntaxTheme }
 
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
   let
     renEnv = emptyRenderEnvironment st
+
+    syntaxtheme = renEnv.syntaxtheme
   -- Debug.traceM $ "===[ st.term ]==============================="
   -- Debug.traceM $ show st.term
   let
     (elems /\ env) =
       flip runState renEnv
-        $ renderTerm this Nothing
+        $ renderTerm { this, syntaxtheme } Nothing
             -- TODO: maybe pull this out into multiple files or at least somewhere else?
             { term: st.term
             , gamma: default
@@ -92,28 +93,37 @@ renderProgram this = do
         /\ env
     )
 
-renderType :: This -> Record (Rec.ArgsType ()) -> M (Array ReactElement)
-renderType this =
+renderType :: RenderArgs -> Record (Rec.ArgsType ()) -> M (Array ReactElement)
+renderType renArgs@{ this, syntaxtheme } =
   Rec.recType
     { arrowType:
-        \args ->
-          renderNode this
+        \args -> do
+          dom <- renderType renArgs args.dom
+          cod <- renderType renArgs args.cod
+          let
+            cod_arr = case args.cod.type_ of
+              ArrowType _ -> true
+              _ -> false
+
+            cod_paren = case args.cod.type_ of
+              ArrowType _ -> true
+              _ -> false
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "ArrowType", syntax = Just $ SyntaxType $ ArrowType args.arrowType })
-            [ enParenIf (renderType this args.dom) (requiresParenType args.dom.type_)
-            , renderToken (token.arrowType1)
-            , renderType this args.cod
-            ]
+            (syntaxtheme.type_.arr { dom, cod, cod_arr, cod_paren, meta: args.arrowType.meta, metactx: args.meta })
     , dataType:
-        \args ->
-          renderNode this
+        \args -> do
+          typeId <- printTypeId args.typeId
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "DataType", syntax = Just $ SyntaxType $ DataType args.dataType })
-            [ printTypeId args.typeId ]
+            (syntaxtheme.type_.data_ { typeId, meta: args.dataType.meta, metactx: args.meta })
     , holeType:
         \args -> do
-          State.modify_ (Record.modify _holeIds (OrderedSet.insert args.holeType.holeId)) -- should be inserted into ordered set
-          renderNode this
+          State.modify_ (Record.modify _holeIds (OrderedSet.insert args.holeType.holeId))
+          holeId <- printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta }
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "HoleType", syntax = Just $ SyntaxType $ HoleType args.holeType })
-            [ printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta } ]
+            (syntaxtheme.type_.hole { holeId, weakening: Nothing, meta: args.holeType.meta, metactx: args.meta })
     }
 
 addHoleIdsFromType :: Type -> M Unit
@@ -124,319 +134,247 @@ addHoleIdsFromType = case _ of
   DataType data_ -> pure unit
   HoleType hole -> State.modify_ (Record.modify _holeIds (OrderedSet.insert hole.holeId))
 
-renderTerm :: This -> Maybe Syntax -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
-renderTerm this mb_syn_parent =
+renderTerm :: RenderArgs -> Maybe Syntax -> Record (Rec.ArgsTerm ()) -> M (Array ReactElement)
+renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
   Rec.recTerm
     { lam:
         \args -> do
           addHoleIdsFromType args.alpha
-          renderNode this
+          termBind <- renderTermBind renArgs args.termBind
+          body <- renderTerm renArgs (Just $ SyntaxTerm $ Lam $ args.lam) args.body
+          let
+            parent_lam = case mb_syn_parent of
+              Just (SyntaxTerm (Lam _)) -> true
+              _ -> false
+
+            body_lam = case args.lam.body of
+              Lam _ -> true
+              _ -> false
+
+            body_paren = case args.lam.body of
+              Lam _ -> true
+              _ -> false
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Lam args.lam })
-            [ case mb_syn_parent of
-                Just (SyntaxTerm (Lam _)) -> pure []
-                _ -> renderToken token.lam1
-            , renderTermBind this args.termBind
-            , case args.body.term of
-                Lam _ -> renderToken token.space
-                _ -> renderToken token.lam2
-            , pure $ newline args.body.meta (unwrap args.lam.meta).indentedBody
-            , renderTerm this (Just $ SyntaxTerm $ Lam $ args.lam) args.body
-            ]
+            (syntaxtheme.term.lam { termBind, body, parent_lam, body_lam, body_paren, meta: args.lam.meta, metactx: args.meta })
     , neu:
-        \args ->
-          renderNode this
+        \args -> do
+          termId <- renderTermId renArgs args.termId
+          argItems <- renderItems (renderArgItem renArgs <$> args.argItems)
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Neu", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Neu args.neu })
-            if List.length args.neu.argItems == 0 then
-              [ renderTermId this args.termId
-              ]
-            else
-              [ renderTermId this args.termId
-              -- , renderToken (token.neu1 )
-              , renderItems (renderArgItem this <$> args.argItems)
-              ]
+            (syntaxtheme.term.neu { termId, argItems, meta: args.neu.meta, metactx: args.meta })
     , let_:
-        \args ->
-          renderNode this
+        \args -> do
+          termBind <- renderTermBind renArgs args.termBind
+          sign <- renderType renArgs args.sign
+          impl <- renderTerm renArgs (Just $ SyntaxTerm $ Let args.let_) args.impl
+          body <- renderTerm renArgs (Just $ SyntaxTerm $ Let args.let_) args.body
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Let args.let_ })
-            [ renderToken token.let1
-            , renderTermBind this args.termBind
-            , renderToken (token.let2)
-            , if (unwrap args.let_.meta).indentedSign then
-                concat
-                  <$> sequence
-                      [ pure $ newline args.sign.meta true
-                      , renderType this args.sign
-                      ]
-              else
-                renderType this args.sign
-            , renderToken (token.let3)
-            , if (unwrap args.let_.meta).indentedImpl then
-                concat
-                  <$> sequence
-                      [ pure $ newline args.impl.meta true
-                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.impl
-                      ]
-              else
-                renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.impl
-            , if (unwrap args.let_.meta).indentedBody then
-                concat
-                  <$> sequence
-                      [ pure $ newline args.body.meta true
-                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.body
-                      ]
-              else
-                concat
-                  <$> sequence
-                      [ renderToken token.let4
-                      , renderTerm this (Just $ SyntaxTerm $ Let args.let_) args.body
-                      ]
-            ]
+            (syntaxtheme.term.let_ { termBind, sign, impl, body, meta: args.let_.meta, metactx: args.meta })
     , buf:
-        \args ->
-          renderNode this
+        \args -> do
+          sign <- renderType renArgs args.sign
+          impl <- renderTerm renArgs (Just $ SyntaxTerm $ Buf args.buf) args.impl
+          body <- renderTerm renArgs (Just $ SyntaxTerm $ Buf args.buf) args.body
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Buf args.buf })
-            [ renderToken token.buf1
-            , pure $ newline args.impl.meta (unwrap args.buf.meta).indentedImpl
-            , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.impl
-            , renderToken (token.buf2)
-            , pure $ newline args.sign.meta (unwrap args.buf.meta).indentedSign
-            , renderType this args.sign
-            , renderToken token.buf4
-            , if (unwrap args.buf.meta).indentedBody then
-                concat
-                  <$> sequence
-                      [ pure $ newline args.body.meta true
-                      , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.body
-                      ]
-              else
-                concat
-                  <$> sequence
-                      [ renderToken token.buf4
-                      , renderTerm this (Just $ SyntaxTerm $ Buf args.buf) args.body
-                      ]
-            ]
+            (syntaxtheme.term.buf { sign, impl, body, meta: args.buf.meta, metactx: args.meta })
     , data_:
-        \args ->
-          renderNode this
+        \args -> do
+          typeBind <- renderTypeBind renArgs args.typeBind
+          sumItems <- renderItems (renderSumItem renArgs <$> args.sumItems)
+          body <- renderTerm renArgs (Just $ SyntaxTerm $ Data args.data_) args.body
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Data", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Data args.data_ })
-            [ renderToken token.data1
-            , renderTypeBind this args.typeBind
-            , renderToken (token.data2)
-            , renderItems (renderSumItem this <$> args.sumItems)
-            , if (unwrap args.data_.meta).indentedBody then
-                concat
-                  <$> sequence
-                      [ pure $ newline args.body.meta true
-                      , renderTerm this (Just $ SyntaxTerm $ Data args.data_) args.body
-                      ]
-              else
-                concat
-                  <$> sequence
-                      [ renderToken token.data3
-                      , renderTerm this (Just $ SyntaxTerm $ Data args.data_) args.body
-                      ]
-            ]
+            (syntaxtheme.term.data_ { typeBind, sumItems, body, meta: args.data_.meta, metactx: args.meta })
     , match:
         \args -> do
-          -- Debug.traceM $ "rendering args.caseItems: " <> show args.caseItems
-          renderNode this
+          term <- renderTerm renArgs (Just $ SyntaxTerm $ Match args.match) args.term
+          caseItems <- renderItems (renderCaseItem renArgs <$> args.caseItems)
+          renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
-            [ renderToken token.match1
-            , renderTerm this (Just $ SyntaxTerm $ Match args.match) args.term
-            , renderToken token.match2
-            , renderItems (renderCaseItem this <$> args.caseItems)
-            , renderToken token.match3
-            ]
+            (syntaxtheme.term.match { term, caseItems, meta: args.match.meta, metactx: args.meta })
     , hole:
-        \args ->
-          (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
-            <$> renderNode this
-                ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
-                [ State.gets (_.st.mode)
-                    >>= case _ of
-                        QueryMode q
-                          | args.visit.csr == Just nilIxDown -> do
-                            let
-                              -- filter the context for variables that have a
-                              -- name fuzzy-matching the query string
-                              variableQueryItems :: Array (TermId /\ Type)
-                              variableQueryItems =
-                                map (\(termId /\ type_ /\ _) -> (termId /\ type_))
-                                  $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
-                                  $ Array.foldMap
-                                      ( \(termId /\ type_) ->
-                                          let
-                                            Name mb_str = lookupVarName termId args.meta
-                                          in
-                                            case fuzzyDistance q.query =<< mb_str of
-                                              Just dist -> [ termId /\ type_ /\ dist ]
-                                              Nothing -> []
+        \args -> do
+          query <-
+            State.gets (_.st.mode)
+              >>= case _ of
+                  QueryMode q
+                    | args.visit.csr == Just nilIxDown -> do
+                      let
+                        -- filter the context for variables that have a
+                        -- name fuzzy-matching the query string
+                        variableQueryItems :: Array (TermId /\ Type)
+                        variableQueryItems =
+                          map (\(termId /\ type_ /\ _) -> (termId /\ type_))
+                            $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+                            $ Array.foldMap
+                                ( \(termId /\ type_) ->
+                                    let
+                                      Name mb_str = lookupVarName termId args.meta
+                                    in
+                                      case fuzzyDistance q.query =<< mb_str of
+                                        Just dist -> [ termId /\ type_ /\ dist ]
+                                        Nothing -> []
+                                )
+                            $ OrderedMap.toArray (unwrap args.gamma).varTypes
+                      -- update the render environment to know about the
+                      -- current variable query result
+                      State.modify_ _ { variableQueryResult = Just variableQueryItems }
+                      -- render each items from the query result
+                      variableQueryElems <-
+                        sequence
+                          $ Array.mapWithIndex
+                              ( \i (termId /\ type_) -> do
+                                  elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                                  elemType <- renderType renArgs { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                                  pure
+                                    $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
+                                          $ concat
+                                              [ elemTermId
+                                              , [ DOM.text " : " ]
+                                              , elemType
+                                              ]
                                       )
-                                  $ OrderedMap.toArray (unwrap args.gamma).varTypes
-                            -- update the render environment to know about the
-                            -- current variable query result
-                            State.modify_ _ { variableQueryResult = Just variableQueryItems }
-                            -- render each items from the query result
-                            variableQueryElems <-
-                              sequence
-                                $ Array.mapWithIndex
-                                    ( \i (termId /\ type_) -> do
-                                        elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-                                        elemType <- renderType this { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-                                        pure
-                                          $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
-                                                $ concat
-                                                    [ elemTermId
-                                                    , [ DOM.text " : " ]
-                                                    , elemType
-                                                    ]
-                                            )
-                                    )
-                                $ variableQueryItems
-                            pure
-                              $ [ DOM.div [ Props.className "query" ]
-                                    [ DOM.div [ Props.className "query-context" ]
-                                        ( if Array.length variableQueryElems > 0 then
-                                            variableQueryElems
-                                          else
-                                            [ DOM.span [ Props.className "query-no-matches" ]
-                                                [ DOM.text "no matches" ]
-                                            ]
-                                        )
-                                    , DOM.span [ Props.className "query-text" ]
-                                        [ DOM.text q.query ]
-                                    ]
-                                , DOM.span [ Props.className "query-sep" ]
-                                    [ DOM.text " .. : " ]
-                                ]
-                        _ -> pure []
-                , renderType this { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
-                ]
+                              )
+                          $ variableQueryItems
+                      pure
+                        $ [ DOM.div [ Props.className "query" ]
+                              [ DOM.div [ Props.className "query-context" ]
+                                  ( if Array.length variableQueryElems > 0 then
+                                      variableQueryElems
+                                    else
+                                      [ DOM.span [ Props.className "query-no-matches" ]
+                                          [ DOM.text "no matches" ]
+                                      ]
+                                  )
+                              , DOM.span [ Props.className "query-text" ]
+                                  [ DOM.text q.query ]
+                              ]
+                          , DOM.span [ Props.className "query-sep" ]
+                              [ DOM.text " .. : " ]
+                          ]
+                  _ -> pure []
+          hole <- renderType renArgs { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
+          (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
+            <$> renderNewNode renArgs
+                ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
+                (query <> hole)
     }
 
-renderArgItem :: This -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
-renderArgItem this =
+renderArgItem :: RenderArgs -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
+renderArgItem renArgs@{ this, syntaxtheme } =
   Rec.recArgItem
     { argItem:
         \args -> do
-          synthm <- gets _.syntaxtheme
-          renderNode this
-            ( (makeNodeProps args) { label = Just "ArgItem", visit = nonVisit }
-            )
-            $ [ pure $ newlineOrSpace synthm args.meta (unwrap args.argItem.meta).indented
-              , enParenIf (renderTerm this (Just $ SyntaxArgItem args.argItem) args.term) (requiresParenTerm args.term.term)
-              ]
+          term <- renderTerm { this, syntaxtheme } (Just $ SyntaxArgItem args.argItem) args.term
+          let
+            term_paren = requiresParenTerm args.term.term
+          renderNewNode renArgs
+            ((makeNodeProps args) { label = Just "ArgItem", visit = nonVisit })
+            (syntaxtheme.argItem { term, term_paren, meta: args.argItem.meta, metactx: args.meta })
     }
 
-renderSumItem :: This -> Record (Rec.ArgsSumItem ()) -> M (Array ReactElement)
-renderSumItem this =
+renderSumItem :: RenderArgs -> Record (Rec.ArgsSumItem ()) -> M (Array ReactElement)
+renderSumItem renArgs@{ this, syntaxtheme } =
   Rec.recSumItem
     { sumItem:
-        \args ->
-          renderNode this
-            ( (makeNodeProps args) { label = Just "SumItem" }
-            )
-            [ pure $ newline args.meta (unwrap args.sumItem.meta).indented
-            , renderToken token.sumItem1
-            , renderTermBind this args.termBind
-            , renderToken token.sumItem2
-            , renderItems (renderParamItem this <$> args.paramItems)
-            , renderToken token.sumItem3
-            ]
+        \args -> do
+          termBind <- renderTermBind renArgs args.termBind
+          paramItems <- renderItems (renderParamItem renArgs <$> args.paramItems)
+          renderNewNode renArgs
+            ((makeNodeProps args) { label = Just "SumItem" })
+            (syntaxtheme.sumItem { termBind, paramItems, meta: args.sumItem.meta, metactx: args.meta })
     }
 
--- <caseItem1> <id> <caseItem2> <termBindItems> <caseItem3> <body> <caseItem4>
-renderCaseItem :: This -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
-renderCaseItem this =
+renderCaseItem :: RenderArgs -> Record (Rec.ArgsCaseItem ()) -> M (Array ReactElement)
+renderCaseItem renArgs@{ this, syntaxtheme } =
   Rec.recCaseItem
     { caseItem:
         \args -> do
-          renderNode this
+          termId <- printTermId { termId: args.termId, gamma: args.gamma, visit: nonVisit, meta: args.meta }
+          termBindItems <- renderItems (renderTermBindItem renArgs <$> args.termBindItems)
+          body <- renderTerm renArgs (Just $ SyntaxCaseItem args.caseItem) args.body
+          renderNewNode renArgs
             (makeNodeProps args) { label = Just "CaseItem" }
-            [ pure $ newline args.meta (unwrap args.caseItem.meta).indented
-            , renderToken token.caseItem1
-            , printTermId { termId: args.termId, gamma: args.gamma, visit: nonVisit, meta: args.meta }
-            , renderToken token.caseItem2
-            , renderItems (renderTermBindItem this <$> args.termBindItems)
-            , renderToken token.caseItem3
-            , renderTerm this (Just $ SyntaxCaseItem args.caseItem) args.body
-            , renderToken token.caseItem4
-            ]
+            (syntaxtheme.caseItem { termId, termBindItems, body, meta: args.caseItem.meta, metactx: args.meta })
     }
 
-renderParamItem :: This -> Record (Rec.ArgsParamItem ()) -> M (Array ReactElement)
-renderParamItem this =
+renderParamItem :: RenderArgs -> Record (Rec.ArgsParamItem ()) -> M (Array ReactElement)
+renderParamItem renArgs@{ this, syntaxtheme } =
   Rec.recParamItem
     { paramItem:
-        \args ->
-          renderNode this
+        \args -> do
+          type_ <- renderType renArgs args.type_
+          renderNewNode renArgs
             (makeNodeProps args) { label = Just "ParamItem" }
-            [ pure $ newline args.meta (unwrap args.paramItem.meta).indented
-            , renderType this args.type_
-            , renderToken (token.space)
-            ]
+            (syntaxtheme.paramItem { type_, meta: args.paramItem.meta, metactx: args.meta })
     }
 
-renderTermBindItem :: This -> Record (Rec.ArgsTermBindItem ()) -> M (Array ReactElement)
-renderTermBindItem this =
+renderTermBindItem :: RenderArgs -> Record (Rec.ArgsTermBindItem ()) -> M (Array ReactElement)
+renderTermBindItem renArgs@{ this, syntaxtheme } =
   Rec.recTermBindItem
     { termBindItem:
-        \args ->
-          renderNode this
+        \args -> do
+          termBind <- renderTermBind renArgs args.termBind
+          renderNewNode renArgs
             (makeNodeProps args) { label = Just "TermBindItem" }
-            [ pure $ newline args.meta (unwrap args.termBindItem.meta).indented
-            , renderTermBind this args.termBind
-            , renderToken token.space
-            ]
+            (syntaxtheme.termBindItem { termBind, meta: args.termBindItem.meta, metactx: args.meta })
     }
 
-renderTermBind :: This -> Record (Rec.ArgsTermBind ()) -> M (Array ReactElement)
-renderTermBind this =
+renderTermBind :: RenderArgs -> Record (Rec.ArgsTermBind ()) -> M (Array ReactElement)
+renderTermBind renArgs@{ this, syntaxtheme } =
   Rec.recTermBind
     { termBind:
-        \args ->
-          renderNode this
+        \args -> do
+          termId <- printTermId args.termId
+          renderNewNode renArgs
             ( (makeNodeProps args)
                 { label = Just "TermBind" }
             )
-            [ printTermId args.termId ]
+            termId
     }
 
-renderTypeBind :: This -> Record (Rec.ArgsTypeBind ()) -> M (Array ReactElement)
-renderTypeBind this =
+renderTypeBind :: RenderArgs -> Record (Rec.ArgsTypeBind ()) -> M (Array ReactElement)
+renderTypeBind renArgs@{ this, syntaxtheme } =
   Rec.recTypeBind
     { typeBind:
-        \args ->
-          renderNode this
+        \args -> do
+          typeId <- printTypeId args.typeId
+          renderNewNode renArgs
             (makeNodeProps args)
               { label = Just "TypeBind" }
-            [ printTypeId args.typeId ]
+            typeId
     }
 
-renderTypeId :: This -> Record (Rec.ArgsTypeId ()) -> M (Array ReactElement)
-renderTypeId this argsTypeId =
+renderTypeId :: RenderArgs -> Record (Rec.ArgsTypeId ()) -> M (Array ReactElement)
+renderTypeId renArgs@{ this, syntaxtheme } argsTypeId =
   Rec.recTypeId
     { typeId:
-        \args ->
-          renderNode this
+        \args -> do
+          typeId <- printTypeId argsTypeId
+          renderNewNode renArgs
             (makeNodeProps args) { label = Just "TypeId" }
-            [ printTypeId argsTypeId ]
+            typeId
     }
     argsTypeId
 
-renderTermId :: This -> Record (Rec.ArgsTermId ()) -> M (Array ReactElement)
-renderTermId this argsTermId =
+renderTermId :: RenderArgs -> Record (Rec.ArgsTermId ()) -> M (Array ReactElement)
+renderTermId renArgs@{ this, syntaxtheme } argsTermId =
   Rec.recTermId
     { termId:
-        \args ->
-          renderNode this
+        \args -> do
+          termId <- printTermId argsTermId
+          renderNewNode renArgs
             (makeNodeProps args) { label = Just "TermId" }
-            [ printTermId argsTermId ]
+            termId
     }
     argsTermId
 
 printTypeId :: Record (Rec.ArgsTypeId ()) -> M (Array ReactElement)
-printTypeId { typeId, meta } =
+printTypeId renArgs@{ typeId, meta } =
   pure
     [ DOM.span [ Props.className "typeId" ]
         $ printName name
@@ -488,15 +426,15 @@ printShadow shadow =
   else
     []
 
-renderItems :: List (M (Array ReactElement)) -> M (Array ReactElement)
-renderItems items = foldM (\elems -> ((elems <> _) <$> _)) [] items
+renderItems :: List (M (Array ReactElement)) -> M (Array (Array ReactElement))
+renderItems items = Array.fromFoldable <$> sequence items
 
-renderNode :: This -> NodeProps -> Array (M (Array ReactElement)) -> M (Array ReactElement)
-renderNode this props elemsM = do
+renderNewNode :: RenderArgs -> NodeProps -> Array ReactElement -> M (Array ReactElement)
+renderNewNode { this, syntaxtheme } props res = do
   -- if this node is selected
   when isSelected do
     -- Debug.traceM $ "================================="
-    -- Debug.traceM $ "renderNode isSelected"
+    -- Debug.traceM $ "renderNewNode isSelected"
     -- Debug.traceM $ "label = " <> show props.label
     -- Debug.traceM $ "props = " <> show props
     -- Debug.traceM $ "================================="
@@ -511,8 +449,7 @@ renderNode this props elemsM = do
           }
       )
   -- render children
-  elems <- concat <$> sequence elemsM
-  pure $ [ DOM.span propsSpan elems ]
+  pure $ [ DOM.span propsSpan res ]
   where
   isSelected = props.visit.csr == Just nilIxDown
 

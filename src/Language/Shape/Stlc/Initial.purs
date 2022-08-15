@@ -12,7 +12,6 @@ import Data.List.Unsafe as List
 import Data.Maybe (Maybe(..))
 import Data.Newtype (over, wrap)
 import Data.Set as Set
-import Undefined (undefined)
 
 mkTermVar :: String -> TermId /\ Name
 mkTermVar str = freshTermId unit /\ Name (Just str)

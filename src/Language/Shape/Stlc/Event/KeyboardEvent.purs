@@ -25,7 +25,6 @@ import Language.Shape.Stlc.Hole (subTerm, subType)
 import Partial.Unsafe (unsafeCrashWith)
 import React (modifyState)
 import React.DOM as DOM
-import Undefined (undefined)
 import Unsafe (fromJust)
 import Web.Event.Event (Event, EventType(..))
 

@@ -52,7 +52,6 @@ import React.DOM.Props as Props
 import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe (fromJust)
 
 -- import Language.Shape.Rendering.Utilities

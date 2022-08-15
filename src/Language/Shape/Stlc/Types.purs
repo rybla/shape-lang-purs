@@ -20,7 +20,7 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Changes (applyTC)
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..))
+import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), basicSyntaxTheme)
 import React (ReactElement, ReactThis, getState, modifyState)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
@@ -48,7 +48,7 @@ type State
     }
 
 initSyntaxtheme :: SyntaxTheme
-initSyntaxtheme = MlSyntaxTheme
+initSyntaxtheme = basicSyntaxTheme
 
 initColortheme :: String
 initColortheme = "default-light"

@@ -50,7 +50,6 @@ import React.DOM.Props as Props
 import React.SyntheticEvent (NativeEventTarget, shiftKey, stopPropagation, target)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe (fromJust)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)

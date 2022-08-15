@@ -18,7 +18,6 @@ import Data.OrderedMap as OrderedMap
 import Debug as Debug
 import Partial.Unsafe (unsafeCrashWith)
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 -- | Context
 newtype Context

@@ -12,7 +12,6 @@ import Data.List as List
 import Data.Maybe (Maybe(..), isNothing, maybe)
 import Data.Newtype (over, unwrap, wrap)
 import Debug as Debug
-import Undefined (undefined)
 
 indentSyntaxAt :: Maybe IxStep -> IxDown -> Syntax -> Maybe Syntax
 indentSyntaxAt mb_step =

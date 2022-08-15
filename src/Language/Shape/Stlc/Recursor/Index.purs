@@ -17,7 +17,6 @@ import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe (fromJust)
 
 type Visit

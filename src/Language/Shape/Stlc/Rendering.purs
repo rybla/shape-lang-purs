@@ -19,7 +19,6 @@ import Language.Shape.Stlc.Rendering.Editor (renderEditor)
 import Language.Shape.Stlc.Rendering.Menu (renderMenubar)
 import React.DOM as DOM
 import React.Ref as Ref
-import Undefined (undefined)
 import Web.Event.Event (Event, EventType(..), preventDefault)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)

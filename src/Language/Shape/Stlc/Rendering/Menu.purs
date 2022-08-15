@@ -21,12 +21,11 @@ import Effect (Effect)
 import Language.Shape.Stlc.Example.Basic as ExampleBasic
 import Language.Shape.Stlc.Example.Blank as ExampleBlank
 import Language.Shape.Stlc.Example.Datatypes as ExampleDatatypes
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..))
+import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), basicSyntaxTheme)
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
 import React.SyntheticEvent (SyntheticMouseEvent)
-import Undefined (undefined)
 import Web.HTML (window)
 import Web.HTML.Window (alert)
 
@@ -89,18 +88,19 @@ renderSyntaxThemeMenu this = do
   st <- getState this
   let
     makeItem name synthm =
-      ( if synthm == st.syntaxtheme then
+      ( if synthm.meta.name == st.syntaxtheme.meta.name then
           DOM.b' [ DOM.text name ]
         else
           DOM.text name
       )
         /\ \_ -> modifyState this _ { syntaxtheme = synthm }
   makeMenu "syntax"
-    [ makeItem "ml" MlSyntaxTheme
-    , makeItem "haskell" HaskellSynaxTheme
-    , makeItem "typescript" TypescriptSyntaxTheme
-    , makeItem "minimalist" MinimalistSyntaxTheme
-    , makeItem "verbose" VerboseSyntaxTheme
+    [ makeItem "ml" basicSyntaxTheme
+    -- TODO
+    -- , makeItem "haskell" HaskellSynaxTheme
+    -- , makeItem "typescript" TypescriptSyntaxTheme
+    -- , makeItem "minimalist" MinimalistSyntaxTheme
+    -- , makeItem "verbose" VerboseSyntaxTheme
     ]
 
 renderExampleMenu :: This -> Effect ReactElement

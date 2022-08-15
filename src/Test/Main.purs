@@ -23,7 +23,6 @@ import Effect (Effect)
 import Effect.Console as Console
 import Language.Shape.Stlc.Changes (TypeChange(..))
 import Partial.Unsafe (unsafeCrashWith)
-import Undefined (undefined)
 import Unsafe (fromJust)
 
 main :: Effect Unit

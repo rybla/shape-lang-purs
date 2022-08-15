@@ -3,7 +3,6 @@ module Language.Shape.Stlc.FuzzyFilter where
 import Prelude
 import Data.Fuzzy as Fuzzy
 import Data.Maybe (Maybe(..))
-import Undefined (undefined)
 
 fuzzyDistance :: String -> String -> Maybe Fuzzy.Distance
 fuzzyDistance pat str = case Fuzzy.matchStr true pat str of

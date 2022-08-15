@@ -12,7 +12,6 @@ import Data.Variant as Variant
 import Prim.Row (class Cons)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 -- | Type Metadata
 newtype ArrowTypeMetadata

@@ -42,7 +42,6 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as R
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe (fromJust)
 
 bindMaybeEffectUnit :: forall a. Maybe a -> (a -> Effect Unit) -> Effect Unit

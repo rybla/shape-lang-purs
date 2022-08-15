@@ -13,7 +13,7 @@ import Prim hiding (Type)
 import Control.Monad.State as State
 import Data.OrderedSet (OrderedSet)
 import Effect (Effect)
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme)
+import Language.Shape.Stlc.Rendering.Token
 import React (getState)
 import Type.Proxy (Proxy(..))
 
@@ -47,7 +47,7 @@ emptyRenderEnvironment st =
   , holeIds: mempty
   , st
   , variableQueryResult: Nothing
-  , syntaxtheme: st.syntaxtheme
+  , syntaxtheme: basicSyntaxTheme
   }
 
 defaultNodeProps :: NodeProps

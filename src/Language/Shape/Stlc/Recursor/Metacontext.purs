@@ -13,7 +13,6 @@ import Prim (Record, Row)
 import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
-import Undefined (undefined)
 
 mapArgsMeta :: forall r. (Metacontext -> Metacontext) -> { meta :: Metacontext | r } -> { meta :: Metacontext | r }
 mapArgsMeta f args = args { meta = f args.meta }

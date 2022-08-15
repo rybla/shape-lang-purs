@@ -15,7 +15,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, over, over2, unwrap, wrap)
 import Data.Ord.Generic (genericCompare)
 import Data.Show.Generic (genericShow)
-import Undefined (undefined)
 
 -- | IxUp
 newtype IxUp

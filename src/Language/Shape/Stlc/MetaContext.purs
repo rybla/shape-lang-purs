@@ -17,7 +17,6 @@ import Data.String as String
 import Partial.Unsafe (unsafeCrashWith)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 newtype Metacontext
   = Metacontext (Record MetacontextRow)

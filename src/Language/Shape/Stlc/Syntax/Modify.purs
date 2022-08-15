@@ -15,7 +15,6 @@ import Debug as Debug
 import Record as R
 import Record.Builder as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 modifySyntaxAt :: (Syntax -> Maybe Syntax) -> IxDown -> (Syntax -> Maybe Syntax)
 modifySyntaxAt f (IxDown steps) syn = go steps syn

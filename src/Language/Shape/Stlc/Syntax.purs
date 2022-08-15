@@ -18,7 +18,6 @@ import Data.Variant (Variant)
 import Data.Variant as Variant
 import Effect.Unsafe (unsafePerformEffect)
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 -- | Type
 data Type

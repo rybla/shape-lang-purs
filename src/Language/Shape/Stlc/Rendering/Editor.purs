@@ -37,7 +37,6 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 import Unsafe (fromJust)
 
 -- | renderEditor
@@ -137,7 +136,7 @@ renderEnvironment this env =
                     , [ DOM.div [ Props.className "environment-goal-wrapper" ] <<< pure
                           $ DOM.div [ Props.className "environment-goal" ]
                           $ flip State.evalState env
-                          $ renderType this { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
+                          $ renderType { this, syntaxtheme: env.syntaxtheme } { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
                       ]
                     ]
           ]
@@ -152,72 +151,84 @@ renderEnvironment this env =
         ]
     ]
     where
-    renderData typeId =
+    renderData typeId = do
       let
         data_ = OrderedMap.lookup'' "renderData.data_" typeId (unwrap gamma).datas
-      in
-        DOM.span [ Props.className "context-data-wrapper" ] <<< pure
-          $ DOM.span [ Props.className "context-data context-item" ]
-          $ [ DOM.span
-                [ Props.onClick \event -> do
-                    -- Debug.traceM "trying to paste datatype"
-                    -- Debug.traceM $ "env.syntax = " <> show env.syntax
-                    case env.syntax of
-                      Just (SyntaxType (HoleType holeType)) -> do
-                        modifyState this \st ->
-                          maybe st identity do
-                            -- applyChange
-                            -- { ix: fromJust st.mb_ix
-                            -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
-                            -- }
-                            -- st
-                            -- apply holeSub
-                            let
-                              holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
-                            pure
-                              $ st
-                                  { term = subTerm holeSub st.term
-                                  , type_ = subType holeSub st.type_
+      let
+        dataContextItem =
+          flip State.evalState env do
+            typeBind <-
+              renderTypeBind { this, syntaxtheme: env.syntaxtheme }
+                { typeBind: data_.typeBind
+                , gamma: gamma
+                , visit: nonVisit
+                , meta: env.meta
+                }
+            pure $ env.syntaxtheme.dataContextItem { typeBind, metactx: env.meta }
+      DOM.span [ Props.className "context-data-wrapper" ] <<< pure
+        $ DOM.span [ Props.className "context-data context-item" ]
+        $ [ DOM.span
+              [ Props.onClick \event -> do
+                  -- Debug.traceM "trying to paste datatype"
+                  -- Debug.traceM $ "env.syntax = " <> show env.syntax
+                  case env.syntax of
+                    Just (SyntaxType (HoleType holeType)) -> do
+                      modifyState this \st ->
+                        maybe st identity do
+                          -- applyChange
+                          -- { ix: fromJust st.mb_ix
+                          -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
+                          -- }
+                          -- st
+                          -- apply holeSub
+                          let
+                            holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
+                          pure
+                            $ st
+                                { term = subTerm holeSub st.term
+                                , type_ = subType holeSub st.type_
+                                }
+                    Just (SyntaxTerm (Hole hole)) -> do
+                      -- match on term of type clicked
+                      st <- getState this
+                      doChange this
+                        { ix: fromJust st.mb_ix
+                        , toReplace:
+                            ReplaceTerm
+                              ( Match
+                                  { typeId: typeId
+                                  , term: Hole { meta: default }
+                                  , caseItems:
+                                      ( \sumItem ->
+                                          { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
+                                          , body: Hole { meta: default }
+                                          , meta: default
+                                          }
+                                      )
+                                        <$> data_.sumItems
+                                  , meta: default
                                   }
-                      Just (SyntaxTerm (Hole hole)) -> do
-                        -- match on term of type clicked
-                        st <- getState this
-                        doChange this
-                          { ix: fromJust st.mb_ix
-                          , toReplace:
-                              ReplaceTerm
-                                ( Match
-                                    { typeId: typeId
-                                    , term: Hole { meta: default }
-                                    , caseItems:
-                                        ( \sumItem ->
-                                            { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
-                                            , body: Hole { meta: default }
-                                            , meta: default
-                                            }
-                                        )
-                                          <$> data_.sumItems
-                                    , meta: default
-                                    }
-                                )
-                                NoChange
-                          }
-                      _ -> pure unit
-                ]
-                $ token.data1 env.syntaxtheme
-                <> ( flip State.evalState env
-                      $ renderTypeBind this
-                          { typeBind: data_.typeBind
-                          , gamma: gamma
-                          , visit: nonVisit
-                          , meta: env.meta
-                          }
-                  )
-            ]
+                              )
+                              NoChange
+                        }
+                    _ -> pure unit
+              ]
+              dataContextItem
+          ]
 
     renderVarType termId =
       let
         type_ = OrderedMap.lookup'' "renderVarType.type_" termId (unwrap gamma).varTypes
+
+        varContextItem =
+          flip State.evalState env do
+            termId <- do
+              termId <- renderTermId { this, syntaxtheme: env.syntaxtheme } { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
+              pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
+            type_ <- do
+              type_ <- renderType { this, syntaxtheme: env.syntaxtheme } { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
+              pure $ [ DOM.span [ Props.className "context-varType-type" ] type_ ]
+            pure $ env.syntaxtheme.varContextItem { termId, type_, metactx: env.meta }
       in
         DOM.span [ Props.className "context-varType-wrapper" ] <<< pure
           $ DOM.span
@@ -245,16 +256,7 @@ renderEnvironment this env =
                           pure st
                     Nothing -> pure unit -- doesn't fit in hole 
               ]
-          $ Array.concat
-              [ [ DOM.span
-                    [ Props.className "context-varType-var" ]
-                    (flip State.evalState env $ renderTermId this { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta })
-                ]
-              , token.let2 env.syntaxtheme
-              , [ DOM.span [ Props.className "context-varType-type" ]
-                    (flip State.evalState env $ renderType this { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta })
-                ]
-              ]
+              varContextItem
 
 renderPalette :: This -> RenderEnvironment -> Array ReactElement
 renderPalette this env =

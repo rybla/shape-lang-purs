@@ -44,7 +44,6 @@ import React.DOM.Props as Props
 import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 renderConcatList :: List (M (Array ReactElement)) -> M (Array ReactElement)
 renderConcatList = (List.foldl append [] <$> _) <<< sequence
@@ -55,16 +54,13 @@ renderConcatArray = (Array.foldl append [] <$> _) <<< sequence
 maybeArray :: forall a b. Maybe a -> (a -> b) -> Array b
 maybeArray ma f = maybe [] (Array.singleton <<< f) ma
 
-enParen :: M (Array ReactElement) -> M (Array ReactElement)
-enParen m = do
-  synthm <- gets _.syntaxtheme
-  renderConcatArray [ pure (token.lparen synthm), m, pure (token.rparen synthm) ]
-
-enParenIf :: M (Array ReactElement) -> Boolean -> M (Array ReactElement)
-enParenIf m true = enParen m
-
-enParenIf m false = m
-
+-- enParen :: M (Array ReactElement) -> M (Array ReactElement)
+-- enParen m = do
+--   synthm <- gets _.syntaxtheme
+--   renderConcatArray [ pure (token.lparen synthm), m, pure (token.rparen synthm) ]
+-- enParenIf :: M (Array ReactElement) -> Boolean -> M (Array ReactElement)
+-- enParenIf m true = enParen m
+-- enParenIf m false = m
 requiresParenType :: Type -> Boolean
 requiresParenType = case _ of
   ArrowType _ -> true

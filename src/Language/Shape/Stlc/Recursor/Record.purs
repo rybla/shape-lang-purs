@@ -7,7 +7,6 @@ import Record as Record
 import Data.Symbol (class IsSymbol)
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 modifyHetero ::
   forall label r1 r1' r2 r3 r3'.

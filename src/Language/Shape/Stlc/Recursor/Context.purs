@@ -18,7 +18,6 @@ import Prim as Prim
 import Prim.Row (class Lacks)
 import Record as R
 import Type.Proxy (Proxy(..))
-import Undefined (undefined)
 
 mapArgsCtx :: forall r. (Context -> Context) -> { gamma :: Context | r } -> { gamma :: Context | r }
 mapArgsCtx f args = args { gamma = f args.gamma }

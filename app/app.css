@@ -421,7 +421,7 @@ html, body {
 
 .node.selected.highlighted {
   background-color: rgb(116, 173, 196);
-}
+} 
 
 /* token */
 
@@ -429,13 +429,11 @@ html, body {
   font-weight: bold;
 }
 
-/* indentation */
-
 .token {
   white-space: pre;
 }
 
-.indentation {
+.indent {
   white-space: pre;
 }
 
