@@ -9,6 +9,7 @@ import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
@@ -20,7 +21,7 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Changes (applyTC)
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), expandedSyntaxTheme)
+import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), defaultSyntaxTheme, expandedSyntaxTheme)
 import React (ReactElement, ReactThis, getState, modifyState)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
@@ -48,7 +49,7 @@ type State
     }
 
 initSyntaxtheme :: SyntaxTheme
-initSyntaxtheme = expandedSyntaxTheme
+initSyntaxtheme = defaultSyntaxTheme
 
 initColortheme :: String
 initColortheme = "default-light"
