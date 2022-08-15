@@ -159,6 +159,7 @@ recTerm rec =
               { typeId = args.typeId
               , term = incrementIndentation `mapArgsMeta` args.term
               , caseItems =
+                -- TMP: actually, just do this in recCaseitem
                 map
                   ( \argItem ->
                       ( incrementIndentation
@@ -235,10 +236,13 @@ recCaseItem rec =
             args
               { termBindItems = args.termBindItems
               , body =
-                foldl
-                  (\term { termBindItem: { termBind } } -> insertVar termBind.termId (unwrap termBind.meta).name `mapArgsMeta` term)
-                  (incrementIndentation `mapArgsMeta` args.body)
-                  (args.termBindItems)
+                -- foldl
+                --   ( \term { termBindItem: { termBind } } ->
+                --       insertVar termBind.termId (unwrap termBind.meta).name `mapArgsMeta` term
+                --   )
+                --   (incrementIndentation `mapArgsMeta` args.body)
+                --   args.termBindItems
+                incrementIndentation `mapArgsMeta` args.body
               }
     }
 

@@ -125,7 +125,6 @@ minimalistSyntaxTheme =
       , match: \{ term, caseItems, meta, metactx } -> concat [ term, tk.space, foldMap (concat [ indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedCaseItems, tk.bar, tk.space ] <> _) caseItems ]
       , hole: \{ hole, meta, metactx } -> hole
       }
-  -- TODO should this have incrementIndentation?
   , argItem: \{ term, term_assoc, meta, metactx } -> concat [ if (unwrap meta).indented then indent metactx else [], assocIf term_assoc term ]
   , typeBind: \{ typeBind, meta, metactx } -> typeBind
   , termBind: \{ termBind, meta, metactx } -> termBind
