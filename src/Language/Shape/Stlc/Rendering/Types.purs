@@ -47,7 +47,7 @@ emptyRenderEnvironment st =
   , holeIds: mempty
   , st
   , variableQueryResult: Nothing
-  , syntaxtheme: basicSyntaxTheme
+  , syntaxtheme: st.syntaxtheme
   }
 
 defaultNodeProps :: NodeProps

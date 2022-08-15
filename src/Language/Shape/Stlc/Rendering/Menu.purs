@@ -21,7 +21,7 @@ import Effect (Effect)
 import Language.Shape.Stlc.Example.Basic as ExampleBasic
 import Language.Shape.Stlc.Example.Blank as ExampleBlank
 import Language.Shape.Stlc.Example.Datatypes as ExampleDatatypes
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), basicSyntaxTheme)
+import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), contractedSyntaxTheme, expandedSyntaxTheme, minimalistSyntaxTheme)
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -95,7 +95,9 @@ renderSyntaxThemeMenu this = do
       )
         /\ \_ -> modifyState this _ { syntaxtheme = synthm }
   makeMenu "syntax"
-    [ makeItem "ml" basicSyntaxTheme
+    [ makeItem "expanded" expandedSyntaxTheme
+    , makeItem "contracted" contractedSyntaxTheme
+    , makeItem "minimalist" minimalistSyntaxTheme
     -- TODO
     -- , makeItem "haskell" HaskellSynaxTheme
     -- , makeItem "typescript" TypescriptSyntaxTheme

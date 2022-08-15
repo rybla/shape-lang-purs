@@ -141,7 +141,7 @@ newtype MatchMetadata
   = MatchMetadata { indentedCaseItems :: Boolean }
 
 instance defaultMatchMetadata :: Default MatchMetadata where
-  default = MatchMetadata { indentedCaseItems: false }
+  default = MatchMetadata { indentedCaseItems: true }
 
 derive instance newTypeMatchMetadata :: Newtype MatchMetadata _
 

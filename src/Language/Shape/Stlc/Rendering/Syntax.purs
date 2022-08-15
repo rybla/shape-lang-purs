@@ -100,17 +100,17 @@ renderType renArgs@{ this, syntaxtheme } =
         \args -> do
           dom <- renderType renArgs args.dom
           cod <- renderType renArgs args.cod
-          let
-            cod_arr = case args.cod.type_ of
+          cod_arr <-
+            pure case args.cod.type_ of
               ArrowType _ -> true
               _ -> false
-
-            cod_paren = case args.cod.type_ of
+          cod_assoc <-
+            pure case args.cod.type_ of
               ArrowType _ -> true
               _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "ArrowType", syntax = Just $ SyntaxType $ ArrowType args.arrowType })
-            (syntaxtheme.type_.arr { dom, cod, cod_arr, cod_paren, meta: args.arrowType.meta, metactx: args.meta })
+            (syntaxtheme.type_.arr { dom, cod, cod_arr, cod_assoc, meta: args.arrowType.meta, metactx: args.meta })
     , dataType:
         \args -> do
           typeId <- printTypeId args.typeId
@@ -142,21 +142,21 @@ renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
           addHoleIdsFromType args.alpha
           termBind <- renderTermBind renArgs args.termBind
           body <- renderTerm renArgs (Just $ SyntaxTerm $ Lam $ args.lam) args.body
-          let
-            parent_lam = case mb_syn_parent of
+          parent_lam <-
+            pure case mb_syn_parent of
               Just (SyntaxTerm (Lam _)) -> true
               _ -> false
-
-            body_lam = case args.lam.body of
+          body_lam <-
+            pure case args.lam.body of
               Lam _ -> true
               _ -> false
-
-            body_paren = case args.lam.body of
+          body_assoc <-
+            pure case args.lam.body of
               Lam _ -> true
               _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Lam", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Lam args.lam })
-            (syntaxtheme.term.lam { termBind, body, parent_lam, body_lam, body_paren, meta: args.lam.meta, metactx: args.meta })
+            (syntaxtheme.term.lam { termBind, body, parent_lam, body_lam, body_assoc, meta: args.lam.meta, metactx: args.meta })
     , neu:
         \args -> do
           termId <- renderTermId renArgs args.termId
@@ -170,25 +170,43 @@ renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
           sign <- renderType renArgs args.sign
           impl <- renderTerm renArgs (Just $ SyntaxTerm $ Let args.let_) args.impl
           body <- renderTerm renArgs (Just $ SyntaxTerm $ Let args.let_) args.body
+          body_noindent <-
+            pure case args.let_.body of
+              Let _ -> true
+              Buf _ -> true
+              Data _ -> true
+              _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Let", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Let args.let_ })
-            (syntaxtheme.term.let_ { termBind, sign, impl, body, meta: args.let_.meta, metactx: args.meta })
+            (syntaxtheme.term.let_ { termBind, sign, impl, body, meta: args.let_.meta, metactx: args.meta, body_noindent })
     , buf:
         \args -> do
           sign <- renderType renArgs args.sign
           impl <- renderTerm renArgs (Just $ SyntaxTerm $ Buf args.buf) args.impl
           body <- renderTerm renArgs (Just $ SyntaxTerm $ Buf args.buf) args.body
+          body_noindent <-
+            pure case args.buf.body of
+              Let _ -> true
+              Buf _ -> true
+              Data _ -> true
+              _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Buf", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Buf args.buf })
-            (syntaxtheme.term.buf { sign, impl, body, meta: args.buf.meta, metactx: args.meta })
+            (syntaxtheme.term.buf { sign, impl, body, meta: args.buf.meta, metactx: args.meta, body_noindent })
     , data_:
         \args -> do
           typeBind <- renderTypeBind renArgs args.typeBind
           sumItems <- renderItems (renderSumItem renArgs <$> args.sumItems)
           body <- renderTerm renArgs (Just $ SyntaxTerm $ Data args.data_) args.body
+          body_noindent <-
+            pure case args.data_.body of
+              Let _ -> true
+              Buf _ -> true
+              Data _ -> true
+              _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "Data", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Data args.data_ })
-            (syntaxtheme.term.data_ { typeBind, sumItems, body, meta: args.data_.meta, metactx: args.meta })
+            (syntaxtheme.term.data_ { typeBind, sumItems, body, meta: args.data_.meta, metactx: args.meta, body_noindent })
     , match:
         \args -> do
           term <- renderTerm renArgs (Just $ SyntaxTerm $ Match args.match) args.term
@@ -271,10 +289,10 @@ renderArgItem renArgs@{ this, syntaxtheme } =
         \args -> do
           term <- renderTerm { this, syntaxtheme } (Just $ SyntaxArgItem args.argItem) args.term
           let
-            term_paren = requiresParenTerm args.term.term
+            term_assoc = requiresParenTerm args.term.term
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "ArgItem", visit = nonVisit })
-            (syntaxtheme.argItem { term, term_paren, meta: args.argItem.meta, metactx: args.meta })
+            (syntaxtheme.argItem { term, term_assoc, meta: args.argItem.meta, metactx: args.meta })
     }
 
 renderSumItem :: RenderArgs -> Record (Rec.ArgsSumItem ()) -> M (Array ReactElement)

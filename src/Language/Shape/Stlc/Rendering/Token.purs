@@ -2,12 +2,12 @@ module Language.Shape.Stlc.Rendering.Token where
 
 import Language.Shape.Stlc.Metadata
 import Prelude
-import Data.Array (concat, foldMap, intercalate, replicate)
+import Data.Array (concat, foldMap, intercalate, null, replicate)
 import Data.Homogeneous.Record (fromHomogeneous, homogeneous)
 import Data.Maybe (Maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
-import Language.Shape.Stlc.Metacontext (Metacontext(..))
+import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, incrementIndentationUnless)
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -20,20 +20,20 @@ type SyntaxTheme
         { name :: String
         }
     , type_ ::
-        { arr :: { dom :: Res, cod :: Res, cod_arr :: Boolean, cod_paren :: Boolean, meta :: ArrowTypeMetadata, metactx :: Metacontext } -> Res
+        { arr :: { dom :: Res, cod :: Res, cod_arr :: Boolean, cod_assoc :: Boolean, meta :: ArrowTypeMetadata, metactx :: Metacontext } -> Res
         , data_ :: { typeId :: Res, meta :: DataTypeMetadata, metactx :: Metacontext } -> Res
         , hole :: { holeId :: Res, weakening :: Maybe Res, meta :: HoleTypeMetadata, metactx :: Metacontext } -> Res
         }
     , term ::
-        { lam :: { termBind :: Res, body :: Res, parent_lam :: Boolean, body_lam :: Boolean, body_paren :: Boolean, meta :: LamMetadata, metactx :: Metacontext } -> Res
+        { lam :: { termBind :: Res, body :: Res, parent_lam :: Boolean, body_lam :: Boolean, body_assoc :: Boolean, meta :: LamMetadata, metactx :: Metacontext } -> Res
         , neu :: { termId :: Res, argItems :: Array Res, meta :: NeuMetadata, metactx :: Metacontext } -> Res
-        , let_ :: { termBind :: Res, sign :: Res, impl :: Res, body :: Res, meta :: LetMetadata, metactx :: Metacontext } -> Res
-        , buf :: { sign :: Res, impl :: Res, body :: Res, meta :: BufMetadata, metactx :: Metacontext } -> Res
-        , data_ :: { typeBind :: Res, sumItems :: Array Res, body :: Res, meta :: DataMetadata, metactx :: Metacontext } -> Res
+        , let_ :: { termBind :: Res, sign :: Res, impl :: Res, body :: Res, meta :: LetMetadata, metactx :: Metacontext, body_noindent :: Boolean } -> Res
+        , buf :: { sign :: Res, impl :: Res, body :: Res, meta :: BufMetadata, metactx :: Metacontext, body_noindent :: Boolean } -> Res
+        , data_ :: { typeBind :: Res, sumItems :: Array Res, body :: Res, meta :: DataMetadata, metactx :: Metacontext, body_noindent :: Boolean } -> Res
         , match :: { term :: Res, caseItems :: Array Res, meta :: MatchMetadata, metactx :: Metacontext } -> Res
         , hole :: { hole :: Res, meta :: HoleMetadata, metactx :: Metacontext } -> Res
         }
-    , argItem :: { term :: Res, term_paren :: Boolean, meta :: ArgItemMetadata, metactx :: Metacontext } -> Res
+    , argItem :: { term :: Res, term_assoc :: Boolean, meta :: ArgItemMetadata, metactx :: Metacontext } -> Res
     , typeBind :: { typeBind :: Res, meta :: TypeBindMetadata, metactx :: Metacontext } -> Res
     , termBind :: { termBind :: Res, meta :: TermBindMetadata, metactx :: Metacontext } -> Res
     , sumItem :: { termBind :: Res, paramItems :: Array Res, meta :: SumItemMetadata, metactx :: Metacontext } -> Res
@@ -44,33 +44,96 @@ type SyntaxTheme
     , varContextItem :: { termId :: Res, type_ :: Res, metactx :: Metacontext } -> Res
     }
 
-basicSyntaxTheme :: SyntaxTheme
-basicSyntaxTheme =
+expandedSyntaxTheme :: SyntaxTheme
+expandedSyntaxTheme =
   { meta:
-      { name: "ml"
+      { name: "expanded"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_paren, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, assocIf cod_paren cod ]
+      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, assocIf cod_arr cod ]
       , data_: \{ typeId, meta, metactx } -> typeId
       , hole: \{ holeId, weakening, meta, metactx } -> holeId
       }
   , term:
-      { lam: \{ termBind, body, parent_lam, body_lam, body_paren, meta, metactx } -> concat [ if parent_lam then [] else concat [ tk.fun, tk.space ], termBind, indent_otherwise_space metactx (unwrap meta).indentedBody, if body_lam then body else concat [ tk.arrow, tk.space, body ] ]
-      , neu: \{ termId, argItems, meta, metactx } -> concat [ termId, tk.space, intercalate tk.space argItems ]
-      , let_: \{ termBind, sign, impl, body, meta, metactx } -> concat [ tk.let_, tk.space, termBind, tk.space, tk.colon, indent_otherwise_space metactx (unwrap meta).indentedSign, sign, tk.space, tk.equals, indent_otherwise_space metactx (unwrap meta).indentedImpl, impl, tk.space, if (unwrap meta).indentedBody then indent metactx else tk.in_, body ]
-      , buf: \{ sign, impl, body, meta, metactx } -> concat [ tk.buf, indent_otherwise_space metactx (unwrap meta).indentedImpl, impl, tk.space, tk.colon, indent_otherwise_space metactx (unwrap meta).indentedSign, sign, if (unwrap meta).indentedBody then indent metactx else tk.in_, body ]
-      , data_: \{ typeBind, sumItems, body, meta, metactx } -> concat [ tk.data_, tk.space, typeBind, tk.space, tk.equals, foldMap (indent metactx <> _) sumItems, tk.space, if (unwrap meta).indentedBody then indent metactx else tk.in_, body ]
-      , match: \{ term, caseItems, meta, metactx } -> concat [ tk.match, tk.space, term, tk.space, tk.with, foldMap (concat [ indent_otherwise_space metactx (unwrap meta).indentedCaseItems, tk.bar, tk.space ] <> _) caseItems ]
+      { lam: \{ termBind, body, parent_lam, body_lam, body_assoc, meta, metactx } -> concat [ tk.lambda, tk.space, termBind, tk.space, tk.mapsto, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedBody, body ]
+      , neu: \{ termId, argItems, meta, metactx } -> concat [ termId, if null argItems then [] else concat [ tk.space, intercalate tk.space argItems ] ]
+      , let_: \{ termBind, sign, impl, body, meta, metactx, body_noindent } -> concat [ tk.let_, tk.space, termBind, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, tk.space, tk.equals, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , buf: \{ sign, impl, body, meta, metactx, body_noindent } -> concat [ tk.buf, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , data_: \{ typeBind, sumItems, body, meta, metactx, body_noindent } -> concat [ tk.data_, tk.space, typeBind, tk.space, tk.equals, foldMap (concat [ indent (incrementIndentation metactx), tk.bar, tk.space ] <> _) sumItems, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , match: \{ term, caseItems, meta, metactx } -> concat [ tk.match, tk.space, term, tk.space, tk.with, foldMap (concat [ indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedCaseItems, tk.bar, tk.space ] <> _) caseItems ]
       , hole: \{ hole, meta, metactx } -> hole
       }
-  , argItem: \{ term, term_paren, meta, metactx } -> concat [ if (unwrap meta).indented then indent metactx else [], assocIf term_paren term ]
+  -- TODO should this have incrementIndentation?
+  , argItem: \{ term, term_assoc, meta, metactx } -> concat [ if (unwrap meta).indented then indent metactx else [], assocIf term_assoc term ]
   , typeBind: \{ typeBind, meta, metactx } -> typeBind
   , termBind: \{ termBind, meta, metactx } -> termBind
   , sumItem: \{ termBind, paramItems, meta, metactx } -> concat [ termBind, tk.space, intercalate tk.space paramItems ]
-  , caseItem: \{ termId, termBindItems, body, meta, metactx } -> concat [ termId, tk.space, intercalate tk.space termBindItems, body ]
+  , caseItem: \{ termId, termBindItems, body, meta, metactx } -> concat [ termId, if null termBindItems then [] else concat [ tk.space, intercalate tk.space termBindItems ], tk.space, tk.mapsto, tk.space, body ]
   , paramItem: \{ type_, meta, metactx } -> type_
   , termBindItem: \{ termBind, meta, metactx } -> termBind
   , dataContextItem: \{ typeBind, metactx } -> concat [ tk.data_, tk.space, typeBind ]
+  , varContextItem: \{ termId, type_, metactx } -> concat [ termId, tk.space, tk.colon, tk.space, type_ ]
+  }
+
+contractedSyntaxTheme :: SyntaxTheme
+contractedSyntaxTheme =
+  { meta:
+      { name: "contracted"
+      }
+  , type_:
+      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, cod ]
+      , data_: \{ typeId, meta, metactx } -> typeId
+      , hole: \{ holeId, weakening, meta, metactx } -> holeId
+      }
+  , term:
+      { lam: \{ termBind, body, parent_lam, body_lam, body_assoc, meta, metactx } -> concat [ if parent_lam then [] else concat [ tk.lambda, tk.space ], termBind, if body_lam then [] else concat [ tk.space, tk.mapsto ], indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedBody, body ]
+      , neu: \{ termId, argItems, meta, metactx } -> concat [ termId, if null argItems then [] else concat [ tk.space, intercalate tk.space argItems ] ]
+      , let_: \{ termBind, sign, impl, body, meta, metactx, body_noindent } -> concat [ tk.let_, tk.space, termBind, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, tk.space, tk.equals, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , buf: \{ sign, impl, body, meta, metactx, body_noindent } -> concat [ tk.buf, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , data_: \{ typeBind, sumItems, body, meta, metactx, body_noindent } -> concat [ tk.data_, tk.space, typeBind, tk.space, tk.equals, foldMap (concat [ indent (incrementIndentation metactx), tk.bar, tk.space ] <> _) sumItems, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , match: \{ term, caseItems, meta, metactx } -> concat [ tk.match, tk.space, term, tk.space, tk.with, foldMap (concat [ indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedCaseItems, tk.bar, tk.space ] <> _) caseItems ]
+      , hole: \{ hole, meta, metactx } -> hole
+      }
+  -- TODO should this have incrementIndentation?
+  , argItem: \{ term, term_assoc, meta, metactx } -> concat [ if (unwrap meta).indented then indent metactx else [], assocIf term_assoc term ]
+  , typeBind: \{ typeBind, meta, metactx } -> typeBind
+  , termBind: \{ termBind, meta, metactx } -> termBind
+  , sumItem: \{ termBind, paramItems, meta, metactx } -> concat [ termBind, tk.space, intercalate tk.space paramItems ]
+  , caseItem: \{ termId, termBindItems, body, meta, metactx } -> concat [ termId, if null termBindItems then [] else concat [ tk.space, intercalate tk.space termBindItems ], tk.space, tk.mapsto, tk.space, body ]
+  , paramItem: \{ type_, meta, metactx } -> type_
+  , termBindItem: \{ termBind, meta, metactx } -> termBind
+  , dataContextItem: \{ typeBind, metactx } -> concat [ tk.data_, tk.space, typeBind ]
+  , varContextItem: \{ termId, type_, metactx } -> concat [ termId, tk.space, tk.colon, tk.space, type_ ]
+  }
+
+minimalistSyntaxTheme :: SyntaxTheme
+minimalistSyntaxTheme =
+  { meta:
+      { name: "minimalist"
+      }
+  , type_:
+      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, cod ]
+      , data_: \{ typeId, meta, metactx } -> typeId
+      , hole: \{ holeId, weakening, meta, metactx } -> holeId
+      }
+  , term:
+      { lam: \{ termBind, body, parent_lam, body_lam, body_assoc, meta, metactx } -> concat [ termBind, if body_lam then [] else concat [ tk.space, tk.mapsto ], indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedBody, body ]
+      , neu: \{ termId, argItems, meta, metactx } -> concat [ termId, if null argItems then [] else concat [ tk.space, intercalate tk.space argItems ] ]
+      , let_: \{ termBind, sign, impl, body, meta, metactx, body_noindent } -> concat [ termBind, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, tk.space, tk.equals, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.space, tk.semicolon, tk.space ], body ]
+      , buf: \{ sign, impl, body, meta, metactx, body_noindent } -> concat [ tk.hash, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedImpl, impl, tk.space, tk.colon, indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedSign, sign, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.space, tk.semicolon, tk.space ], body ]
+      , data_: \{ typeBind, sumItems, body, meta, metactx, body_noindent } -> concat [ typeBind, tk.space, foldMap (concat [ indent (incrementIndentation metactx), tk.bar, tk.space ] <> _) sumItems, tk.space, if (unwrap meta).indentedBody then indent (incrementIndentationUnless (body_noindent || (unwrap metactx).indentation == 0) metactx) else concat [ tk.in_, tk.space ], body ]
+      , match: \{ term, caseItems, meta, metactx } -> concat [ term, tk.space, foldMap (concat [ indent_otherwise_space (incrementIndentation metactx) (unwrap meta).indentedCaseItems, tk.bar, tk.space ] <> _) caseItems ]
+      , hole: \{ hole, meta, metactx } -> hole
+      }
+  -- TODO should this have incrementIndentation?
+  , argItem: \{ term, term_assoc, meta, metactx } -> concat [ if (unwrap meta).indented then indent metactx else [], assocIf term_assoc term ]
+  , typeBind: \{ typeBind, meta, metactx } -> typeBind
+  , termBind: \{ termBind, meta, metactx } -> termBind
+  , sumItem: \{ termBind, paramItems, meta, metactx } -> concat [ termBind, tk.space, intercalate tk.space paramItems ]
+  , caseItem: \{ termId, termBindItems, body, meta, metactx } -> concat [ termId, if null termBindItems then [] else concat [ tk.space, intercalate tk.space termBindItems ], tk.space, tk.mapsto, tk.space, body ]
+  , paramItem: \{ type_, meta, metactx } -> type_
+  , termBindItem: \{ termBind, meta, metactx } -> termBind
+  , dataContextItem: \{ typeBind, metactx } -> concat [ typeBind ]
   , varContextItem: \{ termId, type_, metactx } -> concat [ termId, tk.space, tk.colon, tk.space, type_ ]
   }
 
@@ -87,7 +150,9 @@ tk =
     , lparen: makeStringToken "(" "punctuation paren lparen"
     , rparen: makeStringToken ")" "punctuation paren rparen"
     , arrow: makeStringToken "->" "punctuation"
+    , mapsto: makeStringToken "=>" "punctuation"
     , fun: makeStringToken "fun" "keyword"
+    , lambda: makeStringToken "λ" "keyword"
     , let_: makeStringToken "let" "keyword"
     , in_: makeStringToken "in" "keyword"
     , buf: makeStringToken "buf" "keyword"
@@ -97,6 +162,8 @@ tk =
     , equals: makeStringToken "=" "punctuation"
     , colon: makeStringToken ":" "punctuation"
     , bar: makeStringToken "|" "punctuation"
+    , hash: makeStringToken "#" "punctuation"
+    , semicolon: makeStringToken ";" "punctuation"
     , newline: makeToken [ DOM.br' ] "whitespace newline"
     }
 
@@ -105,13 +172,24 @@ assocIf cond res
   | cond = concat [ tk.lparen, res, tk.rparen ]
   | otherwise = res
 
+assoc :: Res -> Res
+assoc res = concat [ tk.lparen, res, tk.rparen ]
+
 indent_otherwise_space :: Metacontext -> Boolean -> Res
 indent_otherwise_space metactx cond
-  | cond = tk.newline
+  | cond = indent metactx
   | otherwise = tk.space
 
 indent :: Metacontext -> Res
-indent metactx = tk.newline <> makeIndent metactx
+indent metactx =
+  let
+    i = (unwrap metactx).indentation
+  in
+    if i == 0 then
+      -- an additional newline if at top level (i.e. indentation 0)
+      concat [ tk.newline, makeIndent metactx, tk.newline, makeIndent metactx ]
+    else
+      concat [ tk.newline, makeIndent metactx ]
 
 makeIndent :: Metacontext -> Res
 makeIndent metactx =
@@ -126,12 +204,12 @@ makeIndent metactx =
       { name: "ml"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_paren, meta, metactx } -> ?a
+      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> ?a
       , data_: \{ typeId, meta, metactx } -> ?a
       , hole: \{ holeId, weakening, meta, metactx } -> ?a
       }
   , term:
-      { lam: \{ termBind, body, parent_lam, body_lam, body_paren, meta, metactx } -> ?a
+      { lam: \{ termBind, body, parent_lam, body_lam, body_assoc, meta, metactx } -> ?a
       , neu: \{ termId, argItems, meta, metactx } -> ?a
       , let_: \{ termBind, sign, impl, body, meta, metactx } -> ?a
       , buf: \{ sign, impl, body, meta, metactx } -> ?a
@@ -139,7 +217,7 @@ makeIndent metactx =
       , match: \{ term, caseItems, meta, metactx } -> ?a
       , hole: \{ hole, meta, metactx } -> ?a
       }
-  , argItem: \{ term, term_paren, meta, metactx } -> ?a
+  , argItem: \{ term, term_assoc, meta, metactx } -> ?a
   , typeBind: \{ typeBind, meta, metactx } -> ?a
   , termBind: \{ typeBind, meta, metactx } -> ?a
   , sumItem: \{ termBind, paramItems, meta, metactx } -> ?a

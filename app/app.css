@@ -133,7 +133,7 @@ html, body {
 
 .menu-item {
   font-weight: normal;
-  min-width: 60px;
+  min-width: 80px;
   /* box-shadow: 0 0 0 1px black inset; */
   /* box-shadow: 
     -1px 0 0 0 black inset,
@@ -359,18 +359,6 @@ html, body {
   font-weight: bold;
 }
 
-/* token */
-
-.token {
-  white-space: pre;
-}
-
-.token.keyword {
-  /* color: rgb(198, 0, 89); */
-  /* color: #8F2D56; */
-  color: #1F7A8C;
-}
-
 /* name */
 
 /* separator */
@@ -426,15 +414,28 @@ html, body {
 /* token */
 
 .token {
-  font-weight: bold;
-}
-
-.token {
   white-space: pre;
 }
 
 .indent {
   white-space: pre;
+}
+
+.whitespace {
+
+}
+
+.punctuation {
+  font-weight: bold;
+  /* color: rgb(96, 26, 29); */
+  color: #1F7A8C;
+}
+
+.token.keyword {
+  font-weight: bold;
+  /* color: rgb(198, 0, 89); */
+  /* color: #8F2D56; */
+  color: #1F7A8C;
 }
 
 .name {
