@@ -353,6 +353,7 @@ html, body {
 }
 
 .Hole {
+  padding-left: 4px;
 }
 .HoleType {
   color: rgb(164, 97, 49);
