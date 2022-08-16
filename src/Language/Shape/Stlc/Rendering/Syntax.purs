@@ -100,6 +100,10 @@ renderType renArgs@{ this, syntaxtheme } =
         \args -> do
           dom <- renderType renArgs args.dom
           cod <- renderType renArgs args.cod
+          dom_assoc <-
+            pure case args.dom.type_ of
+              ArrowType _ -> true
+              _ -> false
           cod_arr <-
             pure case args.cod.type_ of
               ArrowType _ -> true
@@ -110,7 +114,7 @@ renderType renArgs@{ this, syntaxtheme } =
               _ -> false
           renderNewNode renArgs
             ((makeNodeProps args) { label = Just "ArrowType", syntax = Just $ SyntaxType $ ArrowType args.arrowType })
-            (syntaxtheme.type_.arr { dom, cod, cod_arr, cod_assoc, meta: args.arrowType.meta, metactx: args.meta })
+            (syntaxtheme.type_.arr { dom, cod, dom_assoc, cod_arr, cod_assoc, meta: args.arrowType.meta, metactx: args.meta })
     , dataType:
         \args -> do
           typeId <- printTypeId args.typeId

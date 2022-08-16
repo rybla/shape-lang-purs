@@ -20,7 +20,7 @@ type SyntaxTheme
         { name :: String
         }
     , type_ ::
-        { arr :: { dom :: Res, cod :: Res, cod_arr :: Boolean, cod_assoc :: Boolean, meta :: ArrowTypeMetadata, metactx :: Metacontext } -> Res
+        { arr :: { dom :: Res, cod :: Res, dom_assoc :: Boolean, cod_arr :: Boolean, cod_assoc :: Boolean, meta :: ArrowTypeMetadata, metactx :: Metacontext } -> Res
         , data_ :: { typeId :: Res, meta :: DataTypeMetadata, metactx :: Metacontext } -> Res
         , hole :: { holeId :: Res, weakening :: Maybe Res, meta :: HoleTypeMetadata, metactx :: Metacontext } -> Res
         }
@@ -50,7 +50,7 @@ defaultSyntaxTheme =
       { name: "default"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, cod ]
+      { arr: \{ dom, cod, dom_assoc, cod_arr, cod_assoc, meta, metactx } -> concat [ assocIf dom_assoc dom, tk.space, tk.arrow, tk.space, cod ]
       , data_: \{ typeId, meta, metactx } -> typeId
       , hole: \{ holeId, weakening, meta, metactx } -> holeId
       }
@@ -81,7 +81,7 @@ expandedSyntaxTheme =
       { name: "expanded"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, assocIf cod_arr cod ]
+      { arr: \{ dom, cod, dom_assoc, cod_arr, cod_assoc, meta, metactx } -> concat [ assocIf dom_assoc dom, tk.space, tk.arrow, tk.space, assocIf cod_arr cod ]
       , data_: \{ typeId, meta, metactx } -> typeId
       , hole: \{ holeId, weakening, meta, metactx } -> holeId
       }
@@ -112,7 +112,7 @@ contractedSyntaxTheme =
       { name: "contracted"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, cod ]
+      { arr: \{ dom, cod, dom_assoc, cod_arr, cod_assoc, meta, metactx } -> concat [ assocIf dom_assoc dom, tk.space, tk.arrow, tk.space, cod ]
       , data_: \{ typeId, meta, metactx } -> typeId
       , hole: \{ holeId, weakening, meta, metactx } -> holeId
       }
@@ -143,7 +143,7 @@ minimalistSyntaxTheme =
       { name: "minimalist"
       }
   , type_:
-      { arr: \{ dom, cod, cod_arr, cod_assoc, meta, metactx } -> concat [ dom, tk.space, tk.arrow, tk.space, cod ]
+      { arr: \{ dom, cod, dom_assoc, cod_arr, cod_assoc, meta, metactx } -> concat [ assocIf dom_assoc dom, tk.space, tk.arrow, tk.space, cod ]
       , data_: \{ typeId, meta, metactx } -> typeId
       , hole: \{ holeId, weakening, meta, metactx } -> holeId
       }
