@@ -9,13 +9,11 @@ functionalities:
 - TODO: loading programs
 
 -}
-
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-
 import Data.Array (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (sequence)
@@ -23,7 +21,7 @@ import Effect (Effect)
 import Language.Shape.Stlc.Example.Basic as ExampleBasic
 import Language.Shape.Stlc.Example.Blank as ExampleBlank
 import Language.Shape.Stlc.Example.Datatypes as ExampleDatatypes
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), contractedSyntaxTheme, defaultSyntaxTheme, expandedSyntaxTheme, minimalistSyntaxTheme)
+import Language.Shape.Stlc.Rendering.Token as Token
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -97,10 +95,11 @@ renderSyntaxThemeMenu this = do
       )
         /\ \_ -> modifyState this _ { syntaxtheme = synthm }
   makeMenu "syntax"
-    [ makeItem "default" defaultSyntaxTheme
-    , makeItem "expanded" expandedSyntaxTheme
-    , makeItem "contracted" contractedSyntaxTheme
-    , makeItem "minimalist" minimalistSyntaxTheme
+    [ makeItem "default" Token.defaultSyntaxTheme
+    , makeItem "expanded" Token.expandedSyntaxTheme
+    , makeItem "contracted" Token.contractedSyntaxTheme
+    , makeItem "minimalist" Token.minimalistSyntaxTheme
+    , makeItem "typescript" Token.typescriptSyntaxTheme
     -- TODO
     -- , makeItem "haskell" HaskellSynaxTheme
     -- , makeItem "typescript" TypescriptSyntaxTheme

@@ -122,9 +122,10 @@ recTerm rec =
               , sign = incrementIndentation `mapArgsMeta` args.sign
               , impl = (incrementIndentation <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name) `mapArgsMeta` args.impl
               , body =
-                ( incrementIndentationUnless (unwrap args.let_.meta).indentedBody
-                    <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name
-                )
+                -- ( incrementIndentationUnless (unwrap args.let_.meta).indentedBody
+                --     <<< insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name
+                -- )
+                insertVar args.let_.termBind.termId (unwrap args.let_.termBind.meta).name
                   `mapArgsMeta`
                     args.body
               }
@@ -135,9 +136,9 @@ recTerm rec =
               { sign = incrementIndentation `mapArgsMeta` args.sign
               , impl = incrementIndentation `mapArgsMeta` args.impl
               , body =
-                (incrementIndentationUnless (unwrap args.buf.meta).indentedBody)
-                  `mapArgsMeta`
-                    args.body
+                -- (incrementIndentationUnless (unwrap args.buf.meta).indentedBody)
+                --   `mapArgsMeta`
+                args.body
               }
     , data_:
         \args ->
@@ -146,9 +147,10 @@ recTerm rec =
               { typeBind = insertData args.data_ `mapArgsMeta` args.typeBind
               , sumItems = ((incrementIndentation <<< insertData args.data_) `mapArgsMeta` _) <$> args.sumItems
               , body =
-                ( incrementIndentationUnless (unwrap args.data_.meta).indentedBody
-                    <<< insertData args.data_
-                )
+                -- ( incrementIndentationUnless (unwrap args.data_.meta).indentedBody
+                --     <<< insertData args.data_
+                -- )
+                insertData args.data_
                   `mapArgsMeta`
                     args.body
               }
