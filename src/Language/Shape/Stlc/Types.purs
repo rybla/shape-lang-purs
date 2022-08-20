@@ -9,10 +9,10 @@ import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
-
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
+import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
@@ -23,6 +23,7 @@ import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Changes (applyTC)
 import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), defaultSyntaxTheme, expandedSyntaxTheme)
 import React (ReactElement, ReactThis, getState, modifyState)
+import Undefined (undefined)
 import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
 
@@ -30,23 +31,17 @@ type Props
   = {}
 
 type State
-  = { term :: Term
-    , type_ :: Type
-    , mb_ix :: Maybe IxDown
+  = { mode :: Mode
+    , program :: Program
     , history :: History
     , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
-    , dragboard ::
-        Maybe
-          { ix :: IxDown
-          , gamma :: Context
-          , alpha :: Type
-          , term :: Term
-          }
     , highlights :: Array HTMLElement
-    , mode :: Mode
     , syntaxtheme :: SyntaxTheme
     , colortheme :: String
     }
+
+type Program
+  = { term :: Term, type_ :: Type }
 
 initSyntaxtheme :: SyntaxTheme
 initSyntaxtheme = defaultSyntaxTheme
@@ -54,61 +49,55 @@ initSyntaxtheme = defaultSyntaxTheme
 initColortheme :: String
 initColortheme = "default-light"
 
-initState :: Term -> Type -> State
-initState term type_ =
-  { term
-  , type_
-  , mb_ix: Nothing
-  , history: []
+initState :: Program -> State
+initState program =
+  { mode: TopMode {}
+  , program
+  , history: emptyHistory
   , clipboard: Nothing
-  , dragboard: Nothing
   , highlights: []
-  , mode: NormalMode
   , syntaxtheme: initSyntaxtheme
   , colortheme: initColortheme
   }
 
-updateStateProgram :: Term -> Type -> State -> State
-updateStateProgram term type_ =
-  _
-    { term = term
-    , type_ = type_
-    , mb_ix = Nothing
-    , history = []
-    , clipboard = Nothing
-    , dragboard = Nothing
-    , highlights = []
-    , mode = NormalMode
-    }
-
 data Mode
-  = NormalMode
-  | QueryMode Query
+  = TopMode TopMode
+  | SelectMode SelectMode
+  | QueryMode QueryMode
+  | DragMode DragMode
+
+type TopMode
+  = {}
+
+type SelectMode
+  = { ix :: IxDown }
+
+type QueryMode
+  = { ix :: IxDown, query :: String, i :: Int }
+
+type DragMode
+  = { ix :: IxDown, gamma :: Context, alpha :: Type, term :: Term }
 
 derive instance genericMode :: Generic Mode _
 
 instance showMode :: Show Mode where
   show x = genericShow x
 
-type Query
-  = { query :: String, i :: Int }
+getStateIndex :: State -> Maybe IxDown
+getStateIndex st = case st.mode of
+  TopMode _ -> Nothing
+  SelectMode { ix } -> Just ix
+  QueryMode { ix } -> Just ix
+  DragMode _ -> Nothing
 
-derive instance eqMode :: Eq Mode
-
--- type History = (Term /\ Type /\ Maybe IxDown) /\ Array Change
 type History
   = Array HistoryItem
 
 type HistoryItem
-  = { term :: Term, type_ :: Type, mb_ix :: Maybe IxDown, change :: Change }
+  = { program :: Program, change :: Change }
 
-toHistoryItem :: State -> Change -> HistoryItem
-toHistoryItem st change =
-  { term: st.term
-  , type_: st.type_
-  , mb_ix: st.mb_ix
-  , change: change
-  }
+emptyHistory :: History
+emptyHistory = []
 
 type Given
   = { state :: State
@@ -121,17 +110,12 @@ type This
 
 newtype Action
   = Action
-  { label :: Maybe String
-  -- , tooltip :: Maybe (Array ReactElement)
-  , tooltip :: Maybe String
+  { tooltip :: Maybe String
   , triggers :: Array ActionTrigger
-  , effect :: ActionEffect
+  , transition :: Transition
   }
 
 derive instance newtypeAction :: Newtype Action _
-
-type ActionEffect
-  = { this :: This, mb_event :: Maybe Event, trigger :: ActionTrigger } -> Effect Unit
 
 data ActionTrigger
   = ActionTrigger_Drop
@@ -155,30 +139,19 @@ instance showActionTrigger :: Show ActionTrigger where
 
 instance showAction :: Show Action where
   show (Action action) =
-    ( case action.label of
-        Just str -> str <> ": "
-        Nothing -> ""
-    )
+    action.transition.label <> ": "
       <> Array.intercalate ", " (show <$> action.triggers)
 
-applyChange :: Change -> State -> Maybe State
-applyChange change st = do
-  Debug.traceM $ "===[ change ]============================================================"
-  Debug.traceM $ show change
-  Debug.traceM $ "=========================================================================="
-  history <- pure $ toHistoryItem st change : st.history
-  Debug.traceM $ "===[ history (copy this into Test.Main.tests) ]=========================="
-  Debug.traceM $ show ((st.type_ /\ st.term) /\ (_.change <$> history))
-  Debug.traceM $ "=========================================================================="
-  term' /\ ix' /\ typeChange /\ holeEq <- chAtTerm { term: st.term, gamma: default, alpha: st.type_ } change.toReplace change.ix
-  -- TODO: apply holeEq
-  pure
-    st
-      { term = term'
-      , type_ = applyTC typeChange st.type_
-      , mb_ix = Just ix'
-      , history = history
-      }
+-- | The type of transitions over the State. The `Transition`s defined in this
+-- | file should be the _only_ ways that you modify the state; do not modify the
+-- | state directly by updating its fields.
+type Transition
+  = { label :: String
+    , effect :: TransitionEffect
+    }
 
-doChange :: This -> Change -> Effect Unit
-doChange this change = modifyState this \st -> maybe st identity (applyChange change st)
+type TransitionEffect
+  = { state :: State, mb_event :: Maybe Event } -> TransitionM State
+
+type TransitionM a
+  = Either String a

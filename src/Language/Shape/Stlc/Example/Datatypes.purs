@@ -14,6 +14,8 @@ import Data.List (List)
 import Data.List as List
 import Data.Set as Set
 
+program = { term, type_ }
+
 term :: Term
 term =
   let

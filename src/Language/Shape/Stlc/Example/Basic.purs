@@ -12,6 +12,8 @@ import Data.List as List
 import Data.Set as Set
 import Language.Shape.Stlc.Example.Base
 
+program = { term, type_ }
+
 term :: Term
 term =
   let

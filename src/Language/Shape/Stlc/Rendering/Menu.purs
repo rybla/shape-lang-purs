@@ -11,6 +11,7 @@ functionalities:
 -}
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
@@ -26,6 +27,7 @@ import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
 import React.DOM.Props as Props
 import React.SyntheticEvent (SyntheticMouseEvent)
+import Unsafe (error)
 import Web.HTML (window)
 import Web.HTML.Window (alert)
 
@@ -110,15 +112,16 @@ renderSyntaxThemeMenu this = do
 renderExampleMenu :: This -> Effect ReactElement
 renderExampleMenu this =
   makeMenu "example"
-    [ makeItem "blank" ExampleBlank.term ExampleBlank.type_
-    , makeItem "basic" ExampleBasic.term ExampleBasic.type_
-    , makeItem "datatypes" ExampleDatatypes.term ExampleDatatypes.type_
+    [ makeItem "blank" ExampleBlank.program
+    , makeItem "basic" ExampleBasic.program
+    , makeItem "datatypes" ExampleDatatypes.program
     ]
   where
-  makeItem name term type_ =
+  makeItem name program =
     DOM.div [ Props.className "filename" ] [ DOM.text (name <> ".shape") ]
-      /\ \_ -> modifyState this (updateStateProgram term type_)
+      /\ \_ -> error "TODO" -- doTransition this $ setProgram program
 
+-- modifyState this (updateStateProgram term type_)
 renderExternalMenu :: This -> Effect ReactElement
 renderExternalMenu this =
   makeMenu "external"

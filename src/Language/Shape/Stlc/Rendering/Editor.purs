@@ -18,6 +18,7 @@ import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.State as State
 import Data.Array as Array
 import Data.Default (default)
@@ -37,7 +38,7 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
 import Type.Proxy (Proxy(..))
-import Unsafe (fromJust)
+import Unsafe (error, fromJust)
 
 -- | renderEditor
 renderEditor :: This -> Effect (RenderEnvironment /\ Array (ReactElement))
@@ -55,51 +56,49 @@ renderEditor this = do
   where
   globalActions =
     [ Action
-        { label: Just "undo"
-        , tooltip: Nothing
+        { tooltip: Nothing
         , triggers: [ ActionTrigger_Keypress keys.undo ]
-        , effect:
-            \{ this } -> do
-              modifyState this \st -> case Array.uncons st.history of
-                Just { head: { term, type_, mb_ix, change }, tail: history } ->
-                  st
-                    { term = term
-                    , type_ = type_
-                    , mb_ix = mb_ix
-                    , history = history
-                    , clipboard = Nothing
-                    , dragboard = Nothing
-                    }
-                Nothing -> st -- cannot undo if there is no history
+        , transition:
+            { label: "undo"
+            , effect:
+                \{ state } -> case Array.uncons state.history of
+                  Just { head: { program, change }, tail: history } ->
+                    pure
+                      state
+                        { mode = error "TODO" -- SelectMode change.ix 
+                        , program = program
+                        , history = history
+                        , clipboard = Nothing
+                        }
+                  Nothing -> throwError "cannot undo at beginning of history"
+            }
         }
     , Action
-        { label: Just "stepCursorForwards"
-        -- , tooltip: Just [ DOM.text "move the cursor fowards in a tree walk" ]
-        , tooltip: Just "move the cursor fowards in a tree walk"
+        { tooltip: Just "move the cursor fowards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
-        , effect:
-            \{ this } ->
-              modifyState this \st -> case st.mb_ix of
-                Just ix ->
-                  maybe st identity do
-                    ix' <- stepCursorForwards (SyntaxTerm st.term) ix
-                    pure st { mb_ix = Just ix' }
-                Nothing -> st { mb_ix = Just $ nilIxDown }
+        , transition: error "TODO"
+        -- , effect:
+        --     \{ this } ->
+        --       modifyState this \st -> case st.mb_ix of
+        --         Just ix ->
+        --           maybe st identity do
+        --             ix' <- stepCursorForwards (SyntaxTerm st.term) ix
+        --             pure st { mb_ix = Just ix' }
+        --         Nothing -> st { mb_ix = Just $ nilIxDown }
         }
     , Action
-        { label: Just "stepCursorBackwards"
-        -- , tooltip: Just [ DOM.text "move the cursor backwards in a tree walk" ]
-        , tooltip: Just "move the cursor backwards in a tree walk"
+        { tooltip: Just "move the cursor backwards in a tree walk"
         , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
-        , effect:
-            \{ this } -> do
-              modifyState this \st -> case st.mb_ix of
-                Just ix ->
-                  maybe st identity do
-                    ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
-                    pure st { mb_ix = Just ix' }
-                -- selects the rightmost element of the term
-                Nothing -> st { mb_ix = Just $ wrap (getLastIndex (SyntaxTerm st.term)) }
+        , transition: error "TODO"
+        -- , effect:
+        --     \{ this } -> do
+        --       modifyState this \st -> case st.mb_ix of
+        --         Just ix ->
+        --           maybe st identity do
+        --             ix' <- stepCursorBackwards (SyntaxTerm st.term) ix
+        --             pure st { mb_ix = Just ix' }
+        --         -- selects the rightmost element of the term
+        --         Nothing -> st { mb_ix = Just $ wrap (getLastIndex (SyntaxTerm st.term)) }
         }
     -- TODO: this isn't actually treated as an explicit action, since it's handled by handleKey_QueryMode
     -- but probably would be better to have "editing" modes handled more generally
@@ -171,47 +170,48 @@ renderEnvironment this env =
               [ Props.onClick \event -> do
                   -- Debug.traceM "trying to paste datatype"
                   -- Debug.traceM $ "env.syntax = " <> show env.syntax
-                  case env.syntax of
-                    Just (SyntaxType (HoleType holeType)) -> do
-                      modifyState this \st ->
-                        maybe st identity do
-                          -- applyChange
-                          -- { ix: fromJust st.mb_ix
-                          -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
-                          -- }
-                          -- st
-                          -- apply holeSub
-                          let
-                            holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
-                          pure
-                            $ st
-                                { term = subTerm holeSub st.term
-                                , type_ = subType holeSub st.type_
-                                }
-                    Just (SyntaxTerm (Hole hole)) -> do
-                      -- match on term of type clicked
-                      st <- getState this
-                      doChange this
-                        { ix: fromJust st.mb_ix
-                        , toReplace:
-                            ReplaceTerm
-                              ( Match
-                                  { typeId: typeId
-                                  , term: Hole { meta: default }
-                                  , caseItems:
-                                      ( \sumItem ->
-                                          { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
-                                          , body: Hole { meta: default }
-                                          , meta: default
-                                          }
-                                      )
-                                        <$> data_.sumItems
-                                  , meta: default
-                                  }
-                              )
-                              NoChange
-                        }
-                    _ -> pure unit
+                  -- case env.syntax of
+                  --   Just (SyntaxType (HoleType holeType)) -> do
+                  --     modifyState this \st ->
+                  --       maybe st identity do
+                  --         -- applyChange
+                  --         -- { ix: fromJust st.mb_ix
+                  --         -- , toReplace: ReplaceType (DataType { typeId, meta: default }) NoChange
+                  --         -- }
+                  --         -- st
+                  --         -- apply holeSub
+                  --         let
+                  --           holeSub = Map.singleton holeType.holeId (DataType { typeId, meta: default })
+                  --         pure
+                  --           $ st
+                  --               { term = subTerm holeSub st.term
+                  --               , type_ = subType holeSub st.type_
+                  --               }
+                  --   Just (SyntaxTerm (Hole hole)) -> do
+                  --     -- match on term of type clicked
+                  --     st <- getState this
+                  --     doChange this
+                  --       { ix: fromJust st.mb_ix
+                  --       , toReplace:
+                  --           ReplaceTerm
+                  --             ( Match
+                  --                 { typeId: typeId
+                  --                 , term: Hole { meta: default }
+                  --                 , caseItems:
+                  --                     ( \sumItem ->
+                  --                         { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
+                  --                         , body: Hole { meta: default }
+                  --                         , meta: default
+                  --                         }
+                  --                     )
+                  --                       <$> data_.sumItems
+                  --                 , meta: default
+                  --                 }
+                  --             )
+                  --             NoChange
+                  --       }
+                  --   _ -> pure unit
+                  error "TODO"
               ]
               dataContextItem
           ]
@@ -234,27 +234,28 @@ renderEnvironment this env =
           $ DOM.span
               [ Props.className "context-varType context-item"
               , Props.onClick \event -> do
-                  case fitsInHole type_ (fromJust env.alpha) of
-                    -- does fit in hole 
-                    Just (nArgs /\ holeSub) -> do
-                      let
-                        term = createNeu termId nArgs
-                      modifyState this \st ->
-                        maybe st identity do
-                          st <-
-                            applyChange
-                              { ix: fromJust st.mb_ix
-                              , toReplace: ReplaceTerm term NoChange
-                              }
-                              st
-                          st <-
-                            pure
-                              $ st
-                                  { term = subTerm holeSub st.term
-                                  , type_ = subType holeSub st.type_
-                                  }
-                          pure st
-                    Nothing -> pure unit -- doesn't fit in hole 
+                  -- case fitsInHole type_ (fromJust env.alpha) of
+                  --   -- does fit in hole 
+                  --   Just (nArgs /\ holeSub) -> do
+                  --     let
+                  --       term = createNeu termId nArgs
+                  --     modifyState this \st ->
+                  --       maybe st identity do
+                  --         st <-
+                  --           applyChange
+                  --             { ix: fromJust st.mb_ix
+                  --             , toReplace: ReplaceTerm term NoChange
+                  --             }
+                  --             st
+                  --         st <-
+                  --           pure
+                  --             $ st
+                  --                 { term = subTerm holeSub st.term
+                  --                 , type_ = subType holeSub st.type_
+                  --                 }
+                  --         pure st
+                  --   Nothing -> pure unit -- doesn't fit in hole 
+                  error "TODO"
               ]
               varContextItem
 
@@ -273,24 +274,22 @@ renderPalette this env =
       ]
   ]
   where
-  renderAction action = case (unwrap action).label of
-    Just label ->
-      [ DOM.div [ Props.className "action-wrapper" ] <<< pure
-          $ DOM.div
-              ( [ Props.className "action"
-                , Props.onClick \event -> (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
-                ]
-                  <> maybeArray (unwrap action).tooltip Props.title
-              )
-          $ [ DOM.div [ Props.className "action-label" ] [ DOM.text label ]
-            , DOM.div [ Props.className "action-triggers" ]
-                $ ( \trigger ->
-                      DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
-                  )
-                <$> (unwrap action).triggers
-            ]
-      ]
-    Nothing -> []
+  renderAction action =
+    [ DOM.div [ Props.className "action-wrapper" ] <<< pure
+        $ DOM.div
+            ( [ Props.className "action"
+              , Props.onClick \event -> error "TODO" --  (unwrap action).effect { this, mb_event: Nothing, trigger: ActionTrigger_Click }
+              ]
+                <> maybeArray (unwrap action).tooltip Props.title
+            )
+        $ [ DOM.div [ Props.className "action-label" ] [ DOM.text (unwrap action).transition.label ]
+          , DOM.div [ Props.className "action-triggers" ]
+              $ ( \trigger ->
+                    DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
+                )
+              <$> (unwrap action).triggers
+          ]
+    ]
 
 {-
   -- OLD: with tooltip divs

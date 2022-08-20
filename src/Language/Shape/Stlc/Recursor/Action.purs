@@ -11,12 +11,15 @@ import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Syntax.Modify
+import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.State (runState)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
+import Data.Either (Either(..))
 import Data.Foldable (foldM)
 import Data.List as List
 import Data.Map as Map
@@ -27,7 +30,6 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_Name, handleKeytype_String)
 import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
@@ -42,7 +44,6 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as R
 import Type.Proxy (Proxy(..))
-import Unsafe (fromJust)
 
 bindMaybeEffectUnit :: forall a. Maybe a -> (a -> Effect Unit) -> Effect Unit
 bindMaybeEffectUnit = case _ of
@@ -81,14 +82,20 @@ recType rec =
                 { actions:
                     common (ArrowType args.arrowType) args
                       <> [ Action
-                            { label: Just "unarrow"
-                            , tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
+                            { tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
-                            , effect:
-                                \{ this } -> do
-                                  st <- getState this
-                                  -- TODO: delete instances of bound term (ask jacob)
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType args.arrowType.cod RemoveArg }
+                            , transition:
+                                { label: "unarrow"
+                                , effect:
+                                    \{ state, mb_event } -> do
+                                      selMode <- requireSelectMode state
+                                      -- TODO: delete instances of bound term (ask jacob)
+                                      applyChange
+                                        { ix: selMode.ix
+                                        , toReplace: ReplaceType args.arrowType.cod RemoveArg
+                                        }
+                                        state
+                                }
                             }
                         ]
                       <> maybeArray
@@ -98,29 +105,32 @@ recType rec =
                           )
                           ( \arrowType' ->
                               Action
-                                { label: Just "swaparrow"
-                                , tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
+                                { tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
                                 , triggers: [ ActionTrigger_Keypress keys.swap ]
-                                , effect:
-                                    \{ this } -> do
-                                      st <- getState this
-                                      doChange this
-                                        { ix: fromJust st.mb_ix
-                                        , toReplace:
-                                            ReplaceType
-                                              ( ArrowType
-                                                  { dom: arrowType'.dom
-                                                  , cod:
-                                                      ArrowType
-                                                        { dom: args.arrowType.dom
-                                                        , cod: arrowType'.cod
-                                                        , meta: arrowType'.meta
-                                                        }
-                                                  , meta: args.arrowType.meta
-                                                  }
-                                              )
-                                              Swap
-                                        }
+                                , transition:
+                                    { label: "swaparrow"
+                                    , effect:
+                                        \{ state, mb_event } -> do
+                                          selMode <- requireSelectMode state
+                                          applyChange
+                                            { ix: selMode.ix
+                                            , toReplace:
+                                                ReplaceType
+                                                  ( ArrowType
+                                                      { dom: arrowType'.dom
+                                                      , cod:
+                                                          ArrowType
+                                                            { dom: args.arrowType.dom
+                                                            , cod: arrowType'.cod
+                                                            , meta: arrowType'.meta
+                                                            }
+                                                      , meta: args.arrowType.meta
+                                                      }
+                                                  )
+                                                  Swap
+                                            }
+                                            state
+                                    }
                                 }
                           )
                 }
@@ -140,31 +150,39 @@ recType rec =
   common :: forall r. Type -> { visit :: Visit | r } -> Array Action
   common type_ args =
     [ Action
-        { label: Just "enarrow"
-        , tooltip: makeExampleTooltip "wrap a type in an arrow" "A" "? -> A"
-        , effect:
-            \{ this } -> do
-              st <- getState this
-              let
-                holeType = freshHoleType unit
-              doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType) }
+        { tooltip: makeExampleTooltip "wrap a type in an arrow" "A" "? -> A"
         , triggers: [ ActionTrigger_Keypress keys.lambda ]
+        , transition:
+            { label: "enarrow"
+            , effect:
+                \{ state, mb_event } -> do
+                  selMode <- requireSelectMode state
+                  let
+                    holeType = freshHoleType unit
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType)
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "dig"
-        , tooltip: makeExampleTooltip "replace a type with a hole" "A" "?"
-        , effect:
-            \{ this } -> do
-              st <- getState this
-              let
-                holeId = freshHoleId unit
-              doChange this
-                { ix: fromJust st.mb_ix
-                , toReplace: ReplaceType (HoleType { holeId, weakening: Set.empty, meta: default }) (Dig holeId)
-                }
+        { tooltip: makeExampleTooltip "replace a type with a hole" "A" "?"
         , triggers: [ ActionTrigger_Keypress keys.dig ]
+        , transition:
+            { label: "dig"
+            , effect:
+                \{ state, mb_event } -> do
+                  selMode <- requireSelectMode state
+                  let
+                    holeId = freshHoleId unit
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace: ReplaceType (HoleType { holeId, weakening: Set.empty, meta: default }) (Dig holeId)
+                    }
+                    state
+            }
         }
-    , actionIndent args.visit.ix
     ]
 
 -- | recTerm
@@ -214,19 +232,25 @@ recTerm rec =
                 { actions:
                     common (Lam args.lam) args
                       <> [ Action
-                            { label: Just "unlambda"
-                            , tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
+                            { tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
                             , triggers: [ ActionTrigger_Keypress keys.unlambda ]
-                            , effect:
-                                \{ this } -> do
-                                  st <- getState this
-                                  let
-                                    -- state = chTerm args.gamma args.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
-                                    state = chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body
-
-                                    body' /\ holeEq = runState state Map.empty
-                                  -- TODO: is it possible that the holeEq could apply to more than just body'?
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' RemoveArg }
+                            , transition:
+                                { label: "unlambda"
+                                , effect:
+                                    \{ state, mb_event } -> do
+                                      selMode <- requireSelectMode state
+                                      let
+                                        body' /\ holeEq =
+                                          runState
+                                            (chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.lam.termBind.termId) NoChange args.lam.body)
+                                            Map.empty
+                                      -- TODO: is it possible that the holeEq could apply to more than just body'?
+                                      applyChange
+                                        { ix: selMode.ix
+                                        , toReplace: ReplaceTerm body' RemoveArg
+                                        }
+                                        state
+                                }
                             }
                         ]
                       <> maybeArray
@@ -236,29 +260,32 @@ recTerm rec =
                           )
                           ( \lam' ->
                               Action
-                                { label: Just "swaplambdas"
-                                , tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
+                                { tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
                                 , triggers: [ ActionTrigger_Keypress keys.swap ]
-                                , effect:
-                                    \{ this } -> do
-                                      st <- getState this
-                                      doChange this
-                                        { ix: fromJust st.mb_ix
-                                        , toReplace:
-                                            ReplaceTerm
-                                              ( Lam
-                                                  { termBind: lam'.termBind
-                                                  , body:
-                                                      Lam
-                                                        { termBind: args.lam.termBind
-                                                        , body: lam'.body
-                                                        , meta: lam'.meta
-                                                        }
-                                                  , meta: args.lam.meta
-                                                  }
-                                              )
-                                              Swap
-                                        }
+                                , transition:
+                                    { label: "swaplambdas"
+                                    , effect:
+                                        \{ state, mb_event } -> do
+                                          selMode <- requireSelectMode state
+                                          applyChange
+                                            { ix: selMode.ix
+                                            , toReplace:
+                                                ReplaceTerm
+                                                  ( Lam
+                                                      { termBind: lam'.termBind
+                                                      , body:
+                                                          Lam
+                                                            { termBind: args.lam.termBind
+                                                            , body: lam'.body
+                                                            , meta: lam'.meta
+                                                            }
+                                                      , meta: args.lam.meta
+                                                      }
+                                                  )
+                                                  Swap
+                                            }
+                                            state
+                                    }
                                 }
                           )
                 }
@@ -270,64 +297,61 @@ recTerm rec =
                 { actions:
                     common (Neu args.neu) args
                       <> [ Action
-                            { label: Just "app"
-                            , tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
+                            { tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
                             , triggers: [ ActionTrigger_Keypress keys.app ]
-                            , effect:
-                                \{ this } ->
-                                  modifyState this \st -> do
-                                    -- given a neu: `f a : B -> C` where `f : A -> B -> C`
-                                    -- try to unify output of `f a`, which is `B -> C` with a function type `?0 -> ?1`
-                                    -- if can unify, then apply resulting hole sub to program
-                                    -- apply typechange `RemoveArg` to `f`
-                                    -- apply resulting hole sub to program
-                                    let
-                                      -- type of neu's var
-                                      phi :: Type
-                                      phi = lookupVarType args.neu.termId args.gamma
+                            , transition:
+                                { label: "app"
+                                , effect:
+                                    \{ state, mb_event } -> do
+                                      -- given a neu: `f a : B -> C` where `f : A -> B -> C`
+                                      -- try to unify output of `f a`, which is `B -> C` with a function type `?0 -> ?1`
+                                      -- if can unify, then apply resulting hole sub to program
+                                      -- apply typechange `RemoveArg` to `f`
+                                      -- apply resulting hole sub to program
+                                      selMode <- requireSelectMode state
+                                      let
+                                        -- type of neu's var
+                                        phi :: Type
+                                        phi = lookupVarType args.neu.termId args.gamma
 
-                                      -- output type of neu
-                                      out :: Type
-                                      out = neuOutputType phi args.neu
+                                        -- output type of neu
+                                        out :: Type
+                                        out = neuOutputType phi args.neu
 
-                                      -- fresh arrow type
-                                      arr :: ArrowType
-                                      arr = { dom: freshHoleType unit, cod: freshHoleType unit, meta: default }
-                                    case unifyType out (ArrowType arr) of
-                                      Just holeSub ->
-                                        let
-                                          term' = subTerm holeSub st.term
-
-                                          res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
-                                          res =
-                                            chAtTerm { term: term', gamma: default, alpha: st.type_ }
+                                        -- fresh arrow type
+                                        arr :: ArrowType
+                                        arr = { dom: freshHoleType unit, cod: freshHoleType unit, meta: default }
+                                      holeSub <-
+                                        maybe (throwError "types did not unify") pure
+                                          $ unifyType out (ArrowType arr)
+                                      term <- pure $ subTerm holeSub state.program.term
+                                      term /\ ix /\ _tc /\ holeEq <-
+                                        maybe (throwError "chAtTerm failed") pure
+                                          $ chAtTerm { term, gamma: default, alpha: state.program.type_ }
                                               ( ReplaceTerm
                                                   (Neu args.neu { argItems = List.snoc args.neu.argItems { term: freshHole unit, meta: default } })
                                                   RemoveArg
                                               )
-                                              =<< st.mb_ix
-                                        in
-                                          case res of
-                                            Just (term'' /\ ix' /\ _tc /\ holeEq) ->
-                                              let
-                                                term''' = subTerm (restrictToFull holeEq) term''
-                                              in
-                                                st
-                                                  { term = term'''
-                                                  , mb_ix = Just ix'
-                                                  }
-                                            Nothing -> st
-                                      Nothing -> st
+                                              selMode.ix
+                                      term <- pure $ subTerm (restrictToFull holeEq) term
+                                      pure
+                                        state
+                                          { mode = SelectMode { ix }
+                                          , program { term = term }
+                                          }
+                                }
                             }
                         , Action
-                            { label: Just "unapp"
-                            , tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
+                            { tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
                             , triggers: [ ActionTrigger_Keypress keys.unapp ]
-                            , effect:
-                                \{ this } ->
-                                  modifyState this \st -> case List.unsnoc args.neu.argItems of
-                                    -- only works when there's at least one arg
-                                    Just { init: argItems' } -> do
+                            , transition:
+                                { label: "unapp"
+                                , effect:
+                                    \{ state, mb_event } -> do
+                                      selMode <- requireSelectMode state
+                                      argItems' <- case List.unsnoc args.neu.argItems of
+                                        Just { init } -> pure init
+                                        Nothing -> throwError "can only try to unapp a neutral form with at least one argument"
                                       -- given a neu `f a : B` where `f : A -> B`
                                       -- try to unify this term's expected type, `B` with `A -> B`
                                       -- if can unify, then apply resulting hole sub to program
@@ -341,28 +365,24 @@ recTerm rec =
                                         -- output type of neu with one less arg
                                         out :: Type
                                         out = neuOutputType phi args.neu { argItems = argItems' }
-
-                                        res :: Maybe (Term /\ IxDown /\ TypeChange /\ HoleEq)
-                                        res = case out of
-                                          ArrowType arr ->
-                                            chAtTerm { term: st.term, gamma: default, alpha: st.type_ }
+                                      arr <- case out of
+                                        ArrowType arr -> pure arr
+                                        _ -> throwError "can only try to unapp a neutral form that has an applicant of an arrow type"
+                                      term /\ ix /\ _tc /\ holeEq <-
+                                        maybe (throwError "chAtTerm failed") pure
+                                          $ chAtTerm { term: state.program.term, gamma: default, alpha: state.program.type_ }
                                               ( ReplaceTerm
                                                   (Neu args.neu { argItems = argItems' })
                                                   (InsertArg arr.dom)
                                               )
-                                              =<< st.mb_ix
-                                          _ -> Nothing
-                                      case res of
-                                        Just (term'' /\ ix' /\ _tc /\ holeEq) ->
-                                          let
-                                            term''' = subTerm (restrictToFull holeEq) term''
-                                          in
-                                            st
-                                              { term = term'''
-                                              , mb_ix = Just ix'
-                                              }
-                                        Nothing -> st
-                                    Nothing -> st
+                                              selMode.ix
+                                      term <- pure $ subTerm (restrictToFull holeEq) term
+                                      pure
+                                        state
+                                          { mode = SelectMode { ix }
+                                          , program { term = term }
+                                          }
+                                }
                             }
                         ]
                 }
@@ -374,18 +394,25 @@ recTerm rec =
                 { actions:
                     common (Let args.let_) args
                       <> [ Action
-                            { label: Just "unlet"
-                            , tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
+                            { tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
                             , triggers: [ ActionTrigger_Keypress keys.unlet ]
-                            , effect:
-                                \{ this } -> do
-                                  st <- getState this
-                                  let
-                                    state = chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.let_.termBind.termId) NoChange args.let_.body
-
-                                    body' /\ holeEq = runState state Map.empty
-                                  -- TODO: is it possible that the holeEq could apply to more than just body'?
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm body' NoChange }
+                            , transition:
+                                { label: "unlet"
+                                , effect:
+                                    \{ state } -> do
+                                      selMode <- requireSelectMode state
+                                      let
+                                        body' /\ holeEq =
+                                          runState
+                                            (chTerm args.body.gamma args.body.alpha (deleteVar emptyChanges args.let_.termBind.termId) NoChange args.let_.body)
+                                            Map.empty
+                                      -- TODO: is it possible that the holeEq could apply to more than just body'?
+                                      applyChange
+                                        { ix: selMode.ix
+                                        , toReplace: ReplaceTerm body' NoChange
+                                        }
+                                        state
+                                }
                             }
                         ]
                 }
@@ -397,13 +424,19 @@ recTerm rec =
                 { actions:
                     common (Buf args.buf) args
                       <> [ Action
-                            { label: Just "unbuffer"
-                            , tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
+                            { tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
                             , triggers: [ ActionTrigger_Keypress keys.unbuf ]
-                            , effect:
-                                \{ this } -> do
-                                  st <- getState this
-                                  doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm args.buf.body NoChange }
+                            , transition:
+                                { label: "unbuffer"
+                                , effect:
+                                    \{ state } -> do
+                                      selMode <- requireSelectMode state
+                                      applyChange
+                                        { ix: selMode.ix
+                                        , toReplace: ReplaceTerm args.buf.body NoChange
+                                        }
+                                        state
+                                }
                             }
                         ]
                 }
@@ -425,40 +458,25 @@ recTerm rec =
                 { actions:
                     common (Hole args.hole) args
                       <> [ Action
-                            { label: Just "inlambda"
-                            , tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
+                            { tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
                             , triggers: [ ActionTrigger_Keypress keys.inlambda ]
-                            , effect:
-                                \{ this } -> do
-                                  st <- getState this
-                                  case args.alpha of
-                                    ArrowType arrow -> doChange this { ix: fromJust st.mb_ix, toReplace: ReplaceTerm (Lam { termBind: freshTermBind unit, body: freshHole unit, meta: default }) NoChange }
-                                    _ -> pure unit -- cannot inlambda if type is not an arrow
+                            , transition:
+                                { label: "inlambda"
+                                , effect:
+                                    \{ state } -> case args.alpha of
+                                      ArrowType arrow -> do
+                                        selMode <- requireSelectMode state
+                                        applyChange
+                                          { ix: selMode.ix
+                                          , toReplace:
+                                              ReplaceTerm
+                                                (Lam { termBind: freshTermBind unit, body: freshHole unit, meta: default })
+                                                NoChange
+                                          }
+                                          state
+                                      _ -> throwError "cannot inlambda if type is not an arrow"
+                                }
                             }
-                        , Action
-                            { label: Just "variableQueryMode"
-                            , tooltip: makeSimpleTooltip "enter variable query mode at a hole"
-                            , triggers: [ ActionTrigger_Keypress keys.variableQueryMode ]
-                            , effect: \{ this } -> modifyState this _ { mode = QueryMode { query: "", i: 0 } }
-                            }
-                        -- TODO: don;t need this anymore, because is handled by handleKey_QueryMode
-                        {- 
-                        , Action
-                            { label: Just "edit"
-                            , triggers: [ ActionTrigger_Keytype ]
-                            , effect:
-                                case _ of
-                                  { this, mb_event: Just event } -> do
-                                    st <- getState this
-                                    case st.mode of
-                                      QueryMode query -> do
-                                        case handleKeytype_String event query of
-                                          Just query' -> modifyState this _ { mode = QueryMode query' }
-                                          Nothing -> pure unit
-                                      _ -> pure unit
-                                  _ -> pure unit
-                            }
-                          -}
                         ]
                 }
                 args
@@ -467,120 +485,131 @@ recTerm rec =
   common :: forall r. Term -> { visit :: Visit | r } -> Array Action
   common term args =
     [ Action
-        { label: Just "enlambda"
-        , tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
-                            (InsertArg (freshHoleType unit))
-                      }
+        { tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
         , triggers: [ ActionTrigger_Keypress keys.lambda ]
+        , transition:
+            { label: "enlambda"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          (Lam { termBind: { termId: freshTermId unit, meta: default }, body: term, meta: default })
+                          (InsertArg (freshHoleType unit))
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "dig"
-        , tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            (Hole { meta: default })
-                            NoChange -- (Dig (freshHoleId unit))
-                      }
+        { tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
         , triggers: [ ActionTrigger_Keypress keys.dig ]
+        , transition:
+            { label: "dig"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          (Hole { meta: default })
+                          NoChange
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "enlet"
-        , tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            (Let { termBind: freshTermBind unit, sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
-                            NoChange
-                      }
+        { tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
         , triggers: [ ActionTrigger_Keypress keys.let_ ]
+        , transition:
+            { label: "enlet"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          (Let { termBind: freshTermBind unit, sign: freshHoleType unit, impl: freshHole unit, body: term, meta: default })
+                          NoChange
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "enbuffer"
-        , tooltip: makeExampleTooltip "wrap a term in a buffer" "e" "buf ? : ? in e"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            ( Buf
-                                { sign: freshHoleType unit
-                                , impl: freshHole unit
-                                , body: term
-                                , meta: default
-                                }
-                            )
-                            NoChange
-                      }
+        { tooltip: makeExampleTooltip "wrap a term in a buffer" "e" "buf ? : ? in e"
         , triggers: [ ActionTrigger_Keypress keys.buf ]
+        , transition:
+            { label: "enbuffer"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          ( Buf
+                              { sign: freshHoleType unit
+                              , impl: freshHole unit
+                              , body: term
+                              , meta: default
+                              }
+                          )
+                          NoChange
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "endata"
-        , tooltip: makeExampleTooltip "wrap a term in a datatype definition" "e" "type ? = ? in e"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            ( Data
-                                { typeBind: freshTypeBind unit
-                                , sumItems: mempty
-                                , body: term
-                                , meta: default
-                                }
-                            )
-                            NoChange
-                      }
+        { tooltip: makeExampleTooltip "wrap a term in a datatype definition" "e" "type ? = ? in e"
         , triggers: [ ActionTrigger_Keypress keys.data_ ]
+        , transition:
+            { label: "endata"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          ( Data
+                              { typeBind: freshTypeBind unit
+                              , sumItems: mempty
+                              , body: term
+                              , meta: default
+                              }
+                          )
+                          NoChange
+                    }
+                    state
+            }
         }
     , Action
-        { label: Just "pop"
-        , tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
-        , effect:
-            \{ this } ->
-              args.visit.ix
-                >>|= \ix ->
-                    doChange this
-                      { ix: toIxDown ix
-                      , toReplace:
-                          ReplaceTerm
-                            ( Buf
-                                { sign: freshHoleType unit
-                                , impl: term
-                                , body: freshHole unit
-                                , meta: default
-                                }
-                            )
-                            NoChange
-                      }
+        { tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
         , triggers: [ ActionTrigger_Keypress keys.pop ]
+        , transition:
+            { label: "pop"
+            , effect:
+                \{ state } -> do
+                  selMode <- requireSelectMode state
+                  applyChange
+                    { ix: selMode.ix
+                    , toReplace:
+                        ReplaceTerm
+                          ( Buf
+                              { sign: freshHoleType unit
+                              , impl: term
+                              , body: freshHole unit
+                              , meta: default
+                              }
+                          )
+                          NoChange
+                    }
+                    state
+            }
         }
-    , actionIndent args.visit.ix
     ]
 
 -- | recArgItem
@@ -605,7 +634,7 @@ recArgItem rec =
           rec.argItem
             $ R.union
                 { actions:
-                    [ actionIndent args.visit.ix
+                    [ actionIndent
                     ]
                 }
                 args
@@ -689,33 +718,38 @@ recTypeBind rec =
           rec.typeBind
             $ R.union
                 { actions:
-                    [ Action
-                        { label: Just "edit"
-                        , tooltip: makeSimpleTooltip "modify the name of a variable"
+                    [ {- 
+                      -- OLD: this is now handled at top level by keyboard event
+                      Action
+                        { tooltip: makeSimpleTooltip "modify the name of a variable"
                         , triggers: [ ActionTrigger_Keytype ]
-                        , effect:
-                            case _ of
-                              { this, mb_event: Just event } -> do
-                                Debug.traceM "[event] ActionTrigger_Keytype"
-                                args.visit.ix
-                                  >>|= \ix ->
-                                      handleKeytype_Name event (unwrap args.typeBind.meta).name
-                                        >>|= \name' ->
-                                            modifyState this \st ->
-                                              st
-                                                { term =
-                                                  fromJust $ toTerm $ fromJust
-                                                    $ replaceNameAt
-                                                        args.typeBind
-                                                        SyntaxTypeBind
-                                                        TypeBindMetadata
-                                                        name'
-                                                        (toIxDown ix)
-                                                        (SyntaxTerm st.term)
-                                                }
-                              _ -> pure unit
-                        }
-                    ]
+                        , transition:
+                            { label: "edit typeBind"
+                            , effect:
+                                \{ state, mb_event } -> do
+                                  ?a
+                            }
+                        -- case mb_event of 
+                        --   { this, mb_event: Just event } -> do
+                        --     Debug.traceM "[event] ActionTrigger_Keytype"
+                        -- args.visit.ix
+                        --   >>|= \ix ->
+                        --       handleKeytype_Name event (unwrap args.typeBind.meta).name
+                        --         >>|= \name' ->
+                        --             modifyState this \st ->
+                        --               st
+                        --                 { term =
+                        --                   fromJust $ toTerm $ fromJust
+                        --                     $ replaceNameAt
+                        --                         args.typeBind
+                        --                         SyntaxTypeBind
+                        --                         TypeBindMetadata
+                        --                         name'
+                        --                         (toIxDown ix)
+                        --                         (SyntaxTerm state.term)
+                        --                 }
+                        -- _ -> pure unit
+                        -}]
                 }
                 args
     }
@@ -739,23 +773,30 @@ recTermBind rec =
           rec.termBind
             $ R.union
                 { actions:
-                    [ Action
-                        { label: Just "edit"
-                        , tooltip: makeSimpleTooltip "modify the name of a variable"
+                    [ {- 
+                      OLD: now handled at top level
+                      Action
+                        { tooltip: makeSimpleTooltip "modify the name of a variable"
                         , triggers: [ ActionTrigger_Keytype ]
-                        , effect:
-                            case _ of
-                              { this, mb_event: Just event } -> do
-                                args.visit.ix
-                                  >>|= \ix ->
-                                      handleKeytype_Name event (unwrap args.termBind.meta).name
-                                        >>|= \name' -> do
-                                            modifyState this \st ->
-                                              -- Debug.trace ("res = " <> show (replaceTermBindNameAt name' (toIxDown ix) (SyntaxTerm st.term))) \_ ->
-                                              st { term = fromJust $ toTerm $ fromJust $ replaceNameAt args.termBind SyntaxTermBind TermBindMetadata name' (toIxDown ix) (SyntaxTerm st.term) }
-                              _ -> pure unit
+                        , transition:
+                            { label: "edit termBind"
+                            , effect:
+                                \{ state } -> do
+                                  selMode <- requireSelectMode state
+                                  -- case _ of
+                                  --   { this, mb_event: Just event } -> do
+                                  --     args.visit.ix
+                                  --       >>|= \ix ->
+                                  --           handleKeytype_Name event (unwrap args.termBind.meta).name
+                                  --             >>|= \name' -> do
+                                  --                 modifyState this \st ->
+                                  --                   -- Debug.trace ("res = " <> show (replaceTermBindNameAt name' (toIxDown ix) (SyntaxTerm state.term))) \_ ->
+                                  --                   st { term = fromJust $ toTerm $ fromJust $ replaceNameAt args.termBind SyntaxTermBind TermBindMetadata name' (toIxDown ix) (SyntaxTerm state.term) }
+                                  --   _ -> pure unit
+                                  ?a
+                            }
                         }
-                    ]
+                        -}]
                 }
                 args
     }
@@ -800,21 +841,26 @@ recHoleId ::
 recHoleId rec args = rec.holeId $ R.union { actions: [] } args
 
 -- misc actions
-actionIndent :: Maybe IxUp -> Action
-actionIndent mb_ix =
+actionIndent :: Action
+actionIndent =
   Action
-    { label: Just "indent"
-    , tooltip: Nothing
-    , effect:
-        \{ this } ->
-          mb_ix
-            >>|= \ix -> do
-                Debug.traceM "indent"
-                let
-                  mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp ix
-                modifyState this \st ->
-                  st { term = fromJust $ toTerm =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm st.term) }
+    { tooltip: Nothing
     , triggers: [ ActionTrigger_Keypress keys.indent ]
+    , transition:
+        { label: "indent"
+        , effect:
+            \{ state, mb_event } -> do
+              selMode <- requireSelectMode state
+              let
+                mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp (toIxUp selMode.ix)
+              term <-
+                maybe (throwError "indexSyntaxAt failed") pure
+                  $ toTerm
+                  =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm state.program.term)
+              setProgram
+                (state.program { term = term })
+                state
+        }
     }
 
 -- tooltip
@@ -823,18 +869,3 @@ makeSimpleTooltip = Just
 
 makeExampleTooltip :: String -> String -> String -> Maybe String
 makeExampleTooltip desc lhs rhs = Just $ desc <> ";  " <> lhs <> "  ~~>  " <> rhs
-
--- -- OLD: div tooltip
--- makeSimpleTooltip :: String -> Maybe (Array ReactElement)
--- makeSimpleTooltip desc = Just [ DOM.text desc ]
--- makeExampleTooltip :: String -> String -> String -> Maybe (Array ReactElement)
--- makeExampleTooltip desc lhs rhs =
---   Just
---     [ DOM.text desc
---     , DOM.br'
---     , DOM.div [ Props.className "example" ]
---         [ DOM.span [ Props.className "code" ] [ DOM.text lhs ]
---         , DOM.span [ Props.className "metacode" ] [ DOM.text "~~~>" ]
---         , DOM.span [ Props.className "code" ] [ DOM.text rhs ]
---         ]
---     ]

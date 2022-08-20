@@ -61,6 +61,7 @@ type RenderArgs
 renderProgram :: This -> Effect (Array ReactElement /\ RenderEnvironment)
 renderProgram this = do
   st <- getState this
+  mb_ix <- pure $ getStateIndex st
   let
     renEnv = emptyRenderEnvironment st
 
@@ -72,10 +73,10 @@ renderProgram this = do
       flip runState renEnv
         $ renderTerm { this, syntaxtheme } Nothing
             -- TODO: maybe pull this out into multiple files or at least somewhere else?
-            { term: st.term
+            { term: st.program.term
             , gamma: default
-            , alpha: st.type_
-            , visit: nilVisit st.mb_ix
+            , alpha: st.program.type_
+            , visit: nilVisit mb_ix
             , meta: default
             }
   pure
@@ -83,8 +84,9 @@ renderProgram this = do
           [ Props.className "program"
           , Props.onClick \event -> do
               -- Debug.traceM "clicked on program background"
-              stopPropagation event
-              modifyState this (_ { mb_ix = Nothing }) -- unselect
+              -- stopPropagation event
+              -- modifyState this (_ { mb_ix = Nothing }) -- unselect
+              error "TODO"
           -- , Props.onMouseDown \event -> do
           --     Debug.traceM "onMouseDown on program background"
           ]
