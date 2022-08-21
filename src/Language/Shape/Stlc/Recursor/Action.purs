@@ -774,7 +774,7 @@ recTermBind rec =
             $ R.union
                 { actions:
                     [ {- 
-                      OLD: now handled at top level
+                      -- OLD: now handled at top level
                       Action
                         { tooltip: makeSimpleTooltip "modify the name of a variable"
                         , triggers: [ ActionTrigger_Keytype ]
