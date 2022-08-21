@@ -1,28 +1,33 @@
 module Language.Shape.Stlc.Transition where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Index
+import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Types
 import Prelude
+import Control.Monad.Error.Class (throwError)
 import Data.Array ((:))
+import Data.Array as Array
 import Data.Default (default)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse_)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
 import Language.Shape.Stlc.ChAtIndex (Change, chAtTerm)
 import Language.Shape.Stlc.Changes (applyTC)
-import Language.Shape.Stlc.Rendering.Token (SyntaxTheme)
+import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import React (getState, modifyState)
+import React.SyntheticEvent (SyntheticEvent)
 import Undefined (undefined)
-import Unsafe (error)
 
-doTransition :: This -> Transition -> Effect Unit
-doTransition this trans = do
+doTransition :: { this :: This, event :: TransitionEvent } -> Transition -> Effect Unit
+doTransition { this, event } trans = do
   Console.log "+---------------------------------------------------------------"
   Console.log $ "transition: " <> trans.label
   state <- getState this
-  case trans.effect { state, mb_event: Nothing } of
+  case trans.effect { state, event } of
     Right st' -> modifyState this \_ -> st'
     Left err -> Console.log $ "[!] transition failure: " <> err
   Console.log "+---------------------------------------------------------------"
@@ -84,5 +89,31 @@ setProgram program state =
       , program = program
       }
 
-clearHighlights :: State -> TransitionM Unit
-clearHighlights st = error "TODO"
+setSelectIndex :: IxDown -> State -> TransitionM State
+setSelectIndex ix state = do
+  selMode <- requireSelectMode state
+  pure state { mode = SelectMode selMode { ix = ix } }
+
+clearAllHighlights :: State -> Effect State
+clearAllHighlights state = do
+  traverse_ (setHighlight false) state.highlights
+  pure state { highlights = [] }
+
+undo :: State -> TransitionM State
+undo state = case Array.uncons state.history of
+  Just { head: { program, change }, tail: history } ->
+    pure
+      state
+        { mode = SelectMode { ix: change.ix }
+        , program = program
+        , history = history
+        , clipboard = Nothing
+        }
+  Nothing -> throwError "cannot undo at beginning of history"
+
+deselect :: State -> TransitionM State
+deselect state = do
+  pure
+    state
+      { mode = TopMode {}
+      }

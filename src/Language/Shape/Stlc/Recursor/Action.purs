@@ -87,7 +87,7 @@ recType rec =
                             , transition:
                                 { label: "unarrow"
                                 , effect:
-                                    \{ state, mb_event } -> do
+                                    \{ state, event } -> do
                                       selMode <- requireSelectMode state
                                       -- TODO: delete instances of bound term (ask jacob)
                                       applyChange
@@ -110,7 +110,7 @@ recType rec =
                                 , transition:
                                     { label: "swaparrow"
                                     , effect:
-                                        \{ state, mb_event } -> do
+                                        \{ state, event } -> do
                                           selMode <- requireSelectMode state
                                           applyChange
                                             { ix: selMode.ix
@@ -155,7 +155,7 @@ recType rec =
         , transition:
             { label: "enarrow"
             , effect:
-                \{ state, mb_event } -> do
+                \{ state, event } -> do
                   selMode <- requireSelectMode state
                   let
                     holeType = freshHoleType unit
@@ -172,7 +172,7 @@ recType rec =
         , transition:
             { label: "dig"
             , effect:
-                \{ state, mb_event } -> do
+                \{ state, event } -> do
                   selMode <- requireSelectMode state
                   let
                     holeId = freshHoleId unit
@@ -237,7 +237,7 @@ recTerm rec =
                             , transition:
                                 { label: "unlambda"
                                 , effect:
-                                    \{ state, mb_event } -> do
+                                    \{ state, event } -> do
                                       selMode <- requireSelectMode state
                                       let
                                         body' /\ holeEq =
@@ -265,7 +265,7 @@ recTerm rec =
                                 , transition:
                                     { label: "swaplambdas"
                                     , effect:
-                                        \{ state, mb_event } -> do
+                                        \{ state, event } -> do
                                           selMode <- requireSelectMode state
                                           applyChange
                                             { ix: selMode.ix
@@ -302,7 +302,7 @@ recTerm rec =
                             , transition:
                                 { label: "app"
                                 , effect:
-                                    \{ state, mb_event } -> do
+                                    \{ state, event } -> do
                                       -- given a neu: `f a : B -> C` where `f : A -> B -> C`
                                       -- try to unify output of `f a`, which is `B -> C` with a function type `?0 -> ?1`
                                       -- if can unify, then apply resulting hole sub to program
@@ -322,11 +322,11 @@ recTerm rec =
                                         arr :: ArrowType
                                         arr = { dom: freshHoleType unit, cod: freshHoleType unit, meta: default }
                                       holeSub <-
-                                        maybe (throwError "types did not unify") pure
+                                        maybeTransitionM "types did not unify"
                                           $ unifyType out (ArrowType arr)
                                       term <- pure $ subTerm holeSub state.program.term
                                       term /\ ix /\ _tc /\ holeEq <-
-                                        maybe (throwError "chAtTerm failed") pure
+                                        maybeTransitionM "chAtTerm failed"
                                           $ chAtTerm { term, gamma: default, alpha: state.program.type_ }
                                               ( ReplaceTerm
                                                   (Neu args.neu { argItems = List.snoc args.neu.argItems { term: freshHole unit, meta: default } })
@@ -347,7 +347,7 @@ recTerm rec =
                             , transition:
                                 { label: "unapp"
                                 , effect:
-                                    \{ state, mb_event } -> do
+                                    \{ state, event } -> do
                                       selMode <- requireSelectMode state
                                       argItems' <- case List.unsnoc args.neu.argItems of
                                         Just { init } -> pure init
@@ -369,7 +369,7 @@ recTerm rec =
                                         ArrowType arr -> pure arr
                                         _ -> throwError "can only try to unapp a neutral form that has an applicant of an arrow type"
                                       term /\ ix /\ _tc /\ holeEq <-
-                                        maybe (throwError "chAtTerm failed") pure
+                                        maybeTransitionM "chAtTerm failed"
                                           $ chAtTerm { term: state.program.term, gamma: default, alpha: state.program.type_ }
                                               ( ReplaceTerm
                                                   (Neu args.neu { argItems = argItems' })
@@ -726,11 +726,11 @@ recTypeBind rec =
                         , transition:
                             { label: "edit typeBind"
                             , effect:
-                                \{ state, mb_event } -> do
+                                \{ state, event } -> do
                                   ?a
                             }
-                        -- case mb_event of 
-                        --   { this, mb_event: Just event } -> do
+                        -- case event of 
+                        --   { this, event: Just event } -> do
                         --     Debug.traceM "[event] ActionTrigger_Keytype"
                         -- args.visit.ix
                         --   >>|= \ix ->
@@ -784,7 +784,7 @@ recTermBind rec =
                                 \{ state } -> do
                                   selMode <- requireSelectMode state
                                   -- case _ of
-                                  --   { this, mb_event: Just event } -> do
+                                  --   { this, event: Just event } -> do
                                   --     args.visit.ix
                                   --       >>|= \ix ->
                                   --           handleKeytype_Name event (unwrap args.termBind.meta).name
@@ -849,12 +849,12 @@ actionIndent =
     , transition:
         { label: "indent"
         , effect:
-            \{ state, mb_event } -> do
+            \{ state, event } -> do
               selMode <- requireSelectMode state
               let
                 mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp (toIxUp selMode.ix)
               term <-
-                maybe (throwError "indexSyntaxAt failed") pure
+                maybeTransitionM "indexSyntaxAt failed"
                   $ toTerm
                   =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm state.program.term)
               setProgram

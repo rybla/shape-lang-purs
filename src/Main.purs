@@ -7,7 +7,6 @@ import Prelude
 import Prelude
 import App (appClass)
 import Data.Traversable (sequence)
-import Effect.Console (error)
 import Partial.Unsafe (unsafePartial)
 import React (ReactElement)
 import React as React

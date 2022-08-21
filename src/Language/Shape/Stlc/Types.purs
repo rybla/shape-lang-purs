@@ -9,6 +9,7 @@ import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
+import Control.Monad.Error.Class (throwError)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
@@ -23,8 +24,9 @@ import Effect.Unsafe (unsafePerformEffect)
 import Language.Shape.Stlc.Changes (applyTC)
 import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), defaultSyntaxTheme, expandedSyntaxTheme)
 import React (ReactElement, ReactThis, getState, modifyState)
-import Undefined (undefined)
+import React.SyntheticEvent (SyntheticEvent, SyntheticKeyboardEvent, SyntheticMouseEvent)
 import Web.Event.Event (Event)
+import Undefined (undefined)
 import Web.HTML (HTMLElement)
 
 type Props
@@ -150,8 +152,19 @@ type Transition
     , effect :: TransitionEffect
     }
 
+data TransitionEvent
+  = KeyboardTransitionEvent SyntheticKeyboardEvent
+  | MouseTransitionEvent SyntheticMouseEvent
+  | WebTransitionEvent Event
+  | QuerySubmitTransitionEvent
+
 type TransitionEffect
-  = { state :: State, mb_event :: Maybe Event } -> TransitionM State
+  = { state :: State, event :: TransitionEvent } -> TransitionM State
 
 type TransitionM a
   = Either String a
+
+maybeTransitionM :: forall a. String -> Maybe a -> TransitionM a
+maybeTransitionM err = case _ of
+  Nothing -> throwError err
+  Just a -> pure a

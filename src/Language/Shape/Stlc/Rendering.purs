@@ -12,14 +12,14 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Effect.Ref as Ref
-import Language.Shape.Stlc.Event.KeyboardEvent (eventKey, handleKey)
+import Language.Shape.Stlc.Event.KeyboardEvent (eventKey, handleKey, shouldPreventDefault)
 import Language.Shape.Stlc.Example.Basic as Basic
 import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
 import Language.Shape.Stlc.Rendering.Menu (renderMenubar)
+import Language.Shape.Stlc.Transition (doTransition)
 import React.DOM as DOM
 import React.Ref as Ref
-import Unsafe (error)
 import Web.Event.Event (Event, EventType(..), preventDefault)
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.HTML (window)
@@ -44,20 +44,22 @@ programComponent this = do
       addEventListener (EventType "keydown") listener false (toEventTarget win)
 
     keyboardEventHandler event = do
-      renEnv <- Ref.read renderEnvironmentRef
+      when (shouldPreventDefault event) do
+        preventDefault event
+      env <- Ref.read renderEnvironmentRef
       st <- getState this
-      case handleKey st renEnv event of
-        Just (trigger /\ Action action) -> do
-          preventDefault event
-          -- action.effect { this, mb_event: Just event, trigger }
-          error "TODO"
+      case handleKey env event of
+        Just (Action action) ->
+          doTransition
+            { this, event: WebTransitionEvent event }
+            action.transition
         Nothing -> pure unit
 
     render = do
       st <- getState this
       resMenubar <- renderMenubar this
-      renEnv /\ resEditor <- renderEditor this
-      Ref.write renEnv renderEnvironmentRef
+      env /\ resEditor <- renderEditor this
+      Ref.write env renderEnvironmentRef
       pure $ DOM.div' (resMenubar <> resEditor)
   pure
     { state

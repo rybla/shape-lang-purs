@@ -26,7 +26,7 @@ import Partial.Unsafe (unsafeCrashWith)
 import React (modifyState)
 import React.DOM as DOM
 import Undefined (undefined)
-import Unsafe (fromJust)
+import Unsafe (error, fromJust)
 import Web.Event.Event (Event, EventType(..))
 
 foreign import eventKey :: Event -> String
@@ -79,8 +79,28 @@ matchKey event (Key str) = case Array.uncons (Array.reverse $ split (Pattern " "
 
   alt = altKey event
 
-handleKey :: State -> RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
-handleKey st env event = undefined
+shouldPreventDefault :: Event -> Boolean
+shouldPreventDefault event = true -- TODO
+
+handleKey :: RenderEnvironment -> Event -> Maybe Action
+handleKey env event = case env.st.mode of
+  TopMode topMode -> handleKey_TopMode env event topMode
+  SelectMode topMode -> handleKey_SelectMode env event topMode
+  QueryMode topMode -> handleKey_QueryMode env event topMode
+  DragMode topMode -> handleKey_DragMode env event topMode
+
+handleKey_TopMode :: RenderEnvironment -> Event -> TopMode -> Maybe Action
+handleKey_TopMode = error "TODO"
+
+-- find an action in RenderEnvironment that matches the input
+handleKey_SelectMode :: RenderEnvironment -> Event -> SelectMode -> Maybe Action
+handleKey_SelectMode = error "TODO"
+
+handleKey_QueryMode :: RenderEnvironment -> Event -> QueryMode -> Maybe Action
+handleKey_QueryMode = error "TODO"
+
+handleKey_DragMode :: RenderEnvironment -> Event -> DragMode -> Maybe Action
+handleKey_DragMode env event dragMode = Nothing
 
 -- handleKey :: State -> RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
 -- handleKey st renEnv event = case st.mode of
@@ -220,26 +240,27 @@ handleKey st env event = undefined
 --   where
 --   str0 = maybe "" identity mb_str
 --   mb_str1 = handleKeytype_String event str0
--- handleKeytype_String :: Event -> String -> Maybe String
--- handleKeytype_String event str = go (eventKey event)
---   where
---   go key
---     -- TODO: handle other special keys
---     | key == "Backspace" && altKey event = Just ""
---     | key == "Backspace" = Just $ String.take (String.length str - 1) str
---     | key == "Space" = Just $ str <> " "
---     | key `Array.elem` keysIgnore = Nothing
---     | otherwise = Just $ str <> key
---   keysIgnore =
---     [ "Shift"
---     , "Meta"
---     , "Control"
---     , "Alt"
---     , "Tab"
---     , "ArrowLeft"
---     , "ArrowRight"
---     , "ArrowUp"
---     , "ArrowDown"
---     , "Escape"
---     , "Enter"
---     ]
+handleKeytype_String :: Event -> String -> Maybe String
+handleKeytype_String event str = go (eventKey event)
+  where
+  go key
+    -- TODO: handle other special keys
+    | key == "Backspace" && altKey event = Just ""
+    | key == "Backspace" = Just $ String.take (String.length str - 1) str
+    | key == "Space" = Just $ str <> " "
+    | key `Array.elem` keysIgnore = Nothing
+    | otherwise = Just $ str <> key
+
+  keysIgnore =
+    [ "Shift"
+    , "Meta"
+    , "Control"
+    , "Alt"
+    , "Tab"
+    , "ArrowLeft"
+    , "ArrowRight"
+    , "ArrowUp"
+    , "ArrowDown"
+    , "Escape"
+    , "Enter"
+    ]

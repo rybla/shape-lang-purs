@@ -47,6 +47,7 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
+import Language.Shape.Stlc.Transition (deselect, doTransition)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)
@@ -83,12 +84,10 @@ renderProgram this = do
     ( [ DOM.div
           [ Props.className "program"
           , Props.onClick \event -> do
-              -- Debug.traceM "clicked on program background"
-              -- stopPropagation event
-              -- modifyState this (_ { mb_ix = Nothing }) -- unselect
-              error "TODO"
-          -- , Props.onMouseDown \event -> do
-          --     Debug.traceM "onMouseDown on program background"
+              doTransition { this, event: MouseTransitionEvent event }
+                { label: "deselect" -- i.e. go to TopMode
+                , effect: \{ state } -> deselect state
+                }
           ]
           elems
       ]
@@ -222,70 +221,73 @@ renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
             (syntaxtheme.term.match { term, caseItems, meta: args.match.meta, metactx: args.meta })
     , hole:
         \args -> do
-          query <-
-            State.gets (_.st.mode)
-              >>= case _ of
-                  QueryMode q
-                    | args.visit.csr == Just nilIxDown -> do
-                      let
-                        -- filter the context for variables that have a
-                        -- name fuzzy-matching the query string
-                        variableQueryItems :: Array (TermId /\ Type)
-                        variableQueryItems =
-                          map (\(termId /\ type_ /\ _) -> (termId /\ type_))
-                            $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
-                            $ Array.foldMap
-                                ( \(termId /\ type_) ->
-                                    let
-                                      Name mb_str = lookupVarName termId args.meta
-                                    in
-                                      case fuzzyDistance q.query =<< mb_str of
-                                        Just dist -> [ termId /\ type_ /\ dist ]
-                                        Nothing -> []
-                                )
-                            $ OrderedMap.toArray (unwrap args.gamma).varTypes
-                      -- update the render environment to know about the
-                      -- current variable query result
-                      State.modify_ _ { variableQueryResult = Just variableQueryItems }
-                      -- render each items from the query result
-                      variableQueryElems <-
-                        sequence
-                          $ Array.mapWithIndex
-                              ( \i (termId /\ type_) -> do
-                                  elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-                                  elemType <- renderType renArgs { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-                                  pure
-                                    $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
-                                          $ concat
-                                              [ elemTermId
-                                              , [ DOM.text " : " ]
-                                              , elemType
-                                              ]
-                                      )
-                              )
-                          $ variableQueryItems
-                      pure
-                        $ [ DOM.div [ Props.className "query" ]
-                              [ DOM.div [ Props.className "query-context" ]
-                                  ( if Array.length variableQueryElems > 0 then
-                                      variableQueryElems
-                                    else
-                                      [ DOM.span [ Props.className "query-no-matches" ]
-                                          [ DOM.text "no matches" ]
-                                      ]
-                                  )
-                              , DOM.span [ Props.className "query-text" ]
-                                  [ DOM.text q.query ]
-                              ]
-                          , DOM.span [ Props.className "query-sep" ]
-                              [ DOM.text " .. : " ]
-                          ]
-                  _ -> pure []
+          -- TODO: actually, this happens at each node, not just at a hole 
+          -- query <-
+          --   State.gets (_.st.mode)
+          --     >>= case _ of
+          --         QueryMode q
+          --           | args.visit.csr == Just nilIxDown -> do
+          --             let
+          --               -- filter the context for variables that have a
+          --               -- name fuzzy-matching the query string
+          --               queryResults :: Array (TermId /\ Type)
+          --               queryResults =
+          --                 map (\(termId /\ type_ /\ _) -> (termId /\ type_))
+          --                   $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+          --                   $ Array.foldMap
+          --                       ( \(termId /\ type_) ->
+          --                           let
+          --                             Name mb_str = lookupVarName termId args.meta
+          --                           in
+          --                             case fuzzyDistance q.query =<< mb_str of
+          --                               Just dist -> [ termId /\ type_ /\ dist ]
+          --                               Nothing -> []
+          --                       )
+          --                   $ OrderedMap.toArray (unwrap args.gamma).varTypes
+          --             -- update the render environment to know about the
+          --             -- current variable query result
+          --             -- State.modify_ _ { variableQueryResult = Just queryResults }
+          --             State.modify_ \env -> env { queryResults = env.queryResults <> var }
+          --             -- render each items from the query result
+          --             variableQueryElems <-
+          --               sequence
+          --                 $ Array.mapWithIndex
+          --                     ( \i (termId /\ type_) -> do
+          --                         elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+          --                         elemType <- renderType renArgs { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+          --                         pure
+          --                           $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
+          --                                 $ concat
+          --                                     [ elemTermId
+          --                                     , [ DOM.text " : " ]
+          --                                     , elemType
+          --                                     ]
+          --                             )
+          --                     )
+          --                 $ queryResults
+          --             pure
+          --               $ [ DOM.div [ Props.className "query" ]
+          --                     [ DOM.div [ Props.className "query-context" ]
+          --                         ( if Array.length variableQueryElems > 0 then
+          --                             variableQueryElems
+          --                           else
+          --                             [ DOM.span [ Props.className "query-no-matches" ]
+          --                                 [ DOM.text "no matches" ]
+          --                             ]
+          --                         )
+          --                     , DOM.span [ Props.className "query-text" ]
+          --                         [ DOM.text q.query ]
+          --                     ]
+          --                 , DOM.span [ Props.className "query-sep" ]
+          --                     [ DOM.text " .. : " ]
+          --                 ]
+          --         _ -> pure []
           hole <- renderType renArgs { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
             <$> renderNewNode renArgs
                 ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
-                (query <> hole)
+                -- (query <> hole)
+                hole
     }
 
 renderArgItem :: RenderArgs -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
@@ -457,11 +459,56 @@ renderNewNode :: RenderArgs -> NodeProps -> Array ReactElement -> M (Array React
 renderNewNode { this, syntaxtheme } props res = do
   -- if this node is selected
   when isSelected do
-    -- Debug.traceM $ "================================="
-    -- Debug.traceM $ "renderNewNode isSelected"
-    -- Debug.traceM $ "label = " <> show props.label
-    -- Debug.traceM $ "props = " <> show props
-    -- Debug.traceM $ "================================="
+    state <- State.gets _.st
+    -- compute queryResults
+    mb_queryResults <- case state.mode of
+      QueryMode queryMode -> do
+        -- gather all query results, filtering out those with insufficient fuzzy
+        -- proximity
+        measuredQueryResults <-
+          pure
+            $ Array.concat
+                [ Array.concatMap
+                    ( \(Action action) -> case fuzzyDistance queryMode.query action.transition.label of
+                        Just dist -> [ dist /\ ActionQueryResult (Action action) ]
+                        Nothing -> []
+                    )
+                    props.actions
+                -- ActionQueryResult <$> 
+                , case props.syntax of
+                    Nothing -> [] -- TODO
+                    -- if at a term, add the term vars in context
+                    Just (SyntaxTerm _) ->
+                      Array.foldMap
+                        ( \(termId /\ type_) ->
+                            let
+                              name@(Name mb_str) = lookupVarName termId props.meta
+                            in
+                              case fuzzyDistance queryMode.query =<< mb_str of
+                                Just dist -> [ dist /\ TermVariableQueryResult { name, termId, type_ } ]
+                                Nothing -> []
+                        )
+                        $ OrderedMap.toArray (unwrap props.gamma).varTypes
+                    -- if at a type, add the data types in context
+                    Just (SyntaxType _) ->
+                      Array.foldMap
+                        ( \(typeId /\ _data_) ->
+                            let
+                              name@(Name mb_str) = lookupDataName typeId props.meta
+                            in
+                              case fuzzyDistance queryMode.query =<< mb_str of
+                                Just dist -> [ dist /\ DataTypeQueryResult { name, typeId } ]
+                                Nothing -> []
+                        )
+                        $ OrderedMap.toArray (unwrap props.gamma).datas
+                    _ -> [] -- TODO
+                ]
+        -- sort by fuzzy proximity
+        measuredQueryResults <-
+          pure $ Array.sortWith (\(dist /\ _) -> dist) measuredQueryResults
+        -- extract query results
+        pure $ Just $ map (\(_ /\ qr) -> qr) measuredQueryResults
+      _ -> pure Nothing
     -- update environment
     State.modify_
       ( _
@@ -470,6 +517,7 @@ renderNewNode { this, syntaxtheme } props res = do
           , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta
+          , mb_queryResults = mb_queryResults
           }
       )
   -- render children

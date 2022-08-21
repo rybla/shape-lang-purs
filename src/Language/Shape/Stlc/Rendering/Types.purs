@@ -6,6 +6,7 @@ import Data.Tuple.Nested
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Recursor.Index
+import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
@@ -13,7 +14,7 @@ import Prim hiding (Type)
 import Control.Monad.State as State
 import Data.OrderedSet (OrderedSet)
 import Effect (Effect)
-import Language.Shape.Stlc.Rendering.Token
+import Language.Shape.Stlc.Metadata (Name(..))
 import React (getState)
 import Type.Proxy (Proxy(..))
 
@@ -28,12 +29,14 @@ type RenderEnvironment
     , actions :: Array Action
     , holeIds :: OrderedSet HoleId
     , st :: State
-    , variableQueryResult :: Maybe VariableQueryResult
+    , mb_queryResults :: Maybe (Array QueryResult)
     , syntaxtheme :: SyntaxTheme
     }
 
-type VariableQueryResult
-  = Array (TermId /\ Type)
+data QueryResult
+  = TermVariableQueryResult { name :: Name, termId :: TermId, type_ :: Type }
+  | DataTypeQueryResult { name :: Name, typeId :: TypeId }
+  | ActionQueryResult Action
 
 _holeIds = Proxy :: Proxy "holeIds"
 
@@ -46,7 +49,7 @@ emptyRenderEnvironment st =
   , actions: []
   , holeIds: mempty
   , st
-  , variableQueryResult: Nothing
+  , mb_queryResults: Nothing
   , syntaxtheme: st.syntaxtheme
   }
 
