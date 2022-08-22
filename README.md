@@ -102,3 +102,14 @@ Shape:
 - [Lambdu](http://www.lamdu.org)
 - [Scratch](https://scratch.mit.edu)
   - UI design for a structural editor
+
+## Mere Structural Editors that are still kinda cool
+
+- [awesome-structure-editors](https://github.com/yairchu/awesome-structure-editors)
+  - collection of structure editors
+- [Tylr](https://tylr.fun)
+  - the first _tile-based_ editor
+- [Scratch](https://scratch.mit.edu)
+  - aimed at teaching programming
+- [Holbert](http://liamoc.net/holbert)
+  - mathematical notation
