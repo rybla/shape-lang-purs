@@ -102,9 +102,6 @@ Shape:
 - [Lambdu](http://www.lamdu.org)
 - [Scratch](https://scratch.mit.edu)
   - UI design for a structural editor
-
-## Structural editors which don't preserve typing
-
 - [awesome-structure-editors](https://github.com/yairchu/awesome-structure-editors)
   - collection of structure editors
 - [Tylr](https://tylr.fun)
