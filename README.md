@@ -103,7 +103,7 @@ Shape:
 - [Scratch](https://scratch.mit.edu)
   - UI design for a structural editor
 
-## Mere Structural Editors that are still kinda cool
+## Structural editors which don't preserve typing
 
 - [awesome-structure-editors](https://github.com/yairchu/awesome-structure-editors)
   - collection of structure editors
