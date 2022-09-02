@@ -13,6 +13,7 @@ import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Transition
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.State (State)
@@ -35,6 +36,7 @@ import Debug as Debub
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
+import Language.Shape.Stlc.Action (action)
 import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
 import Language.Shape.Stlc.Metadata (Name(..))
@@ -43,7 +45,7 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
-import Language.Shape.Stlc.Types (Action(..), This)
+import Language.Shape.Stlc.Types (Action(..), This, TransitionEvent(..))
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)
@@ -58,14 +60,14 @@ import Unsafe (error, fromJust)
 propsClickDragDrop :: This -> NodeProps -> Array Props.Props
 propsClickDragDrop this props =
   concat
-    -- selection
-    [ maybeArray (props.visit.ix) \ix ->
-        Props.onClick \event -> do
-          -- Debug.traceM $ "clicked on a node: " <> show props.label -- DEBUG
-          -- stopPropagation event
-          -- -- select this node
-          -- modifyState this (_ { mb_ix = Just (toIxDown ix) })
-          error "TODO"
+    -- selecting 
+    [ maybeArray' do
+        ix <- props.visit.ix
+        pure
+          $ Props.onClick \event ->
+              doAction
+                { this, event: MouseTransitionEvent event }
+                (action.select { ix })
     -- dragging and dropping
     , case props.syntax of
         Just (SyntaxTerm term) ->

@@ -80,166 +80,42 @@ matchKey event (Key str) = case Array.uncons (Array.reverse $ split (Pattern " "
   alt = altKey event
 
 shouldPreventDefault :: Event -> Boolean
-shouldPreventDefault event = true -- TODO
+shouldPreventDefault event =
+  -- blacklist of which keys should be prevented default
+  not
+    $ matchOneOfKeys event
+        [ Key "Meta Tab"
+        , Key "Meta q"
+        , Key "Meta l"
+        , Key "Meta r"
+        , Key "Ctrl l"
+        , Key "Ctrl r"
+        , Key ("Meta Shift {")
+        , Key ("Meta Shift }")
+        ]
 
+-- find an action in environment that is triggered by event
 handleKey :: RenderEnvironment -> Event -> Maybe Action
-handleKey env event = case env.st.mode of
-  TopMode topMode -> handleKey_TopMode env event topMode
-  SelectMode topMode -> handleKey_SelectMode env event topMode
-  QueryMode topMode -> handleKey_QueryMode env event topMode
-  DragMode topMode -> handleKey_DragMode env event topMode
+handleKey env event =
+  Array.find
+    ( \(Action action) ->
+        any
+          ( case _ of
+              ActionTrigger_Keypress keys -> matchOneOfKeys event keys
+              ActionTrigger_Keytype -> true
+              _ -> false
+          )
+          action.triggers
+    )
+    env.actions
 
-handleKey_TopMode :: RenderEnvironment -> Event -> TopMode -> Maybe Action
-handleKey_TopMode = error "TODO"
+handleKeytype_Name :: Event -> Name -> Maybe Name
+handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothing else Name (Just str1)) <$> mb_str1
+  where
+  str0 = maybe "" identity mb_str
 
--- find an action in RenderEnvironment that matches the input
-handleKey_SelectMode :: RenderEnvironment -> Event -> SelectMode -> Maybe Action
-handleKey_SelectMode = error "TODO"
+  mb_str1 = handleKeytype_String event str0
 
-handleKey_QueryMode :: RenderEnvironment -> Event -> QueryMode -> Maybe Action
-handleKey_QueryMode = error "TODO"
-
-handleKey_DragMode :: RenderEnvironment -> Event -> DragMode -> Maybe Action
-handleKey_DragMode env event dragMode = Nothing
-
--- handleKey :: State -> RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
--- handleKey st renEnv event = case st.mode of
---   NormalMode -> handleKey_NormalMode renEnv event
---   QueryMode q -> case renEnv.variableQueryResult of
---     Just res -> handleKey_QueryMode renEnv event q res
---     Nothing -> unsafeCrashWith "if in QueryMode, must have a Just VariableQueryResult in the render environment"
--- handleKey_QueryMode :: RenderEnvironment -> Event -> Query -> VariableQueryResult -> Maybe (ActionTrigger /\ Action)
--- handleKey_QueryMode renEnv event q res
---   | matchOneOfKeys event keys.normalMode =
---     let
---       trigger = ActionTrigger_Keypress keys.normalMode
---     in
---       Just
---         ( trigger
---             /\ Action
---                 { label: Just "normalMode"
---                 , tooltip: Nothing
---                 , triggers: [ trigger ]
---                 , effect: \{ this } -> modifyState this _ { mode = NormalMode }
---                 }
---         )
---   | matchOneOfKeys event keys.arrowUp =
---     let
---       trigger = ActionTrigger_Keypress keys.arrowUp
---     in
---       Just
---         ( trigger
---             /\ Action
---                 { label: Just "querySelectorMoveUp"
---                 , tooltip: Nothing
---                 , triggers: [ trigger ]
---                 , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i - 1) `mod` Array.length res } }
---                 }
---         )
---   | matchOneOfKeys event keys.arrowDown =
---     let
---       trigger = ActionTrigger_Keypress keys.arrowDown
---     in
---       Just
---         ( trigger
---             /\ Action
---                 { label: Just "querySelectorMoveDown"
---                 , tooltip: Nothing
---                 , triggers: [ trigger ]
---                 , effect: \{ this } -> modifyState this _ { mode = QueryMode q { i = (q.i + 1) `mod` Array.length res } }
---                 }
---         )
---   | matchOneOfKeys event keys.submitVariableQueryMode =
---     let
---       trigger = ActionTrigger_Keypress keys.submitVariableQueryMode
---     in
---       Just
---         ( trigger
---             /\ Action
---                 { label: Just "submitVariableQueryMode"
---                 -- , tooltip: Just [ DOM.text "submit query, placing the selected variable in the hole" ]
---                 , tooltip: Just "submit query, placing the selected variable in the hole"
---                 , triggers: [ trigger ]
---                 -- TODO: puts the queried variable into hole; maybe VariableQueryMode needs to hold the topmost variable that's been queried?
---                 , effect:
---                     \{ this } -> do
---                       case renEnv.variableQueryResult of
---                         Just items
---                           | Just (termId /\ type_) <- Array.index items q.i -> do
---                             case fitsInHole type_ (fromJust renEnv.alpha) of
---                               -- does fit in hole 
---                               Just (nArgs /\ holeSub) -> do
---                                 let
---                                   term = createNeu termId nArgs
---                                 modifyState this \st ->
---                                   maybe st identity do
---                                     st <-
---                                       applyChange
---                                         { ix: fromJust st.mb_ix
---                                         , toReplace: ReplaceTerm term NoChange
---                                         }
---                                         st
---                                     st <-
---                                       pure
---                                         $ st
---                                             { term = subTerm holeSub st.term
---                                             , type_ = subType holeSub st.type_
---                                             , mode = NormalMode
---                                             }
---                                     pure st
---                               _ -> pure unit -- doesn't fit in hole 
---                         _ -> pure unit
---                 }
---         )
---   | otherwise =
---     let
---       trigger = ActionTrigger_Keytype
---     in
---       Just
---         ( trigger
---             /\ Action
---                 { label: Just "edit"
---                 , tooltip: Nothing
---                 , triggers: [ trigger ]
---                 , effect:
---                     \{ this } -> case handleKeytype_String event q.query of
---                       Just query -> modifyState this _ { mode = QueryMode { query, i: 0 } }
---                       Nothing -> pure unit
---                 }
---         )
--- handleKey_NormalMode :: RenderEnvironment -> Event -> Maybe (ActionTrigger /\ Action)
--- handleKey_NormalMode renEnv event =
---   -- Debug.trace event \_ ->
---   foldr
---     ( \action ->
---         maybe
---           ( foldr
---               ( \trigger -> case trigger of
---                   -- overrides any previously captured keypress. (or
---                   -- keytype, but there should only be one keytype trigger
---                   -- available at a time)
---                   ActionTrigger_Keytype -> const $ Just (ActionTrigger_Keytype /\ action)
---                   ActionTrigger_Keypress keys ->
---                     maybe
---                       ( do
---                           guard (matchOneOfKeys event keys)
---                           pure (trigger /\ action)
---                       )
---                       pure
---                   _ -> identity
---               )
---               Nothing
---               (unwrap action).triggers
---           )
---           pure
---     )
---     Nothing
---     renEnv.actions
--- handleKeytype_Name :: Event -> Name -> Maybe Name
--- handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothing else Name (Just str1)) <$> mb_str1
---   where
---   str0 = maybe "" identity mb_str
---   mb_str1 = handleKeytype_String event str0
 handleKeytype_String :: Event -> String -> Maybe String
 handleKeytype_String event str = go (eventKey event)
   where

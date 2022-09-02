@@ -11,6 +11,7 @@ import Data.Array as Array
 import Data.Default (default)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Traversable (traverse_)
 import Debug as Debug
 import Effect (Effect)
@@ -21,6 +22,7 @@ import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import React (getState, modifyState)
 import React.SyntheticEvent (SyntheticEvent)
 import Undefined (undefined)
+import Unsafe (error)
 
 doTransition :: { this :: This, event :: TransitionEvent } -> Transition -> Effect Unit
 doTransition { this, event } trans = do
@@ -31,6 +33,9 @@ doTransition { this, event } trans = do
     Right st' -> modifyState this \_ -> st'
     Left err -> Console.log $ "[!] transition failure: " <> err
   Console.log "+---------------------------------------------------------------"
+
+doAction :: { this :: This, event :: TransitionEvent } -> Action -> Effect Unit
+doAction { this, event } act = doTransition { this, event } (unwrap act).transition
 
 requireTopMode :: State -> TransitionM TopMode
 requireTopMode st = case st.mode of
@@ -51,6 +56,11 @@ requireDragMode :: State -> TransitionM DragMode
 requireDragMode st = case st.mode of
   DragMode dragMode -> pure dragMode
   _ -> Left "requires DragMode"
+
+setMode :: Mode -> State -> TransitionM State
+setMode mode state = do
+  -- TODO: do any special operations to transition between modes
+  pure state { mode = mode }
 
 applyChange :: Change -> State -> TransitionM State
 applyChange ch state = do
@@ -75,7 +85,7 @@ applyChange ch state = do
       }
 
 applyAction :: Action -> State -> TransitionM State
-applyAction = undefined
+applyAction = error "TODO"
 
 setSyntaxTheme :: SyntaxTheme -> State -> TransitionM State
 setSyntaxTheme synthm state = do
@@ -113,7 +123,16 @@ undo state = case Array.uncons state.history of
 
 deselect :: State -> TransitionM State
 deselect state = do
-  pure
-    state
-      { mode = TopMode {}
-      }
+  pure state { mode = TopMode {} }
+
+setClipboard :: Clipboard -> State -> TransitionM State
+setClipboard clipboard state = do
+  pure state { clipboard = Just clipboard }
+
+select :: IxDown -> State -> TransitionM State
+select ix state = do
+  setMode (SelectMode { ix }) state
+
+startDrag :: DragMode -> State -> TransitionM State
+startDrag dragMode state = do
+  setMode (DragMode dragMode) state

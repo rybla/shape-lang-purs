@@ -32,6 +32,7 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import KeyboardCursor (getLastIndex, stepCursorBackwards, stepCursorForwards)
+import Language.Shape.Stlc.Action (action)
 import Language.Shape.Stlc.Index (nilIxDown)
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, getState, modifyState)
@@ -39,13 +40,28 @@ import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
 import Type.Proxy (Proxy(..))
+import Unsafe (error)
 
 -- | renderEditor
 renderEditor :: This -> Effect (RenderEnvironment /\ Array (ReactElement))
 renderEditor this = do
   res /\ env <- renderProgram this
-  -- global actions 
-  env <- pure $ env { actions = env.actions <> globalActions }
+  let
+    actions = case env.st.mode of
+      TopMode topMode ->
+        [ action.undo
+        , action.stepCursorForwards
+        , action.stepCursorBackwards
+        ]
+      SelectMode selMode ->
+        Array.concat
+          [ [ action.undo ]
+          , [ action.stepCursorForwards ]
+          , [ action.stepCursorBackwards ]
+          ]
+      QueryMode queMode -> error "TODO"
+      DragMode dragMode -> error "TODO"
+  env <- pure $ env { actions = env.actions <> actions }
   pure $ env
     /\ [ DOM.div [ Props.className "editor" ]
           $ Array.concat
@@ -53,45 +69,6 @@ renderEditor this = do
               , renderPanel this env
               ]
       ]
-  where
-  globalActions =
-    [ Action
-        { tooltip: Nothing
-        , triggers: [ ActionTrigger_Keypress keys.undo ]
-        , transition:
-            { label: "undo"
-            , effect: \{ state } -> undo state
-            }
-        }
-    , Action
-        { tooltip: Just "move the cursor fowards in a tree walk"
-        , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
-        , transition:
-            { label: "stepCursorForwards"
-            , effect:
-                \{ state } -> do
-                  selMode <- requireSelectMode state
-                  ix <-
-                    maybeTransitionM "cannot step cursor forwards"
-                      $ stepCursorForwards (SyntaxTerm state.program.term) selMode.ix
-                  setSelectIndex ix state
-            }
-        }
-    , Action
-        { tooltip: Just "move the cursor backwards in a tree walk"
-        , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
-        , transition:
-            { label: "stepCursorBackwards"
-            , effect:
-                \{ state } -> do
-                  selMode <- requireSelectMode state
-                  ix <-
-                    maybeTransitionM "cannot step cursor backwards"
-                      $ stepCursorBackwards (SyntaxTerm state.program.term) selMode.ix
-                  setSelectIndex ix state
-            }
-        }
-    ]
 
 -- | renderPanel
 renderPanel :: This -> RenderEnvironment -> Array ReactElement
@@ -200,10 +177,11 @@ renderEnvironment this env =
         varContextItem =
           flip State.evalState env do
             termId <- do
-              termId <- renderTermId { this, syntaxtheme: env.syntaxtheme } { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
-              pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
+              -- termId <- renderTermId { this: error "TODO", syntaxtheme: env.syntaxtheme } { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
+              -- pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
+              error "TODO"
             type_ <- do
-              type_ <- renderType { this, syntaxtheme: env.syntaxtheme } { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
+              type_ <- renderType { this: error "TODO", syntaxtheme: env.syntaxtheme } { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
               pure $ [ DOM.span [ Props.className "context-varType-type" ] type_ ]
             pure $ env.syntaxtheme.varContextItem { termId, type_, metactx: env.meta }
       in
@@ -265,6 +243,29 @@ renderPalette this env =
 
 {-
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

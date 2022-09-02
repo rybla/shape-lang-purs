@@ -36,7 +36,7 @@ type State
   = { mode :: Mode
     , program :: Program
     , history :: History
-    , clipboard :: Maybe (IxDown /\ Context /\ Type /\ Term)
+    , clipboard :: Maybe Clipboard
     , highlights :: Array HTMLElement
     , syntaxtheme :: SyntaxTheme
     , colortheme :: String
@@ -44,6 +44,9 @@ type State
 
 type Program
   = { term :: Term, type_ :: Type }
+
+type Clipboard
+  = { ix :: IxDown, gamma :: Context, alpha :: Type, term :: Term }
 
 initSyntaxtheme :: SyntaxTheme
 initSyntaxtheme = defaultSyntaxTheme

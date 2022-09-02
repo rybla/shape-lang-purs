@@ -54,6 +54,11 @@ renderConcatArray = (Array.foldl append [] <$> _) <<< sequence
 maybeArray :: forall a b. Maybe a -> (a -> b) -> Array b
 maybeArray ma f = maybe [] (Array.singleton <<< f) ma
 
+maybeArray' :: forall a. Maybe a -> Array a
+maybeArray' = case _ of
+  Just a -> [ a ]
+  Nothing -> []
+
 -- enParen :: M (Array ReactElement) -> M (Array ReactElement)
 -- enParen m = do
 --   synthm <- gets _.syntaxtheme

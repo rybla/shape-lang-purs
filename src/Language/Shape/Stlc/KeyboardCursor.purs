@@ -12,7 +12,6 @@ import Debug (trace)
 import Language.Shape.Stlc.Index (IxDown(..), IxStep(..), IxStepLabel(..))
 import Language.Shape.Stlc.Syntax (Syntax(..), Type(..), Term(..))
 import Language.Shape.Stlc.Syntax.TreeView (childAtStep, getChildren, nextChild, popIndex2, previousChild)
-import Unsafe (error)
 
 {-
 Either moves cursor forwards one (forwards in the sense of the ordering that
