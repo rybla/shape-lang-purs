@@ -96,8 +96,16 @@ Shape:
 - [Hazel](https://hazel.org/)
   - a type-sensitive structural editor built on gradual typing
 - [Alfa](https://cth.altocumulus.org/~hallgren/Alfa/index.html)
-- [Meta Programming System](https://www.jetbrains.com/mps/)
+- [Meta Programming System (MPS)](https://www.jetbrains.com/mps/)
   - a framework for defining DSLs and automatically generating a UI
+  - user study: https://dl.acm.org/doi/pdf/10.1145/2950290.2950315
 - [Lambdu](http://www.lamdu.org)
 - [Scratch](https://scratch.mit.edu)
   - UI design for a structural editor
+ - aimed at teaching programming
+- [awesome-structure-editors](https://github.com/yairchu/awesome-structure-editors)
+  - collection of structure editors
+- [Tylr](https://tylr.fun)
+  - the first _tile-based_ editor
+- [Holbert](http://liamoc.net/holbert)
+  - mathematical notation
