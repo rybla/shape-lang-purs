@@ -5,7 +5,6 @@ import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Event.KeyboardEvent
-import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Syntax
@@ -21,7 +20,6 @@ import Data.Default (default)
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Data.Set as Set
 import KeyboardCursor as KeyboardCursor
 import Language.Shape.Stlc.Hole (restrictToFull, subTerm, unifyType)

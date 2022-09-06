@@ -2,50 +2,25 @@ module Language.Shape.Stlc.Recursor.Action where
 
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Action
-import Language.Shape.Stlc.ChAtIndex
-import Language.Shape.Stlc.Changes
-import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
-import Language.Shape.Stlc.Metadata
-import Language.Shape.Stlc.Recursor.Proxy
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Syntax.Metadata
-import Language.Shape.Stlc.Syntax.Modify
 import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
-import Control.Monad.Error.Class (throwError)
-import Control.Monad.State (get, runState)
-import Data.Array ((:))
+import Control.Monad.State (get)
 import Data.Array as Array
-import Data.Default (default)
-import Data.Either (Either(..))
-import Data.Foldable (foldM)
-import Data.List as List
-import Data.Map as Map
-import Data.Maybe (Maybe(..), maybe)
-import Data.Newtype (over, unwrap, wrap)
-import Data.Set as Set
-import Data.Show.Generic (genericShow)
-import Data.Tuple (snd)
-import Debug as Debug
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Effect (Effect)
-import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, subType, unifyType)
-import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
 import Language.Shape.Stlc.Recursor.Metacontext as Rec
-import Language.Shape.Stlc.Rendering.Utilities (maybeArray, maybeArray')
-import Partial.Unsafe (unsafeCrashWith)
+import Language.Shape.Stlc.Rendering.Utilities (maybeArray')
 import Prim (Array, Record, Row, String)
 import Prim as Prim
 import Prim.Row (class Lacks)
-import React (ReactElement, getState, modifyState)
-import React.DOM as DOM
-import React.DOM.Props as Props
 import Record as R
-import Type.Proxy (Proxy(..))
-import Unsafe (error)
 
 bindMaybeEffectUnit :: forall a. Maybe a -> (a -> Effect Unit) -> Effect Unit
 bindMaybeEffectUnit = case _ of
