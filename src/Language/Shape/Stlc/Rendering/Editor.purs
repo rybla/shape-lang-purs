@@ -95,7 +95,9 @@ renderEnvironment this env =
                     , [ DOM.div [ Props.className "environment-goal-wrapper" ] <<< pure
                           $ DOM.div [ Props.className "environment-goal" ]
                           $ flip State.evalState env
-                          $ renderType { this, syntaxtheme: env.syntaxtheme } { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
+                          $ renderType
+                              { this, syntaxtheme: env.syntaxtheme }
+                              { type_: alpha, gamma: env.gamma, visit: nonVisit, meta: env.meta }
                       ]
                     ]
           ]
@@ -104,8 +106,13 @@ renderEnvironment this env =
   renderContext gamma =
     [ DOM.div
         [ Props.className "context" ]
-        [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> List.reverse (OrderedMap.keys (unwrap gamma).datas)
-        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable $ renderVarType <$> List.reverse (OrderedMap.keys (unwrap gamma).varTypes)
+        [ DOM.div [ Props.className "context-datas" ]
+            $ Array.fromFoldable
+            $ renderData
+            <$> List.reverse (OrderedMap.keys (unwrap gamma).datas)
+        , DOM.div [ Props.className "context-varTypes" ] $ Array.fromFoldable
+            $ renderVarType
+            <$> List.reverse (OrderedMap.keys (unwrap gamma).varTypes)
         ]
     ]
     where
@@ -192,11 +199,14 @@ renderPalette this env =
     [ DOM.div [ Props.className "action-wrapper" ] <<< pure
         $ DOM.div
             ( [ Props.className "action"
-              , Props.onClick \event -> doTransition { this, event: MouseTransitionEvent event } (unwrap action).transition
+              , Props.onClick \event ->
+                  doTransition { this, event: MouseTransitionEvent event }
+                    (unwrap action).transition
               ]
                 <> maybeArray (unwrap action).tooltip Props.title
             )
-        $ [ DOM.div [ Props.className "action-label" ] [ DOM.text (unwrap action).transition.label ]
+        $ [ DOM.div [ Props.className "action-label" ]
+              [ DOM.text (unwrap action).transition.label ]
           , DOM.div [ Props.className "action-triggers" ]
               $ ( \trigger ->
                     DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
@@ -207,6 +217,12 @@ renderPalette this env =
 
 {-
   
+
+
+
+
+
+
 
 
 
