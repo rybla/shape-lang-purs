@@ -77,8 +77,6 @@ flattenType type_ = case type_ of
 -- TODO: make sure this is right
 unflattenType :: { doms :: List Type, cod :: Type } -> Type
 unflattenType { doms: Nil, cod } = cod
-
--- foldr (\cod dom -> ArrowType { dom, cod, meta: default }) cod doms
 unflattenType { doms: Cons dom doms, cod } = ArrowType { dom, cod: unflattenType { doms, cod }, meta: default }
 
 typeOfSumItem :: TypeId -> SumItem -> Type

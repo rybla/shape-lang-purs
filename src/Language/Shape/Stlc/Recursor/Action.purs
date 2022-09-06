@@ -31,7 +31,6 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (snd)
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.Action (action)
 import Language.Shape.Stlc.Hole (HoleEq, HoleSub, restrictToFull, subTerm, subType, unifyType)
 import Language.Shape.Stlc.Metacontext (Metacontext(..), incrementIndentation, insertData, insertVar)
 import Language.Shape.Stlc.Recursor.Index (Visit)
@@ -85,12 +84,12 @@ recType rec =
                 { actions:
                     Array.concat
                       [ common (ArrowType args.arrowType) args
-                      , [ action.unarrow { args } ]
+                      , [ unarrow { args } ]
                       , maybeArray' do
                           arrow <- case args.arrowType.cod of
                             ArrowType arrow -> Just arrow
                             _ -> Nothing
-                          pure $ action.swaparrow { args, arrow }
+                          pure $ swaparrow { args, arrow }
                       ]
                 }
                 args
@@ -108,7 +107,7 @@ recType rec =
   where
   common :: forall r. Type -> { visit :: Visit | r } -> Array Action
   common type_ args =
-    [ action.digtype
+    [ digtype
     ]
 
 -- | recTerm
@@ -158,12 +157,12 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Lam args.lam) args
-                      , [ action.unlambda { args } ]
+                      , [ unlambda { args } ]
                       , maybeArray' do
                           lam' <- case args.lam.body of
                             Lam lam' -> Just lam' -- the body is also a lambda
                             _ -> Nothing
-                          pure $ action.swaplambdas { args, lam' }
+                          pure $ swaplambdas { args, lam' }
                       ]
                 }
                 args
@@ -174,8 +173,8 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Neu args.neu) args
-                      , [ action.app { args } ]
-                      , [ action.unapp { args } ]
+                      , [ app { args } ]
+                      , [ unapp { args } ]
                       ]
                 }
                 args
@@ -186,7 +185,7 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Let args.let_) args
-                      , [ action.unlet { args } ]
+                      , [ unlet { args } ]
                       ]
                 }
                 args
@@ -197,7 +196,7 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Buf args.buf) args
-                      , [ action.unbuffer { args } ]
+                      , [ unbuffer { args } ]
                       ]
                 }
                 args
@@ -208,7 +207,7 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Data args.data_) args
-                      , [ action.undata { args } ]
+                      , [ undata { args } ]
                       ]
                 }
                 args
@@ -229,7 +228,7 @@ recTerm rec =
                 { actions:
                     Array.concat
                       [ common (Hole args.hole) args
-                      , [ action.inlambda { args } ]
+                      , [ inlambda { args } ]
                       ]
                 }
                 args
@@ -237,15 +236,15 @@ recTerm rec =
   where
   common :: forall r. Term -> { visit :: Visit | r } -> Array Action
   common term args =
-    [ action.enlambda { args, term }
-    , action.digterm { args }
-    , action.enlet { args, term }
-    , action.enbuffer { args, term }
-    , action.endata { args, term }
-    , action.pop { args, term }
+    [ enlambda { args, term }
+    , digterm { args }
+    , enlet { args, term }
+    , enbuffer { args, term }
+    , endata { args, term }
+    , pop { args, term }
     ]
 
--- action.copy { clipboard: { ix: fromJust args.visit.ix, gamma: ?a, alpha: ?a, term: ?a } }
+-- copy { clipboard: { ix: fromJust args.visit.ix, gamma: ?a, alpha: ?a, term: ?a } }
 -- | recArgItem
 type ArgsArgItem r
   = Rec.ArgsArgItem ( | r )
@@ -388,7 +387,7 @@ recTypeBind rec =
           rec.typeBind
             $ R.union
                 { actions:
-                    [ action.editTypeBind { args, name: (unwrap args.typeBind.meta).name } ]
+                    [ editTypeBind { args, name: (unwrap args.typeBind.meta).name } ]
                 }
                 args
     }
@@ -412,7 +411,7 @@ recTermBind rec =
           rec.termBind
             $ R.union
                 { actions:
-                    [ action.editTermBind { args, name: (unwrap args.termBind.meta).name } ]
+                    [ editTermBind { args, name: (unwrap args.termBind.meta).name } ]
                 }
                 args
     }

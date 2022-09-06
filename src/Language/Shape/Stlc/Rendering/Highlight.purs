@@ -1,16 +1,16 @@
 module Language.Shape.Stlc.Rendering.Highlight where
 
 import Prelude
+
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Language.Shape.Stlc.Rendering.Types (NodeProps)
 import Language.Shape.Stlc.Types (This)
 import Partial.Unsafe (unsafeCrashWith)
-import React (getState)
+import React (getState, modifyState)
 import React.DOM.Props as Props
 import React.SyntheticEvent (stopPropagation)
-import Unsafe (error)
 import Web.HTML (HTMLElement)
 
 foreign import setHighlight :: Boolean -> HTMLElement -> Effect Unit
@@ -18,8 +18,9 @@ foreign import setHighlight :: Boolean -> HTMLElement -> Effect Unit
 foreign import getElementById :: String -> Effect HTMLElement
 
 propsHighlight :: This -> NodeProps -> String -> Array Props.Props
-propsHighlight this props elemId =
+propsHighlight this _props elemId =
   [ Props.onMouseOver \event -> do
+
       stopPropagation event
       elem <- getElementById elemId
       st <- getState this
@@ -30,9 +31,8 @@ propsHighlight this props elemId =
       -- highlight self
       setHighlight true elem
       -- push self to stack of highlights
-      -- modifyState
-      --   this \st -> st { highlights = elem : st.highlights }
-      error "TODO"
+      modifyState
+        this \_ -> st { highlights = elem Array.: st.highlights }
   , Props.onMouseOut \event -> do
       stopPropagation event
       elem <- getElementById elemId
@@ -48,6 +48,5 @@ propsHighlight this props elemId =
             -- if parent on top of stack, then highlight it
             setHighlight true parent
             pure highlights''
-      -- modifyState this \st -> st { highlights = highlights }
-      error "TODO"
+      modifyState this \_ -> st { highlights = highlights }
   ]

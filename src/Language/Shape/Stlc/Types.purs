@@ -10,11 +10,15 @@ import Language.Shape.Stlc.Syntax
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Reader (ReaderT)
+import Control.Monad.State (StateT)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
+import Data.Identity (Identity)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
@@ -25,8 +29,8 @@ import Language.Shape.Stlc.Changes (applyTC)
 import Language.Shape.Stlc.Rendering.Token (SyntaxTheme(..), defaultSyntaxTheme, expandedSyntaxTheme)
 import React (ReactElement, ReactThis, getState, modifyState)
 import React.SyntheticEvent (SyntheticEvent, SyntheticKeyboardEvent, SyntheticMouseEvent)
-import Web.Event.Event (Event)
 import Undefined (undefined)
+import Web.Event.Event (Event)
 import Web.HTML (HTMLElement)
 
 type Props
@@ -152,7 +156,7 @@ instance showAction :: Show Action where
 -- | state directly by updating its fields.
 type Transition
   = { label :: String
-    , effect :: TransitionEffect
+    , effect :: TransitionM Unit
     }
 
 data TransitionEvent
@@ -161,11 +165,8 @@ data TransitionEvent
   | WebTransitionEvent Event
   | QuerySubmitTransitionEvent
 
-type TransitionEffect
-  = { state :: State, event :: TransitionEvent } -> TransitionM State
-
 type TransitionM a
-  = Either String a
+  = ReaderT TransitionEvent (StateT State (ExceptT String Identity)) a
 
 maybeTransitionM :: forall a. String -> Maybe a -> TransitionM a
 maybeTransitionM err = case _ of
