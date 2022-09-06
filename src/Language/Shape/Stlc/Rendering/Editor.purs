@@ -149,11 +149,16 @@ renderEnvironment this env =
         varContextItem =
           flip State.evalState env do
             termId <- do
-              -- termId <- renderTermId { this: error "TODO", syntaxtheme: env.syntaxtheme } { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
-              -- pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
-              error "TODO"
+              termId <-
+                renderTermId
+                  { this: error "TODO", syntaxtheme: env.syntaxtheme }
+                  { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
+              pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
             type_ <- do
-              type_ <- renderType { this: error "TODO", syntaxtheme: env.syntaxtheme } { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
+              type_ <-
+                renderType
+                  { this: error "TODO", syntaxtheme: env.syntaxtheme }
+                  { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
               pure $ [ DOM.span [ Props.className "context-varType-type" ] type_ ]
             pure $ env.syntaxtheme.varContextItem { termId, type_, metactx: env.meta }
       in
@@ -202,6 +207,9 @@ renderPalette this env =
 
 {-
   
+
+
+
 
 
 
