@@ -26,6 +26,10 @@ import Language.Shape.Stlc.Hole (restrictToFull, subTerm, unifyType)
 import Language.Shape.Stlc.Transition as Transition
 import Unsafe (error)
 
+-- TODO: all of these actions should be implemented as `TransitionM`s instead,
+-- and then maybe they can be packaged up as actions here also, or just packaged
+-- up at where they're given as arguments...
+-- 
 stepCursorForwards =
   Action
     { tooltip: Just "move the cursor fowards in a tree walk"
