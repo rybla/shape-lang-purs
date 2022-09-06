@@ -12,6 +12,7 @@
   , "free"
   , "fuzzy"
   , "homogeneous"
+  , "identity"
   , "integers"
   , "lists"
   , "maybe"
