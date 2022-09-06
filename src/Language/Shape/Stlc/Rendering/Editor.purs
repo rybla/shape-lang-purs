@@ -19,7 +19,6 @@ import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
-
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State (get)
 import Control.Monad.State as State
@@ -103,7 +102,6 @@ renderEnvironment this env =
   ]
   where
   renderContext gamma =
-    -- Debug.trace (show env) \_ ->
     [ DOM.div
         [ Props.className "context" ]
         [ DOM.div [ Props.className "context-datas" ] $ Array.fromFoldable $ renderData <$> List.reverse (OrderedMap.keys (unwrap gamma).datas)
@@ -132,41 +130,12 @@ renderEnvironment this env =
                   Just (SyntaxType (HoleType holeType)) ->
                     doTransition { this, event: MouseTransitionEvent event }
                       { label: "paste datatype"
-                      , effect:
-                          do
-                            state <- get
-                            selMode <- requireSelectMode
-                            holeSub <- pure $ Map.singleton holeType.holeId (DataType { typeId, meta: default })
-                            term <- pure $ subTerm holeSub state.program.term
-                            type_ <- pure $ subType holeSub state.program.type_
-                            setProgram { term, type_ }
+                      , effect: pasteDatatype holeType typeId
                       }
-                  Just (SyntaxTerm (Hole hole)) ->
+                  Just (SyntaxTerm (Hole _hole)) ->
                     doTransition { this, event: MouseTransitionEvent event }
                       { label: "match with datatype"
-                      , effect:
-                          do
-                            selMode <- requireSelectMode
-                            applyChange
-                              { ix: selMode.ix
-                              , toReplace:
-                                  ReplaceTerm
-                                    ( Match
-                                        { typeId: typeId
-                                        , term: Hole { meta: default }
-                                        , caseItems:
-                                            ( \sumItem ->
-                                                { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
-                                                , body: Hole { meta: default }
-                                                , meta: default
-                                                }
-                                            )
-                                              <$> data_.sumItems
-                                        , meta: default
-                                        }
-                                    )
-                                    NoChange
-                              }
+                      , effect: pasteMatch data_ typeId
                       }
                   _ -> pure unit
               ]
@@ -194,19 +163,7 @@ renderEnvironment this env =
               , Props.onClick \event ->
                   doTransition { this, event: MouseTransitionEvent event }
                     { label: "paste variable"
-                    , effect:
-                        do
-                          selMode <- requireSelectMode
-                          alpha <- maybeTransitionM "rendering environment doesn't have type" env.alpha
-                          nArgs /\ holeSub <-
-                            maybeTransitionM "variable doesn't fit in hole"
-                              $ fitsInHole type_ alpha
-                          term <- pure $ createNeu termId nArgs
-                          -- TODO: do I actually need to do the holeSub? or does that happen automatically via applyChange?
-                          applyChange
-                            { ix: selMode.ix
-                            , toReplace: ReplaceTerm term NoChange
-                            }
+                    , effect: pasteVar env type_ termId
                     }
               ]
               varContextItem
@@ -245,6 +202,10 @@ renderPalette this env =
 
 {-
   
+
+
+
+
 
 
 

@@ -3,9 +3,9 @@ module Language.Shape.Stlc.Transition where
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Rendering.Token
+import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
-
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
@@ -14,14 +14,17 @@ import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Either (Either(..))
+import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse_)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Class.Console as Console
-import Language.Shape.Stlc.ChAtIndex (Change, chAtTerm)
-import Language.Shape.Stlc.Changes (applyTC)
+import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm)
+import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
+import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
+import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import React (getState, modifyState)
 import Unsafe (error)
@@ -159,3 +162,47 @@ submitDrag ixTarget = do
   dragModeSource <- requireDragMode
   -- setMode (TopMode {})
   error "TODO"
+
+pasteDatatype holeType typeId = do
+  state <- get
+  _selMode <- requireSelectMode
+  holeSub <- pure $ Map.singleton holeType.holeId (DataType { typeId, meta: default })
+  term <- pure $ subTerm holeSub state.program.term
+  type_ <- pure $ subType holeSub state.program.type_
+  setProgram { term, type_ }
+
+pasteMatch data_ typeId = do
+  selMode <- requireSelectMode
+  applyChange
+    { ix: selMode.ix
+    , toReplace:
+        ReplaceTerm
+          ( Match
+              { typeId: typeId
+              , term: Hole { meta: default }
+              , caseItems:
+                  ( \sumItem ->
+                      { termBindItems: (\_ -> { termBind: freshTermBind unit, meta: default }) <$> sumItem.paramItems
+                      , body: Hole { meta: default }
+                      , meta: default
+                      }
+                  )
+                    <$> data_.sumItems
+              , meta: default
+              }
+          )
+          NoChange
+    }
+
+pasteVar env type_ termId = do
+  selMode <- requireSelectMode
+  alpha <- maybeTransitionM "rendering environment doesn't have type" env.alpha
+  nArgs /\ holeSub <-
+    maybeTransitionM "variable doesn't fit in hole"
+      $ fitsInHole type_ alpha
+  term <- pure $ createNeu termId nArgs
+  -- TODO: do I actually need to do the holeSub? or does that happen automatically via applyChange?
+  applyChange
+    { ix: selMode.ix
+    , toReplace: ReplaceTerm term NoChange
+    }
