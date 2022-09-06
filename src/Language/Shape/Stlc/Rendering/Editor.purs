@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Rendering.Editor where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Action as Action
 import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
 import Language.Shape.Stlc.Context
@@ -16,10 +17,11 @@ import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
-import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
+
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.State (get)
 import Control.Monad.State as State
 import Data.Array as Array
 import Data.Default (default)
@@ -32,8 +34,8 @@ import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import KeyboardCursor (getLastIndex, stepCursorBackwards, stepCursorForwards)
-import Language.Shape.Stlc.Action (action)
 import Language.Shape.Stlc.Index (nilIxDown)
+import Language.Shape.Stlc.Transition
 import Partial.Unsafe (unsafeCrashWith)
 import React (ReactElement, getState, modifyState)
 import React.DOM as DOM
@@ -49,19 +51,20 @@ renderEditor this = do
   let
     actions = case env.st.mode of
       TopMode topMode ->
-        [ action.undo
-        , action.stepCursorForwards
-        , action.stepCursorBackwards
+        [ Action.undo
+        , Action.stepCursorForwards
+        , Action.stepCursorBackwards
         ]
       SelectMode selMode ->
         Array.concat
-          [ [ action.undo ]
-          , [ action.stepCursorForwards ]
-          , [ action.stepCursorBackwards ]
+          [ env.actions
+          , [ Action.undo ]
+          , [ Action.stepCursorForwards ]
+          , [ Action.stepCursorBackwards ]
           ]
       QueryMode queMode -> error "TODO"
       DragMode dragMode -> error "TODO"
-  env <- pure $ env { actions = env.actions <> actions }
+  env <- pure $ env { actions = actions }
   pure $ env
     /\ [ DOM.div [ Props.className "editor" ]
           $ Array.concat
@@ -130,19 +133,20 @@ renderEnvironment this env =
                     doTransition { this, event: MouseTransitionEvent event }
                       { label: "paste datatype"
                       , effect:
-                          \{ state } -> do
-                            selMode <- requireSelectMode state
+                          do
+                            state <- get
+                            selMode <- requireSelectMode
                             holeSub <- pure $ Map.singleton holeType.holeId (DataType { typeId, meta: default })
                             term <- pure $ subTerm holeSub state.program.term
                             type_ <- pure $ subType holeSub state.program.type_
-                            setProgram { term, type_ } state
+                            setProgram { term, type_ }
                       }
                   Just (SyntaxTerm (Hole hole)) ->
                     doTransition { this, event: MouseTransitionEvent event }
                       { label: "match with datatype"
                       , effect:
-                          \{ state } -> do
-                            selMode <- requireSelectMode state
+                          do
+                            selMode <- requireSelectMode
                             applyChange
                               { ix: selMode.ix
                               , toReplace:
@@ -163,7 +167,6 @@ renderEnvironment this env =
                                     )
                                     NoChange
                               }
-                              state
                       }
                   _ -> pure unit
               ]
@@ -192,8 +195,8 @@ renderEnvironment this env =
                   doTransition { this, event: MouseTransitionEvent event }
                     { label: "paste variable"
                     , effect:
-                        \{ state } -> do
-                          selMode <- requireSelectMode state
+                        do
+                          selMode <- requireSelectMode
                           alpha <- maybeTransitionM "rendering environment doesn't have type" env.alpha
                           nArgs /\ holeSub <-
                             maybeTransitionM "variable doesn't fit in hole"
@@ -204,7 +207,6 @@ renderEnvironment this env =
                             { ix: selMode.ix
                             , toReplace: ReplaceTerm term NoChange
                             }
-                            state
                     }
               ]
               varContextItem
@@ -243,6 +245,11 @@ renderPalette this env =
 
 {-
   
+
+
+
+
+
 
 
 
