@@ -1,60 +1,18 @@
 module Language.Shape.Stlc.Rendering.ClickDragDrop where
 
-import Data.Tuple
-import Data.Tuple.Nested
-import Language.Shape.Stlc.ChAtIndex
-import Language.Shape.Stlc.Changes
-import Language.Shape.Stlc.Hole
 import Language.Shape.Stlc.Index
-import Language.Shape.Stlc.Metacontext
-import Language.Shape.Stlc.Recursor.Action
-import Language.Shape.Stlc.Recursor.Index
-import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Transition
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (State)
-import Control.Monad.State as State
 import Data.Array (concat)
-import Data.Array as Array
-import Data.Default (default)
-import Data.Foldable (foldM)
-import Data.List.Unsafe (List(..), reverse)
-import Data.List.Unsafe as List
-import Data.Map.Unsafe as Map
-import Data.Maybe (Maybe(..), maybe)
-import Data.Newtype (unwrap)
-import Data.OrderedSet (OrderedSet)
-import Data.OrderedSet as OrderedSet
-import Data.Set as Set
-import Data.String (joinWith)
-import Data.Traversable (sequence)
-import Debug as Debub
-import Debug as Debug
-import Effect (Effect)
-import Effect.Console as Console
-import Language.Shape.Stlc.Action as Action
-import Language.Shape.Stlc.Context (Context(..))
-import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
-import Language.Shape.Stlc.Metadata (Name(..))
-import Language.Shape.Stlc.Recursor.Action as Rec
-import Language.Shape.Stlc.Recursor.Context as RecCtx
-import Language.Shape.Stlc.Recursor.Index as RecIx
-import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
-import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
-import Language.Shape.Stlc.Types (Action(..), This, TransitionEvent(..), Transition)
-import Partial.Unsafe (unsafeCrashWith)
-import Prim.Row (class Union)
-import React (ReactElement, getState, modifyState)
-import React.DOM as DOM
+import Data.Maybe (Maybe(..))
+import Language.Shape.Stlc.Types (This, TransitionEvent(..))
 import React.DOM.Props as Props
-import React.SyntheticEvent (shiftKey, stopPropagation)
-import Record as Record
-import Type.Proxy (Proxy(..))
-import Unsafe (error, fromJust)
+import React.SyntheticEvent (stopPropagation)
+import Unsafe (fromJust)
 
 propsClickDragDrop :: This -> NodeProps -> Array Props.Props
 propsClickDragDrop this props =
