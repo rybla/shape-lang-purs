@@ -2,45 +2,24 @@ module Language.Shape.Stlc.Rendering.Editor where
 
 import Data.Tuple.Nested
 import Language.Shape.Stlc.Action as Action
-import Language.Shape.Stlc.ChAtIndex
-import Language.Shape.Stlc.Changes
-import Language.Shape.Stlc.Context
-import Language.Shape.Stlc.CopyPasteBackend
-import Language.Shape.Stlc.Hole
-import Language.Shape.Stlc.Key
-import Language.Shape.Stlc.Metacontext
-import Language.Shape.Stlc.Metadata
-import Language.Shape.Stlc.Recursor.Action
 import Language.Shape.Stlc.Recursor.Index
 import Language.Shape.Stlc.Rendering.Syntax
-import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
-import Control.Monad.Error.Class (throwError)
-import Control.Monad.State (get)
 import Control.Monad.State as State
 import Data.Array as Array
-import Data.Default (default)
 import Data.List.Unsafe as List
-import Data.Map.Unsafe as Map
-import Data.Maybe (Maybe(..), maybe)
-import Data.Newtype (over, unwrap, wrap)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.OrderedMap as OrderedMap
-import Debug as Debug
 import Effect (Effect)
-import Effect.Console as Console
-import KeyboardCursor (getLastIndex, stepCursorBackwards, stepCursorForwards)
-import Language.Shape.Stlc.Index (nilIxDown)
 import Language.Shape.Stlc.Transition
-import Partial.Unsafe (unsafeCrashWith)
-import React (ReactElement, getState, modifyState)
+import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
-import Record as Record
-import Type.Proxy (Proxy(..))
 import Unsafe (error)
 
 -- | renderEditor
@@ -184,7 +163,8 @@ renderPalette :: This -> RenderEnvironment -> Array ReactElement
 renderPalette this env =
   [ DOM.div [ Props.className "palette-wrapper" ]
       [ DOM.div [ Props.className "palette" ]
-          [ DOM.div [ Props.className "header" ] [ DOM.text "Palette" ]
+          [ DOM.div [ Props.className "header" ]
+              [ DOM.text "Palette" ]
           , DOM.div [ Props.className "actions-wrapper" ]
               [ DOM.div [ Props.className "actions" ]
                   $ Array.concat
@@ -200,8 +180,9 @@ renderPalette this env =
         $ DOM.div
             ( [ Props.className "action"
               , Props.onClick \event ->
-                  doTransition { this, event: MouseTransitionEvent event }
-                    (unwrap action).transition
+                  doAction
+                    { this, event: MouseTransitionEvent event }
+                    action
               ]
                 <> maybeArray (unwrap action).tooltip Props.title
             )
@@ -209,7 +190,8 @@ renderPalette this env =
               [ DOM.text (unwrap action).transition.label ]
           , DOM.div [ Props.className "action-triggers" ]
               $ ( \trigger ->
-                    DOM.div [ Props.className "action-trigger" ] [ DOM.text (show trigger) ]
+                    DOM.div [ Props.className "action-trigger" ]
+                      [ DOM.text (show trigger) ]
                 )
               <$> (unwrap action).triggers
           ]
@@ -217,6 +199,9 @@ renderPalette this env =
 
 {-
   
+
+
+
 
 
 
