@@ -86,7 +86,7 @@ renderProgram this = do
           , Props.onClick \event -> do
               doTransition { this, event: MouseTransitionEvent event }
                 { label: "deselect" -- i.e. go to TopMode
-                , effect: \{ state } -> deselect state
+                , effect: deselect
                 }
           ]
           elems
@@ -474,9 +474,8 @@ renderNewNode { this, syntaxtheme } props res = do
                         Nothing -> []
                     )
                     props.actions
-                -- ActionQueryResult <$> 
                 , case props.syntax of
-                    Nothing -> [] -- TODO
+                    Nothing -> []
                     -- if at a term, add the term vars in context
                     Just (SyntaxTerm _) ->
                       Array.foldMap
@@ -501,7 +500,7 @@ renderNewNode { this, syntaxtheme } props res = do
                                 Nothing -> []
                         )
                         $ OrderedMap.toArray (unwrap props.gamma).datas
-                    _ -> [] -- TODO
+                    _ -> []
                 ]
         -- sort by fuzzy proximity
         measuredQueryResults <-

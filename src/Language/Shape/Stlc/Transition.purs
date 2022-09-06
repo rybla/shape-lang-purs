@@ -9,7 +9,7 @@ import Prelude
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.State (get, modify, put, runStateT)
+import Control.Monad.State (get, modify, runStateT)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
