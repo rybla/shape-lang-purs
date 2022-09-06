@@ -6,6 +6,7 @@ import Language.Shape.Stlc.Rendering.Token
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
+import Prim hiding (Type)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (runReaderT)
@@ -23,11 +24,14 @@ import Effect (Effect)
 import Effect.Class.Console as Console
 import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm)
 import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
+import Language.Shape.Stlc.Context (Context(..))
 import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
 import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
+import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
 import React (getState, modifyState)
-import Unsafe (error)
+import Undefined (undefined)
+import Unsafe (error, fromJust)
 
 doTransition :: { this :: This, event :: TransitionEvent } -> Transition -> Effect Unit
 doTransition { this, event } trans = do
@@ -156,12 +160,50 @@ startDrag dragMode = do
     _ -> throwError "requires top mode or select mode"
   setMode (DragMode dragMode)
 
-submitDrag :: IxDown -> TransitionM Unit
-submitDrag ixTarget = do
+submitDrag :: IxDown -> Context -> Type -> Term -> TransitionM Unit
+submitDrag ix gamma alpha term = do
   state <- get
-  dragModeSource <- requireDragMode
-  -- setMode (TopMode {})
-  error "TODO"
+  dragMode <- requireDragMode
+  ----
+  unless (isSuperIxDown dragMode.ix ix) do
+    case term of
+      Hole _ -> case fitsInHole dragMode.alpha alpha of
+        Nothing -> undefined
+        Just (nArgs /\ holeSub) -> do
+          case unsnocIxDown ix of
+            -- at impl of a buf, so replace buf with its bod
+            Just { ix: ix', step }
+              | step == ixStepBuf.impl ->
+                void
+                  $ modify \state ->
+                      state
+                        { program
+                          { term =
+                            fromJust
+                              $ toTerm
+                              =<< modifySyntaxAt
+                                  ( case _ of
+                                      SyntaxTerm (Buf buf) -> Just (SyntaxTerm buf.body)
+                                      _ -> Nothing
+                                  )
+                                  ix'
+                                  (SyntaxTerm state.program.term)
+                          }
+                        }
+            -- otherwise, just dig
+            _ ->
+              applyChange
+                { ix: dragMode.ix, toReplace: ReplaceTerm (Hole { meta: default }) NoChange }
+          -- paste term into hole at index
+          if nArgs == 0 then
+            applyChange
+              { ix, toReplace: ReplaceTerm dragMode.term NoChange }
+          else
+            throwError "unimplemented: dropping a term into a hole that requires more arguments"
+          setMode (TopMode {})
+      _ -> do
+        -- doesn't fit into hole
+        pure unit
 
 pasteDatatype holeType typeId = do
   state <- get
