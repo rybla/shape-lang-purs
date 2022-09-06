@@ -16,7 +16,7 @@ import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.Error.Class (throwError)
-import Control.Monad.State (runState)
+import Control.Monad.State (get, runState)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
@@ -464,8 +464,9 @@ actionIndent =
     , transition:
         { label: "indent"
         , effect:
-            \{ state, event } -> do
-              selMode <- requireSelectMode state
+            do
+              state <- get
+              selMode <- requireSelectMode
               let
                 mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp (toIxUp selMode.ix)
               term <-
@@ -474,6 +475,5 @@ actionIndent =
                   =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm state.program.term)
               setProgram
                 (state.program { term = term })
-                state
         }
     }
