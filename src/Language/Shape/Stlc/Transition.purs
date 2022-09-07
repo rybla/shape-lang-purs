@@ -161,15 +161,17 @@ startDrag dragMode = do
   setMode (DragMode dragMode)
 
 submitDrag :: IxDown -> Context -> Type -> Term -> TransitionM Unit
-submitDrag ix gamma alpha term = do
-  state <- get
+submitDrag ix _gamma alpha term = do
   dragMode <- requireDragMode
   ----
   unless (isSuperIxDown dragMode.ix ix) do
     case term of
       Hole _ -> case fitsInHole dragMode.alpha alpha of
-        Nothing -> undefined
-        Just (nArgs /\ holeSub) -> do
+        Nothing -> do
+          -- doesn't fit into hole
+          pure unit
+        Just (nArgs /\ _holeSub) -> do
+          -- TODO: use holeSub
           case unsnocIxDown ix of
             -- at impl of a buf, so replace buf with its bod
             Just { ix: ix', step }
@@ -201,13 +203,34 @@ submitDrag ix gamma alpha term = do
           else
             throwError "unimplemented: dropping a term into a hole that requires more arguments"
           setMode (TopMode {})
-      _ -> do
-        -- doesn't fit into hole
-        pure unit
+      _term -> do
+        -- TODO: mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
+        -- dig dragged term from its original index
+        applyChange
+          { ix: dragMode.ix
+          , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
+          }
+        -- wrap the drop location in a buffer, and put the dropped term in the buffer
+        -- BUG: need to dig the dragged term from `term`
+        applyChange
+          { ix
+          , toReplace:
+              ReplaceTerm
+                ( Buf
+                    { sign: dragMode.alpha
+                    , impl: dragMode.term
+                    , body: term
+                    , meta: default
+                    }
+                )
+                NoChange
+          }
+        ----
+        setMode (TopMode {})
 
 pasteDatatype holeType typeId = do
   state <- get
-  _selMode <- requireSelectMode
+  void $ requireSelectMode
   holeSub <- pure $ Map.singleton holeType.holeId (DataType { typeId, meta: default })
   term <- pure $ subTerm holeSub state.program.term
   type_ <- pure $ subType holeSub state.program.type_
