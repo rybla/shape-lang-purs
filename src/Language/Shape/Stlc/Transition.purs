@@ -30,16 +30,30 @@ import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
 import React (getState, modifyState)
+import React.SyntheticEvent as React
 import Unsafe (fromJust)
+import Web.Event.Event as Web
 
 doTransition :: { this :: This, event :: TransitionEvent } -> Transition -> Effect Unit
 doTransition { this, event } trans = do
   Console.log "+---------------------------------------------------------------"
   Console.log $ "transition: " <> trans.label
   state <- getState this
-  _ <- case runExcept (flip runStateT state (flip runReaderT event trans.effect)) of
+  case event of
+    KeyboardTransitionEvent e -> do
+      React.stopPropagation e
+      React.preventDefault e
+    MouseTransitionEvent e -> do
+      React.stopPropagation e
+      React.preventDefault e
+    WebTransitionEvent e -> do
+      Web.stopPropagation e
+      Web.preventDefault e
+    QuerySubmitTransitionEvent -> pure unit
+  void case runExcept (flip runStateT state (flip runReaderT event trans.effect)) of
     Left err -> Console.log $ "[!] transition failure: " <> err
-    Right (_ /\ state') -> modifyState this \_ -> state'
+    Right (_ /\ state') -> do
+      modifyState this \_ -> state'
   Console.log "+---------------------------------------------------------------"
 
 doAction :: { this :: This, event :: TransitionEvent } -> Action -> Effect Unit
@@ -113,10 +127,13 @@ setProgram :: Program -> TransitionM Unit
 setProgram program = do
   void $ modify _ { mode = TopMode {}, program = program }
 
+setTermInPlace :: Term -> TransitionM Unit
+setTermInPlace term = do
+  void $ modify _ { program { term = term } }
+
 setSelectIndex :: IxDown -> TransitionM Unit
 setSelectIndex ix = do
-  selMode <- requireSelectMode
-  void $ modify _ { mode = SelectMode selMode { ix = ix } }
+  setMode (SelectMode { ix })
 
 clearAllHighlights :: State -> Effect State
 clearAllHighlights state = do

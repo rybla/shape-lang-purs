@@ -8,9 +8,12 @@ import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
+
 import Data.Array as Array
+import Data.Newtype (unwrap)
 import Data.String (Pattern(..), split)
 import Data.String as String
+import Debug as Debug
 import Partial.Unsafe (unsafeCrashWith)
 import Web.Event.Event (Event)
 
@@ -81,7 +84,8 @@ shouldPreventDefault event =
 
 -- find an action in environment that is triggered by event
 handleKey :: RenderEnvironment -> Event -> Maybe Action
-handleKey env event =
+handleKey env event = do
+  Debug.traceM $ "actions: " <> intercalate ", " ((_.transition.label <<< unwrap) <$> env.actions)
   Array.find
     ( \(Action action) ->
         any

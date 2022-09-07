@@ -1,12 +1,12 @@
 module Language.Shape.Stlc.Rendering.Editor where
 
 import Data.Tuple.Nested
-import Language.Shape.Stlc.Action as Action
 import Language.Shape.Stlc.Recursor.Index
 import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
+import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State as State
@@ -16,7 +16,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.OrderedMap as OrderedMap
 import Effect (Effect)
-import Language.Shape.Stlc.Transition
+import Language.Shape.Stlc.Action as Action
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -29,18 +29,22 @@ renderEditor this = do
     actions = case env.st.mode of
       TopMode _topMode ->
         [ Action.undo
-        , Action.stepCursorForwards
-        , Action.stepCursorBackwards
+        , Action.gotoCursorTop
+        , Action.gotoCursorBottom
         ]
       SelectMode _selMode ->
         Array.concat
-          [ env.actions
-          , [ Action.undo ]
+          [ [ Action.undo ]
           , [ Action.stepCursorForwards ]
           , [ Action.stepCursorBackwards ]
+          , env.actions
           ]
       -- keytyping stuff is handled by keyboard event handler
-      QueryMode _queMode -> []
+      QueryMode _queMode ->
+        [ Action.undo
+        , Action.gotoCursorTop
+        , Action.gotoCursorBottom
+        ]
       DragMode _dragMode -> []
   env <- pure $ env { actions = actions }
   pure $ env
@@ -199,6 +203,8 @@ renderPalette this env =
 
 {-
   
+
+
 
 
 

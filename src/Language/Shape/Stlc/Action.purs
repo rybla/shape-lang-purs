@@ -21,10 +21,38 @@ import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Set as Set
+import KeyboardCursor (getLastIndex)
 import KeyboardCursor as KeyboardCursor
 import Language.Shape.Stlc.Hole (restrictToFull, subTerm, unifyType)
+import Language.Shape.Stlc.Index (IxDown(..), nilIxDown)
 import Language.Shape.Stlc.Transition as Transition
 import Unsafe (error)
+
+gotoCursorTop =
+  Action
+    { tooltip: Just "move the cursor to the top of the program"
+    , triggers: [ ActionTrigger_Keypress keys.cursorForwards ]
+    , transition:
+        { label: "gotoCursorTop"
+        , effect:
+            do
+              setSelectIndex nilIxDown
+        }
+    }
+
+gotoCursorBottom =
+  Action
+    { tooltip: Just "move the cursor to the bottom of the program"
+    , triggers: [ ActionTrigger_Keypress keys.cursorBackwards ]
+    , transition:
+        { label: "gotoCursorBottom"
+        , effect:
+            do
+              state <- get
+              setSelectIndex
+                $ IxDown (getLastIndex (SyntaxTerm state.program.term))
+        }
+    }
 
 -- TODO: all of these actions should be implemented as `TransitionM`s instead,
 -- and then maybe they can be packaged up as actions here also, or just packaged
@@ -528,7 +556,7 @@ editTypeBind = \{ args, name } ->
               term <-
                 maybeTransitionM "replaceNameAt resulted in a non-Term"
                   $ toTerm syn
-              setProgram (state.program { term = term })
+              setTermInPlace term
         }
     }
 
@@ -559,7 +587,7 @@ editTermBind = \{ args, name } ->
                       name
                       selMode.ix
                       (SyntaxTerm state.program.term)
-              setProgram (state.program { term = term })
+              setTermInPlace term
         }
     }
 
