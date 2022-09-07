@@ -20,7 +20,6 @@ import Language.Shape.Stlc.Transition
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
-import Unsafe (error)
 
 -- | renderEditor
 renderEditor :: This -> Effect (RenderEnvironment /\ Array (ReactElement))
@@ -28,20 +27,21 @@ renderEditor this = do
   res /\ env <- renderProgram this
   let
     actions = case env.st.mode of
-      TopMode topMode ->
+      TopMode _topMode ->
         [ Action.undo
         , Action.stepCursorForwards
         , Action.stepCursorBackwards
         ]
-      SelectMode selMode ->
+      SelectMode _selMode ->
         Array.concat
           [ env.actions
           , [ Action.undo ]
           , [ Action.stepCursorForwards ]
           , [ Action.stepCursorBackwards ]
           ]
-      QueryMode queMode -> error "TODO"
-      DragMode dragMode -> error "TODO"
+      -- keytyping stuff is handled by keyboard event handler
+      QueryMode _queMode -> []
+      DragMode _dragMode -> []
   env <- pure $ env { actions = actions }
   pure $ env
     /\ [ DOM.div [ Props.className "editor" ]
@@ -137,13 +137,13 @@ renderEnvironment this env =
             termId <- do
               termId <-
                 renderTermId
-                  { this: error "TODO", syntaxtheme: env.syntaxtheme }
+                  { this, syntaxtheme: env.syntaxtheme }
                   { termId: termId, gamma: gamma, visit: nonVisit, meta: env.meta }
               pure $ [ DOM.span [ Props.className "context-varType-var" ] termId ]
             type_ <- do
               type_ <-
                 renderType
-                  { this: error "TODO", syntaxtheme: env.syntaxtheme }
+                  { this, syntaxtheme: env.syntaxtheme }
                   { type_: type_, gamma: gamma, visit: nonVisit, meta: env.meta }
               pure $ [ DOM.span [ Props.className "context-varType-type" ] type_ ]
             pure $ env.syntaxtheme.varContextItem { termId, type_, metactx: env.meta }
@@ -199,6 +199,7 @@ renderPalette this env =
 
 {-
   
+
 
 
 

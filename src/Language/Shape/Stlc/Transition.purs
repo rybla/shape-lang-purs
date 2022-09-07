@@ -24,14 +24,13 @@ import Effect (Effect)
 import Effect.Class.Console as Console
 import Language.Shape.Stlc.ChAtIndex (Change, ToReplace(..), chAtTerm)
 import Language.Shape.Stlc.Changes (TypeChange(..), applyTC)
-import Language.Shape.Stlc.Context (Context(..))
+import Language.Shape.Stlc.Context (Context)
 import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
 import Language.Shape.Stlc.Hole (subTerm, subType)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
 import React (getState, modifyState)
-import Undefined (undefined)
-import Unsafe (error, fromJust)
+import Unsafe (fromJust)
 
 doTransition :: { this :: This, event :: TransitionEvent } -> Transition -> Effect Unit
 doTransition { this, event } trans = do

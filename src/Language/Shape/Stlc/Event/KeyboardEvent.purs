@@ -1,10 +1,7 @@
 module Language.Shape.Stlc.Event.KeyboardEvent where
 
-import Control.Alternative
 import Data.Foldable
 import Data.Maybe
-import Data.Newtype
-import Data.Tuple.Nested
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Metadata
 import Language.Shape.Stlc.Rendering.Types
@@ -12,22 +9,10 @@ import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
 import Data.Array as Array
-import Data.Char as Char
 import Data.String (Pattern(..), split)
 import Data.String as String
-import Data.String.CodePoints as CodePoints
-import Debug as Debug
-import Effect (Effect)
-import Language.Shape.Stlc.ChAtIndex (ToReplace(..))
-import Language.Shape.Stlc.Changes (TypeChange(..))
-import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
-import Language.Shape.Stlc.Hole (subTerm, subType)
 import Partial.Unsafe (unsafeCrashWith)
-import React (modifyState)
-import React.DOM as DOM
-import Undefined (undefined)
-import Unsafe (error, fromJust)
-import Web.Event.Event (Event, EventType(..))
+import Web.Event.Event (Event)
 
 foreign import eventKey :: Event -> String
 
