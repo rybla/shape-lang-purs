@@ -36,7 +36,7 @@ import Language.Shape.Stlc.ActionM as ActionM
 import Language.Shape.Stlc.ActionM
 
 -- | The only way an `Action` should be performed.
-doAction :: { this :: This, event :: ActionTrigger } -> Action -> Effect Unit
+doAction :: { this :: This, event :: ActionTrigger } = Action -> Effect Unit
 doAction { this, event } (Action action) = do
   -- doTransition { this, event } (unwrap act).transition
   Console.log "+---------------------------------------------------------------"
@@ -122,7 +122,7 @@ undo =
     , effect: ActionM.undo
     }
 
-copy = \{ clipboard } ->
+copy { clipboard } =
   Action
     { label: "copy"
     , tooltip: makeSimpleTooltip "copy"
@@ -130,7 +130,7 @@ copy = \{ clipboard } ->
     , effect: setClipboard clipboard
     }
 
-unarrow = \{ args } ->
+unarrow { args } =
   Action
     { label: "unarrow"
     , tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
@@ -161,7 +161,7 @@ digtype =
             }
     }
 
-swaparrow = \{ args, arrow } ->
+swaparrow { args, arrow } =
   Action
     { label: "swap arrows"
     , tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
@@ -188,7 +188,7 @@ swaparrow = \{ args, arrow } ->
             }
     }
 
-unlambda = \{ args } ->
+unlambda { args } =
   Action
     { label: "unlambda"
     , tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
@@ -208,7 +208,7 @@ unlambda = \{ args } ->
             }
     }
 
-swaplambdas = \{ args, lam' } ->
+swaplambdas { args, lam' } =
   Action
     { label: "swap lambdas"
     , tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
@@ -235,7 +235,7 @@ swaplambdas = \{ args, lam' } ->
             }
     }
 
-app = \{ args } ->
+app { args } =
   Action
     { label: "app"
     , tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
@@ -282,7 +282,7 @@ app = \{ args } ->
                   }
     }
 
-unapp = \{ args } ->
+unapp { args } =
   Action
     { label: "unapp"
     , tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
@@ -292,7 +292,7 @@ unapp = \{ args } ->
           state <- get
           selMode <- requireSelectMode
           argItems' <- case List.unsnoc args.neu.argItems of
-            Just { init } -> pure init
+            Just { init } = pure init
             Nothing -> throwError "can only try to unapp a neutral form with at least one argument"
           -- given a neu `f a : B` where `f : A -> B`
           -- try to unify this term's expected type, `B` with `A -> B`
@@ -327,7 +327,7 @@ unapp = \{ args } ->
                   }
     }
 
-unlet = \{ args } ->
+unlet { args } =
   Action
     { label: "unlet"
     , tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
@@ -347,7 +347,7 @@ unlet = \{ args } ->
             }
     }
 
-unbuffer = \{ args } ->
+unbuffer { args } =
   Action
     { label: "unbuffer"
     , tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
@@ -361,7 +361,7 @@ unbuffer = \{ args } ->
             }
     }
 
-undata = \{ args } ->
+undata { args } =
   Action
     { label: "undata"
     , tooltip: makeExampleTooltip "unwrap a data" "data A = ... in e" "e[A -> ?]"
@@ -372,7 +372,7 @@ undata = \{ args } ->
           error "TODO: undata"
     }
 
-inlambda = \{ args } ->
+inlambda { args } =
   Action
     { label: "inlambda"
     , tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
@@ -391,7 +391,7 @@ inlambda = \{ args } ->
           _ -> throwError "cannot inlambda if type is not an arrow"
     }
 
-enlambda = \{ args, term } ->
+enlambda { args, term } =
   Action
     { label: "enlambda"
     , tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
@@ -408,7 +408,7 @@ enlambda = \{ args, term } ->
             }
     }
 
-digterm = \{ args } ->
+digterm { args } =
   Action
     { label: "dig term"
     , tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
@@ -425,7 +425,7 @@ digterm = \{ args } ->
             }
     }
 
-enlet = \{ args, term } ->
+enlet { args, term } =
   Action
     { label: "enlet"
     , tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
@@ -488,7 +488,7 @@ endata { args, term } =
             }
     }
 
-pop = \{ args, term } ->
+pop { args, term } =
   Action
     { label: "pop"
     , tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
@@ -511,7 +511,7 @@ pop = \{ args, term } ->
             }
     }
 
-editTypeBind = \{ args, name } ->
+editTypeBind { args, name } =
   Action
     { label: "edit type bind"
     , tooltip: makeSimpleTooltip "modify the name of a data"
@@ -542,7 +542,7 @@ editTypeBind = \{ args, name } ->
           setTermInPlace term
     }
 
-editTermBind = \{ args, name } ->
+editTermBind { args, name } =
   Action
     { label: "edit term bind"
     , tooltip: makeSimpleTooltip "modify the name of a term variable"
