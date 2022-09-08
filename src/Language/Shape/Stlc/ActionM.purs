@@ -283,6 +283,13 @@ editQuery = do
 updateQuery :: ActionM Unit
 updateQuery = pure unit -- TODO
 
+modifyQueryIndex :: (Int -> Int) -> ActionM Unit
+modifyQueryIndex f = do
+  selMode <- requireSelectMode
+  case selMode.mb_query of
+    Just query -> setMode (SelectMode selMode { mb_query = Just query { i = f query.i `mod` ?a } })
+    Nothing -> pure unit 
+
 escapeQuery :: ActionM Unit
 escapeQuery = do
   selMode <- requireSelectMode

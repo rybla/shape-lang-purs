@@ -38,6 +38,7 @@ renderEditor this = do
           , [ indent ]
           , env.actions
           , [ escape ]
+          , maybeArray env.mb_queryResult \{ action } -> submitQuery action
           , [ editQuery ]
           ]
       DragMode _dragMode ->
@@ -197,6 +198,7 @@ renderPalette this env =
 
 {-
   
+
 
 
 

@@ -64,6 +64,8 @@ keys =
   , normalMode: [ Key "Escape" ]
   -- QueryMode
   , submitQuery: [ Key "Enter" ]
+  , nextQueryOption: [ Key "ArrowUp" ]
+  , prevQueryOption: [ Key "ArrowDown" ]
   -- cursor
   , cursorForwards: [ Key "ArrowRight" ]
   , cursorBackwards: [ Key "ArrowLeft" ]

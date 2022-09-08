@@ -14,7 +14,6 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (ask, runReaderT)
@@ -696,6 +695,33 @@ editQuery =
     , queryable: false
     , shortcuts: [ ActionShortcut_Keytype ]
     , effect: ActionM.editQuery
+    }
+
+submitQuery (Action action) =
+  Action
+    { label: "submit query"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keypress keys.submitQuery ]
+    , effect: action.effect
+    }
+
+nextQueryOption =
+  Action
+    { label: "next query option"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keypress keys.nextQueryOption ]
+    , effect: ?modifyQueryIndex (_ + 1)
+    }
+
+prevQueryOption =
+  Action
+    { label: "previous query option"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keypress keys.prevQueryOption ]
+    , effect: ?modifyQueryIndex (_ - 1)
     }
 
 fillVar { env, type_, termId } =
