@@ -34,8 +34,8 @@ renderEditor this = do
       SelectMode _selMode ->
         Array.concat
           [ [ undo ]
-          , [ stepCursorForwards ]
-          , [ stepCursorBackwards ]
+          , [ stepCursorForwards, stepCursorBackwards ]
+          , [ indent ]
           , env.actions
           , [ escape ]
           , [ editQuery ]
@@ -197,6 +197,7 @@ renderPalette this env =
 
 {-
   
+
 
 
 

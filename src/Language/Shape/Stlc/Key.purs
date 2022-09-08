@@ -38,7 +38,7 @@ keys =
   { dig: [ Key "Ctrl d" ]
   -- lambda: l
   , lambda: [ Key "Ctrl l" ]
-  , unlambda: [ Key "Ctrl Shift l" ]
+  , unlambda: [ Key "Ctrl Shift l", Key "Backspace" ]
   , inlambda: [ Key "Ctrl r" ] -- "r" for "refine", like in Agda
   -- eta: n
   , eta: [ Key "Ctrl n" ]
@@ -47,19 +47,19 @@ keys =
   , inmatch: [ Key "Ctrl Meta m" ]
   -- let: f
   , let_: [ Key "Ctrl f" ]
-  , unlet: [ Key "Ctrl Shift f" ]
+  , unlet: [ Key "Ctrl Shift f", Key "Backspace" ]
   -- data: t
   , data_: [ Key "Ctrl t" ]
-  , undata: [ Key "Ctrl Shift t" ]
+  , undata: [ Key "Ctrl Shift t", Key "Backspace" ]
   -- buf: b
   , buf: [ Key "Ctrl b" ]
-  , unbuf: [ Key "Ctrl Shift b" ]
+  , unbuf: [ Key "Ctrl Shift b", Key "Backspace" ]
   , pop: [ Key "Ctrl p" ]
   -- swap: s
   , swap: [ Key "Ctrl s" ]
   -- app
   , app: [ Key "Ctrl a" ]
-  , unapp: [ Key "Ctrl Shift a" ]
+  , unapp: [ Key "Ctrl Shift a", Key "Backspace" ]
   -- NormalMode
   , normalMode: [ Key "Escape" ]
   -- QueryMode
