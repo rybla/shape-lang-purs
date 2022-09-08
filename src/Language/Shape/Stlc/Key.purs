@@ -39,7 +39,7 @@ keys =
   -- lambda: l
   , lambda: [ Key "Ctrl l" ]
   , unlambda: [ Key "Ctrl Shift l" ]
-  , inlambda: [ Key "Ctrl Meta l" ]
+  , inlambda: [ Key "Ctrl r" ] -- "r" for "refine", like in Agda
   -- eta: n
   , eta: [ Key "Ctrl n" ]
   , uneta: [ Key "Ctrl Shift n" ]

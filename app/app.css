@@ -190,7 +190,7 @@ html, body {
   position: absolute;
   right: 6px;
   max-width: 313px;
-  max-width: calc(300px - 30px);
+  max-width: calc(350px - 30px);
   height: 100%;
   /* overflow-x: ; */
   /* overflow-y: scroll; */
@@ -214,6 +214,15 @@ html, body {
   max-height: calc(50vh - 16px - 16pt - 44px);
   overflow-y: scroll;
 }
+
+.context {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.context::-webkit-scrollbar {
+  display: none;
+}
+
 .context-datas {
 
 }
@@ -273,8 +282,16 @@ html, body {
 }
 .actions {
   /* overflow-x: visible; */
-  width: 250px;
+  width: 300px;
 }
+.actions-wrapper {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.actions-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 .action {
   display: block;
   position: relative;
@@ -294,11 +311,11 @@ html, body {
   display: inline-block;
   /* float: left; */
 }
-.action-triggers {
+.action-shortcuts {
   display: block;
   float: right;
 }
-.action-trigger {
+.action-shortcut {
   display: block;
   /* border-radius: 4px; */
   /* padding: 0 4px; */
@@ -367,7 +384,8 @@ html, body {
 /* selected node */
 
 .node.selected {
-  background-color: rgb(149, 195, 213);
+  /* background-color: rgb(149, 195, 213); */
+  background-color: rgb(193, 206, 232);
   
   /* box-shadow: -2px 0 0 0 white; */
   
@@ -387,7 +405,7 @@ html, body {
   animation-fill-mode: backwards;
   animation-iteration-count: infinite;
   animation-play-state: running;
-} */
+}
 
 @keyframes blink-animation {
   from {
@@ -398,20 +416,22 @@ html, body {
   }
 }
 
-/* @-webkit-keyframes blink-animation {
+@-webkit-keyframes blink-animation {
   to {
     box-shadow: -2px 0 0 0 white, -6px 0 0 0 black;
   }
 } */
 
-.highlighted {
+.highlighted, .node.selected.highlighted {
   /* background-color: rgb(215, 215, 215); */
-  background-color: rgb(145, 145, 145);
+  /* background-color: rgb(145, 145, 145); */
+  /* background-color: rgb(148, 244, 217); */
+  background-color: rgb(199, 199, 199);
 }
 
-.node.selected.highlighted {
+/* .node.selected.highlighted {
   background-color: rgb(116, 173, 196);
-} 
+}  */
 
 /* token */
 
