@@ -35,36 +35,35 @@ derive newtype instance ordKey :: Ord Key
 
 keys :: _
 keys =
-  { dig: [ Key "d" ]
+  { dig: [ Key "Ctrl d" ]
   -- lambda: l
-  , lambda: [ Key "l" ]
-  , unlambda: [ Key "Shift l" ]
-  , inlambda: [ Key "Meta l", Key "Ctrl l" ]
+  , lambda: [ Key "Ctrl l" ]
+  , unlambda: [ Key "Ctrl Shift l" ]
+  , inlambda: [ Key "Ctrl Meta l" ]
   -- eta: n
-  , eta: [ Key "n" ]
-  , uneta: [ Key "Shift n" ]
+  , eta: [ Key "Ctrl n" ]
+  , uneta: [ Key "Ctrl Shift n" ]
   -- match: m
-  , inmatch: [ Key "Meta m" ]
+  , inmatch: [ Key "Ctrl Meta m" ]
   -- let: f
-  , let_: [ Key "f" ]
-  , unlet: [ Key "Shift f" ]
+  , let_: [ Key "Ctrl f" ]
+  , unlet: [ Key "Ctrl Shift f" ]
   -- data: t
-  , data_: [ Key "t" ]
-  , undata: [ Key "Shift t" ]
+  , data_: [ Key "Ctrl t" ]
+  , undata: [ Key "Ctrl Shift t" ]
   -- buf: b
-  , buf: [ Key "b" ]
-  , unbuf: [ Key "Shift b" ]
-  , pop: [ Key "p" ]
+  , buf: [ Key "Ctrl b" ]
+  , unbuf: [ Key "Ctrl Shift b" ]
+  , pop: [ Key "Ctrl p" ]
   -- swap: s
-  , swap: [ Key "s" ]
+  , swap: [ Key "Ctrl s" ]
   -- app
-  , app: [ Key "a" ]
-  , unapp: [ Key "Shift a" ]
+  , app: [ Key "Ctrl a" ]
+  , unapp: [ Key "Ctrl Shift a" ]
   -- NormalMode
   , normalMode: [ Key "Escape" ]
   -- QueryMode
-  , variableQueryMode: [ Key "q" ]
-  , submitVariableQueryMode: [ Key "Enter" ]
+  , submitQuery: [ Key "Enter" ]
   -- cursor
   , cursorForwards: [ Key "ArrowRight" ]
   , cursorBackwards: [ Key "ArrowLeft" ]

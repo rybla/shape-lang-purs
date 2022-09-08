@@ -112,7 +112,7 @@ newtype Action
   = Action
   { label :: String
   , tooltip :: Maybe String
-  , triggers :: Array ActionShortcut
+  , shortcuts :: Array ActionShortcut
   , effect :: ActionM Unit
   }
 
@@ -133,7 +133,7 @@ instance showActionShortcut :: Show ActionShortcut where
 instance showAction :: Show Action where
   show (Action action) =
     action.label <> ": "
-      <> Array.intercalate ", " (show <$> action.triggers)
+      <> Array.intercalate ", " (show <$> action.shortcuts)
 
 data ActionTrigger
   = KeyboardActionTrigger SyntheticKeyboardEvent

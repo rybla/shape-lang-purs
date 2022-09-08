@@ -64,7 +64,7 @@ gotoCursorTop =
   Action
     { label: "go to top"
     , tooltip: Just "move the cursor to the top of the program"
-    , triggers: [ ActionShortcut_Keypress keys.cursorForwards ]
+    , shortcuts: [ ActionShortcut_Keypress keys.cursorForwards ]
     , effect: setSelectIndex nilIxDown
     }
 
@@ -72,7 +72,7 @@ gotoCursorBottom =
   Action
     { label: "go to bottom"
     , tooltip: Just "move the cursor to the bottom of the program"
-    , triggers: [ ActionShortcut_Keypress keys.cursorBackwards ]
+    , shortcuts: [ ActionShortcut_Keypress keys.cursorBackwards ]
     , effect:
         do
           state <- get
@@ -88,7 +88,7 @@ stepCursorForwards =
   Action
     { label: "step forwards"
     , tooltip: Just "move the cursor fowards in a tree walk"
-    , triggers: [ ActionShortcut_Keypress keys.cursorForwards ]
+    , shortcuts: [ ActionShortcut_Keypress keys.cursorForwards ]
     , effect:
         do
           state <- get
@@ -103,7 +103,7 @@ stepCursorBackwards =
   Action
     { label: "step backwards"
     , tooltip: Just "move the cursor backwards in a tree walk"
-    , triggers: [ ActionShortcut_Keypress keys.cursorBackwards ]
+    , shortcuts: [ ActionShortcut_Keypress keys.cursorBackwards ]
     , effect:
         do
           state <- get
@@ -118,7 +118,7 @@ undo =
   Action
     { label: "undo"
     , tooltip: makeSimpleTooltip "undo"
-    , triggers: [ ActionShortcut_Keypress keys.undo ]
+    , shortcuts: [ ActionShortcut_Keypress keys.undo ]
     , effect: ActionM.undo
     }
 
@@ -126,7 +126,7 @@ copy = \{ clipboard } ->
   Action
     { label: "copy"
     , tooltip: makeSimpleTooltip "copy"
-    , triggers: [ ActionShortcut_Keypress keys.copy ]
+    , shortcuts: [ ActionShortcut_Keypress keys.copy ]
     , effect: setClipboard clipboard
     }
 
@@ -134,7 +134,7 @@ unarrow = \{ args } ->
   Action
     { label: "unarrow"
     , tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
-    , triggers: [ ActionShortcut_Keypress keys.unlambda ]
+    , shortcuts: [ ActionShortcut_Keypress keys.unlambda ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -149,7 +149,7 @@ digtype =
   Action
     { label: "dig type"
     , tooltip: makeExampleTooltip "replace a type with a hole" "A" "?"
-    , triggers: [ ActionShortcut_Keypress keys.dig ]
+    , shortcuts: [ ActionShortcut_Keypress keys.dig ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -165,7 +165,7 @@ swaparrow = \{ args, arrow } ->
   Action
     { label: "swap arrows"
     , tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
-    , triggers: [ ActionShortcut_Keypress keys.swap ]
+    , shortcuts: [ ActionShortcut_Keypress keys.swap ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -192,7 +192,7 @@ unlambda = \{ args } ->
   Action
     { label: "unlambda"
     , tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
-    , triggers: [ ActionShortcut_Keypress keys.unlambda ]
+    , shortcuts: [ ActionShortcut_Keypress keys.unlambda ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -212,7 +212,7 @@ swaplambdas = \{ args, lam' } ->
   Action
     { label: "swap lambdas"
     , tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
-    , triggers: [ ActionShortcut_Keypress keys.swap ]
+    , shortcuts: [ ActionShortcut_Keypress keys.swap ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -239,7 +239,7 @@ app = \{ args } ->
   Action
     { label: "app"
     , tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
-    , triggers: [ ActionShortcut_Keypress keys.app ]
+    , shortcuts: [ ActionShortcut_Keypress keys.app ]
     , effect:
         do
           state <- get
@@ -286,7 +286,7 @@ unapp = \{ args } ->
   Action
     { label: "unapp"
     , tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
-    , triggers: [ ActionShortcut_Keypress keys.unapp ]
+    , shortcuts: [ ActionShortcut_Keypress keys.unapp ]
     , effect:
         do
           state <- get
@@ -331,7 +331,7 @@ unlet = \{ args } ->
   Action
     { label: "unlet"
     , tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
-    , triggers: [ ActionShortcut_Keypress keys.unlet ]
+    , shortcuts: [ ActionShortcut_Keypress keys.unlet ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -351,7 +351,7 @@ unbuffer = \{ args } ->
   Action
     { label: "unbuffer"
     , tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
-    , triggers: [ ActionShortcut_Keypress keys.unbuf ]
+    , shortcuts: [ ActionShortcut_Keypress keys.unbuf ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -365,7 +365,7 @@ undata = \{ args } ->
   Action
     { label: "undata"
     , tooltip: makeExampleTooltip "unwrap a data" "data A = ... in e" "e[A -> ?]"
-    , triggers: [ ActionShortcut_Keypress keys.undata ]
+    , shortcuts: [ ActionShortcut_Keypress keys.undata ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -376,7 +376,7 @@ inlambda = \{ args } ->
   Action
     { label: "inlambda"
     , tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
-    , triggers: [ ActionShortcut_Keypress keys.inlambda ]
+    , shortcuts: [ ActionShortcut_Keypress keys.inlambda ]
     , effect:
         case args.alpha of
           ArrowType arrow -> do
@@ -395,7 +395,7 @@ enlambda = \{ args, term } ->
   Action
     { label: "enlambda"
     , tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
-    , triggers: [ ActionShortcut_Keypress keys.lambda ]
+    , shortcuts: [ ActionShortcut_Keypress keys.lambda ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -412,7 +412,7 @@ digterm = \{ args } ->
   Action
     { label: "dig term"
     , tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
-    , triggers: [ ActionShortcut_Keypress keys.dig ]
+    , shortcuts: [ ActionShortcut_Keypress keys.dig ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -429,7 +429,7 @@ enlet = \{ args, term } ->
   Action
     { label: "enlet"
     , tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
-    , triggers: [ ActionShortcut_Keypress keys.let_ ]
+    , shortcuts: [ ActionShortcut_Keypress keys.let_ ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -446,7 +446,7 @@ enbuffer { args, term } =
   Action
     { label: "enbuffer"
     , tooltip: makeExampleTooltip "wrap a term in a buffer" "e" "buf ? : ? in e"
-    , triggers: [ ActionShortcut_Keypress keys.buf ]
+    , shortcuts: [ ActionShortcut_Keypress keys.buf ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -469,7 +469,7 @@ endata { args, term } =
   Action
     { label: "endata"
     , tooltip: makeExampleTooltip "wrap a term in a datatype definition" "e" "type ? = ? in e"
-    , triggers: [ ActionShortcut_Keypress keys.data_ ]
+    , shortcuts: [ ActionShortcut_Keypress keys.data_ ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -492,7 +492,7 @@ pop = \{ args, term } ->
   Action
     { label: "pop"
     , tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
-    , triggers: [ ActionShortcut_Keypress keys.pop ]
+    , shortcuts: [ ActionShortcut_Keypress keys.pop ]
     , effect:
         do
           selMode <- requireSelectMode
@@ -515,7 +515,7 @@ editTypeBind = \{ args, name } ->
   Action
     { label: "edit type bind"
     , tooltip: makeSimpleTooltip "modify the name of a data"
-    , triggers: [ ActionShortcut_Keytype ]
+    , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
           event <- ask
@@ -546,7 +546,7 @@ editTermBind = \{ args, name } ->
   Action
     { label: "edit term bind"
     , tooltip: makeSimpleTooltip "modify the name of a term variable"
-    , triggers: [ ActionShortcut_Keytype ]
+    , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
           event <- ask
@@ -576,7 +576,7 @@ indent =
   Action
     { label: "indent"
     , tooltip: Nothing
-    , triggers: [ ActionShortcut_Keypress keys.indent ]
+    , shortcuts: [ ActionShortcut_Keypress keys.indent ]
     , effect:
         do
           state <- get
@@ -594,7 +594,7 @@ select ix =
   Action
     { label: "select"
     , tooltip: makeSimpleTooltip "select a node"
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.select ix
     }
 
@@ -602,7 +602,7 @@ deselect =
   Action
     { label: "deselect"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.deselect
     }
 
@@ -610,7 +610,7 @@ startDrag { dragMode } =
   Action
     { label: "start drag"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.startDrag dragMode
     }
 
@@ -618,7 +618,7 @@ submitDrag { ix, gamma, alpha, term } =
   Action
     { label: "submit drag"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.submitDrag ix gamma alpha term
     }
 
@@ -626,7 +626,7 @@ loadProgram { program } =
   Action
     { label: "load program"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.loadProgram program
     }
 
@@ -634,7 +634,7 @@ pasteDatatype { holeType, typeId } =
   Action
     { label: "paste datatype"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.pasteDatatype holeType typeId
     }
 
@@ -642,7 +642,7 @@ pasteMatch { data_, typeId } =
   Action
     { label: "paste match"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.pasteMatch data_ typeId
     }
 
@@ -650,6 +650,6 @@ pasteVar { env, type_, termId } =
   Action
     { label: "paste var"
     , tooltip: Nothing
-    , triggers: []
+    , shortcuts: []
     , effect: ActionM.pasteVar env type_ termId
     }
