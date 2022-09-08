@@ -20,6 +20,7 @@ import Prelude
 import Prim hiding (Type)
 import Type.Proxy
 import Unsafe
+
 import Control.Monad.State (State, gets, runState)
 import Control.Monad.State as State
 import Data.Array (concat, (:))
@@ -40,6 +41,7 @@ import Data.Traversable (sequence)
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
+import Language.Shape.Stlc.Action (deselect, doAction)
 import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
 import Language.Shape.Stlc.FuzzyFilter (fuzzyDistance)
 import Language.Shape.Stlc.Recursor.Action as Rec
@@ -47,7 +49,6 @@ import Language.Shape.Stlc.Recursor.Context as RecCtx
 import Language.Shape.Stlc.Recursor.Index as RecIx
 import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
-import Language.Shape.Stlc.Transition (deselect, doTransition)
 import Partial.Unsafe (unsafeCrashWith)
 import Prim.Row (class Union)
 import React (ReactElement, getState, modifyState)
@@ -84,10 +85,9 @@ renderProgram this = do
     ( [ DOM.div
           [ Props.className "program"
           , Props.onClick \event -> do
-              doTransition { this, event: MouseTransitionEvent event }
-                { label: "deselect" -- i.e. go to TopMode
-                , effect: deselect
-                }
+              doAction
+                { this, event: MouseActionTrigger event }
+                deselect
           ]
           elems
       ]
@@ -469,7 +469,7 @@ renderNewNode { this, syntaxtheme } props res = do
           pure
             $ Array.concat
                 [ Array.concatMap
-                    ( \(Action action) -> case fuzzyDistance queryMode.query action.transition.label of
+                    ( \(Action action) -> case fuzzyDistance queryMode.query action.label of
                         Just dist -> [ dist /\ ActionQueryResult (Action action) ]
                         Nothing -> []
                     )

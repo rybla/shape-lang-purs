@@ -6,9 +6,9 @@ import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
-import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
+
 import Control.Monad.State as State
 import Data.Array as Array
 import Data.List.Unsafe as List
@@ -16,7 +16,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.OrderedMap as OrderedMap
 import Effect (Effect)
-import Language.Shape.Stlc.Action as Action
+import Language.Shape.Stlc.Action
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -28,22 +28,22 @@ renderEditor this = do
   let
     actions = case env.st.mode of
       TopMode _topMode ->
-        [ Action.undo
-        , Action.gotoCursorTop
-        , Action.gotoCursorBottom
+        [ undo
+        , gotoCursorTop
+        , gotoCursorBottom
         ]
       SelectMode _selMode ->
         Array.concat
-          [ [ Action.undo ]
-          , [ Action.stepCursorForwards ]
-          , [ Action.stepCursorBackwards ]
+          [ [ undo ]
+          , [ stepCursorForwards ]
+          , [ stepCursorBackwards ]
           , env.actions
           ]
       -- keytyping stuff is handled by keyboard event handler
       QueryMode _queMode ->
-        [ Action.undo
-        , Action.gotoCursorTop
-        , Action.gotoCursorBottom
+        [ undo
+        , gotoCursorTop
+        , gotoCursorBottom
         ]
       DragMode _dragMode -> []
   env <- pure $ env { actions = actions }
@@ -118,15 +118,13 @@ renderEnvironment this env =
         $ [ DOM.span
               [ Props.onClick \event -> case env.syntax of
                   Just (SyntaxType (HoleType holeType)) ->
-                    doTransition { this, event: MouseTransitionEvent event }
-                      { label: "paste datatype"
-                      , effect: pasteDatatype holeType typeId
-                      }
+                    doAction
+                      { this, event: MouseActionTrigger event }
+                      (pasteDatatype {holeType, typeId})
                   Just (SyntaxTerm (Hole _hole)) ->
-                    doTransition { this, event: MouseTransitionEvent event }
-                      { label: "match with datatype"
-                      , effect: pasteMatch data_ typeId
-                      }
+                    doAction
+                      { this, event: MouseActionTrigger event }
+                      (pasteMatch {data_, typeId})
                   _ -> pure unit
               ]
               dataContextItem
@@ -156,10 +154,9 @@ renderEnvironment this env =
           $ DOM.span
               [ Props.className "context-varType context-item"
               , Props.onClick \event ->
-                  doTransition { this, event: MouseTransitionEvent event }
-                    { label: "paste variable"
-                    , effect: pasteVar env type_ termId
-                    }
+                  doAction
+                     { this, event: MouseActionTrigger event }
+                    (pasteVar {env, type_, termId})
               ]
               varContextItem
 
@@ -185,13 +182,13 @@ renderPalette this env =
             ( [ Props.className "action"
               , Props.onClick \event ->
                   doAction
-                    { this, event: MouseTransitionEvent event }
+                    { this, event: MouseActionTrigger event }
                     action
               ]
                 <> maybeArray (unwrap action).tooltip Props.title
             )
         $ [ DOM.div [ Props.className "action-label" ]
-              [ DOM.text (unwrap action).transition.label ]
+              [ DOM.text (unwrap action).label ]
           , DOM.div [ Props.className "action-triggers" ]
               $ ( \trigger ->
                     DOM.div [ Props.className "action-trigger" ]
@@ -203,6 +200,8 @@ renderPalette this env =
 
 {-
   
+
+
 
 
 

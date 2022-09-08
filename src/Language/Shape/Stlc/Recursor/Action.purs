@@ -6,7 +6,6 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Key
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Syntax.Metadata
-import Language.Shape.Stlc.Transition
 import Language.Shape.Stlc.Types
 import Prelude
 import Control.Monad.State (get)
@@ -242,7 +241,7 @@ recArgItem rec =
           rec.argItem
             $ R.union
                 { actions:
-                    [ actionIndent
+                    [ indent
                     ]
                 }
                 args
@@ -430,25 +429,3 @@ recHoleId ::
   Record (ArgsHoleId r) -> a
 recHoleId rec args = rec.holeId $ R.union { actions: [] } args
 
--- misc actions
-actionIndent :: Action
-actionIndent =
-  Action
-    { tooltip: Nothing
-    , triggers: [ ActionTrigger_Keypress keys.indent ]
-    , transition:
-        { label: "indent"
-        , effect:
-            do
-              state <- get
-              selMode <- requireSelectMode
-              let
-                mb_step /\ ixIndentableParent = stepUpToNearestIndentableParentIxUp (toIxUp selMode.ix)
-              term <-
-                maybeTransitionM "indexSyntaxAt failed"
-                  $ toTerm
-                  =<< indentSyntaxAt mb_step (toIxDown ixIndentableParent) (SyntaxTerm state.program.term)
-              setProgram
-                (state.program { term = term })
-        }
-    }

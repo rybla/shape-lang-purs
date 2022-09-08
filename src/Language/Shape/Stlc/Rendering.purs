@@ -6,18 +6,19 @@ import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types
 import Prelude hiding (div)
 import React
+
 import Data.Array (intercalate)
 import Data.Maybe (Maybe(..))
 import Debug as Debug
 import Effect (Effect)
 import Effect.Console as Console
 import Effect.Ref as Ref
+import Language.Shape.Stlc.Action (doAction)
 import Language.Shape.Stlc.Event.KeyboardEvent (eventKey, handleKey, shouldPreventDefault)
 import Language.Shape.Stlc.Example.Basic as Basic
 import Language.Shape.Stlc.Initial (init1)
 import Language.Shape.Stlc.Rendering.Editor (renderEditor)
 import Language.Shape.Stlc.Rendering.Menu (renderMenubar)
-import Language.Shape.Stlc.Transition (doTransition)
 import React.DOM as DOM
 import React.Ref as Ref
 import Web.Event.Event (Event, EventType(..), preventDefault)
@@ -49,10 +50,10 @@ programComponent this = do
       env <- Ref.read renderEnvironmentRef
       st <- getState this
       case handleKey env event of
-        Just (Action action) ->
-          doTransition
-            { this, event: WebTransitionEvent event }
-            action.transition
+        Just action ->
+          doAction
+            { this, event: WebActionTrigger event }
+            action
         Nothing -> pure unit
 
     render = do

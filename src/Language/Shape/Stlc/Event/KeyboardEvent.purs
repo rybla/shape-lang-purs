@@ -85,13 +85,13 @@ shouldPreventDefault event =
 -- find an action in environment that is triggered by event
 handleKey :: RenderEnvironment -> Event -> Maybe Action
 handleKey env event = do
-  Debug.traceM $ "actions: " <> intercalate ", " ((_.transition.label <<< unwrap) <$> env.actions)
+  Debug.traceM $ "actions: " <> intercalate ", " ((_.label <<< unwrap) <$> env.actions)
   Array.find
     ( \(Action action) ->
         any
           ( case _ of
-              ActionTrigger_Keypress keys -> matchOneOfKeys event keys
-              ActionTrigger_Keytype -> true
+              ActionShortcut_Keypress keys -> matchOneOfKeys event keys
+              ActionShortcut_Keytype -> true
               _ -> false
           )
           action.triggers

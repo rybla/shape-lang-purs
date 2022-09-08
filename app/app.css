@@ -405,7 +405,8 @@ html, body {
 } */
 
 .highlighted {
-  background-color: rgb(215, 215, 215);
+  /* background-color: rgb(215, 215, 215); */
+  background-color: rgb(145, 145, 145);
 }
 
 .node.selected.highlighted {

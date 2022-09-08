@@ -4,12 +4,12 @@ import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
-import Language.Shape.Stlc.Transition
 import Prelude
 import Prim hiding (Type)
 import Data.Array (concat)
 import Data.Maybe (Maybe(..))
-import Language.Shape.Stlc.Types (This, TransitionEvent(..))
+import Language.Shape.Stlc.Action
+import Language.Shape.Stlc.Types (This, ActionTrigger(..))
 import React.DOM.Props as Props
 import React.SyntheticEvent (stopPropagation)
 import Unsafe (fromJust)
@@ -22,12 +22,9 @@ propsClickDragDrop this props =
         ix <- props.visit.ix
         pure
           $ Props.onClick \event ->
-              doTransition
-                { event: MouseTransitionEvent event, this }
-                ( { label: "select"
-                  , effect: select (toIxDown ix)
-                  }
-                )
+              doAction
+                { event: MouseActionTrigger event, this }
+                (select (toIxDown ix))
     -- dragging and dropping
     , case props.syntax of
         Just (SyntaxTerm term) ->
@@ -36,30 +33,27 @@ propsClickDragDrop this props =
                 -- start drag
                 [ Props.onMouseDown \event -> do
                     stopPropagation event
-                    doTransition
-                      { event: MouseTransitionEvent event, this }
-                      ( { label: "start drag"
-                        , effect:
-                            startDrag
+                    doAction
+                      { event: MouseActionTrigger event, this }
+                      ( startDrag
+                          { dragMode:
                               { alpha: fromJust props.alpha
                               , gamma: props.gamma
                               , ix: toIxDown ix
                               , term
                               }
-                        }
+                          }
                       )
                 -- stop drag (drop)
                 , Props.onMouseUp \event -> do
-                    doTransition
-                      { event: MouseTransitionEvent event, this }
-                      ( { label: "submit drag"
-                        , effect:
-                            submitDrag
-                              (toIxDown ix)
-                              props.gamma
-                              (fromJust props.alpha)
-                              term
-                        }
+                    doAction
+                      { event: MouseActionTrigger event, this }
+                      ( submitDrag
+                          { ix: toIxDown ix
+                          , gamma: props.gamma
+                          , alpha: fromJust props.alpha
+                          , term
+                          }
                       )
                 ]
         _ -> []

@@ -110,56 +110,41 @@ type This
 
 newtype Action
   = Action
-  { tooltip :: Maybe String
-  , triggers :: Array ActionTrigger
-  , transition :: Transition
+  { label :: String
+  , tooltip :: Maybe String
+  , triggers :: Array ActionShortcut
+  , effect :: ActionM Unit
   }
+
+type Tooltip = Maybe String 
 
 derive instance newtypeAction :: Newtype Action _
 
-data ActionTrigger
-  = ActionTrigger_Drop
-  | ActionTrigger_Drag
-  | ActionTrigger_Hover
-  | ActionTrigger_Paste
-  | ActionTrigger_Click
-  | ActionTrigger_Keypress (Array Key)
-  | ActionTrigger_Keytype
+data ActionShortcut
+  = ActionShortcut_Keypress (Array Key)
+  | ActionShortcut_Keytype
 
-derive instance eqActionTrigger :: Eq ActionTrigger
+derive instance eqActionShortcut :: Eq ActionShortcut
 
-instance showActionTrigger :: Show ActionTrigger where
-  show ActionTrigger_Drop = "drop"
-  show ActionTrigger_Drag = "drag"
-  show ActionTrigger_Hover = "hover"
-  show ActionTrigger_Paste = "paste"
-  show ActionTrigger_Click = "click"
-  show (ActionTrigger_Keypress keys) = Array.intercalate ", " (show <$> keys)
-  show ActionTrigger_Keytype = "keytype"
+instance showActionShortcut :: Show ActionShortcut where
+  show (ActionShortcut_Keypress keys) = Array.intercalate ", " (show <$> keys)
+  show ActionShortcut_Keytype = "keytype"
 
 instance showAction :: Show Action where
   show (Action action) =
-    action.transition.label <> ": "
+    action.label <> ": "
       <> Array.intercalate ", " (show <$> action.triggers)
 
--- | The type of transitions over the State. The `Transition`s defined in this
--- | file should be the _only_ ways that you modify the state; do not modify the
--- | state directly by updating its fields.
-type Transition
-  = { label :: String
-    , effect :: TransitionM Unit
-    }
+data ActionTrigger
+  = KeyboardActionTrigger SyntheticKeyboardEvent
+  | MouseActionTrigger SyntheticMouseEvent
+  | WebActionTrigger Event
+  | QuerySubmitActionTrigger
 
-data TransitionEvent
-  = KeyboardTransitionEvent SyntheticKeyboardEvent
-  | MouseTransitionEvent SyntheticMouseEvent
-  | WebTransitionEvent Event
-  | QuerySubmitTransitionEvent
+type ActionM a
+  = ReaderT ActionTrigger (StateT State (ExceptT String Identity)) a
 
-type TransitionM a
-  = ReaderT TransitionEvent (StateT State (ExceptT String Identity)) a
-
-maybeTransitionM :: forall a. String -> Maybe a -> TransitionM a
-maybeTransitionM err = case _ of
+maybeActionM :: forall a. String -> Maybe a -> ActionM a
+maybeActionM err = case _ of
   Nothing -> throwError err
   Just a -> pure a

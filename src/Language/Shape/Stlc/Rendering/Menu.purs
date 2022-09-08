@@ -10,13 +10,14 @@ functionalities:
 
 -}
 import Data.Tuple.Nested
-import Language.Shape.Stlc.Transition
+import Language.Shape.Stlc.Action
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
 import Data.Array (singleton)
 import Data.Traversable (sequence)
 import Effect (Effect)
+import Language.Shape.Stlc.ActionM (setProgramInPlace)
 import Language.Shape.Stlc.Example.Basic as ExampleBasic
 import Language.Shape.Stlc.Example.Blank as ExampleBlank
 import Language.Shape.Stlc.Example.Datatypes as ExampleDatatypes
@@ -117,10 +118,9 @@ renderExampleMenu this =
   makeItem name program =
     DOM.div [ Props.className "filename" ] [ DOM.text (name <> ".shape") ]
       /\ \event -> do
-          doTransition { this, event: MouseTransitionEvent event }
-            $ { label: "load example program"
-              , effect: setProgram program
-              }
+          doAction
+            { this, event: MouseActionTrigger event }
+            (loadProgram { program })
 
 -- modifyState this (updateStateProgram term type_)
 renderExternalMenu :: This -> Effect ReactElement
