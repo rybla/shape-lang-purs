@@ -187,9 +187,9 @@ renderPalette this env =
         $ [ DOM.div [ Props.className "action-label" ]
               [ DOM.text (unwrap action).label ]
           , DOM.div [ Props.className "action-shortcuts" ]
-              $ ( \trigger ->
-                    DOM.div [ Props.className "action-trigger" ]
-                      [ DOM.text (show trigger) ]
+              $ ( \shortcut ->
+                    DOM.div [ Props.className "action-shortcut" ]
+                      [ DOM.text (show shortcut) ]
                 )
               <$> (unwrap action).shortcuts
           ]
