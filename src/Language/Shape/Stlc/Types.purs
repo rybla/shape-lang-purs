@@ -63,17 +63,16 @@ initState program =
 data Mode
   = TopMode TopMode
   | SelectMode SelectMode
-  | QueryMode QueryMode
   | DragMode DragMode
 
 type TopMode
   = {}
 
 type SelectMode
-  = { ix :: IxDown }
+  = { ix :: IxDown, mb_query :: Maybe Query }
 
-type QueryMode
-  = { ix :: IxDown, query :: String, i :: Int }
+type Query
+  = { string :: String, i :: Int }
 
 type DragMode
   = { ix :: IxDown, gamma :: Context, alpha :: Type, term :: Term }
@@ -87,7 +86,6 @@ getStateIndex :: State -> Maybe IxDown
 getStateIndex st = case st.mode of
   TopMode _ -> Nothing
   SelectMode { ix } -> Just ix
-  QueryMode { ix } -> Just ix
   DragMode _ -> Nothing
 
 type History
@@ -112,11 +110,13 @@ newtype Action
   = Action
   { label :: String
   , tooltip :: Maybe String
+  , queryable :: Boolean
   , shortcuts :: Array ActionShortcut
   , effect :: ActionM Unit
   }
 
-type Tooltip = Maybe String 
+type Tooltip
+  = Maybe String
 
 derive instance newtypeAction :: Newtype Action _
 
@@ -139,7 +139,6 @@ data ActionTrigger
   = KeyboardActionTrigger SyntheticKeyboardEvent
   | MouseActionTrigger SyntheticMouseEvent
   | WebActionTrigger Event
-  | QuerySubmitActionTrigger
 
 type ActionM a
   = ReaderT ActionTrigger (StateT State (ExceptT String Identity)) a

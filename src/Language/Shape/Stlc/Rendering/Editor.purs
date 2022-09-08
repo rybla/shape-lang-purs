@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Rendering.Editor where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.Action
 import Language.Shape.Stlc.Recursor.Index
 import Language.Shape.Stlc.Rendering.Syntax
 import Language.Shape.Stlc.Rendering.Types
@@ -8,7 +9,6 @@ import Language.Shape.Stlc.Rendering.Utilities
 import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
-
 import Control.Monad.State as State
 import Data.Array as Array
 import Data.List.Unsafe as List
@@ -16,7 +16,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.OrderedMap as OrderedMap
 import Effect (Effect)
-import Language.Shape.Stlc.Action
 import React (ReactElement)
 import React.DOM as DOM
 import React.DOM.Props as Props
@@ -38,14 +37,12 @@ renderEditor this = do
           , [ stepCursorForwards ]
           , [ stepCursorBackwards ]
           , env.actions
+          , [ escape ]
+          , [ editQuery ]
           ]
-      -- keytyping stuff is handled by keyboard event handler
-      QueryMode _queMode ->
-        [ undo
-        , gotoCursorTop
-        , gotoCursorBottom
+      DragMode _dragMode ->
+        [ escape
         ]
-      DragMode _dragMode -> []
   env <- pure $ env { actions = actions }
   pure $ env
     /\ [ DOM.div [ Props.className "editor" ]
@@ -120,11 +117,11 @@ renderEnvironment this env =
                   Just (SyntaxType (HoleType holeType)) ->
                     doAction
                       { this, event: MouseActionTrigger event }
-                      (pasteDatatype {holeType, typeId})
+                      (pasteDatatype { holeType, typeId })
                   Just (SyntaxTerm (Hole _hole)) ->
                     doAction
                       { this, event: MouseActionTrigger event }
-                      (pasteMatch {data_, typeId})
+                      (pasteMatch { data_, typeId })
                   _ -> pure unit
               ]
               dataContextItem
@@ -155,8 +152,8 @@ renderEnvironment this env =
               [ Props.className "context-varType context-item"
               , Props.onClick \event ->
                   doAction
-                     { this, event: MouseActionTrigger event }
-                    (pasteVar {env, type_, termId})
+                    { this, event: MouseActionTrigger event }
+                    (pasteVar { env, type_, termId })
               ]
               varContextItem
 
@@ -170,7 +167,7 @@ renderPalette this env =
               [ DOM.div [ Props.className "actions" ]
                   $ Array.concat
                   $ renderAction
-                  <$> env.actions
+                  <$> Array.filter (_.queryable <<< unwrap) env.actions
               ]
           ]
       ]
@@ -200,6 +197,11 @@ renderPalette this env =
 
 {-
   
+
+
+
+
+
 
 
 

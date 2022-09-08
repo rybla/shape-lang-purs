@@ -12,6 +12,7 @@ import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
 import Control.Monad.Error.Class (throwError)
+import Control.Monad.Reader (ask)
 import Control.Monad.State (get, modify)
 import Data.Array ((:))
 import Data.Array as Array
@@ -22,8 +23,10 @@ import Data.Traversable (traverse_)
 import Debug as Debug
 import Effect (Effect)
 import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
+import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_String)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
+import Undefined (undefined)
 import Unsafe (fromJust)
 
 requireTopMode :: ActionM TopMode
@@ -39,13 +42,6 @@ requireSelectMode = do
   case st.mode of
     SelectMode selectMode -> pure selectMode
     _ -> throwError "requires SelectMode"
-
-requireQueryMode :: ActionM QueryMode
-requireQueryMode = do
-  st <- get
-  case st.mode of
-    QueryMode queryMode -> pure queryMode
-    _ -> throwError "requires QueryMode"
 
 requireDragMode :: ActionM DragMode
 requireDragMode = do
@@ -77,7 +73,7 @@ applyChange ch = do
   void
     $ modify
         _
-          { mode = SelectMode { ix }
+          { mode = SelectMode { ix, mb_query: Nothing }
           , program =
             state.program
               { term = term
@@ -108,7 +104,7 @@ setTermInPlace term = do
 
 setSelectIndex :: IxDown -> ActionM Unit
 setSelectIndex ix = do
-  setMode (SelectMode { ix })
+  setMode (SelectMode { ix, mb_query: Nothing })
 
 clearAllHighlights :: State -> Effect State
 clearAllHighlights state = do
@@ -123,7 +119,7 @@ undo = do
       void
         $ modify
             _
-              { mode = SelectMode { ix: change.ix }
+              { mode = SelectMode { ix: change.ix, mb_query: Nothing }
               , program = program
               , history = history
               , clipboard = Nothing
@@ -140,7 +136,7 @@ setClipboard clipboard = do
 
 select :: IxDown -> ActionM Unit
 select ix = do
-  setMode (SelectMode { ix })
+  setMode (SelectMode { ix, mb_query: Nothing })
 
 startDrag :: DragMode -> ActionM Unit
 startDrag dragMode = do
@@ -263,8 +259,31 @@ pasteVar env type_ termId = do
     , toReplace: ReplaceTerm term NoChange
     }
 
-makeSimpleTooltip :: String -> Tooltip
-makeSimpleTooltip = Just
+-- | You can only edit queries at a hole.
+editQuery :: ActionM Unit
+editQuery = do
+  selMode <- requireSelectMode
+  string /\ i <- case selMode.mb_query of
+    Just query -> pure (query.string /\ query.i)
+    -- if we don't have a query in progress, treat it as an empty string
+    Nothing -> pure ("" /\ 0)
+  e <-
+    ask
+      >>= case _ of
+          WebActionTrigger e -> pure e
+          _ -> throwError "editQuery expects a WebActionTrigger"
+  case handleKeytype_String e string of
+    Nothing -> pure unit
+    Just string -> do
+      Debug.traceM $ "new query string = " <> string
+      setMode (SelectMode selMode { mb_query = Just { string, i } })
+  updateQuery
 
-makeExampleTooltip :: String -> String -> String -> Tooltip
-makeExampleTooltip desc lhs rhs = Just $ desc <> ";  " <> lhs <> "  ~~>  " <> rhs
+-- | Makes sure that the query index and stuff stays valid.
+updateQuery :: ActionM Unit
+updateQuery = pure unit -- TODO
+
+escapeQuery :: ActionM Unit
+escapeQuery = do
+  selMode <- requireSelectMode
+  setMode (SelectMode selMode { mb_query = Nothing })

@@ -1,11 +1,6 @@
 module Language.Shape.Stlc.Rendering.Syntax where
 
-import Data.Tuple
 import Data.Tuple.Nested
-import Language.Shape.Stlc.ChAtIndex
-import Language.Shape.Stlc.Changes
-import Language.Shape.Stlc.Context
-import Language.Shape.Stlc.Hole
 import Language.Shape.Stlc.Index
 import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Metadata
@@ -18,43 +13,28 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-import Type.Proxy
-import Unsafe
-
-import Control.Monad.State (State, gets, runState)
+import Control.Monad.State (runState)
 import Control.Monad.State as State
-import Data.Array (concat, (:))
+import Data.Array (concat)
 import Data.Array as Array
 import Data.Default (default)
-import Data.Foldable (foldM)
-import Data.List.Unsafe (List(..), reverse)
-import Data.List.Unsafe as List
+import Data.List.Unsafe (List)
 import Data.Map.Unsafe as Map
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.OrderedMap as OrderedMap
-import Data.OrderedSet (OrderedSet)
 import Data.OrderedSet as OrderedSet
-import Data.Set as Set
 import Data.String (joinWith)
 import Data.Traversable (sequence)
-import Debug as Debug
 import Effect (Effect)
-import Effect.Console as Console
-import Language.Shape.Stlc.Action (deselect, doAction)
-import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, fitsInHole)
+import Language.Shape.Stlc.Action (deselect, doAction, fillVar)
 import Language.Shape.Stlc.FuzzyFilter (fuzzyDistance)
 import Language.Shape.Stlc.Recursor.Action as Rec
-import Language.Shape.Stlc.Recursor.Context as RecCtx
-import Language.Shape.Stlc.Recursor.Index as RecIx
-import Language.Shape.Stlc.Recursor.Metacontext as RecMeta
 import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
 import Partial.Unsafe (unsafeCrashWith)
-import Prim.Row (class Union)
-import React (ReactElement, getState, modifyState)
+import React (ReactElement, getState)
 import React.DOM as DOM
 import React.DOM.Props as Props
-import React.SyntheticEvent (shiftKey, stopPropagation)
 import Record as Record
 
 type RenderArgs
@@ -221,73 +201,12 @@ renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
             (syntaxtheme.term.match { term, caseItems, meta: args.match.meta, metactx: args.meta })
     , hole:
         \args -> do
-          -- TODO: actually, this happens at each node, not just at a hole 
-          -- query <-
-          --   State.gets (_.st.mode)
-          --     >>= case _ of
-          --         QueryMode q
-          --           | args.visit.csr == Just nilIxDown -> do
-          --             let
-          --               -- filter the context for variables that have a
-          --               -- name fuzzy-matching the query string
-          --               queryResults :: Array (TermId /\ Type)
-          --               queryResults =
-          --                 map (\(termId /\ type_ /\ _) -> (termId /\ type_))
-          --                   $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
-          --                   $ Array.foldMap
-          --                       ( \(termId /\ type_) ->
-          --                           let
-          --                             Name mb_str = lookupVarName termId args.meta
-          --                           in
-          --                             case fuzzyDistance q.query =<< mb_str of
-          --                               Just dist -> [ termId /\ type_ /\ dist ]
-          --                               Nothing -> []
-          --                       )
-          --                   $ OrderedMap.toArray (unwrap args.gamma).varTypes
-          --             -- update the render environment to know about the
-          --             -- current variable query result
-          --             -- State.modify_ _ { variableQueryResult = Just queryResults }
-          --             State.modify_ \env -> env { queryResults = env.queryResults <> var }
-          --             -- render each items from the query result
-          --             variableQueryElems <-
-          --               sequence
-          --                 $ Array.mapWithIndex
-          --                     ( \i (termId /\ type_) -> do
-          --                         elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-          --                         elemType <- renderType renArgs { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
-          --                         pure
-          --                           $ ( DOM.span [ Props.className $ "query-context-item" <> if q.i == i then " selected" else "" ]
-          --                                 $ concat
-          --                                     [ elemTermId
-          --                                     , [ DOM.text " : " ]
-          --                                     , elemType
-          --                                     ]
-          --                             )
-          --                     )
-          --                 $ queryResults
-          --             pure
-          --               $ [ DOM.div [ Props.className "query" ]
-          --                     [ DOM.div [ Props.className "query-context" ]
-          --                         ( if Array.length variableQueryElems > 0 then
-          --                             variableQueryElems
-          --                           else
-          --                             [ DOM.span [ Props.className "query-no-matches" ]
-          --                                 [ DOM.text "no matches" ]
-          --                             ]
-          --                         )
-          --                     , DOM.span [ Props.className "query-text" ]
-          --                         [ DOM.text q.query ]
-          --                     ]
-          --                 , DOM.span [ Props.className "query-sep" ]
-          --                     [ DOM.text " .. : " ]
-          --                 ]
-          --         _ -> pure []
+          query <- renderTermHoleQuery renArgs args
           hole <- renderType renArgs { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
             <$> renderNewNode renArgs
                 ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
-                -- (query <> hole)
-                hole
+                (query <> hole)
     }
 
 renderArgItem :: RenderArgs -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
@@ -459,55 +378,6 @@ renderNewNode :: RenderArgs -> NodeProps -> Array ReactElement -> M (Array React
 renderNewNode { this, syntaxtheme } props res = do
   -- if this node is selected
   when isSelected do
-    state <- State.gets _.st
-    -- compute queryResults
-    mb_queryResults <- case state.mode of
-      QueryMode queryMode -> do
-        -- gather all query results, filtering out those with insufficient fuzzy
-        -- proximity
-        measuredQueryResults <-
-          pure
-            $ Array.concat
-                [ Array.concatMap
-                    ( \(Action action) -> case fuzzyDistance queryMode.query action.label of
-                        Just dist -> [ dist /\ ActionQueryResult (Action action) ]
-                        Nothing -> []
-                    )
-                    props.actions
-                , case props.syntax of
-                    Nothing -> []
-                    -- if at a term, add the term vars in context
-                    Just (SyntaxTerm _) ->
-                      Array.foldMap
-                        ( \(termId /\ type_) ->
-                            let
-                              name@(Name mb_str) = lookupVarName termId props.meta
-                            in
-                              case fuzzyDistance queryMode.query =<< mb_str of
-                                Just dist -> [ dist /\ TermVariableQueryResult { name, termId, type_ } ]
-                                Nothing -> []
-                        )
-                        $ OrderedMap.toArray (unwrap props.gamma).varTypes
-                    -- if at a type, add the data types in context
-                    Just (SyntaxType _) ->
-                      Array.foldMap
-                        ( \(typeId /\ _data_) ->
-                            let
-                              name@(Name mb_str) = lookupDataName typeId props.meta
-                            in
-                              case fuzzyDistance queryMode.query =<< mb_str of
-                                Just dist -> [ dist /\ DataTypeQueryResult { name, typeId } ]
-                                Nothing -> []
-                        )
-                        $ OrderedMap.toArray (unwrap props.gamma).datas
-                    _ -> []
-                ]
-        -- sort by fuzzy proximity
-        measuredQueryResults <-
-          pure $ Array.sortWith (\(dist /\ _) -> dist) measuredQueryResults
-        -- extract query results
-        pure $ Just $ map (\(_ /\ qr) -> qr) measuredQueryResults
-      _ -> pure Nothing
     -- update environment
     State.modify_
       ( _
@@ -516,7 +386,6 @@ renderNewNode { this, syntaxtheme } props res = do
           , gamma = props.gamma
           , actions = props.actions
           , meta = props.meta
-          , mb_queryResults = mb_queryResults
           }
       )
   -- render children
@@ -540,3 +409,122 @@ renderNewNode { this, syntaxtheme } props res = do
           $ maybeArray mb_elemId \elemId ->
               propsHighlight this props elemId
       ]
+
+renderTermHoleQuery :: RenderArgs -> _ -> M (Array ReactElement)
+renderTermHoleQuery renArgs args = do
+  state <- State.get
+  case state.st.mode of
+    SelectMode selMode
+      | args.visit.csr == Just nilIxDown
+      , Just query <- selMode.mb_query -> do
+        let
+          -- filter the context for variables that have a
+          -- name fuzzy-matching the query string
+          queryResults :: Array (TermId /\ Type)
+          queryResults =
+            map (\(termId /\ type_ /\ _) -> (termId /\ type_))
+              $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+              $ Array.foldMap
+                  ( \(termId /\ type_) ->
+                      let
+                        Name mb_str = lookupVarName termId args.meta
+                      in
+                        case fuzzyDistance query.string =<< mb_str of
+                          Just dist -> [ termId /\ type_ /\ dist ]
+                          Nothing -> []
+                  )
+              $ OrderedMap.toArray (unwrap args.gamma).varTypes
+        -- recurds the current query result
+        State.modify_ \env ->
+          env
+            { mb_queryResult =
+              do
+                (termId /\ type_) <- Array.index queryResults query.i
+                Just
+                  { action: fillVar { env, termId, type_ }
+                  , n: Array.length queryResults
+                  }
+            }
+        -- render each items from the query result
+        variableQueryElems <-
+          sequence
+            $ Array.mapWithIndex
+                ( \i (termId /\ type_) -> do
+                    elemTermId <- printTermId { termId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                    elemType <- renderType renArgs { type_, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                    pure
+                      $ ( DOM.span [ Props.className $ "query-context-item" <> if query.i == i then " selected" else "" ]
+                            $ concat
+                                [ elemTermId
+                                , [ DOM.text " : " ]
+                                , elemType
+                                ]
+                        )
+                )
+            $ queryResults
+        pure
+          $ [ DOM.div [ Props.className "query" ]
+                [ DOM.div [ Props.className "query-context" ]
+                    ( if Array.length variableQueryElems > 0 then
+                        variableQueryElems
+                      else
+                        [ DOM.span [ Props.className "query-no-matches" ]
+                            [ DOM.text "no matches" ]
+                        ]
+                    )
+                , DOM.span [ Props.className "query-text" ]
+                    [ DOM.text query.string ]
+                ]
+            , DOM.span [ Props.className "query-sep" ]
+                [ DOM.text " .. : " ]
+            ]
+    _ -> pure []
+
+-- mb_actions <- case state.mode of
+--   SelectMode selMode
+--     | Just query <- selMode.mb_query -> do
+--       -- gather all query results, filtering out those with insufficient fuzzy
+--       -- proximity
+--       measuredActions <-
+--         pure
+--           $ Array.concat
+--               [ Array.concatMap
+--                   ( \(Action action) -> case fuzzyDistance query.string action.label of
+--                       Just dist -> [ dist /\ Action action ]
+--                       Nothing -> []
+--                   )
+--                   props.actions
+--               , case props.syntax of
+--                   Nothing -> []
+--                   -- if at a term, add the term vars in context
+--                   Just (SyntaxTerm _) ->
+--                     Array.foldMap
+--                       ( \(termId /\ type_) ->
+--                           let
+--                             name@(Name mb_str) = lookupVarName termId props.meta
+--                           in
+--                             case fuzzyDistance query.string =<< mb_str of
+--                               Just dist -> [ dist /\ fillVar { name, termId, type_ } ]
+--                               Nothing -> []
+--                       )
+--                       $ OrderedMap.toArray (unwrap props.gamma).varTypes
+--                   -- if at a type, add the data types in context
+--                   Just (SyntaxType _) ->
+--                     Array.foldMap
+--                       ( \(typeId /\ _data_) ->
+--                           let
+--                             name@(Name mb_str) = lookupDataName typeId props.meta
+--                           in
+--                             case fuzzyDistance query.string =<< mb_str of
+--                               Just dist -> [ dist /\ fillDatatype { name, typeId } ]
+--                               Nothing -> []
+--                       )
+--                       $ OrderedMap.toArray (unwrap props.gamma).datas
+--                   _ -> []
+--               ]
+--       -- sort by fuzzy proximity
+--       measuredActions <-
+--         pure $ Array.sortWith (\(dist /\ _) -> dist) measuredActions
+--       -- extract query results
+--       pure $ Just $ map (\(_ /\ qr) -> qr) measuredActions
+--   _ -> pure Nothing

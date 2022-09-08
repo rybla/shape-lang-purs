@@ -1,6 +1,7 @@
 module Language.Shape.Stlc.Action where
 
 import Data.Tuple.Nested
+import Language.Shape.Stlc.ActionM
 import Language.Shape.Stlc.ChAtIndex
 import Language.Shape.Stlc.Changes
 import Language.Shape.Stlc.Context
@@ -13,6 +14,7 @@ import Language.Shape.Stlc.Syntax.Metadata
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
+
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (ask, runReaderT)
@@ -27,16 +29,15 @@ import Effect (Effect)
 import Effect.Class.Console as Console
 import KeyboardCursor (getLastIndex)
 import KeyboardCursor as KeyboardCursor
+import Language.Shape.Stlc.ActionM as ActionM
 import Language.Shape.Stlc.Key (keys)
 import React (getState, modifyState)
 import React.SyntheticEvent as React
 import Unsafe (error)
 import Web.Event.Event as Web
-import Language.Shape.Stlc.ActionM as ActionM
-import Language.Shape.Stlc.ActionM
 
 -- | The only way an `Action` should be performed.
-doAction :: { this :: This, event :: ActionTrigger } = Action -> Effect Unit
+doAction :: { this :: This, event :: ActionTrigger } -> Action -> Effect Unit
 doAction { this, event } (Action action) = do
   -- doTransition { this, event } (unwrap act).transition
   Console.log "+---------------------------------------------------------------"
@@ -52,7 +53,6 @@ doAction { this, event } (Action action) = do
     WebActionTrigger e -> do
       Web.stopPropagation e
       Web.preventDefault e
-    QuerySubmitActionTrigger -> pure unit
   void case runExcept (flip runStateT state (flip runReaderT event action.effect)) of
     Left err -> Console.log $ "[!] transition failure: " <> err
     Right (_ /\ state') -> do
@@ -64,6 +64,7 @@ gotoCursorTop =
   Action
     { label: "go to top"
     , tooltip: Just "move the cursor to the top of the program"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.cursorForwards ]
     , effect: setSelectIndex nilIxDown
     }
@@ -72,6 +73,7 @@ gotoCursorBottom =
   Action
     { label: "go to bottom"
     , tooltip: Just "move the cursor to the bottom of the program"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.cursorBackwards ]
     , effect:
         do
@@ -80,6 +82,7 @@ gotoCursorBottom =
             $ IxDown (getLastIndex (SyntaxTerm state.program.term))
     }
 
+-- 
 -- TODO: all of these actions should be implemented as `ActionM`s instead,
 -- and then maybe they can be packaged up as actions here also, or just packaged
 -- up at where they're given as arguments...
@@ -88,6 +91,7 @@ stepCursorForwards =
   Action
     { label: "step forwards"
     , tooltip: Just "move the cursor fowards in a tree walk"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.cursorForwards ]
     , effect:
         do
@@ -103,6 +107,7 @@ stepCursorBackwards =
   Action
     { label: "step backwards"
     , tooltip: Just "move the cursor backwards in a tree walk"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.cursorBackwards ]
     , effect:
         do
@@ -118,6 +123,7 @@ undo =
   Action
     { label: "undo"
     , tooltip: makeSimpleTooltip "undo"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.undo ]
     , effect: ActionM.undo
     }
@@ -126,6 +132,7 @@ copy { clipboard } =
   Action
     { label: "copy"
     , tooltip: makeSimpleTooltip "copy"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.copy ]
     , effect: setClipboard clipboard
     }
@@ -134,6 +141,7 @@ unarrow { args } =
   Action
     { label: "unarrow"
     , tooltip: makeExampleTooltip "unwrap an arrow around a type" "A -> B" "B"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.unlambda ]
     , effect:
         do
@@ -149,6 +157,7 @@ digtype =
   Action
     { label: "dig type"
     , tooltip: makeExampleTooltip "replace a type with a hole" "A" "?"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.dig ]
     , effect:
         do
@@ -165,6 +174,7 @@ swaparrow { args, arrow } =
   Action
     { label: "swap arrows"
     , tooltip: makeExampleTooltip "swap the order of nested arrows" "A -> B -> C" "B -> A -> C"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.swap ]
     , effect:
         do
@@ -192,6 +202,7 @@ unlambda { args } =
   Action
     { label: "unlambda"
     , tooltip: makeExampleTooltip "unwrap a lambda, digging the variable" "fun x => e" "e[x -> ?]"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.unlambda ]
     , effect:
         do
@@ -212,6 +223,7 @@ swaplambdas { args, lam' } =
   Action
     { label: "swap lambdas"
     , tooltip: makeExampleTooltip "swap the order of nested lambdas" "fun x => fun y => e" "fun y => fun x => e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.swap ]
     , effect:
         do
@@ -239,6 +251,7 @@ app { args } =
   Action
     { label: "app"
     , tooltip: makeExampleTooltip "apply a neutral form to an additional argument" "f" "f ?"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.app ]
     , effect:
         do
@@ -277,7 +290,7 @@ app { args } =
           void
             $ modify
                 _
-                  { mode = SelectMode { ix }
+                  { mode = SelectMode { ix, mb_query: Nothing }
                   , program { term = term }
                   }
     }
@@ -286,13 +299,14 @@ unapp { args } =
   Action
     { label: "unapp"
     , tooltip: makeExampleTooltip "apply a neutral form to one fewer arguments" "f a" "f"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.unapp ]
     , effect:
         do
           state <- get
           selMode <- requireSelectMode
           argItems' <- case List.unsnoc args.neu.argItems of
-            Just { init } = pure init
+            Just { init } -> pure init
             Nothing -> throwError "can only try to unapp a neutral form with at least one argument"
           -- given a neu `f a : B` where `f : A -> B`
           -- try to unify this term's expected type, `B` with `A -> B`
@@ -322,7 +336,7 @@ unapp { args } =
           void
             $ modify
                 _
-                  { mode = SelectMode { ix }
+                  { mode = SelectMode { ix, mb_query: Nothing }
                   , program { term = term }
                   }
     }
@@ -331,6 +345,7 @@ unlet { args } =
   Action
     { label: "unlet"
     , tooltip: makeExampleTooltip "unwrap a let, digging the variable" "let x : A = a in e" "e[x -> ?]"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.unlet ]
     , effect:
         do
@@ -351,6 +366,7 @@ unbuffer { args } =
   Action
     { label: "unbuffer"
     , tooltip: makeExampleTooltip "unwrap a buffer, discarding the term" "buf a : A in e" "e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.unbuf ]
     , effect:
         do
@@ -365,6 +381,7 @@ undata { args } =
   Action
     { label: "undata"
     , tooltip: makeExampleTooltip "unwrap a data" "data A = ... in e" "e[A -> ?]"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.undata ]
     , effect:
         do
@@ -376,6 +393,7 @@ inlambda { args } =
   Action
     { label: "inlambda"
     , tooltip: makeExampleTooltip "fill a hole with a lambda" "?" "fun ~ => ?"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.inlambda ]
     , effect:
         case args.alpha of
@@ -395,6 +413,7 @@ enlambda { args, term } =
   Action
     { label: "enlambda"
     , tooltip: makeExampleTooltip "wrap a term in a lambda" "e" "fun ~ => e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.lambda ]
     , effect:
         do
@@ -412,6 +431,7 @@ digterm { args } =
   Action
     { label: "dig term"
     , tooltip: makeExampleTooltip "replace a term with a hole" "e" "?"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.dig ]
     , effect:
         do
@@ -429,6 +449,7 @@ enlet { args, term } =
   Action
     { label: "enlet"
     , tooltip: makeExampleTooltip "wrap a term in a let" "e" "let ~ = ? in e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.let_ ]
     , effect:
         do
@@ -446,6 +467,7 @@ enbuffer { args, term } =
   Action
     { label: "enbuffer"
     , tooltip: makeExampleTooltip "wrap a term in a buffer" "e" "buf ? : ? in e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.buf ]
     , effect:
         do
@@ -469,6 +491,7 @@ endata { args, term } =
   Action
     { label: "endata"
     , tooltip: makeExampleTooltip "wrap a term in a datatype definition" "e" "type ? = ? in e"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.data_ ]
     , effect:
         do
@@ -492,6 +515,7 @@ pop { args, term } =
   Action
     { label: "pop"
     , tooltip: makeExampleTooltip "pop a term into a buffer" "e" "buf e : ? in ?"
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.pop ]
     , effect:
         do
@@ -515,6 +539,7 @@ editTypeBind { args, name } =
   Action
     { label: "edit type bind"
     , tooltip: makeSimpleTooltip "modify the name of a data"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
@@ -546,6 +571,7 @@ editTermBind { args, name } =
   Action
     { label: "edit term bind"
     , tooltip: makeSimpleTooltip "modify the name of a term variable"
+    , queryable: false
     , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
@@ -576,6 +602,7 @@ indent =
   Action
     { label: "indent"
     , tooltip: Nothing
+    , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.indent ]
     , effect:
         do
@@ -594,6 +621,7 @@ select ix =
   Action
     { label: "select"
     , tooltip: makeSimpleTooltip "select a node"
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.select ix
     }
@@ -602,6 +630,7 @@ deselect =
   Action
     { label: "deselect"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.deselect
     }
@@ -610,6 +639,7 @@ startDrag { dragMode } =
   Action
     { label: "start drag"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.startDrag dragMode
     }
@@ -618,6 +648,7 @@ submitDrag { ix, gamma, alpha, term } =
   Action
     { label: "submit drag"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.submitDrag ix gamma alpha term
     }
@@ -626,6 +657,7 @@ loadProgram { program } =
   Action
     { label: "load program"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.loadProgram program
     }
@@ -634,6 +666,7 @@ pasteDatatype { holeType, typeId } =
   Action
     { label: "paste datatype"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.pasteDatatype holeType typeId
     }
@@ -642,6 +675,7 @@ pasteMatch { data_, typeId } =
   Action
     { label: "paste match"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.pasteMatch data_ typeId
     }
@@ -650,6 +684,68 @@ pasteVar { env, type_, termId } =
   Action
     { label: "paste var"
     , tooltip: Nothing
+    , queryable: false
     , shortcuts: []
     , effect: ActionM.pasteVar env type_ termId
     }
+
+editQuery =
+  Action
+    { label: "edit query"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keytype ]
+    , effect: ActionM.editQuery
+    }
+
+fillVar { env, type_, termId } =
+  Action
+    { label: "fill var"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: []
+    , effect: ActionM.pasteVar env type_ termId
+    }
+
+fillDatatype { holeType, typeId } =
+  Action
+    { label: "fill datatype"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: []
+    , effect: ActionM.pasteDatatype holeType typeId
+    }
+
+escape =
+  Action
+    { label: "escape query"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keypress keys.escape ]
+    , effect:
+        do
+          state <- get
+          case state.mode of
+            SelectMode selMode
+              | Just _ <- selMode.mb_query -> ActionM.escapeQuery
+              | otherwise -> ActionM.deselect
+            _ -> throwError "cannot escape"
+    }
+
+escapeQuery =
+  Action
+    { label: "escape query"
+    , tooltip: Nothing
+    , queryable: false
+    , shortcuts: [ ActionShortcut_Keypress keys.escape ]
+    , effect: ActionM.escapeQuery
+    }
+
+-- | Make a simple string tooltip.
+makeSimpleTooltip :: String -> Tooltip
+makeSimpleTooltip = Just
+
+-- | Make a tooltip that has an example, displayed in the form "<desc>; <lhs>
+-- | ~~> <rhs>"
+makeExampleTooltip :: String -> String -> String -> Tooltip
+makeExampleTooltip desc lhs rhs = Just $ desc <> ";  " <> lhs <> "  ~~>  " <> rhs

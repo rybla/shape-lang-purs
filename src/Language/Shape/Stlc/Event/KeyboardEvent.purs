@@ -8,13 +8,14 @@ import Language.Shape.Stlc.Rendering.Types
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-
 import Data.Array as Array
 import Data.Newtype (unwrap)
 import Data.String (Pattern(..), split)
 import Data.String as String
 import Debug as Debug
 import Partial.Unsafe (unsafeCrashWith)
+import React.SyntheticEvent (SyntheticKeyboardEvent)
+import Undefined (undefined)
 import Web.Event.Event (Event)
 
 foreign import eventKey :: Event -> String
@@ -103,6 +104,9 @@ handleKeytype_Name event (Name mb_str) = (\str1 -> if str1 == "" then Name Nothi
   str0 = maybe "" identity mb_str
 
   mb_str1 = handleKeytype_String event str0
+
+handleKeytype_String' :: SyntheticKeyboardEvent -> String -> Maybe String
+handleKeytype_String' e str = undefined
 
 handleKeytype_String :: Event -> String -> Maybe String
 handleKeytype_String event str = go (eventKey event)

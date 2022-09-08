@@ -2,7 +2,6 @@ module Language.Shape.Stlc.Rendering.Types where
 
 import Data.Default
 import Data.Maybe
-import Data.Tuple.Nested
 import Language.Shape.Stlc.Context
 import Language.Shape.Stlc.Metacontext
 import Language.Shape.Stlc.Recursor.Index
@@ -13,9 +12,6 @@ import Prelude
 import Prim hiding (Type)
 import Control.Monad.State as State
 import Data.OrderedSet (OrderedSet)
-import Effect (Effect)
-import Language.Shape.Stlc.Metadata (Name(..))
-import React (getState)
 import Type.Proxy (Proxy(..))
 
 type M a
@@ -27,17 +23,17 @@ type RenderEnvironment
     , meta :: Metacontext
     , alpha :: Maybe Type
     , actions :: Array Action
+    , mb_queryResult :: Maybe { action :: Action, n :: Int }
     , holeIds :: OrderedSet HoleId
     , st :: State
-    , mb_queryResults :: Maybe (Array QueryResult)
     , syntaxtheme :: SyntaxTheme
     }
 
-data QueryResult
-  = TermVariableQueryResult { name :: Name, termId :: TermId, type_ :: Type }
-  | DataTypeQueryResult { name :: Name, typeId :: TypeId }
-  | ActionQueryResult Action
-
+-- -- TODO: needed?
+-- data QueryResult
+--   = TermVariableQueryResult { name :: Name, termId :: TermId, type_ :: Type }
+--   | DataTypeQueryResult { name :: Name, typeId :: TypeId }
+--   | ActionQueryResult Action
 _holeIds = Proxy :: Proxy "holeIds"
 
 emptyRenderEnvironment :: State -> RenderEnvironment
@@ -47,9 +43,9 @@ emptyRenderEnvironment st =
   , meta: default
   , alpha: default
   , actions: []
+  , mb_queryResult: Nothing 
   , holeIds: mempty
   , st
-  , mb_queryResults: Nothing
   , syntaxtheme: st.syntaxtheme
   }
 
