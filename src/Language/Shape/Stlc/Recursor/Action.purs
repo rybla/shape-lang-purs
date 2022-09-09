@@ -82,6 +82,7 @@ recType rec =
   common :: forall r. Type -> { visit :: Visit | r } -> Array Action
   common type_ args =
     [ digtype
+    , enarrow type_
     ]
 
 -- | recTerm

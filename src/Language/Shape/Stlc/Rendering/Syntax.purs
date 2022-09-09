@@ -13,7 +13,7 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
-import Control.Monad.State (runState)
+import Control.Monad.State (get, runState)
 import Control.Monad.State as State
 import Data.Array (concat)
 import Data.Array as Array
@@ -27,7 +27,7 @@ import Data.OrderedSet as OrderedSet
 import Data.String (joinWith)
 import Data.Traversable (sequence)
 import Effect (Effect)
-import Language.Shape.Stlc.Action (deselect, doAction, fillVar)
+import Language.Shape.Stlc.Action (deselect, doAction, fillDatatype, fillVar)
 import Language.Shape.Stlc.FuzzyFilter (fuzzyDistance)
 import Language.Shape.Stlc.Recursor.Action as Rec
 import Language.Shape.Stlc.Rendering.Highlight (propsHighlight)
@@ -36,6 +36,7 @@ import React (ReactElement, getState)
 import React.DOM as DOM
 import React.DOM.Props as Props
 import Record as Record
+import Undefined (undefined)
 
 type RenderArgs
   = { this :: This, syntaxtheme :: SyntaxTheme }
@@ -66,7 +67,7 @@ renderProgram this = do
           [ Props.className "program"
           , Props.onClick \event -> do
               doAction
-                { this, event: MouseActionTrigger event }
+                { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
                 deselect
           ]
           elems
@@ -106,9 +107,12 @@ renderType renArgs@{ this, syntaxtheme } =
         \args -> do
           State.modify_ (Record.modify _holeIds (OrderedSet.insert args.holeType.holeId))
           holeId <- printHoleId { holeId: args.holeType.holeId, meta: args.holeId.meta }
-          renderNewNode renArgs
-            ((makeNodeProps args) { label = Just "HoleType", syntax = Just $ SyntaxType $ HoleType args.holeType })
-            (syntaxtheme.type_.hole { holeId, weakening: Nothing, meta: args.holeType.meta, metactx: args.meta })
+          (\elems -> [ DOM.span [ Props.className "typehole-container" ] elems ])
+            <$> renderNewNode' renArgs
+                ((makeNodeProps args) { label = Just "HoleType", syntax = Just $ SyntaxType $ HoleType args.holeType })
+                [ renderTypeHoleQuery args.holeType renArgs args
+                , pure $ syntaxtheme.type_.hole { holeId, weakening: Nothing, meta: args.holeType.meta, metactx: args.meta }
+                ]
     }
 
 addHoleIdsFromType :: Type -> M Unit
@@ -200,13 +204,13 @@ renderTerm renArgs@{ this, syntaxtheme } mb_syn_parent =
             ((makeNodeProps args) { label = Just "Match", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Match args.match })
             (syntaxtheme.term.match { term, caseItems, meta: args.match.meta, metactx: args.meta })
     , hole:
-        \args -> do
-          query <- renderTermHoleQuery renArgs args
-          hole <- renderType renArgs { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
+        \args ->
           (\elems -> [ DOM.span [ Props.className "hole-container" ] elems ])
-            <$> renderNewNode renArgs
+            <$> renderNewNode' renArgs
                 ((makeNodeProps args) { label = Just "Hole", alpha = Just args.alpha, syntax = Just $ SyntaxTerm $ Hole args.hole })
-                (query <> hole)
+                [ renderTermHoleQuery renArgs args
+                , renderType renArgs { type_: args.alpha, gamma: args.gamma, visit: nonVisit, meta: args.meta }
+                ]
     }
 
 renderArgItem :: RenderArgs -> Record (Rec.ArgsArgItem ()) -> M (Array ReactElement)
@@ -375,7 +379,10 @@ renderItems :: List (M (Array ReactElement)) -> M (Array (Array ReactElement))
 renderItems items = Array.fromFoldable <$> sequence items
 
 renderNewNode :: RenderArgs -> NodeProps -> Array ReactElement -> M (Array ReactElement)
-renderNewNode { this, syntaxtheme } props res = do
+renderNewNode args props res = renderNewNode' args props [ pure res ]
+
+renderNewNode' :: RenderArgs -> NodeProps -> Array (M (Array ReactElement)) -> M (Array ReactElement)
+renderNewNode' { this, syntaxtheme } props mres = do
   -- if this node is selected
   when isSelected do
     -- update environment
@@ -389,6 +396,7 @@ renderNewNode { this, syntaxtheme } props res = do
           }
       )
   -- render children
+  res <- Array.concat <$> sequence mres
   pure $ [ DOM.span propsSpan res ]
   where
   isSelected = props.visit.csr == Just nilIxDown
@@ -528,3 +536,67 @@ renderTermHoleQuery renArgs args = do
 --       -- extract query results
 --       pure $ Just $ map (\(_ /\ qr) -> qr) measuredActions
 --   _ -> pure Nothing
+renderTypeHoleQuery :: HoleType -> RenderArgs -> _ -> M (Array ReactElement)
+renderTypeHoleQuery holeType renArgs args = do
+  state <- State.get
+  case state.st.mode of
+    SelectMode selMode
+      | args.visit.csr == Just nilIxDown
+      , Just query <- selMode.mb_query -> do
+        let
+          -- filter the context for variables that have a
+          -- name fuzzy-matching the query string
+          queryResults :: Array (TypeId /\ Data)
+          queryResults =
+            map (\(typeId /\ data_ /\ _) -> (typeId /\ data_))
+              $ Array.sortWith (\(_ /\ _ /\ dist) -> dist)
+              $ Array.foldMap
+                  ( \(typeId /\ data_) ->
+                      let
+                        Name mb_str = lookupDataName typeId args.meta
+                      in
+                        case fuzzyDistance query.string =<< mb_str of
+                          Just dist -> [ typeId /\ data_ /\ dist ]
+                          Nothing -> []
+                  )
+              $ OrderedMap.toArray (unwrap args.gamma).datas
+        -- recurds the current query result
+        State.modify_ \env ->
+          env
+            { mb_queryResult =
+              do
+                (typeId /\ data_) <- Array.index queryResults query.i
+                Just
+                  { action: fillDatatype { holeType, typeId }
+                  , n: Array.length queryResults
+                  }
+            }
+        -- render each items from the query result
+        variableQueryElems <-
+          sequence
+            $ Array.mapWithIndex
+                ( \i (typeId /\ data_) -> do
+                    elemTypeId <- printTypeId { typeId, gamma: args.gamma, meta: args.meta, visit: nonVisit }
+                    pure
+                      $ ( DOM.span [ Props.className $ "query-context-item" <> if query.i == i then " selected" else "" ]
+                            $ elemTypeId
+                        )
+                )
+            $ queryResults
+        pure
+          $ [ DOM.div [ Props.className "query" ]
+                [ DOM.div [ Props.className "query-context" ]
+                    ( if Array.length variableQueryElems > 0 then
+                        variableQueryElems
+                      else
+                        [ DOM.span [ Props.className "query-no-matches" ]
+                            [ DOM.text "no matches" ]
+                        ]
+                    )
+                , DOM.span [ Props.className "query-text" ]
+                    [ DOM.text query.string ]
+                , DOM.span [ Props.className "query-sep" ]
+                    [ DOM.text " = " ]
+                ]
+            ]
+    _ -> pure []

@@ -10,6 +10,7 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
+import Control.Monad.State (get)
 import Control.Monad.State as State
 import Data.OrderedSet (OrderedSet)
 import Type.Proxy (Proxy(..))
@@ -23,7 +24,7 @@ type RenderEnvironment
     , meta :: Metacontext
     , alpha :: Maybe Type
     , actions :: Array Action
-    , mb_queryResult :: Maybe { action :: Action, n :: Int }
+    , mb_queryResult :: Maybe QueryResult
     , holeIds :: OrderedSet HoleId
     , st :: State
     , syntaxtheme :: SyntaxTheme
@@ -43,7 +44,7 @@ emptyRenderEnvironment st =
   , meta: default
   , alpha: default
   , actions: []
-  , mb_queryResult: Nothing 
+  , mb_queryResult: Nothing
   , holeIds: mempty
   , st
   , syntaxtheme: st.syntaxtheme
@@ -58,6 +59,7 @@ defaultNodeProps =
   , gamma: default
   , meta: default
   , actions: []
+  -- , renEnv: emptyRenderEnvironment
   }
 
 makeNodeProps :: forall r. { gamma :: Context, visit :: Visit, meta :: Metacontext, actions :: Array Action | r } -> NodeProps
@@ -77,4 +79,5 @@ type NodeProps
     , visit :: Visit
     , meta :: Metacontext
     , actions :: Array Action
+    -- , renEnv :: RenderEnvironment
     }

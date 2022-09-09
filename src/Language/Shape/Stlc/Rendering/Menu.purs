@@ -15,6 +15,7 @@ import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
 import Data.Array (singleton)
+import Data.Maybe (Maybe(..))
 import Data.Traversable (sequence)
 import Effect (Effect)
 import Language.Shape.Stlc.ActionM (setProgramInPlace)
@@ -119,7 +120,7 @@ renderExampleMenu this =
     DOM.div [ Props.className "filename" ] [ DOM.text (name <> ".shape") ]
       /\ \event -> do
           doAction
-            { this, event: MouseActionTrigger event }
+            { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
             (loadProgram { program })
 
 -- modifyState this (updateStateProgram term type_)

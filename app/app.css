@@ -358,15 +358,17 @@ html, body {
   font-family: monospace;
 }
 
-
-
 /* syntax */
+
+.typehole-container {
+  /* TODO: make this distinct from term hole containers */
+  /* box-shadow: 0 0 0 4px rgb(197, 91, 14); */
+  /* border-radius: 4px; */
+}
 
 .hole-container {
   box-shadow: 0 0 0 4px rgb(197, 91, 14);
-  /* border-radius: 10px; */
   border-radius: 4px;
-  /* padding: 4px 4px; */
 }
 
 .Hole {
@@ -502,6 +504,7 @@ html, body {
 }
 .query-sep {
   /* font-style: italic; */
+  white-space: pre;
 }
 .query-context {
   /* position: relative; */

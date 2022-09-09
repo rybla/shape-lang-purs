@@ -37,7 +37,7 @@ renderEditor this = do
           , [ stepCursorForwards, stepCursorBackwards ]
           , [ indent ]
           , env.actions
-          , [ escape ]
+          , [ escape, nextQueryOption, prevQueryOption ]
           , maybeArray env.mb_queryResult \{ action } -> submitQuery action
           , [ editQuery ]
           ]
@@ -117,11 +117,11 @@ renderEnvironment this env =
               [ Props.onClick \event -> case env.syntax of
                   Just (SyntaxType (HoleType holeType)) ->
                     doAction
-                      { this, event: MouseActionTrigger event }
+                      { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
                       (pasteDatatype { holeType, typeId })
                   Just (SyntaxTerm (Hole _hole)) ->
                     doAction
-                      { this, event: MouseActionTrigger event }
+                      { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
                       (pasteMatch { data_, typeId })
                   _ -> pure unit
               ]
@@ -153,7 +153,7 @@ renderEnvironment this env =
               [ Props.className "context-varType context-item"
               , Props.onClick \event ->
                   doAction
-                    { this, event: MouseActionTrigger event }
+                    { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
                     (pasteVar { env, type_, termId })
               ]
               varContextItem
@@ -180,7 +180,7 @@ renderPalette this env =
             ( [ Props.className "action"
               , Props.onClick \event ->
                   doAction
-                    { this, event: MouseActionTrigger event }
+                    { this, actionTrigger: MouseActionTrigger event, mb_queryResult: Nothing }
                     action
               ]
                 <> maybeArray (unwrap action).tooltip Props.title
@@ -195,97 +195,4 @@ renderPalette this env =
               <$> (unwrap action).shortcuts
           ]
     ]
-
-{-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -1,18 +1,22 @@
 module Language.Shape.Stlc.Key where
 
 import Prelude
+import Data.Array as Array
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
+import Unsafe (error)
 
 newtype Key
   = Key String
 
 instance showKey :: Show Key where
-  show (Key str) = case String.split (Pattern " ") str of
-    [ base ] -> showBaseKey base
-    [ mod, base ] -> showModKey mod <> showBaseKey base
-    _ -> str
+  show (Key str) = Array.intercalate "" (showModKey <$> mods) <> showBaseKey base
     where
+    { init: mods, last: base } = case Array.unsnoc $ String.split (Pattern " ") str of
+      Just res -> res
+      Nothing -> error $ "the following string is not a valid encoding for a Key: " <> str
+
     showBaseKey = case _ of
       "Escape" -> "ESC"
       "Enter" -> "↩"
@@ -21,6 +25,7 @@ instance showKey :: Show Key where
       "ArrowUp" -> "▲"
       "ArrowDown" -> "▼"
       "Tab" -> "⇥"
+      "Backspace" -> "⌫"
       base -> base
 
     showModKey = case _ of
@@ -35,7 +40,7 @@ derive newtype instance ordKey :: Ord Key
 
 keys :: _
 keys =
-  { dig: [ Key "Ctrl d" ]
+  { dig: [ Key "Ctrl d", Key "Ctrl Backspace" ]
   -- lambda: l
   , lambda: [ Key "Ctrl l" ]
   , unlambda: [ Key "Ctrl Shift l", Key "Backspace" ]

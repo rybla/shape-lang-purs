@@ -23,7 +23,7 @@ propsClickDragDrop this props =
         pure
           $ Props.onClick \event ->
               doAction
-                { event: MouseActionTrigger event, this }
+                { actionTrigger: MouseActionTrigger event, this, mb_queryResult: Nothing }
                 (select (toIxDown ix))
     -- dragging and dropping
     , case props.syntax of
@@ -34,7 +34,7 @@ propsClickDragDrop this props =
                 [ Props.onMouseDown \event -> do
                     stopPropagation event
                     doAction
-                      { event: MouseActionTrigger event, this }
+                      { actionTrigger: MouseActionTrigger event, this, mb_queryResult: Nothing }
                       ( startDrag
                           { dragMode:
                               { alpha: fromJust props.alpha
@@ -47,7 +47,7 @@ propsClickDragDrop this props =
                 -- stop drag (drop)
                 , Props.onMouseUp \event -> do
                     doAction
-                      { event: MouseActionTrigger event, this }
+                      { actionTrigger: MouseActionTrigger event, this, mb_queryResult: Nothing }
                       ( submitDrag
                           { ix: toIxDown ix
                           , gamma: props.gamma

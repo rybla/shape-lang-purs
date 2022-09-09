@@ -16,7 +16,7 @@ import Prelude
 import Prim hiding (Type)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (runExcept)
-import Control.Monad.Reader (ask, runReaderT)
+import Control.Monad.Reader (ask, asks, runReaderT)
 import Control.Monad.State (get, modify, runState, runStateT)
 import Data.Default (default)
 import Data.Either (Either(..))
@@ -36,13 +36,12 @@ import Unsafe (error)
 import Web.Event.Event as Web
 
 -- | The only way an `Action` should be performed.
-doAction :: { this :: This, event :: ActionTrigger } -> Action -> Effect Unit
-doAction { this, event } (Action action) = do
-  -- doTransition { this, event } (unwrap act).transition
+doAction :: { this :: This, actionTrigger :: ActionTrigger, mb_queryResult :: Maybe QueryResult } -> Action -> Effect Unit
+doAction { this, actionTrigger, mb_queryResult } (Action action) = do
   Console.log "+---------------------------------------------------------------"
   Console.log $ "action: " <> action.label
   state <- getState this
-  case event of
+  case actionTrigger of
     KeyboardActionTrigger e -> do
       React.stopPropagation e
       React.preventDefault e
@@ -52,7 +51,7 @@ doAction { this, event } (Action action) = do
     WebActionTrigger e -> do
       Web.stopPropagation e
       Web.preventDefault e
-  void case runExcept (flip runStateT state (flip runReaderT event action.effect)) of
+  void case runExcept (flip runStateT state (flip runReaderT { actionTrigger, mb_queryResult } action.effect)) of
     Left err -> Console.log $ "[!] transition failure: " <> err
     Right (_ /\ state') -> do
       modifyState this \_ -> state'
@@ -134,6 +133,23 @@ copy { clipboard } =
     , queryable: true
     , shortcuts: [ ActionShortcut_Keypress keys.copy ]
     , effect: setClipboard clipboard
+    }
+
+enarrow type_ =
+  Action
+    { label: "enarrow"
+    , tooltip: makeExampleTooltip "wrap a type with an arrow (on the left)" "A" "? -> A"
+    , queryable: true
+    , shortcuts: [ ActionShortcut_Keypress keys.lambda ]
+    , effect:
+        do
+          selMode <- requireSelectMode
+          let
+            holeType = freshHoleType unit
+          applyChange
+            { ix: selMode.ix
+            , toReplace: ReplaceType (ArrowType { dom: holeType, cod: type_, meta: default }) (InsertArg holeType)
+            }
     }
 
 unarrow { args } =
@@ -542,12 +558,12 @@ editTypeBind { args, name } =
     , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
-          event <- ask
+          actionTrigger <- asks _.actionTrigger
           state <- get
           selMode <- requireSelectMode
-          e <- case event of
+          e <- case actionTrigger of
             WebActionTrigger e -> pure e
-            _ -> throwError "wrong kind of event"
+            _ -> throwError "wrong kind of actionTrigger"
           name <-
             maybeActionM "invalid name modification"
               $ handleKeytype_Name e name
@@ -574,10 +590,10 @@ editTermBind { args, name } =
     , shortcuts: [ ActionShortcut_Keytype ]
     , effect:
         do
-          event <- ask
+          actionTrigger <- asks _.actionTrigger
           state <- get
           selMode <- requireSelectMode
-          e <- case event of
+          e <- case actionTrigger of
             WebActionTrigger e -> pure e
             _ -> throwError "edit termBind must be spawned by an Event"
           name <-
@@ -712,7 +728,7 @@ nextQueryOption =
     , tooltip: Nothing
     , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.nextQueryOption ]
-    , effect: ?modifyQueryIndex (_ + 1)
+    , effect: modifyQueryIndex (_ - 1)
     }
 
 prevQueryOption =
@@ -721,7 +737,7 @@ prevQueryOption =
     , tooltip: Nothing
     , queryable: false
     , shortcuts: [ ActionShortcut_Keypress keys.prevQueryOption ]
-    , effect: ?modifyQueryIndex (_ - 1)
+    , effect: modifyQueryIndex (_ + 1)
     }
 
 fillVar { env, type_, termId } =

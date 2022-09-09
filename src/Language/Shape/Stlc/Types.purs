@@ -115,6 +115,9 @@ newtype Action
   , effect :: ActionM Unit
   }
 
+type QueryResult
+  = { action :: Action, n :: Int }
+
 type Tooltip
   = Maybe String
 
@@ -141,7 +144,16 @@ data ActionTrigger
   | WebActionTrigger Event
 
 type ActionM a
-  = ReaderT ActionTrigger (StateT State (ExceptT String Identity)) a
+  = ReaderT
+      { actionTrigger :: ActionTrigger
+      , mb_queryResult :: Maybe { action :: Action, n :: Int }
+      }
+      ( StateT State
+          ( ExceptT String
+              Identity
+          )
+      )
+      a
 
 maybeActionM :: forall a. String -> Maybe a -> ActionM a
 maybeActionM err = case _ of

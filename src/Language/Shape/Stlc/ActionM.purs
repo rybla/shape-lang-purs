@@ -11,18 +11,19 @@ import Language.Shape.Stlc.Syntax
 import Language.Shape.Stlc.Types
 import Prelude
 import Prim hiding (Type)
+
 import Control.Monad.Error.Class (throwError)
-import Control.Monad.Reader (ask)
-import Control.Monad.State (get, modify)
+import Control.Monad.Reader (asks)
+import Control.Monad.State (get, gets, modify)
 import Data.Array ((:))
 import Data.Array as Array
 import Data.Default (default)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Traversable (traverse_)
+import Data.Traversable (traverse, traverse_)
 import Debug as Debug
 import Effect (Effect)
-import Language.Shape.Stlc.CopyPasteBackend (createNeu, fitsInHole)
+import Language.Shape.Stlc.CopyPasteBackend (changesBetweenContexts, createNeu, fitsInHole)
 import Language.Shape.Stlc.Event.KeyboardEvent (handleKeytype_String)
 import Language.Shape.Stlc.Rendering.Highlight (setHighlight)
 import Language.Shape.Stlc.Syntax.Modify (modifySyntaxAt)
@@ -147,8 +148,17 @@ startDrag dragMode = do
     _ -> throwError "requires top mode or select mode"
   setMode (DragMode dragMode)
 
+subProgram :: HoleSub -> ActionM Unit
+subProgram holeSub = do
+  program <- gets _.program
+  setProgramInPlace
+    program
+      { type_ = subType holeSub program.type_
+      , term = subTerm holeSub program.term
+      }
+
 submitDrag :: IxDown -> Context -> Type -> Term -> ActionM Unit
-submitDrag ix _gamma alpha term = do
+submitDrag ix gamma alpha term = do
   dragMode <- requireDragMode
   ----
   unless (isSuperIxDown dragMode.ix ix) do
@@ -157,28 +167,23 @@ submitDrag ix _gamma alpha term = do
         Nothing -> do
           -- doesn't fit into hole
           pure unit
-        Just (nArgs /\ _holeSub) -> do
-          -- TODO: use holeSub
+        Just (nArgs /\ holeSub) -> do
           case unsnocIxDown ix of
             -- at impl of a buf, so replace buf with its bod
             Just { ix: ix', step }
-              | step == ixStepBuf.impl ->
-                void
-                  $ modify \state ->
-                      state
-                        { program
-                          { term =
-                            fromJust
-                              $ toTerm
-                              =<< modifySyntaxAt
-                                  ( case _ of
-                                      SyntaxTerm (Buf buf) -> Just (SyntaxTerm buf.body)
-                                      _ -> Nothing
-                                  )
-                                  ix'
-                                  (SyntaxTerm state.program.term)
-                          }
-                        }
+              | step == ixStepBuf.impl -> do
+                state <- get
+                setTermInPlace
+                  $ fromJust
+                  $ toTerm
+                  =<< modifySyntaxAt
+                      ( case _ of
+                          SyntaxTerm (Buf buf) -> Just (SyntaxTerm buf.body)
+                          _ -> Nothing
+                      )
+                      ix'
+                      (SyntaxTerm state.program.term)
+                subProgram holeSub
             -- otherwise, just dig
             _ ->
               applyChange
@@ -191,12 +196,15 @@ submitDrag ix _gamma alpha term = do
             throwError "unimplemented: dropping a term into a hole that requires more arguments"
           setMode (TopMode {})
       _term -> do
-        -- TODO: mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
         -- dig dragged term from its original index
         applyChange
           { ix: dragMode.ix
           , toReplace: ReplaceTerm (Hole { meta: default }) NoChange
           }
+        -- TODO: mapM_ (doChange this) $ changesBetweenContexts props.gamma gamma' 
+        -- let changes = changesBetweenContexts gamma dragMode.gamma
+        -- something like `foldr chTerm changes`
+        
         -- wrap the drop location in a buffer, and put the dropped term in the buffer
         -- BUG: need to dig the dragged term from `term`
         applyChange
@@ -216,12 +224,9 @@ submitDrag ix _gamma alpha term = do
         setMode (TopMode {})
 
 pasteDatatype holeType typeId = do
-  state <- get
   void $ requireSelectMode
   holeSub <- pure $ Map.singleton holeType.holeId (DataType { typeId, meta: default })
-  term <- pure $ subTerm holeSub state.program.term
-  type_ <- pure $ subType holeSub state.program.type_
-  setProgramInPlace { term, type_ }
+  subProgram holeSub
 
 pasteMatch data_ typeId = do
   selMode <- requireSelectMode
@@ -253,11 +258,17 @@ pasteVar env type_ termId = do
     maybeActionM "variable doesn't fit in hole"
       $ fitsInHole type_ alpha
   term <- pure $ createNeu termId nArgs
-  -- TODO: do I actually need to do the holeSub? or does that happen automatically via applyChange?
   applyChange
     { ix: selMode.ix
     , toReplace: ReplaceTerm term NoChange
     }
+  -- apply holesub
+  program <- gets _.program
+  setProgramInPlace
+    program
+      { type_ = subType holeSub program.type_
+      , term = subTerm holeSub program.term
+      }
 
 -- | You can only edit queries at a hole.
 editQuery :: ActionM Unit
@@ -268,7 +279,7 @@ editQuery = do
     -- if we don't have a query in progress, treat it as an empty string
     Nothing -> pure ("" /\ 0)
   e <-
-    ask
+    asks _.actionTrigger
       >>= case _ of
           WebActionTrigger e -> pure e
           _ -> throwError "editQuery expects a WebActionTrigger"
@@ -286,9 +297,17 @@ updateQuery = pure unit -- TODO
 modifyQueryIndex :: (Int -> Int) -> ActionM Unit
 modifyQueryIndex f = do
   selMode <- requireSelectMode
-  case selMode.mb_query of
-    Just query -> setMode (SelectMode selMode { mb_query = Just query { i = f query.i `mod` ?a } })
-    Nothing -> pure unit 
+  query <-
+    maybeActionM "modifyQueryIndex requires a working query"
+      $ selMode.mb_query
+  n <-
+    maybeActionM "modifyQueryIndex requires a query result"
+      =<< asks (map _.n <<< _.mb_queryResult)
+  -- asks _.mb_queryResult
+  --   >>= case _ of
+  --       Just queryResult -> pure queryResult.n
+  --       Nothing -> throwError "modifyQueryIndex requires a query result"
+  setMode (SelectMode selMode { mb_query = Just query { i = f query.i `mod` n } })
 
 escapeQuery :: ActionM Unit
 escapeQuery = do

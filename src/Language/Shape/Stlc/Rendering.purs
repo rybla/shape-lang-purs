@@ -52,7 +52,7 @@ programComponent this = do
       case handleKey env event of
         Just action ->
           doAction
-            { this, event: WebActionTrigger event }
+            { this, actionTrigger: WebActionTrigger event, mb_queryResult: env.mb_queryResult }
             action
         Nothing -> pure unit
 
